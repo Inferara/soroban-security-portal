@@ -1,0 +1,7 @@
+services:
+  soroban-security-portal-api:
+    image: soroban-security-portal-api-local
+    build:
+      context: .
+      dockerfile: SorobanSecurityPortalApi/Dockerfile
+    pull_policy: build

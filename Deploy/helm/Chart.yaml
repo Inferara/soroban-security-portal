@@ -1,0 +1,10 @@
+apiVersion: v2
+description: SorobanSecurityPortal Service, helm chart to deploy in Kubernetes.
+type: application
+name: sorobansecurityportal
+version: 1.0.0
+appVersion: 1.0.0
+kubeVersion: ">=1.16.0-0"
+dependencies:
+  - name: api
+    version: 1.0.0

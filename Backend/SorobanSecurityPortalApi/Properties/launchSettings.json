@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:7878",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "FEATURE_TAGGING": "True",
+        "FEATURE_SETTINGS": "True",
+        "FEATURE_SPENTMANAGEMENT": "True",
+        "FEATURE_SPEECHTOTEXT": "True"
+      }
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

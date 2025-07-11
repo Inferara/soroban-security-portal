@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "{{ .Values.global.environment.namespace }}"
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui-ip"
+spec:
+  selector:
+    app: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui"
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80

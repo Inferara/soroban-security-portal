@@ -1,0 +1,14 @@
+.mainWindowUserMenu {
+    display: flex;
+    flex-direction: column;
+    align-items: right;
+    justify-content: right;
+    padding: 10px;
+
+}
+
+.mainWindowMain {
+    position: relative;
+    padding: 0 !important;
+    margin: 24px;
+}

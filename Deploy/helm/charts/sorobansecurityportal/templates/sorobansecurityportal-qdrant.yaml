@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+spec:
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant"
+  serviceName: "{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant"
+          image: "qdrant/qdrant:v1.14.1"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 6333
+          volumeMounts:
+            - mountPath: /qdrant/storage
+              name: "{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant-disk"
+  volumeClaimTemplates:
+    - metadata:
+        name: "{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant-disk"
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "{{ .Values.qdrant.storage.storageClassName }}"
+        resources:
+          requests:
+            storage: "{{ .Values.qdrant.storage.size }}"

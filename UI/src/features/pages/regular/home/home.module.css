@@ -1,0 +1,6 @@
+.highlight {
+  background: var(--highlight-bg, #f0f8ff);
+  padding: 10px;
+  border-radius: 5px;
+  border-left: 4px solid var(--highlight-border, #1976d2);
+} 

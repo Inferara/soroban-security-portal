@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-redis"
+spec:
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-sorobansecurityportal-redis"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-sorobansecurityportal-redis"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-redis"
+          image: redis:8.0.2
+          args: ["redis-server", "--requirepass", "{{ .Values.global.redis.password }}", "--save", "", "--appendonly", "no", "--loglevel", "warning"]
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 6379

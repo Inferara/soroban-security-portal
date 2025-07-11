@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-sorobansecurityportal-api"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-sorobansecurityportal-api"
+        env: "{{ .Values.global.environment.namespace }}"
+        build: "{{ .Values.global.app.build }}"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api"
+          image: "{{ .Values.global.containerRegistry.name }}/soroban-security-portal:{{ .Values.global.sorobansecurityportal.service.tag }}"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DBUSER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-secret"
+                  key: userName
+            - name: DBPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-secret"
+                  key: password
+          envFrom:
+            - configMapRef:
+                name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-config"
+          imagePullPolicy: "{{ .Values.global.containerRegistry.imagePullPolicy }}"

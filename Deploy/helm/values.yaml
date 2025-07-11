@@ -1,0 +1,20 @@
+global:
+  app:
+    name: sorobansecurityportal
+    build: 3
+    domain: ""
+    logLevel: Information
+  containerRegistry:
+    dockerConfig: ""
+    name: docker.io/georgii4inferara
+    imagePullPolicy: Always
+  environment:
+    namespace: sorobansecurityportal-ns
+    name: sorobansecurityportal
+  sorobansecurityportal:
+    service:
+      tag: "latest"
+      
+  redis:
+    user: "admin@sorobansecurity.com"
+    password: "SorobanIsTheBest!1"

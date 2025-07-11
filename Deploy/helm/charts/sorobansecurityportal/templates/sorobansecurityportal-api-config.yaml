@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-config"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+data:
+  ASPNETCORE_URLS: "http://+:{{ .Values.sorobansecurityportal.containerPort }}"
+  ENVNAME: "{{ .Values.global.environment.name }}"
+  Logging__LogLevel__Default: "{{ .Values.global.app.logLevel }}"
+
+  DBSERVER: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-loadbalancer"
+  DBPORT: "5432"
+
+  DBNAME: "{{ .Values.postgres.dbName }}"
+  DBTIMEOUT: "30000"
+  DBPGPOOLSIZE: "30"
+  DBCONNECTIONTIMEOUT: "300"
+
+  QDRANTURL: "http://{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant-loadbalancer:6333"
+  TOKENEXPIRATIONTIMEMINUTES: "60"
+  AUTHISSUER: "SorobanSecurityPortal"
+  AUTHAUDIENCE: "SorobanSecurityPortalClient"
+
+  {{ if .Values.sorobansecurityportal.auth.securityKey }}
+  AUTHSECURITYKEY: "{{ .Values.sorobansecurityportal.auth.securityKey }}"
+  {{ else }}
+  AUTHSECURITYKEY: {{ randAlphaNum 32 }}
+  {{ end }}
+
+
+  PROXY: "{{ .Values.sorobansecurityportal.proxy }}"
+  NAMESPACE_ID: "{{ .Values.global.environment.namespace }}"
+  SERVICE_ID: "{{ .Values.global.environment.name }}-sorobansecurityportal"
+
+  APPURL: "https://{{ .Values.global.app.domain }}/api/v1"
+
+  LOGLEVEL: "Error"
+  AUTOCOMPACTLARGEOBJECTHEAP: "true"
+  DISTRIBUTEDCACHEURL: "{{ .Values.global.environment.name }}-sorobansecurityportal-redis-ip:6379"
+  DISTRIBUTEDCACHEPASSWORD: "{{ .Values.global.redis.password }}"
+  GOOGLECLIENTID: "{{ .Values.google.clientId }}"
+  GOOGLECLIENTSECRET: "{{ .Values.google.clientSecret }}"

@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui"
+        env: "{{ .Values.global.environment.namespace }}"
+        build: "{{ .Values.global.app.build }}"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui"
+          image: "{{ .Values.global.containerRegistry.name }}/soroban-security-portal-ui:{{ .Values.global.sorobansecurityportal.service.tag }}"
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui-config"
+          imagePullPolicy: "{{ .Values.global.containerRegistry.imagePullPolicy }}"

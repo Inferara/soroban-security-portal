@@ -1,0 +1,13 @@
+.leftMenuLogo {
+    max-width: 150px;
+    margin: 10px;
+}
+
+.leftMenuTopSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+
+}

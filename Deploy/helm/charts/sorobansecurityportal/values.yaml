@@ -1,0 +1,28 @@
+loadbalancertype: ClusterIP
+
+qdrant:
+  storage:
+    storageClassName: "local-path"
+    size: "5Gi"
+
+postgres:
+  storageClassName: "local-path"
+  storageSize: 5Gi
+  dbName: "sorobansecurityportaldb"
+  userName: "admin@sorobansecurity.com"
+  password: "default"
+
+redis:
+  user: ""
+  password: ""
+
+sorobansecurityportal:
+  containerPort: 8080
+  proxy:
+  auth:
+    tokenExpirationMinutes: "60"
+    securityKey: ""
+
+google:
+  clientId: ""
+  clientSecret: ""
