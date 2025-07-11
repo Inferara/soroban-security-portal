@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "{{ .Values.global.environment.namespace }}"
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-loadbalancer"
+spec:
+  selector:
+    app: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres"
+  type: {{ .Values.loadbalancertype }}
+  ports:
+    - port: 5432
+      targetPort: 5432

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres"
+spec:
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres"
+  serviceName: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres"
+          image: postgres:16.1
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-secret"
+                  key: userName
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-secret"
+                  key: password
+          envFrom:
+            - configMapRef:
+                name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-config"
+          volumeMounts:
+            - mountPath: "/data"
+              name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-disk"              
+  volumeClaimTemplates:
+    - metadata:
+        name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-disk"
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "{{ .Values.postgres.storageClassName }}"
+        resources:
+          requests:
+            storage: "{{ .Values.postgres.storageSize }}"

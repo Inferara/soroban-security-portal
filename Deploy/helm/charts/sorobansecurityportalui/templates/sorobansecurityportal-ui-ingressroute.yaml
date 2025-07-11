@@ -1,0 +1,20 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui-ingressroute"
+spec:
+  entryPoints:
+  - websecure
+  tls:
+    secretName: "{{ .Values.global.environment.name }}-ui-ingress-tls"
+    domains:
+    - main: {{ .Values.global.app.domain }}
+      sans:
+      - {{ .Values.global.app.domain }}
+  routes:
+  - kind: Rule
+    match: Host(`{{ .Values.global.app.domain }}`) && PathPrefix(`/`)
+    services:
+    - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-ui-ip"
+      port: 80

@@ -1,0 +1,131 @@
+.tags-root-container {
+  display: inline-flex;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+  margin: 0;
+  box-sizing: inherit;
+  border: 0;
+}
+
+/* Input Wrapper Styles */
+.tags-input-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 1px;
+  border-radius: 4px;
+  background-color: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tags-input-wrapper input {
+  flex-grow: 1;
+  min-width: 30px;
+  height: 20px;
+  background-color: white;
+  color: rgba(0, 0, 0, 0.85);
+  border: 0;
+  outline: 0;
+  box-sizing: border-box;
+  margin: 0;
+  width: 0;
+}
+
+/* Input wrapper: Focus, Hover, Disabled states */
+.tags-input-wrapper:hover {
+  border-color: #40a9ff;
+}
+
+.tags-input-wrapper.focused {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.tags-input-wrapper.disabled,
+.tags-input-wrapper:hover.disabled,
+.tags-input-wrapper.focused.disabled {
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+/* Individual Tag Styles */
+.tag-item {
+  display: flex;
+  align-items: center;
+  padding: 0 4px 0 10px;
+  margin: 2px;
+  height: 24px;
+  line-height: 22px;
+  border-radius: 12px;
+  background-color: #fafafa;
+  border: 1px solid #e8e8e8;
+  box-sizing: content-box;
+  overflow: hidden;
+}
+
+.tag-item.disabled {
+  padding: 0 10px;
+}
+
+.tag-item:focus {
+  border-color: #40a9ff;
+  background-color: #e6f7ff;
+}
+
+.tag-item span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tag-item svg {
+  font-size: 12px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+/* Dropdown Menu (Available Tags) */
+.tags-available {
+  position: absolute;
+  max-height: 250px;
+  max-width: 500px;
+  margin-top: 2px;
+  padding: 0;
+  list-style: none;
+  background-color: white;
+  border-radius: 4px;
+  overflow: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1;
+}
+
+.tags-available li {
+  display: flex;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.tags-available li span {
+  flex-grow: 1;
+}
+
+.tags-available li svg {
+  color: transparent;
+}
+
+.tags-available li[aria-selected='true'] {
+  background-color: #fafafa;
+  font-weight: 600;
+}
+
+.tags-available li[aria-selected='true'] svg {
+  color: #1890ff;
+}
+
+.tags-available li.Mui-focused {
+  background-color: #e6f7ff;
+}
+
+.tags-available li.Mui-focused svg {
+  color: currentColor;
+}

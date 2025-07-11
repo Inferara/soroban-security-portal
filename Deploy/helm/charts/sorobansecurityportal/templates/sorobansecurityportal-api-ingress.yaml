@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ingress"
+  annotations:
+    cert-manager.io/cluster-issuer: "{{ .Values.global.environment.name }}-letsencrypt-issuer"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - {{ .Values.global.app.domain }}
+    secretName: "{{ .Values.global.environment.name }}-ingress-tls"
+  rules:
+  - host: "{{ .Values.global.app.domain }}"
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
+            port:
+              number: 8080

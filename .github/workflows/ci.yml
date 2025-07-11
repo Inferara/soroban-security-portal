@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (use "latest" for default environment)'
+        required: false
+        default: 'test'
+      appVersion:
+        description: 'Application version'
+        required: false
+        default: '0.0.1'
+      branch:
+        description: 'Branch to use'
+        required: false
+        default: 'main'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.3
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v3
+        with:
+          context: Backend
+          file: Backend/Dockerfile
+          push: true
+          tags: |
+            georgii4inferara/soroban-security-portal:1.0.${{ github.run_number }}
+            georgii4inferara/soroban-security-portal:${{ inputs.tag }}
+
+      - name: Build and push UI image
+        uses: docker/build-push-action@v3
+        with:
+          context: UI
+          file: UI/Dockerfile
+          push: true
+          tags: |
+            georgii4inferara/soroban-security-portal-ui:1.0.${{ github.run_number }}
+            georgii4inferara/soroban-security-portal-ui:${{ inputs.tag }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Package and push Helm chart
+        run: |
+          # Compute versions
+          buildVersion="1.0.${{ github.run_number }}"
+          valuesFile="Deploy/helm/values.yaml"
+
+          # Update tag in values.yaml
+          sed -i 's/tag: .*/tag: \"'"$buildVersion"'\"/' $valuesFile
+
+          # Package and push
+          helm package Deploy/helm/ --app-version ${{ inputs.appVersion }} --version $buildVersion
+          helm push sorobansecurityportal-"$buildVersion".tgz oci://registry-1.docker.io/georgii4inferara
