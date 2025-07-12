@@ -42,7 +42,7 @@ spec:
         name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-disk"
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: "{{ .Values.postgres.storageClassName }}"
+        storageClassName: "{{ .Values.global.postgres.storageClassName }}"
         resources:
           requests:
-            storage: "{{ .Values.postgres.storageSize }}"
+            storage: "{{ .Values.global.postgres.storageSize }}"

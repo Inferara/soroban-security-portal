@@ -26,7 +26,7 @@ import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
-import { VulnerabilityCategory, VulnerabilityProject, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { VulnerabilityCategory, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from '../../../../api/soroban-security-portal/models/vulnerability';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import ReactMarkdown from 'react-markdown';
@@ -37,7 +37,8 @@ import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
 import rehypeHighlight from 'rehype-highlight';
 import { useEffect } from 'react';
-
+import { ProjectItem } from '../../../../api/soroban-security-portal/models/project';
+import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -47,14 +48,15 @@ export const Vulnerabilities: FC = () => {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [severities, setSeverities] = useState<VulnerabilityCategory[]>([]);
   const [categories, setCategories] = useState<VulnerabilityCategory[]>([]);
-  const [projects, setProjects] = useState<VulnerabilityCategory[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [auditors, setAuditors] = useState<AuditorItem[]>([]);
   const [sources, setSources] = useState<VulnerabilityCategory[]>([]);
   const [sortBy] = useState<'date' | 'severity'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [collapsedDescriptions, setCollapsedDescriptions] = useState<Set<string>>(new Set());
 
-  const { severitiesList, categoriesList, projectsList, sourceList, vulnerabilitiesList, searchVulnerabilities } = useVulnerabilities();
+  const { severitiesList, categoriesList, projectsList, auditorsList, sourceList, vulnerabilitiesList, searchVulnerabilities } = useVulnerabilities();
   const auth = useAuth();
   const navigate = useNavigate();
   const canAddVulnerability = (auth: AuthContextProps) => 
@@ -102,6 +104,7 @@ export const Vulnerabilities: FC = () => {
       severities: severities.map(s => s.name),
       categories: categories.map(c => c.name),
       projects: projects.map(p => p.name),
+      auditors: auditors.map(a => a.name),
       sources: sources.map(s => s.name),
       searchText: search,
       from: startDate?.toISOString().split('T')[0] || '',
@@ -133,202 +136,228 @@ export const Vulnerabilities: FC = () => {
         </Box>
         {/* Filters and search */}
         <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 10, width: '100%', alignItems: 'center' }}>
-            <TextField
-              size="small"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search"
-              sx={{ minWidth: 800 }}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <DatePicker
-              label="Start Date"
-              value={startDate}
-              onChange={(newValue) => setStartDate(newValue)}
-              slotProps={{
-                textField: {
-                  size: 'small',
-                  sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
-                }
-              }}
-            />
-            <DatePicker
-              label="End Date"
-              value={endDate}
-              onChange={(newValue) => setEndDate(newValue)}
-              slotProps={{
-                textField: {
-                  size: 'small',
-                  sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
-                }
-              }}
-            />
-            <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <IconButton
-                onClick={toggleSortDirection}
-                sx={{ 
-                  border: 1, 
-                  borderColor: 'divider',
-                  transform: sortDir === 'asc' ? 'rotate(180deg)' : 'none',
-                  transition: 'transform 0.2s'
-                }}
-              >
-                <SwapVertIcon />
-              </IconButton>
-              <Typography variant="body2" color="text.secondary" sx={{ width: '30px', fontSize: '1.2rem' }}>
-                {sortDir === 'desc' ? '↓' : '↑'}
-              </Typography>
-            </span>
+          <TextField
+            size="small"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search"
+            sx={{ minWidth: 800 }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <DatePicker
+            label="Start Date"
+            value={startDate}
+            onChange={(newValue) => setStartDate(newValue)}
+            slotProps={{
+              textField: {
+                size: 'small',
+                sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
+              }
+            }}
+          />
+          <DatePicker
+            label="End Date"
+            value={endDate}
+            onChange={(newValue) => setEndDate(newValue)}
+            slotProps={{
+              textField: {
+                size: 'small',
+                sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
+              }
+            }}
+          />
+          <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <IconButton
-              onClick={toggleFilters}
+              onClick={toggleSortDirection}
               sx={{ 
                 border: 1, 
                 borderColor: 'divider',
-                bgcolor: showFilters ? 'primary.main' : 'transparent',
-                color: showFilters ? 'white' : 'inherit',
-                '&:hover': {
-                  bgcolor: showFilters ? 'primary.dark' : 'action.hover'
-                }
+                transform: sortDir === 'asc' ? 'rotate(180deg)' : 'none',
+                transition: 'transform 0.2s'
               }}
             >
-              <FilterListIcon />
+              <SwapVertIcon />
             </IconButton>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
-              onClick={() => { callSearch(); }}
-            >
-              Search
-            </Button>
-          </div>
-          {showFilters && (
-            <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-              <Autocomplete
-                multiple
-                options={severitiesList}
-                value={severities}
-                onChange={(_, newValue) => setSeverities(newValue as VulnerabilityCategory[])}
-                getOptionLabel={(option) => (option as VulnerabilitySeverity).name}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Severity"
-                    size="small"
-                    sx={{ minWidth: 290 }}
-                  />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={index}
-                      label={(option as VulnerabilitySeverity).name}
+            <Typography variant="body2" color="text.secondary" sx={{ width: '30px', fontSize: '1.2rem' }}>
+              {sortDir === 'desc' ? '↓' : '↑'}
+            </Typography>
+          </span>
+          <IconButton
+            onClick={toggleFilters}
+            sx={{ 
+              border: 1, 
+              borderColor: 'divider',
+              bgcolor: showFilters ? 'primary.main' : 'transparent',
+              color: showFilters ? 'white' : 'inherit',
+              '&:hover': {
+                bgcolor: showFilters ? 'primary.dark' : 'action.hover'
+              }
+            }}
+          >
+            <FilterListIcon />
+          </IconButton>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
+            onClick={() => { callSearch(); }}
+          >
+            Search
+          </Button>
+          <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+            {showFilters && (
+              <>
+                <Autocomplete
+                  multiple
+                  options={severitiesList}
+                  value={severities}
+                  onChange={(_, newValue) => setSeverities(newValue as VulnerabilityCategory[])}
+                  getOptionLabel={(option) => (option as VulnerabilitySeverity).name}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Severity"
                       size="small"
-                      sx={{
-                        bgcolor: (() => {
-                          switch ((option as VulnerabilitySeverity).name) {
-                            case 'Critical': return '#d32f2f';
-                            case 'High': return '#f57c00';
-                            case 'Medium': return '#fbc02d';
-                            case 'Low': return '#388e3c';
-                            default: return '#e0e0e0';
-                          }
-                        })(),
-                        color: '#F2F2F2',
-                        fontWeight: 700,
-                      }}
+                      sx={{ minWidth: 290 }}
                     />
-                  ))
-                }
-              />
-              <Autocomplete
-                multiple
-                options={categoriesList}
-                value={categories}
-                onChange={(_, newValue) => setCategories(newValue as VulnerabilityCategory[])}
-                getOptionLabel={(option) => (option as VulnerabilityCategory).name}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Category"
-                    size="small"
-                    sx={{ minWidth: 290 }}
-                  />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={index}
-                      label={(option as VulnerabilityCategory).name}
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={index}
+                        label={(option as VulnerabilitySeverity).name}
+                        size="small"
+                        sx={{
+                          bgcolor: (() => {
+                            switch ((option as VulnerabilitySeverity).name) {
+                              case 'Critical': return '#d32f2f';
+                              case 'High': return '#f57c00';
+                              case 'Medium': return '#fbc02d';
+                              case 'Low': return '#388e3c';
+                              default: return '#e0e0e0';
+                            }
+                          })(),
+                          color: '#F2F2F2',
+                          fontWeight: 700,
+                        }}
+                      />
+                    ))
+                  }
+                />
+                <Autocomplete
+                  multiple
+                  options={categoriesList}
+                  value={categories}
+                  onChange={(_, newValue) => setCategories(newValue as VulnerabilityCategory[])}
+                  getOptionLabel={(option) => (option as VulnerabilityCategory).name}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Category"
                       size="small"
-                      color="primary"
+                      sx={{ minWidth: 290 }}
                     />
-                  ))
-                }
-              />
-              <Autocomplete
-                multiple
-                options={projectsList}
-                value={projects}
-                onChange={(_, newValue) => setProjects(newValue as VulnerabilityCategory[])}
-                getOptionLabel={(option) => (option as VulnerabilityProject).name}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Project"
-                    size="small"
-                    sx={{ minWidth: 290 }}
-                  />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={index}
-                      label={(option as VulnerabilityProject).name}
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={index}
+                        label={(option as VulnerabilityCategory).name}
+                        size="small"
+                        color="primary"
+                      />
+                    ))
+                  }
+                />
+                <Autocomplete
+                  multiple
+                  options={projectsList}
+                  value={projects}
+                  onChange={(_, newValue) => setProjects(newValue as ProjectItem[])}
+                  getOptionLabel={(option) => (option as ProjectItem).name}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Project"
                       size="small"
-                      sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
+                      sx={{ minWidth: 290 }}
                     />
-                  ))
-                }
-              />
-              <Autocomplete
-                multiple
-                options={sourceList}
-                value={sources}
-                onChange={(_, newValue) => setSources(newValue as VulnerabilityCategory[])}
-                getOptionLabel={(option) => (option as VulnerabilitySource).name}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Source"
-                    size="small"
-                    sx={{ minWidth: 290 }}
-                  />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={index}
-                      label={(option as VulnerabilitySource).name}
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={index}
+                        label={(option as ProjectItem).name}
+                        size="small"
+                        sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
+                      />
+                    ))
+                  }
+                />
+                <Autocomplete
+                  multiple
+                  options={auditorsList}
+                  value={auditors}
+                  onChange={(_, newValue) => setAuditors(newValue as AuditorItem[])}
+                  getOptionLabel={(option) => (option as AuditorItem).name}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Auditor"
                       size="small"
-                      sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }}
+                      sx={{ minWidth: 290 }}
                     />
-                  ))
-                }
-              />
-            </div>
-          )}
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={index}
+                        label={(option as AuditorItem).name}
+                        size="small"
+                        sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
+                      />
+                    ))
+                  }
+                />                
+                <Autocomplete
+                  multiple
+                  options={sourceList}
+                  value={sources}
+                  onChange={(_, newValue) => setSources(newValue as VulnerabilityCategory[])}
+                  getOptionLabel={(option) => (option as VulnerabilitySource).name}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Source"
+                      size="small"
+                      sx={{ minWidth: 290 }}
+                    />
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={index}
+                        label={(option as VulnerabilitySource).name}
+                        size="small"
+                        sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }}
+                      />
+                    ))
+                  }
+                />
+              </>
+            )}
+          </Box>
         </Box>
       {/* Vulnerability cards */}
       <Grid container spacing={3}>
@@ -359,6 +388,7 @@ export const Vulnerabilities: FC = () => {
                 <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
                   <Chip label={vuln.categories.join(', ')} size="small" color="primary" />
                   <Chip label={vuln.project} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
+                  <Chip label={vuln.auditor} size="small" sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }} />
                   <Chip label={vuln.source} size="small" sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }} />
                 </Stack>
                 <ReactMarkdown

@@ -32,7 +32,7 @@ spec:
         name: "{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant-disk"
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: "{{ .Values.qdrant.storage.storageClassName }}"
+        storageClassName: "{{ .Values.global.qdrant.storage.storageClassName }}"
         resources:
           requests:
-            storage: "{{ .Values.qdrant.storage.size }}"
+            storage: "{{ .Values.global.qdrant.storage.size }}"

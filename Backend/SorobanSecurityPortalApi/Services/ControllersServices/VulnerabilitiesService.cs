@@ -56,18 +56,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return result;
         }
 
-        public async Task<List<IdValueUrl>> ListProjects()
-        {
-            var result = new List<IdValueUrl>
-            {
-                new IdValueUrl { Id = 1, Name = "SorobanToken", Url = "https://example.com/soroban-token" },
-                new IdValueUrl { Id = 2, Name = "DAOContract", Url = "https://example.com/dao-contract" },
-                new IdValueUrl { Id = 3, Name = "RewardsPool", Url = "https://example.com/rewards-pool" },
-                new IdValueUrl { Id = 4, Name = "EscrowX", Url = "https://example.com/escrow-x" },
-                new IdValueUrl { Id = 5, Name = "TimeLock", Url = "https://example.com/time-lock" }
-            };
-            return result;
-        }
 
         public async Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearch)
         {
@@ -124,7 +112,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<IdValue>> ListSeverities();
         Task<List<IdValue>> ListCategories();
         Task<List<IdValueUrl>> ListSources();
-        Task<List<IdValueUrl>> ListProjects();
         Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearch);
         Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerability);
         Task Approve(int vulnerabilityId);

@@ -30,7 +30,19 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     var to = DateTime.SpecifyKind(reportSearch.To.Value, DateTimeKind.Utc);
                     query = query.Where(v => v.Date < to);
                 }
-
+                if (!string.IsNullOrEmpty(reportSearch.Project))
+                {
+                    query = query.Where(x => x.Project == reportSearch.Project);
+                }
+                if (!string.IsNullOrEmpty(reportSearch.Auditor))
+                {
+                    query = query.Where(x => x.Auditor == reportSearch.Auditor);
+                }
+                if (!string.IsNullOrEmpty(reportSearch.SearchText))
+                {
+                    query = query.OrderByDescending(v =>
+                        TrigramExtensions.TrigramSimilarity(v.Name, reportSearch.SearchText) * 5 + TrigramExtensions.TrigramSimilarity(v.MdFile, reportSearch.SearchText));
+                }
                 if (!string.IsNullOrEmpty(reportSearch.SearchText))
                 {
                     query = query.OrderByDescending(v =>
@@ -60,7 +72,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 Status = v.Status,
                 Author = v.Author,
                 LastActionBy = v.LastActionBy,
-                LastActionAt = v.LastActionAt
+                LastActionAt = v.LastActionAt,
+                Auditor = v.Auditor,
+                Project = v.Project,
             });
             return await query.ToListAsync();
         }

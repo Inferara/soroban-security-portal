@@ -2,24 +2,27 @@ import { useEffect, useState } from 'react';
 import { 
   getSeveritiesCall, 
   getCategoriesCall, 
-  getProjectsCall, 
+  getProjectListDataCall, 
   getSourceCall, 
   addVulnerabilityCall, 
+  getAuditorListDataCall,
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppDispatch } from '../../../../../app/hooks';
 import { 
   Vulnerability,
   VulnerabilityCategory, 
-  VulnerabilityProject, 
   VulnerabilitySeverity, 
   VulnerabilitySource, 
 } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { ProjectItem } from '../../../../../api/soroban-security-portal/models/project';
+import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 
 export const useVulnerabilityAdd = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
   const [categoriesList, setCategoriesList] = useState<VulnerabilityCategory[]>([]);
-  const [projectsList, setProjectsList] = useState<VulnerabilityProject[]>([]);
+  const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
   const [sourceList, setSourceList] = useState<VulnerabilitySource[]>([]);
+  const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
   const dispatch = useAppDispatch();
 
   const getSeverities = async (): Promise<void> => {
@@ -33,8 +36,13 @@ export const useVulnerabilityAdd = () => {
   };
 
   const getProjects = async (): Promise<void> => {
-    const response = await getProjectsCall();
+    const response = await getProjectListDataCall();
     setProjectsList(response);
+  };
+
+  const getAuditors = async (): Promise<void> => {
+    const response = await getAuditorListDataCall();
+    setAuditorsList(response);
   };
 
   const getSource = async (): Promise<void> => {
@@ -52,6 +60,7 @@ export const useVulnerabilityAdd = () => {
     void getSeverities();
     void getCategories();
     void getProjects();
+    void getAuditors();
     void getSource();
   }, [dispatch]);
 
@@ -59,6 +68,7 @@ export const useVulnerabilityAdd = () => {
     severitiesList,
     categoriesList,
     projectsList,
+    auditorsList,
     sourceList,
     addVulnerability,
   };

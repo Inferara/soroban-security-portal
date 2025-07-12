@@ -23,6 +23,40 @@ namespace SorobanSecurityPortalApi.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.AuditorModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_auditor");
+
+                    b.ToTable("auditor");
+                });
+
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ClientSsoModel", b =>
                 {
                     b.Property<int>("ClientSsoId")
@@ -219,7 +253,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         new
                         {
                             LoginId = 1,
-                            Created = new DateTime(2025, 7, 10, 15, 44, 0, 718, DateTimeKind.Utc).AddTicks(2391),
+                            Created = new DateTime(2025, 7, 11, 17, 5, 9, 633, DateTimeKind.Utc).AddTicks(641),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -232,6 +266,40 @@ namespace SorobanSecurityPortalApi.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProjectModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_project");
+
+                    b.ToTable("project");
+                });
+
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ReportModel", b =>
                 {
                     b.Property<int>("Id")
@@ -240,6 +308,10 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auditor")
+                        .HasColumnType("text")
+                        .HasColumnName("auditor");
 
                     b.Property<string>("Author")
                         .IsRequired()
@@ -276,6 +348,10 @@ namespace SorobanSecurityPortalApi.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
+
+                    b.Property<string>("Project")
+                        .HasColumnType("text")
+                        .HasColumnName("project");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -348,6 +424,11 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auditor")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("auditor");
 
                     b.Property<string>("Author")
                         .IsRequired()

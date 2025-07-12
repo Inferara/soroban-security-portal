@@ -18,7 +18,7 @@ services:
       - TOKENEXPIRATIONTIMEMINUTES=60
       - AUTHISSUER=SorobanSecurityPortal
       - AUTHAUDIENCE=SorobanSecurityPortalClient
-      - AUTHSECURITYKEY=${AUTHSECURITYKEY}
+      - AUTHSECURITYKEY==${AUTHSECURITYKEY}
       - APPURL=http://localhost:7848/api/v1
       - LOGLEVEL=Debug
       - DISTRIBUTEDCACHEURL=host.docker.internal:6479
@@ -32,7 +32,7 @@ services:
 
   soroban-security-portal-db:
     container_name: soroban-security-portal-db
-    image: postgres:16.1
+    image: pgvector/pgvector:0.8.0-pg17
     restart: always
     environment:
       - POSTGRES_PASSWORD=SorobanSecurityPortalIsTheBest!
@@ -47,8 +47,8 @@ services:
       - -c
       - shared_buffers=1GB
     volumes:
-      - soroban-security-portal-db-volume:/data/postgres
-      - soroban-security-portal-default-db-volume:/var/lib/postgresql/data
+      - soroban-security-portal-db-vector-volume:/data/postgres
+      - soroban-security-portal-default-db-vector-volume:/var/lib/postgresql/data
     shm_size: 1gb
     ports:
       - "5449:5432"
@@ -80,8 +80,8 @@ services:
       - soroban-security-portal-network
 
 volumes:
-  soroban-security-portal-db-volume:
-  soroban-security-portal-default-db-volume:
+  soroban-security-portal-db-vector-volume:
+  soroban-security-portal-default-db-vector-volume:
   soroban-security-portal-qdrant-db-volume:
 networks:
   soroban-security-portal-network:

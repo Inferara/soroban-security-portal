@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SorobanSecurityPortalApi.Models.DbModels
 {
+    [Table("report")]
     public class ReportModel
     {
         [Key] 
@@ -15,6 +17,8 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string Author { get; set; } = "";
         public string LastActionBy { get; set; } = "";
         public DateTime LastActionAt { get; set; }
+        public string? Project { get; set; } = null;
+        public string? Auditor { get; set; } = null;
     }
 
     public class ReportModelStatus

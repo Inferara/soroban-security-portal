@@ -42,10 +42,18 @@ jobs:
           API_URL: ${{ inputs.apiUrl }}
           HOST_NAME: ${{ inputs.hostName }}
           ENV_NAME: ${{ inputs.envName }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER_NAME: ${{ secrets.POSTGRES_USER }}
+          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          REDIS_USER: ${{ secrets.REDIS_USER }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          LETSENCRYPT_ISSUER: ${{ secrets.LETSENCRYPT_ISSUER }}
         run: |
-          # Generate build number (yyMMddHHmmss)
+          # Generate a timestamp for build
           buildNumber=$(date +'%y%m%d%H%M%S')
-          echo "Deploying Soroban Security Portal with build=$buildNumber..."
+          echo "Deploying Soroban Security Portal (build $buildNumber)..."
 
           helm upgrade sorobansecurityportal \
             oci://registry-1.docker.io/georgii4inferara/sorobansecurityportal \
@@ -59,9 +67,11 @@ jobs:
             --set global.sorobansecurityportalui.apiUrl="$API_URL" \
             --set global.environment.namespace=sorobansecurityportal-ns \
             --set global.environment.name="$ENV_NAME" \
-            --set global.google.clientSecret="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-            --set global.google.clientId="${{ secrets.GOOGLE_CLIENT_ID }}" \
-            --set global.postgres.userName="${{ secrets.POSTGRES_USER }}" \
-            --set global.postgres.password="${{ secrets.POSTGRES_PASSWORD }}" \
-            --set global.redis.user="${{ secrets.REDIS_USER }}" \
-            --set global.redis.password="${{ secrets.REDIS_PASSWORD }}"
+            --set global.postgres.dbName="$DB_NAME" \
+            --set global.postgres.userName="$DB_USER_NAME" \
+            --set global.postgres.password="$DB_PASSWORD" \
+            --set global.redis.user="$REDIS_USER" \
+            --set global.redis.password="$REDIS_PASSWORD" \
+            --set global.google.clientId="$GOOGLE_CLIENT_ID" \
+            --set global.google.clientSecret="$GOOGLE_CLIENT_SECRET" \
+            --set global.letsEncryptIssuer="$LETSENCRYPT_ISSUER"

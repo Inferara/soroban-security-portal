@@ -3,6 +3,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import ReportIcon from '@mui/icons-material/Report';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import TaskIcon from '@mui/icons-material/Task';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -56,6 +58,18 @@ export const AdminLeftMenu: FC = () => {
       icon: <MarkEmailReadIcon />,
       path: 'admin/subscriptions',
       visible: isAdmin(auth),
+    },
+    {
+      label: 'Auditors',
+      icon: <VerifiedUserIcon />,
+      path: 'admin/auditors',
+      visible: isAdminOrModerator(auth),
+    },
+    {
+      label: 'Projects',
+      icon: <TaskIcon />,
+      path: 'admin/projects',
+      visible: isAdminOrModerator(auth),
     },
   ];
 

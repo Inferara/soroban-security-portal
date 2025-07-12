@@ -36,13 +36,6 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
-        [HttpGet("projects")]
-        public async Task<IActionResult> ListProjects()
-        {
-            var result = await _vulnerabilityService.ListProjects();
-            return Ok(result);
-        }
-
         [HttpPost]
         public async Task<IActionResult> Search([FromBody] VulnerabilitySearchViewModel? vulnerabilitySearch)
         {

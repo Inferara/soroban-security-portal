@@ -4,5 +4,5 @@ metadata:
   namespace: {{ .Values.global.environment.namespace }}
   name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-config"
 data:
-  POSTGRES_DB: "{{ .Values.postgres.dbName }}"
+  POSTGRES_DB: "{{ .Values.global.postgres.dbName }}"
   PGDATA: "/data/postgres"

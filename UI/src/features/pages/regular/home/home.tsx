@@ -3,6 +3,8 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { useNavigate } from 'react-router-dom';
+import { GalaxyCanvas } from './galaxy-canvas';
+import { VulnerabilityPieChart } from './vulnerability-pie-chart';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
@@ -17,37 +19,20 @@ export const Home: FC = () => {
 
   return (
     <Box sx={{ position: 'relative', minHeight: '80vh', overflow: 'hidden' }}>
-      {/* Video Background */}
-      <Box
-        component="video"
-        autoPlay
-        muted
-        loop
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          zIndex: 0,
-        }}
-      >
-        <source src="/static/video/galaxy.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </Box>
-
       {/* Content Overlay */}
       <Box 
         sx={{ 
           position: 'relative', 
           zIndex: 1, 
-          bgcolor: 'rgba(0, 0, 0, 0.7)', 
           p: 3, 
           minHeight: '80vh',
           backdropFilter: 'blur(2px)',
         }}
       >
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>          
+          {/* Background */}
+          <GalaxyCanvas />
+        </div>
         <Typography variant="h2" component="h2" 
           sx={{ 
             mb: 3, 
@@ -132,6 +117,19 @@ export const Home: FC = () => {
           >
             Learn More
           </Button>
+        </Box>
+        
+        {/* Vulnerability Statistics Pie Chart */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          mt: 6,
+          mb: 4
+        }}>
+          <VulnerabilityPieChart 
+            height={350}
+            width={350}
+          />
         </Box>
       </Box>
     </Box>

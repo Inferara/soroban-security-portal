@@ -15,7 +15,7 @@ data:
   DBSERVER: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres-loadbalancer"
   DBPORT: "5432"
 
-  DBNAME: "{{ .Values.postgres.dbName }}"
+  DBNAME: "{{ .Values.global.postgres.dbName }}"
   DBTIMEOUT: "30000"
   DBPGPOOLSIZE: "30"
   DBCONNECTIONTIMEOUT: "300"
@@ -42,5 +42,5 @@ data:
   AUTOCOMPACTLARGEOBJECTHEAP: "true"
   DISTRIBUTEDCACHEURL: "{{ .Values.global.environment.name }}-sorobansecurityportal-redis-ip:6379"
   DISTRIBUTEDCACHEPASSWORD: "{{ .Values.global.redis.password }}"
-  GOOGLECLIENTID: "{{ .Values.google.clientId }}"
-  GOOGLECLIENTSECRET: "{{ .Values.google.clientSecret }}"
+  GOOGLECLIENTID: "{{ .Values.global.google.clientId }}"
+  GOOGLECLIENTSECRET: "{{ .Values.global.google.clientSecret }}"

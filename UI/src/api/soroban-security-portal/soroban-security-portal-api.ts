@@ -5,8 +5,64 @@ import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
 import { environment } from './../../environments/environment';
 import { User } from "oidc-client-ts"
-import { Vulnerability, VulnerabilityCategory, VulnerabilityProject, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from './models/vulnerability';
+import { Vulnerability, VulnerabilityCategory, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from './models/vulnerability';
 import { AddReport, Report, ReportSearch } from './models/report';
+import { AuditorItem } from './models/auditor';
+import { ProjectItem } from './models/project';
+
+// --- AUDITORS ---
+export const getAuditorListDataCall = async (): Promise<AuditorItem[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/auditors', 'GET');
+    return response.data as AuditorItem[];
+};
+export const removeAuditorCall = async (auditorId: number): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/auditors/${auditorId}`, 'DELETE');
+    return response.data as boolean;
+};
+export const addAuditorCall = async (auditor: AuditorItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/auditors', 'POST', auditor);
+    return response.data as boolean;
+};
+export const editAuditorCall = async (auditor: AuditorItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/auditors`, 'PUT', auditor);
+    return response.data as boolean;
+};
+export const getAuditorByIdCall = async (auditorId: number): Promise<AuditorItem> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/auditors/${auditorId}`, 'GET');
+    return response.data as AuditorItem;
+};
+
+// --- PROJECTS ---
+export const getProjectListDataCall = async (): Promise<ProjectItem[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/projects', 'GET');
+    return response.data as ProjectItem[];
+};
+export const removeProjectCall = async (projectId: number): Promise<boolean> => {   
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/projects/${projectId}`, 'DELETE');
+    return response.data as boolean;
+};
+export const addProjectCall = async (project: ProjectItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/projects', 'POST', project);
+    return response.data as boolean;
+};
+export const editProjectCall = async (project: ProjectItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/projects`, 'PUT', project);
+    return response.data as boolean;
+};
+export const getProjectByIdCall = async (projectId: number): Promise<ProjectItem> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/projects/${projectId}`, 'GET');
+    return response.data as ProjectItem;
+};
 
 // --- REPORTS ---
 export const addReportCall = async (report: AddReport | FormData): Promise<boolean> => {
@@ -50,11 +106,6 @@ export const getCategoriesCall = async (): Promise<VulnerabilityCategory[]> => {
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities/categories', 'GET');
     return response.data as VulnerabilityCategory[];
-};
-export const getProjectsCall = async (): Promise<VulnerabilityProject[]> => {
-    const client = await getRestClient();
-    const response = await client.request('api/v1/vulnerabilities/projects', 'GET');
-    return response.data as VulnerabilityProject[];
 };
 export const getSourceCall = async (): Promise<VulnerabilitySource[]> => {
     const client = await getRestClient();

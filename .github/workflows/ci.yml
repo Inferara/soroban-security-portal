@@ -9,7 +9,7 @@ on:
       tag:
         description: 'Release tag (use "latest" for default environment)'
         required: false
-        default: 'test'
+        default: 'latest'
       appVersion:
         description: 'Application version'
         required: false

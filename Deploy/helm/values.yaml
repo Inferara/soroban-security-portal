@@ -14,7 +14,20 @@ global:
   sorobansecurityportal:
     service:
       tag: "latest"
-      
   redis:
-    user: "admin@sorobansecurity.com"
-    password: "SorobanIsTheBest!1"
+    user: ""
+    password: ""
+  google:
+    clientId: ""
+    clientSecret: ""    
+  qdrant:
+    storage:
+      storageClassName: "local-path"
+      size: "5Gi"
+  postgres:
+    storageClassName: "local-path"
+    storageSize: 5Gi
+    dbName: ""
+    userName: ""
+    password: ""
+  letsEncryptIssuer: ""

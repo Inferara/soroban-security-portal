@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SorobanSecurityPortalApi.Services.ControllersServices;
 using Microsoft.AspNetCore.Mvc;
+using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Common.Extensions;
@@ -12,10 +13,13 @@ namespace SorobanSecurityPortalApi.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly IReportService _reportService;
+        private readonly UserContextAccessor _userContextAccessor;
 
-        public ReportsController(IReportService reportService)
+        public ReportsController(IReportService reportService,
+            UserContextAccessor userContextAccessor)
         {
             _reportService = reportService;
+            _userContextAccessor = userContextAccessor;
         }
 
         [HttpPost]
@@ -55,13 +59,17 @@ namespace SorobanSecurityPortalApi.Controllers
 
             if (addReportViewModel == null)
                 return BadRequest("Parsed report is null.");
+            var userLoginName = await _userContextAccessor.GetLoginNameAsync();
 
             var parsedReport = new ReportViewModel
             {
                 Id = 0,
                 Name = addReportViewModel.Title,
-                Date = DateTime.UtcNow,
-                Status = ReportModelStatus.New 
+                Date = addReportViewModel.Date,
+                Status = ReportModelStatus.New,
+                Project = addReportViewModel.Project,
+                Auditor = addReportViewModel.Auditor,
+                Author = userLoginName,
             };
             if (file != null && file.Length > 0)
             {

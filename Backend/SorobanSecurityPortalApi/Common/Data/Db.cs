@@ -15,6 +15,8 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<VulnerabilityModel> Vulnerability { get; set; }
         public DbSet<ReportModel> Report { get; set; }
         public DbSet<SubscriptionModel> Subscription { get; set; }
+        public DbSet<ProjectModel> Project { get; set; }
+        public DbSet<AuditorModel> Auditor { get; set; }
 
 
         private readonly IDbQuery _dbQuery;

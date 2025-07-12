@@ -6,7 +6,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: admin@sorobansecurity.com
+    email: {{ .Values.global.letsEncryptIssuer }}
     privateKeySecretRef:
       name: "{{ .Values.global.environment.name }}-letsencrypt-issuer"
     solvers:

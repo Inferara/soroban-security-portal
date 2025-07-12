@@ -20,13 +20,14 @@ import { useVulnerabilityAdd } from './hooks';
 import {
   Vulnerability,
   VulnerabilityCategory,
-  VulnerabilityProject,
   VulnerabilitySeverity,
   VulnerabilitySource,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import { Editor } from '@monaco-editor/react';
 import { useTheme as useThemeContext } from '../../../../contexts/ThemeContext';
+import { ProjectItem } from '../../../../api/soroban-security-portal/models/project';
+import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 
 export const AddVulnerability: FC = () => {
   const { themeMode } = useThemeContext();
@@ -35,10 +36,11 @@ export const AddVulnerability: FC = () => {
   const [description, setDescription] = useState('');
   const [categories, setCategories] = useState<VulnerabilityCategory[]>([]);
   const [severity, setSeverity] = useState<VulnerabilitySeverity | undefined>(undefined);
-  const [project, setProject] = useState<VulnerabilityProject | undefined>(undefined);
+  const [project, setProject] = useState<ProjectItem | undefined>(undefined);
+  const [auditor, setAuditor] = useState<AuditorItem | undefined>(undefined);
   const [source, setSource] = useState<VulnerabilitySource | undefined>(undefined);
 
-  const { severitiesList, categoriesList, projectsList, sourceList, addVulnerability } = useVulnerabilityAdd();
+  const { severitiesList, categoriesList, projectsList, auditorsList, sourceList, addVulnerability } = useVulnerabilityAdd();
   const auth = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -58,6 +60,7 @@ export const AddVulnerability: FC = () => {
       severity: severity?.name || '',
       categories: categories.map(c => c.name),
       project: project?.name || '',
+      auditor: auditor?.name || '',
       source: source?.name || '',
       reportUrl: reportUrl,
       date: new Date(),
@@ -68,6 +71,7 @@ export const AddVulnerability: FC = () => {
       !vulnerability.severity || 
       vulnerability.categories.length === 0 || 
       !vulnerability.project || 
+      !vulnerability.auditor ||
       !vulnerability.source) {
       alert('Please fill all fields');
       return;
@@ -186,9 +190,20 @@ export const AddVulnerability: FC = () => {
                 chips={projectsList}
                 chipsSelected={project ? [project] : []}
                 controlText="Project *"
-                chipText={s => (s as VulnerabilityProject).name}
+                chipText={s => (s as ProjectItem).name}
                 chipColor={() => theme.palette.secondary.main}
-                onChange={v => setProject(v[0] as VulnerabilityProject | undefined)}
+                onChange={v => setProject(v[0] as ProjectItem | undefined)}
+                style={{ width: '100%' }}
+              />
+            </Grid>
+            <Grid size={12}>
+              <ChipsControl
+                chips={auditorsList}
+                chipsSelected={auditor ? [auditor] : []}
+                controlText="Auditor *"
+                chipText={s => (s as AuditorItem).name}
+                chipColor={() => theme.palette.info.main}
+                onChange={v => setAuditor(v[0] as AuditorItem | undefined)}
                 style={{ width: '100%' }}
               />
             </Grid>

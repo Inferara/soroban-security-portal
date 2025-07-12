@@ -31,6 +31,12 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ReportManagement } from '../reports/list-view/list-reports.tsx';
 import { Subscriptions } from '../subscriptions/subscriptions.tsx';
+import { EditAuditor } from '../auditor/edit-item/edit-auditor.tsx';
+import { ListAuditors } from '../auditor/list-view/list-auditors.tsx';
+import { AddAuditor } from '../auditor/add-item/add-auditor.tsx';
+import { ListProjects } from '../project/list-view/list-projects.tsx';
+import { AddProject } from '../project/add-item/add-project.tsx';
+import { EditProject } from '../project/edit-item/edit-project.tsx';
 
 const drawerWidth = 240;
 const drawerMarginLeft = 24;
@@ -203,6 +209,15 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/reports`} element={<ReportManagement />} />
 
           <Route path={`${environment.basePath}/admin/subscriptions`} element={<Subscriptions />} />
+
+          
+          <Route path={`${environment.basePath}/admin/auditors`} element={<ListAuditors />} />
+          <Route path={`${environment.basePath}/admin/auditors/add`} element={<AddAuditor />} />
+          <Route path={`${environment.basePath}/admin/auditors/edit`} element={<EditAuditor />} />
+
+          <Route path={`${environment.basePath}/admin/projects`} element={<ListProjects />} />
+          <Route path={`${environment.basePath}/admin/projects/add`} element={<AddProject />} />
+          <Route path={`${environment.basePath}/admin/projects/edit`} element={<EditProject />} />
 
           <Route path={`${environment.basePath}/*`} element={<NoPage />} />
         </Routes>

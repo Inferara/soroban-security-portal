@@ -7,5 +7,8 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public DateTime? To { get; set; }
         public string? SortBy { get; set; }
         public string? SortDirection { get; set; }
+        public string? Project { get; set; } = null;
+        public string? Auditor { get; set; } = null;
+
     }
 }

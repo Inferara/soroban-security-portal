@@ -103,8 +103,16 @@ export const ReportManagement: FC = () => {
     } as GridColDef,
     {
       field: 'author',
-      headerName: 'Author',
+      headerName: 'Details',
       width: 350,
+      renderCell: (params: GridRenderCellParams<Report>) => (
+        <>
+          <div>Author: <span style={{ fontWeight: 'bold' }}>{params.row.author}</span></div>
+          <div>Project: <span style={{ fontWeight: 'bold' }}>{params.row.project}</span></div>
+          <div>Auditor: <span style={{ fontWeight: 'bold' }}>{params.row.auditor}</span></div>
+          <div>Date: <span style={{ fontWeight: 'bold' }}>{params.row.date.split('T')[0]}</span></div>
+        </>
+      ),
     } as GridColDef,
     {
       field: 'date',
