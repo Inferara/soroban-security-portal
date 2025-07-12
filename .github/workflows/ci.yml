@@ -64,14 +64,16 @@ jobs:
           version: 'latest'
 
       - name: Package and push Helm chart
+        env:
+          APP_VERSION: ${{ inputs.appVersion }}
+          BUILD_VERSION: "1.0.${{ github.run_number }}"
         run: |
           # Compute versions
-          buildVersion="1.0.${{ github.run_number }}"
           valuesFile="Deploy/helm/values.yaml"
 
           # Update tag in values.yaml
-          sed -i 's/tag: .*/tag: \"'"$buildVersion"'\"/' $valuesFile
+          sed -i 's/tag: .*/tag: "'"$BUILD_VERSION"'"/' Deploy/helm/values.yaml
 
           # Package and push
-          helm package Deploy/helm/ --app-version ${{ inputs.appVersion }} --version $buildVersion
-          helm push sorobansecurityportal-"$buildVersion".tgz oci://registry-1.docker.io/georgii4inferara
+          helm package Deploy/helm/ --app-version "$APP_VERSION" --version "$BUILD_VERSION"
+          helm push sorobansecurityportal-"$BUILD_VERSION".tgz oci://registry-1.docker.io/georgii4inferara
