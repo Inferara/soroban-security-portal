@@ -46,7 +46,7 @@ jobs:
           push: true
           tags: |
             georgii4inferara/soroban-security-portal:1.0.${{ github.run_number }}
-            georgii4inferara/soroban-security-portal:${{ inputs.tag }}
+            georgii4inferara/soroban-security-portal:${{ inputs.tag || 'latest' }}
 
       - name: Build and push UI image
         uses: docker/build-push-action@v3
@@ -56,7 +56,7 @@ jobs:
           push: true
           tags: |
             georgii4inferara/soroban-security-portal-ui:1.0.${{ github.run_number }}
-            georgii4inferara/soroban-security-portal-ui:${{ inputs.tag }}
+            georgii4inferara/soroban-security-portal-ui:${{ inputs.tag || 'latest' }}
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
