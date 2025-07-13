@@ -77,6 +77,33 @@ export const Authentication: FC<Props> = (props: Props) => {
           />
           Sign in with Google
         </Button>
+        <Button
+          variant="outlined"
+          onClick={() => handleSsoLogin('discord')}
+          sx={{
+            margin: '10px auto',
+            width: '230px',
+            height: '41px',
+            borderRadius: '4px',
+            textTransform: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px',
+            border: '2px solid',
+            borderColor: 'divider',
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+          }}
+        >
+          <img
+            src="/static/images/discord.svg"
+            alt="Discord Logo"
+            style={{ marginRight: '10px', height: '20px' }}
+          />
+          Sign in with Discord
+        </Button>
       </>
     );
   }

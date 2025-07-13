@@ -22,12 +22,12 @@ export const GalaxyCanvas = () => {
 
     // Galaxy generation
     const parameters = {
-      count: 20000,
+      count: 2000,
       size: 0.02,
-      radius: 5,
+      radius: 6,
       branches: 4,
       spin: 1,
-      randomness: 0.3,
+      randomness: 1.3,
       insideColor: '#ff6030',
       outsideColor: '#1b3984',
     };

@@ -101,6 +101,17 @@ public class ExtendedConfig
     public string GoogleClientSecret => GetValue<string>("GoogleClientSecret");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
+    [Description("Discord App Client Id (Discord SSO)")]
+    [Tooltip("The Discord Client Id is used to authenticate the application with the Discord SSO service.")]
+    public string DiscordClientId => GetValue<string>("DiscordClientId");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Password)]
+    [Description("Discord App Secret (Discord SSO)")]
+    [Tooltip("The Discord Client Secret is used to authenticate the application with the Discord SSO service.")]
+    public string DiscordClientSecret => GetValue<string>("DiscordClientSecret");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
     [Description("Allow Basic Auth for Chat / Search")]
     [Tooltip("Specifies if Basic Authentication is allowed for Chat and Search. When enabled, the user can log in using a username and password. Only a few endpoints are available with Basic auth.")]

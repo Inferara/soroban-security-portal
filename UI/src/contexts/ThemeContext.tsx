@@ -171,7 +171,7 @@ const darkTheme = createTheme({
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const savedTheme = localStorage.getItem('themeMode');
-    return (savedTheme as ThemeMode) || 'light';
+    return (savedTheme as ThemeMode) || 'dark';
   });
 
   const theme = themeMode === 'light' ? lightTheme : darkTheme;

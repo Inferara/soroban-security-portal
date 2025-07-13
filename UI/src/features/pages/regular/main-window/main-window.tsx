@@ -98,13 +98,15 @@ export const MainWindow: FC = () => {
           <Box sx={{ flexGrow: 1 }} />
           
           {/* Theme Toggle Button */}
-          <IconButton 
-            color="inherit" 
-            onClick={toggleTheme}
-            sx={{ mr: 1 }}
-          >
-            {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+            {!!!location.pathname.endsWith('.com') && (
+            <IconButton 
+              color="inherit" 
+              onClick={toggleTheme}
+              sx={{ mr: 1 }}
+            >
+              {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+            )}
           {
             auth.user 
               ? (
@@ -148,8 +150,10 @@ export const MainWindow: FC = () => {
                       anchorEl={anchorEl}
                       open={open}
                       onClose={handleUserMenuClose}
-                      MenuListProps={{
-                        'aria-labelledby': 'basic-button',
+                      slotProps={{
+                        list: {
+                          'aria-labelledby': 'basic-button',
+                        },
                       }}
                     >
                       <MenuItem onClick={handleUserMenuItemLogoutClick}>Logout</MenuItem>
@@ -222,9 +226,11 @@ export const MainWindow: FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isSubscribing}
-                    InputProps={{
-                      disableUnderline: true,
-                      sx: { color: 'secondary.main', backgroundColor: 'transparent' },
+                    slotProps={{
+                      input: {
+                        disableUnderline: true,
+                        sx: { color: 'secondary.main', backgroundColor: 'transparent' },
+                      }
                     }}
                     fullWidth
                   />

@@ -49,6 +49,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
     public enum LoginTypeEnum
     {
         Password = 1,
-        SsoGoogle = 2
+        SsoGoogle = 2,
+        SsoDiscord = 3
     }
 }

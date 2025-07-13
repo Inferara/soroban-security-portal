@@ -53,9 +53,52 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<string> GetCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode,
             LoginProcessViewModel loginProcessViewModel)
         {
+            if (loginProcessViewModel.AcrValues.Contains(DiscordSso.AcrValueConst))
+                return await GetDiscordCodeBySsoId(extendedTokenModel, isOfflineMode, loginProcessViewModel);
             if (loginProcessViewModel.AcrValues.Contains(GoogleSso.AcrValueConst))
                 return await GetGoogleCodeBySsoId(extendedTokenModel, isOfflineMode, loginProcessViewModel);
             return "Error: Unsupported SSO type";
+        }
+
+        public async Task<string> GetDiscordCodeBySsoId(
+            ExtendedTokenModel extendedTokenModel,
+            bool isOfflineMode,
+            LoginProcessViewModel loginProcessViewModel)
+        {
+            var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, LoginTypeEnum.SsoDiscord);
+            if (login == null)
+            {
+                login = await _loginProcessor.Add(new LoginModel
+                {
+                    Login = extendedTokenModel.Email,
+                    Email = extendedTokenModel.Email,
+                    FullName = extendedTokenModel.Name,
+                    Role = RoleEnum.User,
+                    LoginType = LoginTypeEnum.SsoDiscord,
+                    IsEnabled = true,
+                    Created = DateTime.UtcNow,
+                    CreatedBy = "system",
+                    TokensLimit = 0,
+                });
+            }
+
+            if (!login.IsEnabled)
+                return "Error: Login is disabled";
+
+            var loginHistory = new LoginHistoryModel
+            {
+                LoginId = login.LoginId,
+                Login = login.Login,
+                Code = Guid.NewGuid().ToString(),
+                IsOffline = isOfflineMode,
+                CodeChallenge = loginProcessViewModel.CodeChallenge,
+                ValidUntilTime = loginProcessViewModel.IsPermanentToken
+                    ? DateTime.UtcNow.AddDays(_config.PermanentTokenExpirationTimeDays)
+                    : DateTime.UtcNow.AddMinutes(_config.TokenExpirationTimeMinutes),
+                Picture = extendedTokenModel.Picture,
+            };
+            _loginHistoryProcessor.Add(loginHistory);
+            return loginHistory.Code;
         }
 
         public async Task<string> GetGoogleCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode, LoginProcessViewModel loginProcessViewModel)
@@ -95,6 +138,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _loginHistoryProcessor.Add(loginHistory);
             return loginHistory.Code;
         }
+
         public async Task<TokenModel?> GetByCode(string code, string codeVerifier)
         {
             var loginHistory = _loginHistoryProcessor.GetByCode(code);

@@ -6,6 +6,7 @@ using SorobanSecurityPortalApi.Services.ControllersServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using SorobanSecurityPortalApi.Authorization;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -18,6 +19,7 @@ namespace SorobanSecurityPortalApi.Controllers
         private readonly Config _config;
         private readonly ExtendedConfig _extendedConfig;
         private readonly IGoogleSso _googleSso;
+        private readonly IDiscordSso _discordSso;
         private readonly IDistributedCache _distributedCache;
         private const int SsoSessionTimeoutMinutes = 5;
         private const string PermanentAcrValue = "permanent";
@@ -27,12 +29,14 @@ namespace SorobanSecurityPortalApi.Controllers
             Config config,
             ExtendedConfig extendedConfig,
             IGoogleSso googleSso,
+            IDiscordSso discordSso,
             IDistributedCache distributedCache)
         {
             _connectService = connectService;
             _config = config;
             _extendedConfig = extendedConfig;
             _googleSso = googleSso;
+            _discordSso = discordSso;
             _distributedCache = distributedCache;
         }
 
@@ -83,8 +87,9 @@ namespace SorobanSecurityPortalApi.Controllers
             if (isPermanentToken)
                 acrValuesArray = acrValuesArray.Where(x => x != PermanentAcrValue).ToArray();
 
-            if (acrValuesArray.Contains(GoogleSso.AcrValueConst))
+            if (acrValuesArray.Contains(GoogleSso.AcrValueConst) || acrValuesArray.Contains(DiscordSso.AcrValueConst))
             {
+                var pkce = new Pkce();
                 var loginProcessViewModel = new LoginProcessViewModel
                 {
                     ClientId = clientId,
@@ -96,7 +101,11 @@ namespace SorobanSecurityPortalApi.Controllers
                     ResponseType = responseType,
                     State = state!,
                     IsPermanentToken = isPermanentToken,
+                    InternalCodeVerifier = pkce.CodeVerifier,
+                    InternalCodeChallenge = pkce.CodeChallenge,
+                    InternalCodeChallengeMethod = "S256",
                 };
+                
                 var loginProcessState = Guid.NewGuid().ToString();
                 _distributedCache.SetString(loginProcessState, loginProcessViewModel.ToJson()!, new DistributedCacheEntryOptions
                 {
@@ -104,6 +113,8 @@ namespace SorobanSecurityPortalApi.Controllers
                 });
                 if (acrValuesArray.Contains(GoogleSso.AcrValueConst))
                     return Redirect($"{_googleSso.GetLoginRedirectUrl(loginProcessState)}");
+                if (acrValuesArray.Contains(DiscordSso.AcrValueConst))
+                    return Redirect($"{_discordSso.GetLoginRedirectUrl(loginProcessState, loginProcessViewModel.InternalCodeChallenge)}");
                 return BadRequest("Invalid acr_values");
             }
 
@@ -193,29 +204,25 @@ namespace SorobanSecurityPortalApi.Controllers
                 grant_types_supported = new[] { "authorization_code", "refresh_token" },
                 code_challenge_methods_supported = new[] { "S256" },
                 scopes_supported = new[] { "openid", "offline_access" },
-                acr_values_supported = new[] { GoogleSso.AcrValueConst, PermanentAcrValue },
+                acr_values_supported = new[] { GoogleSso.AcrValueConst, DiscordSso.AcrValueConst, PermanentAcrValue },
             });
         }
 
-
         [HttpGet("callback")]
         public async Task<IActionResult> CallbackGet(
-            [FromQuery(Name = "code")] string? code,
-            [FromQuery(Name = "state")] string? state,
-            [FromQuery(Name = "error_description")] string? errorDescription)
+            [FromQuery(Name = "code")] string? code = "",
+            [FromQuery(Name = "state")] string? state = "",
+            [FromQuery(Name = "error_description")] string? errorDescription = "")
         {
             return await Callback(code, state, errorDescription);
         }
 
-
-        // External SSO callback
         [HttpPost("callback")]
         public async Task<IActionResult> Callback(
             [FromForm(Name = "code")] string? code,
             [FromForm(Name = "state")] string? state,
             [FromForm(Name = "error_description")] string? errorDescription)
         {
-            // Get the state from cache (created in "authorize")
             var loginProcessStateString = await _distributedCache.GetStringAsync(state!);
             if (!string.IsNullOrEmpty(errorDescription))
                 return BadRequest(errorDescription);
@@ -223,16 +230,27 @@ namespace SorobanSecurityPortalApi.Controllers
                 return BadRequest("Code is missing");
             if (string.IsNullOrEmpty(loginProcessStateString))
                 return BadRequest("Invalid state");
+
             await _distributedCache.RemoveAsync(state!);
             var loginProcessViewModel = loginProcessStateString.JsonGet<LoginProcessViewModel>();
 
             var isGoogleSso = loginProcessViewModel!.AcrValues.Contains(GoogleSso.AcrValueConst);
+            var isDiscordSso = loginProcessViewModel!.AcrValues.Contains(DiscordSso.AcrValueConst);
 
             ExtendedTokenModel? accessToken;
-            if (isGoogleSso)
+
+            if (isDiscordSso)
+            {
+                accessToken = await _discordSso.GetAccessTokenByCodeAsync(code, loginProcessViewModel.InternalCodeVerifier);
+            }
+            else if (isGoogleSso)
+            {
                 accessToken = await _googleSso.GetAccessTokenByCodeAsync(code);
+            }
             else
+            {
                 return BadRequest("Invalid acr_values: Unsupported SSO type");
+            }
 
             var scopes = loginProcessViewModel!.Scope.Split(' ', '+');
             var isOfflineMode = scopes.Contains("offline_access");
@@ -240,13 +258,13 @@ namespace SorobanSecurityPortalApi.Controllers
             if (aiCoreCode.StartsWith("Error:"))
                 return Unauthorized(new { error = aiCoreCode });
 
-            if (loginProcessViewModel.RedirectUri.Contains('?'))
-                loginProcessViewModel.RedirectUri += $"&code={aiCoreCode}";
-            else
-                loginProcessViewModel.RedirectUri += $"?code={aiCoreCode}";
+            var redirectUri = loginProcessViewModel.RedirectUri;
+            redirectUri += redirectUri.Contains('?') ? $"&code={aiCoreCode}" : $"?code={aiCoreCode}";
             if (!string.IsNullOrEmpty(state))
-                loginProcessViewModel.RedirectUri += $"&state={loginProcessViewModel.State}";
-            return Redirect(loginProcessViewModel.RedirectUri);
+                redirectUri += $"&state={loginProcessViewModel.State}";
+
+            return Redirect(redirectUri);
         }
+
     }
 }

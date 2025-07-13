@@ -11,5 +11,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string ResponseType { get; set; } = string.Empty;
         public string State { get; set; } = string.Empty;
         public bool IsPermanentToken { get; set; } = false;
+        public string InternalCodeChallenge { get; set; } = string.Empty;
+        public string InternalCodeChallengeMethod { get; set; } = string.Empty;
+        public string InternalCodeVerifier { get; set; } = string.Empty;
     }
 }

@@ -20,24 +20,24 @@ export const Home: FC = () => {
   return (
     <Box sx={{ position: 'relative', minHeight: '80vh', overflow: 'hidden' }}>
       {/* Content Overlay */}
-      <Box 
-        sx={{ 
-          position: 'relative', 
-          zIndex: 1, 
-          p: 3, 
-          minHeight: '80vh',
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          p: 3,
+          minHeight: '800px',
           backdropFilter: 'blur(2px)',
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>          
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
           {/* Background */}
           <GalaxyCanvas />
         </div>
-        <Typography variant="h2" component="h2" 
-          sx={{ 
-            mb: 3, 
-            color: 'black', 
-            textAlign: 'center', 
+        <Typography variant="h2" component="h2"
+          sx={{
+            mb: 3,
+            color: 'black',
+            textAlign: 'center',
             paddingTop: '200px',
             textShadow: `
               -1px -1px 0 #DDCDB1,
@@ -54,10 +54,10 @@ export const Home: FC = () => {
           WELCOME TO SOROBAN<br />SECURITY PORTAL
         </Typography>
 
-        <Typography variant="h6" component="h3" 
-          sx={{ 
-            mb: 4, 
-            textAlign: 'center', 
+        <Typography variant="h6" component="h3"
+          sx={{
+            mb: 4,
+            textAlign: 'center',
             color: '#DDCDB1',
           }}>
           It's your go-to hub for all things secure in the world of Soroban - Soroban's<br />
@@ -67,12 +67,12 @@ export const Home: FC = () => {
         </Typography>
 
         {/* Action Buttons */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          gap: 3, 
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 3,
           flexWrap: 'wrap',
-          mt: 4 
+          mt: 4
         }}>
           <Button
             variant="contained"
@@ -95,7 +95,7 @@ export const Home: FC = () => {
           >
             Get Started
           </Button>
-          
+
           <Button
             variant="outlined"
             onClick={handleLearnMore}
@@ -118,19 +118,18 @@ export const Home: FC = () => {
             Learn More
           </Button>
         </Box>
-        
-        {/* Vulnerability Statistics Pie Chart */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          mt: 6,
-          mb: 4
-        }}>
-          <VulnerabilityPieChart 
-            height={350}
-            width={350}
-          />
-        </Box>
+
+      </Box>
+      {/* Vulnerability Statistics Pie Chart */}
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        mb: 4
+      }}>
+        <VulnerabilityPieChart
+          height={350}
+          width={350}
+        />
       </Box>
     </Box>
   );
