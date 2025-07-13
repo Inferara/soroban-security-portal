@@ -302,7 +302,7 @@ export const MainWindow: FC = () => {
                       sx={{ color: 'secondary.main' }} 
                       aria-label="github"
                       component="a"
-                      href="https://www.github.com/inferara"
+                      href="https://github.com/Inferara/soroban-security-portal"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -326,7 +326,16 @@ export const MainWindow: FC = () => {
             </Stack>
 
             <Typography variant="body2" align="center" sx={{ color: 'secondary.main', mt: 3 }}>
-              Made by Inferara
+              Made by{' '}
+              <Typography
+              component="a"
+              href="https://inferara.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ color: 'inherit', textDecoration: 'underline', display: 'inline' }}
+              >
+              Inferara
+              </Typography>
             </Typography>
           </Box>
           {/* Footer End*/}

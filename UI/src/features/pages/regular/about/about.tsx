@@ -9,7 +9,7 @@ export const About: FC = () => {
         About Soroban Security Portal
       </Typography>
 
-      <Typography variant="h5" component="h3" sx={{ mb: 2, color: 'text.primary' }}>
+      {/* <Typography variant="h5" component="h3" sx={{ mb: 2, color: 'text.primary' }}>
         Our Mission
       </Typography>
       <Typography variant="body1" sx={{ mb: 3, color: 'text.primary' }}>
@@ -40,7 +40,7 @@ export const About: FC = () => {
       </Typography>
       <Typography variant="body1" sx={{ mb: 3, color: 'text.primary' }}>
         For more information about our services or to request a security audit, please contact our team through the appropriate channels.
-      </Typography>
+      </Typography> */}
     </Box>
   );
 }; 
