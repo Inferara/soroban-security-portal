@@ -222,4 +222,16 @@ public static class Extensions
         int index = Random.Next(list.Count);
         return list[index];
     }
+
+    public static bool IsPdf(this byte[] fileBytes)
+    {
+        // Check if the byte array starts with the PDF file signature "%PDF"
+        if (fileBytes == null || fileBytes.Length < 4)
+            return false;
+
+        return fileBytes[0] == 0x25 && // %
+               fileBytes[1] == 0x50 && // P
+               fileBytes[2] == 0x44 && // D
+               fileBytes[3] == 0x46;   // F
+    }
 }

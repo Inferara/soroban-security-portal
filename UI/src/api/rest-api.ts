@@ -39,10 +39,13 @@ class RestApi {
       delete config.headers['Content-Type'];
       delete config.headers['content-type']; // just in case
     }
+    debugger;
     const response = await axios
       .request(config)
       .catch((reason: AxiosError) => {
-        const errorText = (reason.response?.data as { message?: string })?.message ?? `Error: ${reason.message}`;
+        const errorText = (reason.response?.data as { message?: string })?.message 
+          ?? (reason.response?.data as string)
+          ?? `Error: ${reason.message}`;
         if (ignoreError) {
           return {} as AxiosResponse<unknown, unknown>;
         }

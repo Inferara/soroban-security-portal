@@ -9,15 +9,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     {
         private readonly IMapper _mapper;
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
+        private readonly IReportProcessor _reportProcessor;
         private readonly UserContextAccessor _userContextAccessor;
 
         public VulnerabilityService(
             IMapper mapper,
             IVulnerabilityProcessor vulnerabilityProcessor,
+            IReportProcessor reportProcessor,
             UserContextAccessor userContextAccessor)
         {
             _mapper = mapper;
             _vulnerabilityProcessor = vulnerabilityProcessor;
+            _reportProcessor = reportProcessor;
             _userContextAccessor = userContextAccessor;
         }
 
@@ -46,13 +49,25 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             };
             return result;
         }
+
         public async Task<List<IdValueUrl>> ListSources()
         {
-            var result = new List<IdValueUrl>
+            var reports = await _reportProcessor.GetList();
+            var result = new List<IdValueUrl>();
+            foreach (var report in reports) {
+                result.Add(new IdValueUrl
+                {
+                    Id = report.Id,
+                    Name = report.Name,
+                    Url = ""
+                });
+            }
+            result.Add(new IdValueUrl
             {
-                new IdValueUrl { Id = 1, Name = "Audit Report", Url = "https://example.com/audit-report" },
-                new IdValueUrl { Id = 2, Name = "Security Report", Url = "https://example.com/security-report" }
-            };
+                Id = 0,
+                Name = "External",
+                Url = ""
+            });
             return result;
         }
 

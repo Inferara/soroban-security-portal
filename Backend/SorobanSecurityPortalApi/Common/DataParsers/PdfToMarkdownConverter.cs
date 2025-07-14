@@ -25,7 +25,7 @@ namespace SorobanSecurityPortalApi.Common.DataParsers
                         ConvertPageToMarkdown(page, markdown);
                     }
                 }
-                return markdown.ToString();
+                return markdown.ToString().Replace("\0", "");
             }
             catch (Exception ex)
             {

@@ -5,10 +5,38 @@ import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
 import { environment } from './../../environments/environment';
 import { User } from "oidc-client-ts"
-import { Vulnerability, VulnerabilityCategory, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from './models/vulnerability';
+import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from './models/vulnerability';
 import { AddReport, Report, ReportSearch } from './models/report';
 import { AuditorItem } from './models/auditor';
 import { ProjectItem } from './models/project';
+import { CategoryItem } from './models/category';
+
+// --- CATEGORIES ---
+export const getCategoriesCall = async (): Promise<CategoryItem[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/categories', 'GET');
+    return response.data as CategoryItem[];
+};
+export const removeCategoryCall = async (categoryId: number): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/categories/${categoryId}`, 'DELETE');
+    return response.data as boolean;
+};
+export const addCategoryCall = async (category: CategoryItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/categories', 'POST', category);
+    return response.data as boolean;
+};
+export const editCategoryCall = async (category: CategoryItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/categories`, 'PUT', category);
+    return response.data as boolean;
+};
+export const getCategoryByIdCall = async (categoryId: number): Promise<CategoryItem> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/categories/${categoryId}`, 'GET');
+    return response.data as CategoryItem;
+};
 
 // --- AUDITORS ---
 export const getAuditorListDataCall = async (): Promise<AuditorItem[]> => {
@@ -101,11 +129,6 @@ export const getSeveritiesCall = async (): Promise<VulnerabilitySeverity[]> => {
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities/severities', 'GET');
     return response.data as VulnerabilitySeverity[];
-};
-export const getCategoriesCall = async (): Promise<VulnerabilityCategory[]> => {
-    const client = await getRestClient();
-    const response = await client.request('api/v1/vulnerabilities/categories', 'GET');
-    return response.data as VulnerabilityCategory[];
 };
 export const getSourceCall = async (): Promise<VulnerabilitySource[]> => {
     const client = await getRestClient();

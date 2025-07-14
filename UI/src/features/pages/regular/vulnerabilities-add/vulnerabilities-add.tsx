@@ -10,16 +10,16 @@ import {
   CardHeader,
   Avatar,
   useTheme,
+  Autocomplete,
+  Chip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { ChipsControl } from '../../../components/chips-control/chips-control';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate } from 'react-router-dom';
 import { useVulnerabilityAdd } from './hooks';
 import {
   Vulnerability,
-  VulnerabilityCategory,
   VulnerabilitySeverity,
   VulnerabilitySource,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
@@ -28,17 +28,19 @@ import { Editor } from '@monaco-editor/react';
 import { useTheme as useThemeContext } from '../../../../contexts/ThemeContext';
 import { ProjectItem } from '../../../../api/soroban-security-portal/models/project';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
+import { CategoryItem } from '../../../../api/soroban-security-portal/models/category';
+import { showError } from '../../../dialog-handler/dialog-handler';
 
 export const AddVulnerability: FC = () => {
   const { themeMode } = useThemeContext();
   const [title, setTitle] = useState('');
   const [reportUrl, setReportUrl] = useState('');
   const [description, setDescription] = useState('');
-  const [categories, setCategories] = useState<VulnerabilityCategory[]>([]);
-  const [severity, setSeverity] = useState<VulnerabilitySeverity | undefined>(undefined);
-  const [project, setProject] = useState<ProjectItem | undefined>(undefined);
-  const [auditor, setAuditor] = useState<AuditorItem | undefined>(undefined);
-  const [source, setSource] = useState<VulnerabilitySource | undefined>(undefined);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [severity, setSeverity] = useState<VulnerabilitySeverity | null>(null);
+  const [project, setProject] = useState<ProjectItem | null>(null);
+  const [auditor, setAuditor] = useState<AuditorItem | null>(null);
+  const [source, setSource] = useState<VulnerabilitySource | null>(null);
 
   const { severitiesList, categoriesList, projectsList, auditorsList, sourceList, addVulnerability } = useVulnerabilityAdd();
   const auth = useAuth();
@@ -73,7 +75,7 @@ export const AddVulnerability: FC = () => {
       !vulnerability.project || 
       !vulnerability.auditor ||
       !vulnerability.source) {
-      alert('Please fill all fields');
+      showError('Please fill all fields');
       return;
     }
     void addVulnerability(vulnerability);
@@ -125,17 +127,6 @@ export const AddVulnerability: FC = () => {
               />
             </Grid>
             <Grid size={12}>
-              <TextField
-                fullWidth
-                size="small"
-                variant="outlined"
-                label="Report URL"
-                value={reportUrl}
-                onChange={e => setReportUrl(e.target.value)}
-                placeholder="https://example.com/vulnerability-report"
-              />
-            </Grid>
-            <Grid size={12}>
               <span style={{ fontWeight: 600, color: theme.palette.text.primary }}>
                 Description
               </span>
@@ -157,67 +148,111 @@ export const AddVulnerability: FC = () => {
               </Box>
             </Grid>
             <Grid size={12}>
-              <ChipsControl
-                chips={severitiesList}
-                chipsSelected={severity ? [severity] : []}
-                controlText="Severity *"
-                chipText={s => (s as VulnerabilitySeverity).name}
-                chipColor={s => {
-                  switch ((s as VulnerabilitySeverity).name) {
-                    case 'Critical': return '#d32f2f';
-                    case 'High': return '#f57c00';
-                    case 'Medium': return '#fbc02d';
-                    case 'Low': return '#388e3c';
-                    default: return '#e0e0e0';
-                  }}}
-                onChange={v => setSeverity(v[0] as VulnerabilitySeverity | undefined)}
-                style={{ width: '100%' }}
+              <Autocomplete
+                options={severitiesList}
+                value={severity}
+                onChange={(_, newValue) => setSeverity(newValue)}
+                getOptionLabel={(option) => (option as VulnerabilitySeverity).name}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Severity *"
+                    size="small"
+                    sx={{ width: '100%' }}
+                  />
+                )}
               />
             </Grid>
             <Grid size={12}>
-              <ChipsControl
-                chips={categoriesList}
-                chipsSelected={categories}
-                controlText="Category *"
-                chipText={s => (s as VulnerabilityCategory).name}
-                chipColor={() => theme.palette.primary.main}
-                onChange={v => setCategories(v as VulnerabilityCategory[])}
-                style={{ width: '100%' }}
+              <Autocomplete
+                multiple
+                options={categoriesList}
+                value={categories}
+                onChange={(_, newValue) => setCategories(newValue as CategoryItem[])}
+                getOptionLabel={(option) => (option as CategoryItem).name}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Category *"
+                    size="small"
+                    sx={{ width: '100%' }}
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      {...getTagProps({ index })}
+                      key={index}
+                      label={(option as CategoryItem).name}
+                      size="small"
+                      color="primary"
+                    />
+                  ))
+                }
               />
             </Grid>
             <Grid size={12}>
-              <ChipsControl
-                chips={projectsList}
-                chipsSelected={project ? [project] : []}
-                controlText="Project *"
-                chipText={s => (s as ProjectItem).name}
-                chipColor={() => theme.palette.secondary.main}
-                onChange={v => setProject(v[0] as ProjectItem | undefined)}
-                style={{ width: '100%' }}
+              <Autocomplete
+                options={projectsList}
+                value={project}
+                onChange={(_, newValue) => setProject(newValue)}
+                getOptionLabel={(option) => (option as ProjectItem).name}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Project *"
+                    size="small"
+                    sx={{ width: '100%' }}
+                  />
+                )}
               />
             </Grid>
             <Grid size={12}>
-              <ChipsControl
-                chips={auditorsList}
-                chipsSelected={auditor ? [auditor] : []}
-                controlText="Auditor *"
-                chipText={s => (s as AuditorItem).name}
-                chipColor={() => theme.palette.info.main}
-                onChange={v => setAuditor(v[0] as AuditorItem | undefined)}
-                style={{ width: '100%' }}
+              <Autocomplete
+                options={auditorsList}
+                value={auditor}
+                onChange={(_, newValue) => setAuditor(newValue)}
+                getOptionLabel={(option) => (option as AuditorItem).name}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Auditor *"
+                    size="small"
+                    sx={{ width: '100%' }}
+                  />
+                )}
               />
             </Grid>
             <Grid size={12}>
-              <ChipsControl
-                chips={sourceList}
-                chipsSelected={source ? [source] : []}
-                controlText="Source *"
-                chipText={s => (s as VulnerabilitySource).name}
-                chipColor={() => theme.palette.info.main}
-                onChange={v => setSource(v[0] as VulnerabilitySource | undefined)}
-                style={{ width: '100%' }}
+              <Autocomplete
+                options={sourceList}
+                value={source}
+                onChange={(_, newValue) => setSource(newValue)}
+                getOptionLabel={(option) => (option as VulnerabilitySource).name}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Source *"
+                    size="small"
+                    sx={{ width: '100%' }}
+                  />
+                )}
               />
             </Grid>
+            {
+              source?.name === 'External' && (
+                <Grid size={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  variant="outlined"
+                  label="Report URL"
+                  value={reportUrl}
+                  onChange={e => setReportUrl(e.target.value)}
+                  placeholder="https://example.com/vulnerability-report"
+                />
+              </Grid>
+            )}
             <Grid size={12}>
               <Divider sx={{ my: 3 }} />
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>

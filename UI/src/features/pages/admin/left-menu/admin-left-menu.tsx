@@ -2,6 +2,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import SettingsIcon from '@mui/icons-material/Settings';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import ReportIcon from '@mui/icons-material/Report';
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import TaskIcon from '@mui/icons-material/Task';
@@ -70,6 +71,12 @@ export const AdminLeftMenu: FC = () => {
       icon: <TaskIcon />,
       path: 'admin/projects',
       visible: isAdminOrModerator(auth),
+    },
+    {
+      label: 'Categories',
+      icon: <FormatListBulletedIcon />,
+      path: 'admin/categories',
+      visible: isAdmin(auth),
     },
   ];
 

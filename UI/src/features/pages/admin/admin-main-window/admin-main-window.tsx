@@ -37,6 +37,9 @@ import { AddAuditor } from '../auditor/add-item/add-auditor.tsx';
 import { ListProjects } from '../project/list-view/list-projects.tsx';
 import { AddProject } from '../project/add-item/add-project.tsx';
 import { EditProject } from '../project/edit-item/edit-project.tsx';
+import { ListCategories } from '../category/list-view/list-categories.tsx';
+import { AddCategory } from '../category/add-item/add-category.tsx';
+import { EditCategory } from '../category/edit-item/edit-category.tsx';
 
 const drawerWidth = 240;
 const drawerMarginLeft = 24;
@@ -218,6 +221,10 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/projects`} element={<ListProjects />} />
           <Route path={`${environment.basePath}/admin/projects/add`} element={<AddProject />} />
           <Route path={`${environment.basePath}/admin/projects/edit`} element={<EditProject />} />
+
+          <Route path={`${environment.basePath}/admin/categories`} element={<ListCategories />} />
+          <Route path={`${environment.basePath}/admin/categories/add`} element={<AddCategory />} />
+          <Route path={`${environment.basePath}/admin/categories/edit`} element={<EditCategory />} />
 
           <Route path={`${environment.basePath}/*`} element={<NoPage />} />
         </Routes>

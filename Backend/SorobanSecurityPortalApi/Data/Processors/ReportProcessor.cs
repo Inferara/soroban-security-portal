@@ -2,6 +2,7 @@ using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
 using SorobanSecurityPortalApi.Common.Extensions;
+using static SorobanSecurityPortalApi.Common.ExceptionHandlingMiddleware;
 
 namespace SorobanSecurityPortalApi.Data.Processors
 {
@@ -79,14 +80,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return await query.ToListAsync();
         }
 
-        public async Task<byte[]> GetBinFile(int reportId)
-        {
-            var report = await _db.Report.AsNoTracking().FirstOrDefaultAsync(item => item.Id == reportId);
-            if (report == null)
-                throw new KeyNotFoundException($"Report with ID {reportId} not found.");
-            return report.BinFile ?? Array.Empty<byte>();
-        }
-
         public async Task<ReportModel> Add(ReportModel reportModel)
         {
             if (reportModel == null)
@@ -107,6 +100,16 @@ namespace SorobanSecurityPortalApi.Data.Processors
             _db.Report.Update(existing);
             await _db.SaveChangesAsync();
             return existing;
+        }
+
+        public async Task<ReportModel> Get(int reportId)
+        {
+            var report = await _db.Report.AsNoTracking().FirstOrDefaultAsync(item => item.Id == reportId);
+            if (report == null)
+                throw new SorobanSecurityPortalUiException($"Report with ID {reportId} not found.");
+            if (report.BinFile == null)
+                report.BinFile = Array.Empty<byte>();
+            return report;
         }
 
         public async Task Approve(int reportId, string userName)
@@ -150,9 +153,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
     public interface IReportProcessor
     {
         Task<List<ReportModel>> Search(ReportSearchModel reportSearch);
-        Task<byte[]> GetBinFile(int reportId);
         Task<ReportModel> Add(ReportModel reportModel);
         Task<ReportModel> Edit(ReportModel reportModel, string userName);
+        Task<ReportModel> Get(int reportId);
         Task Approve(int reportId, string userName);
         Task Reject(int reportId, string userName);
         Task Remove(int reportId);

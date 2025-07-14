@@ -26,7 +26,7 @@ import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
-import { VulnerabilityCategory, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from '../../../../api/soroban-security-portal/models/vulnerability';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import ReactMarkdown from 'react-markdown';
@@ -39,6 +39,8 @@ import rehypeHighlight from 'rehype-highlight';
 import { useEffect } from 'react';
 import { ProjectItem } from '../../../../api/soroban-security-portal/models/project';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
+import { CategoryItem } from '../../../../api/soroban-security-portal/models/category';
+import { environment } from '../../../../environments/environment';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -46,17 +48,17 @@ export const Vulnerabilities: FC = () => {
   const { themeMode } = useTheme();
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [severities, setSeverities] = useState<VulnerabilityCategory[]>([]);
-  const [categories, setCategories] = useState<VulnerabilityCategory[]>([]);
+  const [severities, setSeverities] = useState<VulnerabilitySeverity[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [auditors, setAuditors] = useState<AuditorItem[]>([]);
-  const [sources, setSources] = useState<VulnerabilityCategory[]>([]);
+  const [sources, setSources] = useState<VulnerabilitySource[]>([]);
   const [sortBy] = useState<'date' | 'severity'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [collapsedDescriptions, setCollapsedDescriptions] = useState<Set<string>>(new Set());
 
-  const { severitiesList, categoriesList, projectsList, auditorsList, sourceList, vulnerabilitiesList, searchVulnerabilities } = useVulnerabilities();
+  const { severitiesList, categoriesList, projectsList, auditorsList, sourceList, vulnerabilitiesList, searchVulnerabilities, reportsList } = useVulnerabilities();
   const auth = useAuth();
   const navigate = useNavigate();
   const canAddVulnerability = (auth: AuthContextProps) => 
@@ -217,7 +219,7 @@ export const Vulnerabilities: FC = () => {
                   multiple
                   options={severitiesList}
                   value={severities}
-                  onChange={(_, newValue) => setSeverities(newValue as VulnerabilityCategory[])}
+                  onChange={(_, newValue) => setSeverities(newValue as CategoryItem[])}
                   getOptionLabel={(option) => (option as VulnerabilitySeverity).name}
                   renderInput={(params) => (
                     <TextField
@@ -255,8 +257,8 @@ export const Vulnerabilities: FC = () => {
                   multiple
                   options={categoriesList}
                   value={categories}
-                  onChange={(_, newValue) => setCategories(newValue as VulnerabilityCategory[])}
-                  getOptionLabel={(option) => (option as VulnerabilityCategory).name}
+                  onChange={(_, newValue) => setCategories(newValue as CategoryItem[])}
+                  getOptionLabel={(option) => (option as CategoryItem).name}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -270,7 +272,7 @@ export const Vulnerabilities: FC = () => {
                       <Chip
                         {...getTagProps({ index })}
                         key={index}
-                        label={(option as VulnerabilityCategory).name}
+                        label={(option as CategoryItem).name}
                         size="small"
                         color="primary"
                       />
@@ -333,7 +335,7 @@ export const Vulnerabilities: FC = () => {
                   multiple
                   options={sourceList}
                   value={sources}
-                  onChange={(_, newValue) => setSources(newValue as VulnerabilityCategory[])}
+                  onChange={(_, newValue) => setSources(newValue as CategoryItem[])}
                   getOptionLabel={(option) => (option as VulnerabilitySource).name}
                   renderInput={(params) => (
                     <TextField
@@ -416,15 +418,26 @@ export const Vulnerabilities: FC = () => {
                 </Typography>
               </CardContent>
               <CardActions sx={{ justifyContent: 'flex-end' }}>
-                {vuln.reportUrl ? (
+                {vuln.source === 'External' ? (
                   <MuiLink href={vuln.reportUrl} target="_blank" rel="noopener" underline="hover">
                     Full Report
                   </MuiLink>
-                ) : (
-                  <Typography variant="caption" color="text.disabled">
-                    No report available
-                  </Typography>
-                )}
+                ) : (() => {
+                  const report = reportsList.find(report => report.name === vuln.source);
+                  if (report) {
+                    const url = `${environment.aiCoreApiUrl}/api/v1/reports/${report.id}/download`;
+                    return (
+                      <MuiLink href={url} target="_blank" rel="noopener" underline="hover">
+                        Full Report
+                      </MuiLink>
+                    );
+                  }
+                  return (
+                    <Typography variant="caption" color="text.disabled">
+                      No report available
+                    </Typography>
+                  );
+                })()}
               </CardActions>
             </Card>
           </Grid>

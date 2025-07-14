@@ -9,17 +9,17 @@ import {
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppDispatch } from '../../../../../app/hooks';
 import { 
-  Vulnerability,
-  VulnerabilityCategory, 
+  Vulnerability, 
   VulnerabilitySeverity, 
   VulnerabilitySource, 
 } from '../../../../../api/soroban-security-portal/models/vulnerability';
 import { ProjectItem } from '../../../../../api/soroban-security-portal/models/project';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
+import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
 
 export const useVulnerabilityAdd = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
-  const [categoriesList, setCategoriesList] = useState<VulnerabilityCategory[]>([]);
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
   const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
   const [sourceList, setSourceList] = useState<VulnerabilitySource[]>([]);
   const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);

@@ -32,12 +32,12 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpGet("{reportId}/download")]
         public async Task<IActionResult> GetFile(int reportId)
         {
-            var result = await _reportService.GetBinFile(reportId);
-            if (result == null || result.Length == 0)
+            var result = await _reportService.Get(reportId);
+            if (result.BinFile == null || result.BinFile.Length == 0)
             {
-                return NotFound();
+                return BadRequest("Report is not found.");
             }
-            return File(result, "application/pdf", "report.pdf");
+            return File(result.BinFile, "application/pdf", $"{result.Name}.pdf");
         }
         
         [HttpPost("add")]
@@ -50,7 +50,7 @@ namespace SorobanSecurityPortalApi.Controllers
             AddReportViewModel? addReportViewModel;
             try
             {
-                addReportViewModel = report.JsonGet<AddReportViewModel>(); // JsonSerializer.Deserialize<AddReportViewModel>(report);
+                addReportViewModel = report.JsonGet<AddReportViewModel>();
             }
             catch (JsonException ex)
             {
@@ -87,6 +87,11 @@ namespace SorobanSecurityPortalApi.Controllers
                     if (response.IsSuccessStatusCode)
                     {
                         parsedReport.BinFile = await response.Content.ReadAsByteArrayAsync();
+                        // Implement check if the file is a PDF
+                        if (!parsedReport.BinFile.IsPdf())
+                        {
+                            return BadRequest("The file downloaded from the URL is not a valid PDF.");
+                        }
                     }
                     else
                     {

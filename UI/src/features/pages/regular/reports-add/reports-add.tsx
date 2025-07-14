@@ -29,6 +29,7 @@ import { AuditorItem } from '../../../../api/soroban-security-portal/models/audi
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { showError } from '../../../../features/dialog-handler/dialog-handler';
 
 export const AddReport: FC = () => {
   const [title, setTitle] = useState('');
@@ -38,6 +39,7 @@ export const AddReport: FC = () => {
   const [date, setDate] = useState<Date | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { addReport, isUploading, projectsList, auditorsList } = useReportAdd();
@@ -52,25 +54,50 @@ export const AddReport: FC = () => {
     navigate('/reports');
   }
 
+  const validateAndSetFile = (file: File) => {
+    // Check if file is PDF
+    if (file.type !== 'application/pdf') {
+      setFileError('Please select a PDF file');
+      setSelectedFile(null);
+      return;
+    }
+    
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setFileError('File size must be less than 10MB');
+      setSelectedFile(null);
+      return;
+    }
+    
+    setSelectedFile(file);
+    setFileError('');
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check if file is PDF
-      if (file.type !== 'application/pdf') {
-        setFileError('Please select a PDF file');
-        setSelectedFile(null);
-        return;
-      }
-      
-      // Check file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setFileError('File size must be less than 10MB');
-        setSelectedFile(null);
-        return;
-      }
-      
-      setSelectedFile(file);
-      setFileError('');
+      validateAndSetFile(file);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      validateAndSetFile(file);
     }
   };
 
@@ -84,12 +111,12 @@ export const AddReport: FC = () => {
 
   const addNewReport = async () => {
     if (!title) {
-      alert('Please fill all required fields');
+      showError('Please fill all required fields');
       return;
     }
 
     if (!selectedFile && !url) {
-      alert('Please provide either a PDF file or a URL');
+      showError('Please provide either a PDF file or a URL');
       return;
     }
 
@@ -107,7 +134,6 @@ export const AddReport: FC = () => {
       navigate('/reports');
     } catch (error) {
       console.error('Error adding report:', error);
-      alert('Failed to add report. Please try again.');
     }
   };
 
@@ -242,7 +268,26 @@ export const AddReport: FC = () => {
                 </Box>
               </Grid>
               <Grid size={12}>
-                <Box sx={{ border: `2px dashed ${theme.palette.divider}`, borderRadius: 2, p: 3, textAlign: 'center' }}>
+                <Box
+                  sx={{
+                    border: `2px dashed ${isDragOver ? theme.palette.primary.main : theme.palette.divider}`,
+                    borderRadius: 2,
+                    p: 3,
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease-in-out',
+                    backgroundColor: isDragOver ? theme.palette.primary.light + '20' : 'transparent',
+                    ...(isDragOver && {
+                      borderStyle: 'solid',
+                      boxShadow: `0 0 0 2px ${theme.palette.primary.main}40`,
+                      transform: 'scale(1.02)',
+                    }),
+                  }}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -252,16 +297,26 @@ export const AddReport: FC = () => {
                   />
                   {!selectedFile ? (
                     <Box>
-                      <CloudUploadIcon sx={{ fontSize: 48, color: theme.palette.text.secondary, mb: 2 }} />
+                      <CloudUploadIcon 
+                        sx={{ 
+                          fontSize: 48, 
+                          color: isDragOver ? theme.palette.primary.main : theme.palette.text.secondary, 
+                          mb: 2,
+                          transition: 'color 0.2s ease-in-out'
+                        }} 
+                      />
                       <Typography variant="h6" sx={{ mb: 1 }}>
-                        Upload PDF Report
+                        {isDragOver ? 'Drop PDF file here' : 'Upload PDF Report'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                         Drag and drop a PDF file here, or click to browse
                       </Typography>
                       <Button
                         variant="outlined"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
                         sx={{ borderRadius: 2 }}
                       >
                         Choose File
@@ -280,7 +335,13 @@ export const AddReport: FC = () => {
                           </Typography>
                         </Box>
                       </Box>
-                      <IconButton onClick={handleRemoveFile} color="error">
+                      <IconButton 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFile();
+                        }} 
+                        color="error"
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </Box>

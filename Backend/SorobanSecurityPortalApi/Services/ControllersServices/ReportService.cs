@@ -32,9 +32,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return result;
         }
 
-        public async Task<byte[]> GetBinFile(int reportId)
+        public async Task<ReportViewModel> Get(int reportId)
         {
-            return await _reportProcessor.GetBinFile(reportId);
+            var reportModel = await _reportProcessor.Get(reportId);
+            var reportViewModel = _mapper.Map<ReportViewModel>(reportModel);
+            return reportViewModel;
         }
 
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
@@ -84,7 +86,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public interface IReportService
     {
         Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearch);
-        Task<byte[]> GetBinFile(int reportId);
+        Task<ReportViewModel> Get(int reportId);
         Task<ReportViewModel> Add(ReportViewModel report);
         Task Approve(int reportId);
         Task Reject(int vulnerabilityId);

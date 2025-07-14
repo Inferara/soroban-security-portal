@@ -5,25 +5,28 @@ import {
   getProjectListDataCall, 
   getAuditorListDataCall,
   getSourceCall, 
-  getVulnerabilitiesCall 
+  getVulnerabilitiesCall,
+  getReportListDataCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppDispatch } from '../../../../../app/hooks';
 import { 
   Vulnerability,
-  VulnerabilityCategory, 
   VulnerabilitySearch, 
   VulnerabilitySeverity, 
   VulnerabilitySource 
 } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { Report } from '../../../../../api/soroban-security-portal/models/report';
 import { ProjectItem } from '../../../../../api/soroban-security-portal/models/project';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
+import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
 
 export const useVulnerabilities = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
-  const [categoriesList, setCategoriesList] = useState<VulnerabilityCategory[]>([]);
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
   const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
   const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
   const [sourceList, setSourceList] = useState<VulnerabilitySource[]>([]);
+  const [reportsList, setReportsList] = useState<Report[]>([]);
   const [vulnerabilitiesList, setVulnerabilitiesList] = useState<Vulnerability[]>([]);
   const dispatch = useAppDispatch();
 
@@ -65,6 +68,11 @@ export const useVulnerabilities = () => {
     setVulnerabilitiesList(response);
   };
 
+  const getReports = async (): Promise<void> => {
+    const response = await getReportListDataCall();
+    setReportsList(response);
+  };
+
   // Set the current page
   useEffect(() => {
     void getSeverities();
@@ -72,6 +80,7 @@ export const useVulnerabilities = () => {
     void getProjects();
     void getAuditors();
     void getSource();
+    void getReports();
     void searchVulnerabilities();
   }, [dispatch]);
 
@@ -82,6 +91,7 @@ export const useVulnerabilities = () => {
     auditorsList,
     sourceList,
     vulnerabilitiesList,
+    reportsList,
     searchVulnerabilities
   };
 };
