@@ -64,12 +64,12 @@ export const MainWindow: FC = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Top AppBar */}
-      <AppBar position="fixed" sx={{ 
-        zIndex: (theme) => theme.zIndex.drawer + 1, 
+      <AppBar position="fixed" sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
         borderBottom: themeMode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '0px'
       }}>
         <Toolbar sx={{ bgcolor: 'background.paper', paddingTop: '10px' }}>
-          <img src="/static/images/logo.png" alt="Logo" style={{ height: 70, marginRight: 6 }} />         
+          <img src="/static/images/logo.png" alt="Logo" style={{ height: 70, marginRight: 6 }} />
           {/* Navigation Buttons */}
           <Box sx={{ display: 'flex', ml: 4, gap: 1 }}>
             {navigationItems.map((item) => {
@@ -96,19 +96,17 @@ export const MainWindow: FC = () => {
           </Box>
 
           <Box sx={{ flexGrow: 1 }} />
-          
+
           {/* Theme Toggle Button */}
-            {!!!location.pathname.endsWith('sorobansecurity') && (
-            <IconButton 
-              color="inherit" 
-              onClick={toggleTheme}
-              sx={{ mr: 1 }}
-            >
-              {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-            </IconButton>
-            )}
+          <IconButton
+            color="inherit"
+            onClick={toggleTheme}
+            sx={{ mr: 1, visibility: 'hidden' }}
+          >
+            {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
           {
-            auth.user 
+            auth.user
               ? (
                 <>
                   <Typography noWrap component="div" sx={{ overflow: 'unset', marginRight: '20px', fontSize: '1.2rem' }}>
@@ -162,14 +160,14 @@ export const MainWindow: FC = () => {
                 </>
               )
               :
-              (<Button 
-                color="primary" 
-                variant="contained" 
+              (<Button
+                color="primary"
+                variant="contained"
                 onClick={() => navigate('/login')}
-                sx={{ 
-                  ml: 2, 
-                  borderRadius: '6px', 
-                  fontWeight: 700, 
+                sx={{
+                  ml: 2,
+                  borderRadius: '6px',
+                  fontWeight: 700,
                   boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
                   textTransform: 'none',
                   px: 3,
@@ -188,7 +186,7 @@ export const MainWindow: FC = () => {
         </Toolbar>
       </AppBar>
       <Toolbar /> {/* Spacer for AppBar */}
-      
+
       {/* Main content area */}
       <Box sx={{ flexGrow: 1, p: 3 }}>
         <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: 3, minHeight: '80vh' }}>
@@ -236,12 +234,12 @@ export const MainWindow: FC = () => {
                 }}
                 fullWidth
               />
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubscribing}
-                sx={{ 
-                  color: 'secondary.main', 
-                  fontWeight: 'bold', 
+                sx={{
+                  color: 'secondary.main',
+                  fontWeight: 'bold',
                   backgroundColor: 'transparent',
                   textTransform: 'none',
                   '&:hover': {
@@ -264,8 +262,8 @@ export const MainWindow: FC = () => {
             </Typography>
             <Stack direction="row" spacing={2}>
               <Tooltip title="Contact us via email" arrow>
-                <IconButton 
-                  sx={{ color: 'secondary.main' }} 
+                <IconButton
+                  sx={{ color: 'secondary.main' }}
                   aria-label="email"
                   component="a"
                   href="mailto:info@inferara.com"
@@ -276,8 +274,8 @@ export const MainWindow: FC = () => {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Follow us on X (Twitter)" arrow>
-                <IconButton 
-                  sx={{ color: 'secondary.main' }} 
+                <IconButton
+                  sx={{ color: 'secondary.main' }}
                   aria-label="x-twitter"
                   component="a"
                   href="https://www.x.com/Inferara_kk"
@@ -288,8 +286,8 @@ export const MainWindow: FC = () => {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Join our Discord community" arrow>
-                <IconButton 
-                  sx={{ color: 'secondary.main' }} 
+                <IconButton
+                  sx={{ color: 'secondary.main' }}
                   aria-label="discord"
                   component="a"
                   href="https://discord.gg/NgWfmnmS5C"
@@ -300,8 +298,8 @@ export const MainWindow: FC = () => {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Check out our GitHub" arrow>
-                <IconButton 
-                  sx={{ color: 'secondary.main' }} 
+                <IconButton
+                  sx={{ color: 'secondary.main' }}
                   aria-label="github"
                   component="a"
                   href="https://www.github.com/inferara/soroban-security-portal"
@@ -312,8 +310,8 @@ export const MainWindow: FC = () => {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Join our Telegram channel" arrow>
-                <IconButton 
-                  sx={{ color: 'secondary.main' }} 
+                <IconButton
+                  sx={{ color: 'secondary.main' }}
                   aria-label="telegram"
                   component="a"
                   href="https://t.me/inferara"
@@ -328,16 +326,16 @@ export const MainWindow: FC = () => {
         </Stack>
 
         <Typography variant="body2" align="center" sx={{ color: 'secondary.main', mt: 3 }}>
-        Made by{' '}
-              <Typography
-              component="a"
-              href="https://inferara.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{ color: 'inherit', textDecoration: 'underline', display: 'inline' }}
-              >
-              Inferara
-              </Typography>
+          Made by{' '}
+          <Typography
+            component="a"
+            href="https://inferara.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'inherit', textDecoration: 'underline', display: 'inline' }}
+          >
+            Inferara
+          </Typography>
         </Typography>
       </Box>
       <ErrorDialog />
