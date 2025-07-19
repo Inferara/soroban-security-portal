@@ -39,7 +39,18 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             return File(result.BinFile, "application/pdf", $"{result.Name}.pdf");
         }
-        
+
+        [HttpGet("{reportId}/image.png")]
+        public async Task<IActionResult> GetImage(int reportId)
+        {
+            var result = await _reportService.Get(reportId);
+            if (result.Image == null || result.Image.Length == 0)
+            {
+                return BadRequest("Report is not found.");
+            }
+            return File(result.Image, "image/png", $"image.png");
+        }
+
         [HttpPost("add")]
         [RequestSizeLimit(10_000_000)]
         public async Task<IActionResult> Add([FromForm] string report, [FromForm] IFormFile? file = null)
@@ -131,6 +142,22 @@ namespace SorobanSecurityPortalApi.Controllers
         {
              await _reportService.Remove(reportId);
             return Ok();
+        }
+
+        [HttpGet("{reportId}")]
+        public async Task<IActionResult> Get(int reportId)
+        {
+            var result = await _reportService.Get(reportId);
+            result.Image = null;
+            result.BinFile = null;
+            return Ok(result);
+        }
+
+        [HttpPut("{reportId}")]
+        public async Task<IActionResult> Update(int reportId, [FromBody] ReportViewModel report)
+        {
+            var result = await _reportService.Update(report);
+            return Ok(result);
         }
 
         [HttpGet]

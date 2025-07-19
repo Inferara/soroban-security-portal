@@ -35,12 +35,12 @@ import remarkMath from 'remark-math';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
-import rehypeHighlight from 'rehype-highlight';
 import { useEffect } from 'react';
 import { ProjectItem } from '../../../../api/soroban-security-portal/models/project';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { CategoryItem } from '../../../../api/soroban-security-portal/models/category';
 import { environment } from '../../../../environments/environment';
+import { CodeBlock } from '../../../../components/CodeBlock';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -70,6 +70,11 @@ export const Vulnerabilities: FC = () => {
 
   const toggleFilters = () => {
     setShowFilters(prev => !prev);
+  };
+
+  const getCategory = (categoryName: string) => {
+    const category = categoriesList.find(c => c.name === categoryName);
+    return category;
   };
 
   const toggleDescriptionCollapse = (id: string) => {
@@ -219,7 +224,7 @@ export const Vulnerabilities: FC = () => {
                   multiple
                   options={severitiesList}
                   value={severities}
-                  onChange={(_, newValue) => setSeverities(newValue as CategoryItem[])}
+                  onChange={(_, newValue) => setSeverities(newValue as VulnerabilitySeverity[])}
                   getOptionLabel={(option) => (option as VulnerabilitySeverity).name}
                   renderInput={(params) => (
                     <TextField
@@ -262,7 +267,7 @@ export const Vulnerabilities: FC = () => {
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Category"
+                      label="Tags"
                       size="small"
                       sx={{ minWidth: 290 }}
                     />
@@ -274,7 +279,11 @@ export const Vulnerabilities: FC = () => {
                         key={index}
                         label={(option as CategoryItem).name}
                         size="small"
-                        color="primary"
+                        sx={{
+                          bgcolor: (option as CategoryItem).bgColor,
+                          color: (option as CategoryItem).textColor,
+                          fontWeight: 700,
+                        }}
                       />
                     ))
                   }
@@ -335,7 +344,7 @@ export const Vulnerabilities: FC = () => {
                   multiple
                   options={sourceList}
                   value={sources}
-                  onChange={(_, newValue) => setSources(newValue as CategoryItem[])}
+                  onChange={(_, newValue) => setSources(newValue as VulnerabilitySource[])}
                   getOptionLabel={(option) => (option as VulnerabilitySource).name}
                   renderInput={(params) => (
                     <TextField
@@ -388,7 +397,9 @@ export const Vulnerabilities: FC = () => {
                   </Typography>
                 </Stack>
                 <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                  <Chip label={vuln.categories.join(', ')} size="small" color="primary" />
+                  {vuln.categories.map(category => (
+                    <Chip label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
+                  ))}
                   <Chip label={vuln.project} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
                   <Chip label={vuln.auditor} size="small" sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }} />
                   <Chip label={vuln.source} size="small" sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }} />
@@ -396,7 +407,27 @@ export const Vulnerabilities: FC = () => {
                 <ReactMarkdown
                   skipHtml={false}
                   remarkPlugins={[remarkParse, remarkGfm, remarkMath, remarkRehype]}
-                  rehypePlugins={[rehypeRaw, rehypeHighlight]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    code: (props) => {
+                      const { node, className, children, ...rest } = props;
+                      const inline = (props as any).inline;
+                      const match = /language-(\w+)/.exec(className || '');
+                      if (!inline && match) {
+                        return (
+                          <CodeBlock className={className} {...rest}>
+                            {String(children).replace(/\n$/, '')}
+                          </CodeBlock>
+                        );
+                      } else {
+                        return (
+                          <CodeBlock className={className} inline={true} {...rest}>
+                            {String(children).replace(/\n$/, '')}
+                          </CodeBlock>
+                        );
+                      }
+                    }
+                  }}
                 >
                   {collapsedDescriptions.has(vuln.id.toString()) ? getTruncatedDescription(vuln.description) : vuln.description}
                 </ReactMarkdown>
@@ -419,21 +450,43 @@ export const Vulnerabilities: FC = () => {
               </CardContent>
               <CardActions sx={{ justifyContent: 'flex-end' }}>
                 {vuln.source === 'External' ? (
-                  <MuiLink href={vuln.reportUrl} target="_blank" rel="noopener" underline="hover">
-                    Full Report
+                  <MuiLink
+                    href={vuln.reportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ textDecoration: 'none' }}
+                  >
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      sx={{ textTransform: 'none', marginRight: '20px' }}
+                    >
+                      View Report
+                    </Button>
                   </MuiLink>
                 ) : (() => {
                   const report = reportsList.find(report => report.name === vuln.source);
                   if (report) {
                     const url = `${environment.aiCoreApiUrl}/api/v1/reports/${report.id}/download`;
                     return (
-                      <MuiLink href={url} target="_blank" rel="noopener" underline="hover">
-                        Full Report
+                      <MuiLink
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ textDecoration: 'none' }}
+                      >
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{ textTransform: 'none', marginRight: '20px' }}
+                        >
+                          View Report
+                        </Button>
                       </MuiLink>
                     );
                   }
                   return (
-                    <Typography variant="caption" color="text.disabled">
+                    <Typography variant="caption" color="text.disabled" sx={{ marginRight: '20px' }}>
                       No report available
                     </Typography>
                   );

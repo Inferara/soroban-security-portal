@@ -2,9 +2,13 @@ import ClearIcon from '@mui/icons-material/Clear';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import DownloadIcon from '@mui/icons-material/Download';
+import EditIcon from '@mui/icons-material/Edit';
 import {
+  CardMedia,
   IconButton,
   Tooltip,
+  Modal,
+  Box,
 } from '@mui/material';
 import {
   DataGrid,
@@ -12,6 +16,7 @@ import {
   GridRenderCellParams,
 } from '@mui/x-data-grid';
 import { FC, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
@@ -19,6 +24,7 @@ import { useListReports } from './hooks/index';
 import { ConfirmDialog } from '../../admin-main-window/confirm-dialog';
 import { CustomToolbar } from '../../../../components/custom-toolbar';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings';
+import { environment } from '../../../../../environments/environment';
 
 export const ReportManagement: FC = () => {
 
@@ -31,17 +37,27 @@ export const ReportManagement: FC = () => {
 
   const { reportListData, reportApprove, reportRemove, reportReject, downloadReport } = useListReports({ currentPageState });
   const [reportIdToRemove, setReportIdToRemove] = useState(0);
+  const [clickedImage, setClickedImage] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const removeReportConfirmed = async () => {
     await reportRemove(reportIdToRemove);
     setReportIdToRemove(0);
   };
 
+  const handleImageClick = (imageUrl: string) => {
+    setClickedImage(imageUrl);
+  };
+
+  const handleImageLeave = () => {
+    setClickedImage(null);
+  };
+
   const columnsData: GridColDef[] = [
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 200,
+      width: 300,
       sortable: false,
       filterable: false,
       renderCell: (params: GridRenderCellParams<Report>) => (
@@ -66,13 +82,30 @@ export const ReportManagement: FC = () => {
               <DownloadIcon sx={{ color: 'blue' }} />
             </IconButton>
           </Tooltip>
+          <Tooltip title="Edit Report">
+            <IconButton onClick={() => navigate(`/admin/reports/edit?reportId=${params.row.id}`)}>
+              <EditIcon sx={{ color: 'green' }} />
+            </IconButton>
+          </Tooltip>
         </div>
       ),
     } as GridColDef,
     {
-      field: 'name',
-      headerName: 'Title',
-      width: 550,
+      field: 'author',
+      headerName: 'Details',
+      width: 750,
+      renderCell: (params: GridRenderCellParams<Report>) => (
+        <>
+          <div>Author: <span style={{ color: 'gray' }}>{params.row.author}</span></div>
+          <div>Project: <span style={{ color: 'gray' }}>{params.row.project}</span></div>
+          <div>Auditor: <span style={{ color: 'gray' }}>{params.row.auditor}</span></div>
+          <div>Date: <span style={{ color: 'gray' }}>{params.row.date.split('T')[0]}</span></div>
+          <div>Published: <span style={{ color: 'gray' }}>{params.row.date.split('T')[0]}</span></div>
+          <div>Title: <span style={{ color: 'gray' }}>{params.row.name}</span></div>
+          <div>Last Action: <span style={{ color: 'gray' }}>{params.row.lastActionBy}</span></div>
+          <div>Last Action At: <span style={{ color: 'gray' }}>{params.row.lastActionAt?.split('.')[0].replace('T', ' ')}</span></div>
+        </>
+      ),
     } as GridColDef,
     {
       field: 'status',
@@ -102,66 +135,29 @@ export const ReportManagement: FC = () => {
       },
     } as GridColDef,
     {
-      field: 'author',
-      headerName: 'Details',
-      width: 350,
-      renderCell: (params: GridRenderCellParams<Report>) => (
-        <>
-          <div>Author: <span style={{ fontWeight: 'bold' }}>{params.row.author}</span></div>
-          <div>Project: <span style={{ fontWeight: 'bold' }}>{params.row.project}</span></div>
-          <div>Auditor: <span style={{ fontWeight: 'bold' }}>{params.row.auditor}</span></div>
-          <div>Date: <span style={{ fontWeight: 'bold' }}>{params.row.date.split('T')[0]}</span></div>
-        </>
-      ),
-    } as GridColDef,
-    {
-      field: 'date',
-      headerName: 'Published',
-      width: 220,
-      renderCell: (params: GridRenderCellParams<Report>) => (
-        <span>{params.row.date.split('T')[0]}</span>
-      ),
-    } as GridColDef,
-    {
       field: 'image',
       headerName: 'Image',
-      width: 180,
-      renderCell: (params: GridRenderCellParams<Report>) => (
-        <Tooltip
-          title={
-            <img 
-              src={`data:image/jpeg;base64,${params.row.image}`} 
-              alt="Report" 
-              style={{ 
-                maxWidth: '800px', 
-                maxHeight: '800px', 
-                objectFit: 'contain',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }} 
-            />
-          }
-          arrow
-          placement="right"
-        >
-          <img 
-            src={`data:image/jpeg;base64,${params.row.image}`} 
-            alt="Report" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+      width: 380,
+      renderCell: (params: GridRenderCellParams<Report>) => {
+        const imageUrl = `${environment.aiCoreApiUrl}/api/v1/reports/${params.row.id}/image.png`;
+        return (
+          <CardMedia
+            component="img"
+            sx={{ 
+              objectFit: 'cover',
+              objectPosition: 'top',
+              height: '440px',
+              transition: 'all 0.3s ease-in-out',
+              cursor: 'pointer',
+            }}
+            height="540"
+            image={imageUrl}
+            alt={params.row.name}
+            title="Click to see full image"
+            onClick={() => handleImageClick(imageUrl)}
           />
-        </Tooltip>
-      ),
-    } as GridColDef,
-    {
-      field: 'lastActionBy',
-      headerName: 'Last Action',
-      width: 250,
-      renderCell: (params: GridRenderCellParams<Report>) => (
-        <div>
-          <div>{params.row.lastActionBy}</div>
-          <div>{params.row.lastActionAt?.split('.')[0].replace('T', ' ')}</div>
-        </div>
-      ),
+        );
+      },
     } as GridColDef,
   ];
 
@@ -198,6 +194,41 @@ export const ReportManagement: FC = () => {
         onCancel={() => setReportIdToRemove(0)}
         show={reportIdToRemove !== 0}
       />
+
+      <Modal
+        open={!!clickedImage}
+        onClose={handleImageLeave}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        }}
+      >
+        <Box
+          sx={{
+            maxWidth: '40vw',
+            maxHeight: '40vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {clickedImage && (
+            <img
+              src={clickedImage}
+              alt="Full size report image"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              }}
+            />
+          )}
+        </Box>
+      </Modal>
     </div>
   );
 }; 

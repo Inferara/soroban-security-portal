@@ -1,5 +1,6 @@
 import { FC, useState } from 'react';
-import { Box, Card, CardContent, CardMedia, Typography, Grid, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip } from '@mui/material';
+import React from 'react';
+import { Box, Card, CardContent, CardMedia, Typography, Grid, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -25,12 +26,34 @@ export const Reports: FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
+  const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
   const canAddReport = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
   
   const toggleSortDirection = () => {
     setSortDir(prev => prev === 'desc' ? 'asc' : 'desc');
   };
+
+  const handleImageLoad = (reportId: number) => {
+    setLoadingImages(prev => ({ ...prev, [reportId]: false }));
+  };
+
+  const handleImageError = (reportId: number) => {
+    setLoadingImages(prev => ({ ...prev, [reportId]: false }));
+  };
+
+  const startImageLoading = (reportId: number) => {
+    setLoadingImages(prev => ({ ...prev, [reportId]: true }));
+  };
+
+  // Initialize loading state for all reports
+  React.useEffect(() => {
+    const initialLoadingState: { [key: number]: boolean } = {};
+    reportsList.forEach(report => {
+      initialLoadingState[report.id] = true;
+    });
+    setLoadingImages(initialLoadingState);
+  }, [reportsList]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -174,8 +197,7 @@ export const Reports: FC = () => {
             <Grid size={4} key={report.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '10px', borderRadius: '20px', 
                 backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A', 
-                border: '1px solid' }}>
-                {report.image ? (
+                border: '1px solid', position: 'relative' }}>
                   <CardMedia
                     component="img"
                     sx={{ 
@@ -195,17 +217,18 @@ export const Reports: FC = () => {
                       }
                     }}
                     height="540"
-                    image={`data:image/jpeg;base64,${report.image}`}
+                    image={`${environment.aiCoreApiUrl}/api/v1/reports/${report.id}/image.png`}
                     alt={report.name}
                     title="Hover to see full image"
+                    onLoad={() => handleImageLoad(report.id)}
+                    onError={() => handleImageError(report.id)}
+                    onLoadStart={() => startImageLoading(report.id)}
                   />
-                ) : (
-                  <Box sx={{ height: 540, bgcolor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      No Image
-                    </Typography>
-                  </Box>
-                )}
+                  {loadingImages[report.id] && (
+                    <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                      <CircularProgress size={40} sx={{ color: themeMode === 'light' ? '#1A1A1A' : '#fafafa' }} />
+                    </Box>
+                  )}
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                     {report.name}

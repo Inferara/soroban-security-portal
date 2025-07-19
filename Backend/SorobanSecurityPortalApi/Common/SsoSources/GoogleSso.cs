@@ -69,7 +69,7 @@ namespace SorobanSecurityPortalApi.Common.SsoSources
                 Email = jwtPayload["email"]!.ToString()!.ToLower(),
                 Name = jwtPayload["name"]!.ToString()!,
                 Ip = jwtPayload.ContainsKey("ipaddr") ? jwtPayload["ipaddr"].ToString()! : "",
-                Picture = jwtPayload["picture"]?.ToString() ?? "",
+                Picture = jwtPayload.ContainsKey("picture") ? jwtPayload["picture"]?.ToString()! : "",
             };
         }
 

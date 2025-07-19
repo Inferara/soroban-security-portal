@@ -1,6 +1,7 @@
 using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
+using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Common.Extensions;
 using static SorobanSecurityPortalApi.Common.ExceptionHandlingMiddleware;
 
@@ -64,11 +65,14 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     }
                 }
             }
+            else
+            {
+                query = query.OrderByDescending(v => v.Id);
+            }
             query = query.Select(v => new ReportModel
             {
                 Id = v.Id,
                 Name = v.Name,
-                Image = v.Image,
                 Date = v.Date,
                 Status = v.Status,
                 Author = v.Author,
@@ -94,9 +98,19 @@ namespace SorobanSecurityPortalApi.Data.Processors
         {
             if (reportModel.Id == 0) throw new ArgumentException("Identifier mustn't be zero");
             var existing = await _db.Report.FirstAsync(item => item.Id == reportModel.Id);
-            _db.Entry(existing).CurrentValues.SetValues(reportModel);
+            existing.Status = reportModel.Status;
+            existing.Date = reportModel.Date;
+            existing.Name = reportModel.Name;
+            existing.Project = reportModel.Project;
+            existing.Auditor = reportModel.Auditor;
             existing.LastActionBy = userName;
             existing.LastActionAt = DateTime.UtcNow;
+            if(reportModel.BinFile is { Length: > 0 })
+            {
+                existing.BinFile = reportModel.BinFile;
+                existing.Image = reportModel.Image;
+                existing.MdFile = reportModel.MdFile;
+            }
             _db.Report.Update(existing);
             await _db.SaveChangesAsync();
             return existing;

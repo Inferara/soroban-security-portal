@@ -1,6 +1,7 @@
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ClearIcon from '@mui/icons-material/Clear';
 import {
+  Chip,
   IconButton,
   Link,
   Stack,
@@ -44,11 +45,11 @@ export const ListCategories: FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 80,
+      width: 140,
       sortable: false,
       filterable: false,
       renderCell: (params: GridRenderCellParams<CategoryItem>) => (
-        <Tooltip title="Remove Category">
+        <Tooltip title="Remove Tag">
           <IconButton onClick={() => setCategoryIdToRemove(params.row.id)}>
             <ClearIcon sx={{ color: 'red' }} />
           </IconButton>
@@ -57,7 +58,7 @@ export const ListCategories: FC = () => {
     } as GridColDef,
     {
       field: 'name',
-      headerName: 'Category',
+      headerName: 'Tag',
       width: 250,
       renderCell: (params: GridRenderCellParams<CategoryItem>) => (
         <Link
@@ -72,14 +73,18 @@ export const ListCategories: FC = () => {
             navigate(`/admin/categories/edit?categoryId=${params.row.id}`)
           }
         >
-          {params.row.name}
+          <Chip
+            label={params.row.name}
+            size="medium"
+            sx={{
+              fontSize: '16px',
+              bgcolor: params.row.bgColor,
+              color: params.row.textColor,
+              fontWeight: 700,
+            }}
+          />
         </Link>
       ),
-    } as GridColDef,
-    {
-      field: 'url',
-      headerName: 'URL',
-      width: 250,
     } as GridColDef,
     {
       field: 'date',
@@ -99,7 +104,7 @@ export const ListCategories: FC = () => {
   return (
     <div style={defaultUiSettings.listAreaStyle}>
       <Stack direction="row" spacing={2}>
-        <Tooltip title="Add Category">
+        <Tooltip title="Add Tag">
           <IconButton onClick={() => navigate('/admin/categories/add')}>
             <PersonAddIcon sx={{ color: 'green' }} />
           </IconButton>
@@ -129,8 +134,8 @@ export const ListCategories: FC = () => {
       </div>
 
       <ConfirmDialog
-        title="Remove Category"
-        message="Are you sure you want to remove this Category?"
+        title="Remove Tag"
+        message="Are you sure you want to remove this Tag?"
         okButtonText="Yes"
         cancelButtonText="No"
         onConfirm={removeCategoryConfirmed}

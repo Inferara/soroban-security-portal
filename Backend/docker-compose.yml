@@ -18,7 +18,7 @@ services:
       - TOKENEXPIRATIONTIMEMINUTES=60
       - AUTHISSUER=SorobanSecurityPortal
       - AUTHAUDIENCE=SorobanSecurityPortalClient
-      - AUTHSECURITYKEY==${AUTHSECURITYKEY}
+      - AUTHSECURITYKEY=${AUTHSECURITYKEY}
       - APPURL=http://localhost:7848/api/v1
       - LOGLEVEL=Debug
       - DISTRIBUTEDCACHEURL=host.docker.internal:6479

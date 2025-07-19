@@ -26,10 +26,12 @@ import { selectCurrentPage } from './current-page-slice.ts';
 import ErrorDialog from '../admin-main-window/error-dialog.tsx';
 import { environment } from '../../../../environments/environment.ts';
 import { VulnerabilityManagement } from '../vulnerabilities/list-view/list-vulnerabilities.tsx';
+import { EditVulnerability } from '../vulnerabilities/edit-item/edit-vulnerability.tsx';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ReportManagement } from '../reports/list-view/list-reports.tsx';
+import { EditReport } from '../reports/edit-item/edit-report.tsx';
 import { Subscriptions } from '../subscriptions/subscriptions.tsx';
 import { EditAuditor } from '../auditor/edit-item/edit-auditor.tsx';
 import { ListAuditors } from '../auditor/list-view/list-auditors.tsx';
@@ -208,8 +210,10 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/users/edit`} element={<EditUser />} />
 
           <Route path={`${environment.basePath}/admin/vulnerabilities`} element={<VulnerabilityManagement />} />
+          <Route path={`${environment.basePath}/admin/vulnerabilities/edit`} element={<EditVulnerability />} />
 
           <Route path={`${environment.basePath}/admin/reports`} element={<ReportManagement />} />
+          <Route path={`${environment.basePath}/admin/reports/edit`} element={<EditReport />} />
 
           <Route path={`${environment.basePath}/admin/subscriptions`} element={<Subscriptions />} />
 

@@ -49,6 +49,19 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ReportViewModel>(addedReport);
         }
 
+        public async Task<ReportViewModel> Update(ReportViewModel reportViewModel)
+        {
+            var reportModel = _mapper.Map<Models.DbModels.ReportModel>(reportViewModel);
+            if (reportModel.BinFile != null && reportModel.BinFile.Length > 0)
+            {
+                reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
+                reportModel.MdFile = PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile);
+            }
+            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            var updatedReport = await _reportProcessor.Edit(reportModel, loginName);
+            return _mapper.Map<ReportViewModel>(updatedReport);
+        }
+
         private static byte[] RenderFirstPageAsPng(byte[] file, int dpi = 150)
         {
             var bitmap = Conversion.ToImage(file, 0);
@@ -88,6 +101,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearch);
         Task<ReportViewModel> Get(int reportId);
         Task<ReportViewModel> Add(ReportViewModel report);
+        Task<ReportViewModel> Update(ReportViewModel report);
         Task Approve(int reportId);
         Task Reject(int vulnerabilityId);
         Task Remove(int reportId);

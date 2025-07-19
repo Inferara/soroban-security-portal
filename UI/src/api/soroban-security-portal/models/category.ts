@@ -1,7 +1,8 @@
 export interface CategoryItem {
   id: number;
   name: string;
-  url: string;
+  bgColor: string;
+  textColor: string;
   date: Date;
   createdBy: string;
 }

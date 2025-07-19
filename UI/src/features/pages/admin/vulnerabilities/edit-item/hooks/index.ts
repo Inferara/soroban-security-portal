@@ -1,0 +1,1 @@
+export { useEditVulnerability } from './edit-vulnerability.hook'; 

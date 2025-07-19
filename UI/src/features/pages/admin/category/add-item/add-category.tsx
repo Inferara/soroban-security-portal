@@ -19,10 +19,11 @@ const Item = styled(Paper)(({ theme }) => ({
 export const AddCategory: FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
+  const [textColor, setTextColor] = useState('#000000');
+  const [bgColor, setBgColor] = useState('#FFFFFF');
 
   const currentPageState: CurrentPageState = {
-    pageName: 'Add Category',
+    pageName: 'Add Tag',
     pageCode: 'addCategory',
     pageUrl: window.location.pathname,
     routePath: 'admin/categories/add',
@@ -30,20 +31,23 @@ export const AddCategory: FC = () => {
   const { addCategory } = useAddCategory({ currentPageState });
 
   const handleCreateCategory = async () => {
-    if (name === '' || url === '') {
-      showError('All fields are required.');
+    if (name === '') {
+      showError('Name field is required.');
       return;
     }
-    const createCategoryItem = {
+    const createCategoryItem: CategoryItem = {
       id: 0,
       name: name,
-      url: url,
-    } as CategoryItem;
+      bgColor: bgColor,
+      textColor: textColor,
+      date: new Date(),
+      createdBy: '',
+    };
     const createCategorySuccess = await addCategory(createCategoryItem);
     if (createCategorySuccess) {
       navigate('/admin/categories');
     } else {
-      showError('Category creation failed. Probably category already exists.');
+      showError('Tag creation failed. Probably tag already exists.');
     }
   };
 
@@ -51,7 +55,7 @@ export const AddCategory: FC = () => {
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
         <Grid size={12} sx={{textAlign: 'center'}} >   
-          <h3>New Category</h3>
+          <h3>New Tag</h3>
         </Grid>
         <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
           <TextField
@@ -68,16 +72,33 @@ export const AddCategory: FC = () => {
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
-            id="url"
-            label="URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            type="text"
+            id="textColor"
+            label="Text Color"
+            value={textColor}
+            onChange={(e) => setTextColor(e.target.value)}
+            type="color"
+            InputProps={{
+              style: { height: '56px' }
+            }}
+          />
+        </Grid>
+        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
+          <TextField
+            sx={{ width: defaultUiSettings.editControlSize }}
+            required={true}
+            id="bgColor"
+            label="Background Color"
+            value={bgColor}
+            onChange={(e) => setBgColor(e.target.value)}
+            type="color"
+            InputProps={{
+              style: { height: '56px' }
+            }}
           />
         </Grid>
         <Grid size={12}>
           <Item>
-            <Button onClick={handleCreateCategory}>Create Category</Button>
+            <Button onClick={handleCreateCategory}>Create Tag</Button>
             <Button onClick={() => history.back()}>Cancel</Button>
           </Item>
         </Grid>

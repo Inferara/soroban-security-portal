@@ -123,6 +123,16 @@ export const getReportsCall = async (reportSearch?: ReportSearch): Promise<Repor
     const response = await client.request('api/v1/reports', 'POST', reportSearch);
     return response.data as Report[];
 };
+export const getReportByIdCall = async (reportId: number): Promise<Report> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/reports/${reportId}`, 'GET');
+    return response.data as Report;
+};
+export const editReportCall = async (report: Report): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/reports/${report.id}`, 'PUT', report);
+    return response.data as boolean;
+};
 
 // --- VULNERABILITIES ---
 export const getSeveritiesCall = async (): Promise<VulnerabilitySeverity[]> => {
@@ -164,6 +174,16 @@ export const getVulnerabilityListDataCall = async (): Promise<Vulnerability[]> =
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities', 'GET');
     return response.data as Vulnerability[];
+};
+export const getVulnerabilityByIdCall = async (vulnerabilityId: number): Promise<Vulnerability> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/vulnerabilities/${vulnerabilityId}`, 'GET');
+    return response.data as Vulnerability;
+};
+export const editVulnerabilityCall = async (vulnerability: Vulnerability): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/vulnerabilities/${vulnerability.id}`, 'PUT', vulnerability);
+    return response.data as boolean;
 };
 // --- USERS ---
 export const changePasswordCall = async (oldPassword: string, newPassword: string): Promise<boolean> => {

@@ -8,7 +8,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { useAuth } from 'react-oidc-context';
 import IconButton from '@mui/material/IconButton';
-import { Menu, MenuItem, Stack, TextField, Tooltip } from '@mui/material';
+import { Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink } from '@mui/material';
 import { environment } from '../../../../environments/environment';
 import { Home } from '../home/home';
 import { Reports } from '../reports/reports';
@@ -64,33 +64,48 @@ export const MainWindow: FC = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Top AppBar */}
-      <AppBar position="fixed" sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+      <AppBar position="fixed" sx={{ 
+        zIndex: (theme) => theme.zIndex.drawer + 1, 
         borderBottom: themeMode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '0px'
       }}>
         <Toolbar sx={{ bgcolor: 'background.paper', paddingTop: '10px' }}>
-          <img src="/static/images/logo.png" alt="Logo" style={{ height: 70, marginRight: 6 }} />
+          <img src="/static/images/logo.png" alt="Logo" style={{ height: 70, marginRight: 6 }} />         
           {/* Navigation Buttons */}
           <Box sx={{ display: 'flex', ml: 4, gap: 1 }}>
             {navigationItems.map((item) => {
               const isActive = isActiveRoute(item.path);
+              const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
               return (
-                <Button
+                <MuiLink
                   key={item.path}
-                  onClick={() => navigate(item.path)}
-                  sx={{
-                    color: isActive ? '#FFD84D' : '#DDCDB1',
-                    backgroundColor: 'transparent',
-                    fontSize: isActive ? '1.5rem' : '1.2rem',
-                    fontWeight: isActive ? 600 : 400,
-                    textTransform: 'none',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 216, 77, 0.1)',
-                    },
+                  href={fullPath}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ textDecoration: 'none' }}
+                  onClick={(event) => {
+                    // If not Ctrl/Cmd click, prevent default and navigate normally
+                    if (!event.ctrlKey && !event.metaKey) {
+                      event.preventDefault();
+                      navigate(item.path);
+                    }
                   }}
                 >
-                  {item.label}
-                </Button>
+                  <Button
+                    sx={{
+                      color: isActive ? '#FFD84D' : '#DDCDB1',
+                      height: '54px',
+                      backgroundColor: 'transparent',
+                      fontSize: isActive ? '1.5rem' : '1.2rem',
+                      fontWeight: isActive ? 600 : 400,
+                      textTransform: 'none',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 216, 77, 0.1)',
+                      },
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                </MuiLink>
               );
             })}
           </Box>
@@ -98,15 +113,15 @@ export const MainWindow: FC = () => {
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Theme Toggle Button */}
-          <IconButton
-            color="inherit"
-            onClick={toggleTheme}
-            sx={{ mr: 1, visibility: 'hidden' }}
-          >
-            {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+            <IconButton 
+              color="inherit" 
+              onClick={toggleTheme}
+              sx={{ mr: 1 }}
+            >
+              {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
           {
-            auth.user
+            auth.user 
               ? (
                 <>
                   <Typography noWrap component="div" sx={{ overflow: 'unset', marginRight: '20px', fontSize: '1.2rem' }}>

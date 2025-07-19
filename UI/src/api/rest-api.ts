@@ -39,7 +39,6 @@ class RestApi {
       delete config.headers['Content-Type'];
       delete config.headers['content-type']; // just in case
     }
-    debugger;
     const response = await axios
       .request(config)
       .catch((reason: AxiosError) => {

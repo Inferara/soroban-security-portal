@@ -71,8 +71,22 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpDelete("{vulnerabilityId}")]
         public async Task<IActionResult> Remove(int vulnerabilityId)
         {
-             await _vulnerabilityService.Remove(vulnerabilityId);
+            await _vulnerabilityService.Remove(vulnerabilityId);
             return Ok();
+        }
+
+        [HttpGet("{vulnerabilityId}")]
+        public async Task<IActionResult> Get(int vulnerabilityId)
+        {
+            var result = await _vulnerabilityService.Get(vulnerabilityId);
+            return Ok(result);
+        }
+
+        [HttpPut("{vulnerabilityId}")]
+        public async Task<IActionResult> Update(int vulnerabilityId, [FromBody] VulnerabilityViewModel vulnerability)
+        {
+            var result = await _vulnerabilityService.Update(vulnerability);
+            return Ok(result);
         }
 
         [HttpGet]

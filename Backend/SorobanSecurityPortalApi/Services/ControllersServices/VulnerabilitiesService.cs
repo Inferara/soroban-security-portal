@@ -105,6 +105,20 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _vulnerabilityProcessor.Remove(vulnerabilityId);
         }
 
+        public async Task<VulnerabilityViewModel> Get(int vulnerabilityId)
+        {
+            var vulnerability = await _vulnerabilityProcessor.Get(vulnerabilityId);
+            return _mapper.Map<VulnerabilityViewModel>(vulnerability);
+        }
+
+        public async Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerabilityViewModel)
+        {
+            var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
+            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            var updatedVulnerability = await _vulnerabilityProcessor.Update(loginName, vulnerabilityModel);
+            return _mapper.Map<VulnerabilityViewModel>(updatedVulnerability);
+        }
+
         public async Task<List<VulnerabilityViewModel>> GetList()
         {
             var vulnerabilities = await _vulnerabilityProcessor.GetList();
@@ -132,6 +146,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task Approve(int vulnerabilityId);
         Task Reject(int vulnerabilityId);
         Task Remove(int vulnerabilityId);
+        Task<VulnerabilityViewModel> Get(int vulnerabilityId);
+        Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerability);
         Task<List<VulnerabilityViewModel>> GetList();
 
     }

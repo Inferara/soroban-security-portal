@@ -37,7 +37,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 throw new KeyNotFoundException($"Category with ID {categoryModel.Id} not found");
             }
             existingCategory.Name = categoryModel.Name;
-            existingCategory.Url = categoryModel.Url;
+            existingCategory.BgColor = categoryModel.BgColor;
+            existingCategory.TextColor = categoryModel.TextColor;
             await _db.SaveChangesAsync();
             return existingCategory;
         }

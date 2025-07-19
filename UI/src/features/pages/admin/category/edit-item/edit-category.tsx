@@ -18,11 +18,12 @@ const Item = styled(Paper)(({ theme }) => ({
 
 export const EditCategory: FC = () => {
   const navigate = useNavigate();
-  const [url, setUrl] = useState('');
   const [name, setName] = useState('');
+  const [textColor, setTextColor] = useState('#000000');
+  const [bgColor, setBgColor] = useState('#FFFFFF');
 
   const currentPageState: CurrentPageState = {
-    pageName: 'Edit Category',
+    pageName: 'Edit Tag',
     pageCode: 'editCategory',
     pageUrl: window.location.pathname,
     routePath: 'admin/categories/edit',
@@ -30,19 +31,21 @@ export const EditCategory: FC = () => {
   const { editCategory, category } = useEditCategory({ currentPageState });
 
   useEffect(() => {
-    setName(category?.name ?? '');
-    setUrl(category?.url ?? '');
+      setName(category?.name ?? '');
+      setBgColor(category?.bgColor ?? '');
+      setTextColor(category?.textColor ?? '');
   }, [category]);
 
   const handleEditCategory = async () => {
-    if (url === '' || name === '') {
-      showError('All fields are required.');
+    if (name === '') {
+      showError('Name field is required.');
       return;
     }
 
     const editCategoryItem = {
       name: name,
-      url: url,
+      bgColor: bgColor,
+      textColor: textColor,
       id: category?.id ?? 0,
       date: category?.date ?? new Date(),
       createdBy: category?.createdBy ?? '',
@@ -52,7 +55,7 @@ export const EditCategory: FC = () => {
     if (editCategorySuccess) {
       navigate('/admin/categories');
     } else {
-      showError('Category updating failed.');
+      showError('Tag updating failed.');
     }
   };
 
@@ -60,7 +63,7 @@ export const EditCategory: FC = () => {
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
         <Grid size={12} sx={{textAlign: 'center'}}>
-          <h3>Edit Category</h3>
+          <h3>Edit Tag</h3>
         </Grid>
         <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
           <TextField
@@ -74,15 +77,32 @@ export const EditCategory: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
+        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
-            id="url"
-            label="URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            type="text"
+            id="textColor"
+            label="Text Color"
+            value={textColor}
+            onChange={(e) => setTextColor(e.target.value)}
+            type="color"
+            InputProps={{
+              style: { height: '56px' }
+            }}
+          />
+        </Grid>
+        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
+          <TextField
+            sx={{ width: defaultUiSettings.editControlSize }}
+            required={true}
+            id="bgColor"
+            label="Background Color"
+            value={bgColor}
+            onChange={(e) => setBgColor(e.target.value)}
+            type="color"
+            InputProps={{
+              style: { height: '56px' }
+            }}
           />
         </Grid>
         <Grid size={12}>

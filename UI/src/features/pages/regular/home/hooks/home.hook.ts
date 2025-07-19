@@ -141,25 +141,6 @@ export const useVulnerabilityStatistics = () => {
     }));
   };
 
-  const generateSourcePieChartData = (vulns: Vulnerability[]): PieChartData[] => {
-    const sourceCounts = new Map<string, number>();
-    
-    vulns.forEach(vuln => {
-      const source = vuln.source || 'Unknown';
-      sourceCounts.set(source, (sourceCounts.get(source) || 0) + 1);
-    });
-
-    const total = vulns.length || 1;
-    const colors = ['#7b1fa2', '#9c27b0', '#ba68c8', '#ce93d8', '#e1bee7', '#f3e5f5', '#6a1b9a', '#4a148c'];
-    
-    return Array.from(sourceCounts.entries()).map(([source, count], index) => ({
-      id: source,
-      value: count,
-      label: `${Math.round((count / total) * 100)}% ${source}`,
-      color: colors[index % colors.length]
-    }));
-  };
-
   const generatePieChartData = (filterType: FilterType, vulns: Vulnerability[], stats?: VulnerabilityStatistics): PieChartData[] => {
     switch (filterType) {
       case 'severity':
@@ -168,8 +149,6 @@ export const useVulnerabilityStatistics = () => {
         return generateCategoryPieChartData(vulns);
       case 'project':
         return generateProjectPieChartData(vulns);
-      case 'source':
-        return generateSourcePieChartData(vulns);
       default:
         return generateSeverityPieChartData(stats || calculateStatistics(vulns));
     }
