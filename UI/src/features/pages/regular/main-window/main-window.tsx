@@ -117,6 +117,7 @@ export const MainWindow: FC = () => {
               color="inherit" 
               onClick={toggleTheme}
               sx={{ mr: 1 }}
+              style={{visibility: 'hidden'}}
             >
               {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>

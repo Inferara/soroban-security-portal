@@ -162,7 +162,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ children, className, inlin
             padding: '16px',
             fontSize: '14px',
             lineHeight: 1.5,
-            backgroundColor: 'transparent'
+            backgroundColor: themeMode === 'light' ? '#e0e0e0' : '#2F2F2F'
           }}
           showLineNumbers={language !== 'text'}
           wrapLines={true}
@@ -172,9 +172,9 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ children, className, inlin
             minWidth: '3em'
           }}
         >
-          {children}
+          {children.trim()}
         </SyntaxHighlighter>
       </Box>
     </Box>
   );
-}; 
+};

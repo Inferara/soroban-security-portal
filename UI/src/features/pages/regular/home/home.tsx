@@ -150,7 +150,7 @@ export const Home: FC = () => {
               width={350}
             />
           </div>
-          <div style={{ paddingTop: '100px' }}>
+          <div style={{ paddingTop: '100px', paddingBottom: '100px' }}>
             <VulnerabilityTable />
           </div>
         </div>
