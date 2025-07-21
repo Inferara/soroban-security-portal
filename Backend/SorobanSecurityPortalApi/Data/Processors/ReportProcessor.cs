@@ -157,10 +157,21 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task<List<ReportModel>> GetList()
         {
-            return await _db.Report
-                .AsNoTracking()
-                .OrderByDescending(v => v.Id)
-                .ToListAsync();
+            var query = _db.Report.AsNoTracking();
+            query = query.Select(v => new ReportModel
+            {
+                Id = v.Id,
+                Name = v.Name,
+                Date = v.Date,
+                Status = v.Status,
+                Author = v.Author,
+                LastActionBy = v.LastActionBy,
+                LastActionAt = v.LastActionAt,
+                Auditor = v.Auditor,
+                Project = v.Project,
+            });
+            query = query.OrderByDescending(v => v.Id);
+            return await query.ToListAsync();
         }
     }
 
