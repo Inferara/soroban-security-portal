@@ -5,6 +5,7 @@ using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Common.Extensions;
+using SorobanSecurityPortalApi.Authorization.Attributes;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -51,6 +52,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return File(result.Image, "image/png", $"image.png");
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator, Role.Contributor)]
         [HttpPost("add")]
         [RequestSizeLimit(10_000_000)]
         public async Task<IActionResult> Add([FromForm] string report, [FromForm] IFormFile? file = null)
@@ -122,7 +124,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
-
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPost("{reportId}/approve")]
         public async Task<IActionResult> Approve(int reportId)
         {
@@ -130,6 +132,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok();
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPost("{reportId}/reject")]
         public async Task<IActionResult> Reject(int reportId)
         {
@@ -137,6 +140,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok();
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpDelete("{reportId}")]
         public async Task<IActionResult> Remove(int reportId)
         {
@@ -153,6 +157,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPut("{reportId}")]
         public async Task<IActionResult> Update(int reportId, [FromBody] ReportViewModel report)
         {

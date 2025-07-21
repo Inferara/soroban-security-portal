@@ -7,7 +7,7 @@ export interface VulnerabilityStatistics {
   high: number;
   medium: number;
   low: number;
-  info: number;
+  note: number;
   total: number;
 }
 
@@ -27,7 +27,7 @@ export const useVulnerabilityStatistics = () => {
     high: 0,
     medium: 0,
     low: 0,
-    info: 0,
+    note: 0,
     total: 0
   });
   const [pieChartData, setPieChartData] = useState<PieChartData[]>([]);
@@ -40,7 +40,7 @@ export const useVulnerabilityStatistics = () => {
       high: 0,
       medium: 0,
       low: 0,
-      info: 0,
+      note: 0,
       total: vulns.length
     };
 
@@ -59,8 +59,8 @@ export const useVulnerabilityStatistics = () => {
         case 'low':
           stats.low++;
           break;
-        case 'info':
-          stats.info++;
+        case 'note':
+          stats.note++;
           break;
         default:
           // If severity doesn't match expected values, count as medium
@@ -101,9 +101,9 @@ export const useVulnerabilityStatistics = () => {
         color: '#569E6795' // Green
       },
       {
-        id: 'info',
-        value: stats.info,
-        label: `${Math.round((stats.info / total) * 100)}% Info Issues`,
+        id: 'note',
+        value: stats.note,
+        label: `${Math.round((stats.note / total) * 100)}% Note Issues`,
         color: '#72F1FF95' // Blue
       }
     ].filter(item => item.value > 0); // Only show segments with data

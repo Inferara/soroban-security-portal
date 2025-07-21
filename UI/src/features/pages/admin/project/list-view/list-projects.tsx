@@ -111,6 +111,7 @@ export const ListProjects: FC = () => {
           getRowId={(row: ProjectItem) => row.id}
           getRowHeight={() => 'auto'}
           sx={{
+            backgroundColor: 'transparent',
             '& .MuiDataGrid-cell': {
               whiteSpace: 'normal',
               display: 'grid',

@@ -1,4 +1,4 @@
-# Soroban Security Portal UI
+# Soroban Security Portal
 
 ## Prettier
 

@@ -1,6 +1,7 @@
 using SorobanSecurityPortalApi.Services.ControllersServices;
 using Microsoft.AspNetCore.Mvc;
 using SorobanSecurityPortalApi.Models.ViewModels;
+using SorobanSecurityPortalApi.Authorization.Attributes;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -22,6 +23,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpGet]
         public async Task<IActionResult> List()
         {

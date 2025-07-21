@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import { useNavigate } from 'react-router-dom';
 import { GalaxyCanvas } from './galaxy-canvas';
 import { VulnerabilityPieChart } from './vulnerability-pie-chart';
+import { VulnerabilityTable } from './vulnerability-table';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
@@ -142,7 +143,17 @@ export const Home: FC = () => {
           alignItems: 'center',
         }}
       >
-        <VulnerabilityPieChart height={350} width={350} />
+        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+          <div>
+            <VulnerabilityPieChart
+              height={350}
+              width={350}
+            />
+          </div>
+          <div style={{ paddingTop: '100px' }}>
+            <VulnerabilityTable />
+          </div>
+        </div>
       </Box>
     </Box>
   );

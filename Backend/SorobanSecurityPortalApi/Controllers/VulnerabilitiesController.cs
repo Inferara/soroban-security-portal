@@ -1,6 +1,9 @@
+using System.Text.Json;
 using SorobanSecurityPortalApi.Services.ControllersServices;
 using Microsoft.AspNetCore.Mvc;
+using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Models.ViewModels;
+using SorobanSecurityPortalApi.Authorization.Attributes;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -29,13 +32,6 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
-        [HttpGet("categories")]
-        public async Task<IActionResult> ListCategories()
-        {
-            var result = await _vulnerabilityService.ListCategories();
-            return Ok(result);
-        }
-
         [HttpPost]
         public async Task<IActionResult> Search([FromBody] VulnerabilitySearchViewModel? vulnerabilitySearch)
         {
@@ -43,17 +39,52 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator, Role.Contributor)]
         [HttpPost("add")]
-        public async Task<IActionResult> Add([FromBody] VulnerabilityViewModel vulnerability)
+        [RequestSizeLimit(25_000_000)]
+        public async Task<IActionResult> Add([FromForm] string vulnerability, [FromForm] IFormFile[]? images = null)
         {
-            if (vulnerability == null)
+            if (string.IsNullOrWhiteSpace(vulnerability))
+                return BadRequest("Report data is required.");
+
+            VulnerabilityViewModel? vulnerabilityModel;
+            try
             {
-                return BadRequest("Vulnerability data is required.");
+                vulnerabilityModel = vulnerability.JsonGet<VulnerabilityViewModel>();
             }
-            var result = await _vulnerabilityService.Add(vulnerability);
+            catch (JsonException ex)
+            {
+                return BadRequest("Invalid vulnerability JSON: " + ex.Message);
+            }
+
+            if (vulnerability == null)
+                return BadRequest("Parsed vulnerability is null.");
+
+            var files = new List<FileViewModel>();
+            if (images != null && images.Length > 0)
+            {
+                foreach (var file in images)
+                {
+                    if (file.Length > 0)
+                    {
+                        using var memoryStream = new MemoryStream();
+                        await file.CopyToAsync(memoryStream);
+                        files.Add(new FileViewModel
+                        {
+                            ContainerGuid = vulnerabilityModel.PicturesContainerGuid,
+                            Date = DateTime.UtcNow,
+                            Name = file.FileName,
+                            Type = file.ContentType,
+                            BinFile = memoryStream.ToArray()
+                        });
+                    }
+                }
+            }
+            var result = await _vulnerabilityService.Add(vulnerabilityModel, files);
             return Ok(result);
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPost("{vulnerabilityId}/approve")]
         public async Task<IActionResult> Approve(int vulnerabilityId)
         {
@@ -61,6 +92,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok();
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPost("{vulnerabilityId}/reject")]
         public async Task<IActionResult> Reject(int vulnerabilityId)
         {
@@ -68,6 +100,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok();
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpDelete("{vulnerabilityId}")]
         public async Task<IActionResult> Remove(int vulnerabilityId)
         {
@@ -82,10 +115,48 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPut("{vulnerabilityId}")]
-        public async Task<IActionResult> Update(int vulnerabilityId, [FromBody] VulnerabilityViewModel vulnerability)
+        [RequestSizeLimit(25_000_000)]
+        public async Task<IActionResult> Update([FromForm] string vulnerability, [FromForm] IFormFile[]? images = null)
         {
-            var result = await _vulnerabilityService.Update(vulnerability);
+            if (string.IsNullOrWhiteSpace(vulnerability))
+                return BadRequest("Report data is required.");
+
+            VulnerabilityViewModel? vulnerabilityModel;
+            try
+            {
+                vulnerabilityModel = vulnerability.JsonGet<VulnerabilityViewModel>();
+            }
+            catch (JsonException ex)
+            {
+                return BadRequest("Invalid vulnerability JSON: " + ex.Message);
+            }
+
+            if (vulnerability == null)
+                return BadRequest("Parsed vulnerability is null.");
+
+            var files = new List<FileViewModel>();
+            if (images != null && images.Length > 0)
+            {
+                foreach (var file in images)
+                {
+                    if (file.Length > 0)
+                    {
+                        using var memoryStream = new MemoryStream();
+                        await file.CopyToAsync(memoryStream);
+                        files.Add(new FileViewModel
+                        {
+                            ContainerGuid = vulnerabilityModel.PicturesContainerGuid,
+                            Date = DateTime.UtcNow,
+                            Name = file.FileName,
+                            Type = file.ContentType,
+                            BinFile = memoryStream.ToArray()
+                        });
+                    }
+                }
+            }
+            var result = await _vulnerabilityService.Update(vulnerabilityModel, files);
             return Ok(result);
         }
 

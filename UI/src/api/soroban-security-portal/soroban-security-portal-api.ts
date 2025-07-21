@@ -37,6 +37,17 @@ export const getCategoryByIdCall = async (categoryId: number): Promise<CategoryI
     const response = await client.request(`api/v1/categories/${categoryId}`, 'GET');
     return response.data as CategoryItem;
 };
+// --- FILES ---
+export const getFilesCall = async (containerGuid: string): Promise<string[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/file/${containerGuid}`, 'GET');
+    return response.data as string[];
+};
+export const deleteFileCall = async (containerGuid: string, fileName: string): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/file/${containerGuid}/${fileName}`, 'DELETE');
+    return response.data as boolean;
+};
 
 // --- AUDITORS ---
 export const getAuditorListDataCall = async (): Promise<AuditorItem[]> => {
@@ -150,7 +161,7 @@ export const getVulnerabilitiesCall = async (vulnerabilitySearch?: Vulnerability
     const response = await client.request('api/v1/vulnerabilities', 'POST', vulnerabilitySearch);
     return response.data as Vulnerability[];
 };
-export const addVulnerabilityCall = async (vulnerability: Vulnerability): Promise<boolean> => {
+export const addVulnerabilityCall = async (vulnerability: Vulnerability | FormData): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities/add', 'POST', vulnerability);
     return response.data as boolean;
@@ -180,9 +191,27 @@ export const getVulnerabilityByIdCall = async (vulnerabilityId: number): Promise
     const response = await client.request(`api/v1/vulnerabilities/${vulnerabilityId}`, 'GET');
     return response.data as Vulnerability;
 };
-export const editVulnerabilityCall = async (vulnerability: Vulnerability): Promise<boolean> => {
+export const editVulnerabilityCall = async (vulnerability: Vulnerability | FormData): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/vulnerabilities/${vulnerability.id}`, 'PUT', vulnerability);
+    let vulnerabilityId: number;
+    let body: FormData;
+
+    if (vulnerability instanceof FormData) {
+        // Extract vulnerability JSON string from FormData
+        const vulnStr = vulnerability.get('vulnerability') as string;
+        vulnerabilityId = JSON.parse(vulnStr).id;
+        body = vulnerability;
+    } else {
+        vulnerabilityId = vulnerability.id;
+        body = new FormData();
+        body.append('vulnerability', JSON.stringify(vulnerability));
+    }
+
+    const response = await client.request(
+        `api/v1/vulnerabilities/${vulnerabilityId}`,
+        'PUT',
+        body
+    );
     return response.data as boolean;
 };
 // --- USERS ---
