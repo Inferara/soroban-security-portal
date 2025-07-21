@@ -62,7 +62,7 @@ export const Vulnerabilities: FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const canAddVulnerability = (auth: AuthContextProps) => 
+  const canAddVulnerability = (auth: AuthContextProps) =>
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
   const toggleSortDirection = () => {
@@ -255,8 +255,8 @@ export const Vulnerabilities: FC = () => {
           <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <IconButton
               onClick={toggleSortDirection}
-              sx={{ 
-                border: 1, 
+              sx={{
+                border: 1,
                 borderColor: 'divider',
                 transform: sortDir === 'asc' ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s'
@@ -270,8 +270,8 @@ export const Vulnerabilities: FC = () => {
           </span>
           <IconButton
             onClick={toggleFilters}
-            sx={{ 
-              border: 1, 
+            sx={{
+              border: 1,
               borderColor: 'divider',
               bgcolor: showFilters ? 'primary.main' : 'transparent',
               color: showFilters ? 'white' : 'inherit',
@@ -282,9 +282,9 @@ export const Vulnerabilities: FC = () => {
           >
             <FilterListIcon />
           </IconButton>
-          <Button 
-            variant="contained" 
-            color="primary" 
+          <Button
+            variant="contained"
+            color="primary"
             sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
             onClick={() => { callSearch(); }}
           >
@@ -307,14 +307,15 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderValue={(selected) => (
-                    (selected as VulnerabilitySeverity[]).map((option, index) => (
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
                       <Chip
+                        {...getTagProps({ index })}
                         key={index}
                         label={(option as VulnerabilitySeverity).name}
                         size="small"
                         sx={{
-                            bgcolor: (() => {
+                          bgcolor: (() => {
                             switch ((option as VulnerabilitySeverity).name) {
                               case 'Critical': return '#c72e2b95';
                               case 'High': return '#FF6B3D95';
@@ -329,7 +330,7 @@ export const Vulnerabilities: FC = () => {
                         }}
                       />
                     ))
-                  )}
+                  }
                 />
 
                 <Autocomplete
@@ -346,15 +347,16 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderValue={(selected) =>
-                    (selected as CategoryItem[]).map((option, index) => (
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
                       <Chip
+                        {...getTagProps({ index })}
                         key={index}
-                        label={option.name}
+                        label={(option as CategoryItem).name}
                         size="small"
                         sx={{
-                          bgcolor: option.bgColor,
-                          color: option.textColor,
+                          bgcolor: (option as CategoryItem).bgColor,
+                          color: (option as CategoryItem).textColor,
                           fontWeight: 700,
                         }}
                       />
@@ -375,11 +377,12 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderValue={(selected) =>
-                    (selected as ProjectItem[]).map((option, index) => (
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
                       <Chip
+                        {...getTagProps({ index })}
                         key={index}
-                        label={option.name}
+                        label={(option as ProjectItem).name}
                         size="small"
                         sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
                       />
@@ -400,17 +403,18 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderValue={(selected) =>
-                    (selected as AuditorItem[]).map((option, index) => (
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
                       <Chip
+                        {...getTagProps({ index })}
                         key={index}
-                        label={option.name}
+                        label={(option as AuditorItem).name}
                         size="small"
                         sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
                       />
                     ))
                   }
-                />                
+                />
                 <Autocomplete
                   multiple
                   options={sourceList}
@@ -425,11 +429,12 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderValue={(selected) =>
-                    (selected as VulnerabilitySource[]).map((option, index) => (
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
                       <Chip
+                        {...getTagProps({ index })}
                         key={index}
-                        label={option.name}
+                        label={(option as VulnerabilitySource).name}
                         size="small"
                         sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }}
                       />
@@ -440,135 +445,136 @@ export const Vulnerabilities: FC = () => {
             )}
           </Box>
         </Box>
-      {/* Vulnerability cards */}
-      <Grid container spacing={3}>
-        <Typography variant="h3" sx={{ fontWeight: 600, mb: 1, color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2' }}>ENGAGE</Typography>
-        {vulnerabilitiesList.length === 0 && (
-          <Grid size={12}>
-            <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 6 }}>
-              No vulnerabilities found for the selected filters.
-            </Typography>
-          </Grid>
-        )}
-        {vulnerabilitiesList.map(vuln => (
-          <Grid size={12} key={vuln.id}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '20px', 
-              border: '1px solid',
-              backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-              borderLeft: `10px solid ${
-              vuln.severity === 'Critical' ? '#c72e2b95' :
-              vuln.severity === 'High' ? '#FF6B3D95' :
-              vuln.severity === 'Medium' ? '#FFD84D95' :
-              vuln.severity === 'Low' ? '#569E6795' :
-              vuln.severity === 'Note' ? '#72F1FF95' :
-              '#388e3c'}` }}>
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>
-                    {vuln.title}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                  {vuln.categories.map((category, index) => (
-                    <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
-                  ))}
-                  <Chip label={vuln.project} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
-                  <Chip label={vuln.auditor} size="small" sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }} />
-                  <Chip label={vuln.source} size="small" sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }} />
-                </Stack>
-                <ReactMarkdown
-                  skipHtml={false}
-                  remarkPlugins={[remarkParse, remarkGfm, remarkMath, remarkRehype]}
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
-                    code: (props) => {
-                      const { node, className, children, ...rest } = props;
-                      const inline = (props as any).inline;
-                      const match = /language-(\w+)/.exec(className || '');
-                      if (!inline && match) {
-                        return (
-                          <CodeBlock className={className} {...rest}>
-                            {String(children).replace(/\n$/, '')}
-                          </CodeBlock>
-                        );
-                      } else {
-                        return (
-                          <CodeBlock className={className} inline={true} {...rest}>
-                            {String(children).replace(/\n$/, '')}
-                          </CodeBlock>
-                        );
+        {/* Vulnerability cards */}
+        <Grid container spacing={3}>
+          <Typography variant="h3" sx={{ fontWeight: 600, mb: 1, color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2' }}>ENGAGE</Typography>
+          {vulnerabilitiesList.length === 0 && (
+            <Grid size={12}>
+              <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 6 }}>
+                No vulnerabilities found for the selected filters.
+              </Typography>
+            </Grid>
+          )}
+          {vulnerabilitiesList.map(vuln => (
+            <Grid size={12} key={vuln.id}>
+              <Card sx={{
+                height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '20px',
+                border: '1px solid',
+                backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
+                borderLeft: `10px solid ${vuln.severity === 'Critical' ? '#c72e2b95' :
+                    vuln.severity === 'High' ? '#FF6B3D95' :
+                      vuln.severity === 'Medium' ? '#FFD84D95' :
+                        vuln.severity === 'Low' ? '#569E6795' :
+                          vuln.severity === 'Note' ? '#72F1FF95' :
+                            '#388e3c'}`
+              }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>
+                      {vuln.title}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                    {vuln.categories.map((category, index) => (
+                      <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
+                    ))}
+                    <Chip label={vuln.project} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
+                    <Chip label={vuln.auditor} size="small" sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }} />
+                    <Chip label={vuln.source} size="small" sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }} />
+                  </Stack>
+                  <ReactMarkdown
+                    skipHtml={false}
+                    remarkPlugins={[remarkParse, remarkGfm, remarkMath, remarkRehype]}
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      code: (props) => {
+                        const { node, className, children, ...rest } = props;
+                        const inline = (props as any).inline;
+                        const match = /language-(\w+)/.exec(className || '');
+                        if (!inline && match) {
+                          return (
+                            <CodeBlock className={className} {...rest}>
+                              {String(children).replace(/\n$/, '')}
+                            </CodeBlock>
+                          );
+                        } else {
+                          return (
+                            <CodeBlock className={className} inline={true} {...rest}>
+                              {String(children).replace(/\n$/, '')}
+                            </CodeBlock>
+                          );
+                        }
                       }
-                    }
-                  }}
-                >
-                  {collapsedDescriptions.has(vuln.id.toString()) ? getTruncatedDescription(vuln.description) : vuln.description}
-                </ReactMarkdown>
-                {shouldShowCollapse(vuln.description) && (
-                  <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
-                    <IconButton
-                      onClick={() => toggleDescriptionCollapse(vuln.id.toString())}
-                      sx={{ color: themeMode === 'light' ? 'text.secondary' : 'text.disabled' }}
-                    >
-                      {collapsedDescriptions.has(vuln.id.toString()) ? <ExpandMoreIcon /> : <ExpandLessIcon />}
-                    </IconButton>
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      {collapsedDescriptions.has(vuln.id.toString()) ? 'Show more' : 'Show less'}
-                    </Typography>
-                  </Box>
-                )}
-                <Typography variant="caption" color="text.secondary">
-                  Discovered: {new Date(vuln.date).toLocaleDateString()}
-                </Typography>
-              </CardContent>
-              <CardActions sx={{ justifyContent: 'flex-end' }}>
-                {vuln.source === 'External' ? (
-                  <MuiLink
-                    href={vuln.reportUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ textDecoration: 'none' }}
+                    }}
                   >
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      sx={{ textTransform: 'none', marginRight: '20px' }}
-                    >
-                      View Report
-                    </Button>
-                  </MuiLink>
-                ) : (() => {
-                  const report = reportsList.find(report => report.name === vuln.source);
-                  if (report) {
-                    const url = `${environment.apiUrl}/api/v1/reports/${report.id}/download`;
-                    return (
-                      <MuiLink
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ textDecoration: 'none' }}
+                    {collapsedDescriptions.has(vuln.id.toString()) ? getTruncatedDescription(vuln.description) : vuln.description}
+                  </ReactMarkdown>
+                  {shouldShowCollapse(vuln.description) && (
+                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
+                      <IconButton
+                        onClick={() => toggleDescriptionCollapse(vuln.id.toString())}
+                        sx={{ color: themeMode === 'light' ? 'text.secondary' : 'text.disabled' }}
                       >
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          sx={{ textTransform: 'none', marginRight: '20px' }}
+                        {collapsedDescriptions.has(vuln.id.toString()) ? <ExpandMoreIcon /> : <ExpandLessIcon />}
+                      </IconButton>
+                      <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        {collapsedDescriptions.has(vuln.id.toString()) ? 'Show more' : 'Show less'}
+                      </Typography>
+                    </Box>
+                  )}
+                  <Typography variant="caption" color="text.secondary">
+                    Discovered: {new Date(vuln.date).toLocaleDateString()}
+                  </Typography>
+                </CardContent>
+                <CardActions sx={{ justifyContent: 'flex-end' }}>
+                  {vuln.source === 'External' ? (
+                    <MuiLink
+                      href={vuln.reportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ textDecoration: 'none' }}
+                    >
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{ textTransform: 'none', marginRight: '20px' }}
+                      >
+                        View Report
+                      </Button>
+                    </MuiLink>
+                  ) : (() => {
+                    const report = reportsList.find(report => report.name === vuln.source);
+                    if (report) {
+                      const url = `${environment.apiUrl}/api/v1/reports/${report.id}/download`;
+                      return (
+                        <MuiLink
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{ textDecoration: 'none' }}
                         >
-                          View Report
-                        </Button>
-                      </MuiLink>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{ textTransform: 'none', marginRight: '20px' }}
+                          >
+                            View Report
+                          </Button>
+                        </MuiLink>
+                      );
+                    }
+                    return (
+                      <Typography variant="caption" color="text.disabled" sx={{ marginRight: '20px' }}>
+                        No report available
+                      </Typography>
                     );
-                  }
-                  return (
-                    <Typography variant="caption" color="text.disabled" sx={{ marginRight: '20px' }}>
-                      No report available
-                    </Typography>
-                  );
-                })()}
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
+                  })()}
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
     </LocalizationProvider>
   );
 };
