@@ -31,7 +31,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 new IdValue { Id = 1, Name = "Critical" },
                 new IdValue { Id = 2, Name = "High" },
                 new IdValue { Id = 3, Name = "Medium" },
-                new IdValue { Id = 4, Name = "Low" }
+                new IdValue { Id = 4, Name = "Low" },
+                new IdValue { Id = 4, Name = "Info" }
             };
             return result;
         }

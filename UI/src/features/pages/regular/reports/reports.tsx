@@ -77,86 +77,84 @@ export const Reports: FC = () => {
             onChange={e => setSearchText(e.target.value)}
             placeholder="Search"
             sx={{ minWidth: 500 }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Autocomplete
-            options={projectsList}
-            value={project}
-            onChange={(_, newValue) => setProject(newValue as ProjectItem)}
-            getOptionLabel={(option) => (option as ProjectItem).name}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Project"
-                size="small"
-                sx={{ minWidth: 290 }}
-              />
-            )}
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => (
-                <Chip
-                  {...getTagProps({ index })}
-                  key={index}
-                  label={(option as ProjectItem).name}
-                  size="small"
-                  sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
-                />
-              ))
-            }
-          />
-          <Autocomplete
-            options={auditorsList}
-            value={auditor}
-            onChange={(_, newValue) => setAuditor(newValue as AuditorItem)}
-            getOptionLabel={(option) => (option as AuditorItem).name}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Auditor"
-                size="small"
-                sx={{ minWidth: 290 }}
-              />
-            )}
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => (
-                <Chip
-                  {...getTagProps({ index })}
-                  key={index}
-                  label={(option as AuditorItem).name}
-                  size="small"
-                  sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
-                />
-              ))
-            }
-          />  
-          <DatePicker
-            label="Start Date"
-            value={startDate}
-            onChange={(newValue) => setStartDate(newValue)}
             slotProps={{
-              textField: {
-                size: 'small',
-                sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
-              }
-            }}
-          />
-          <DatePicker
-            label="End Date"
-            value={endDate}
-            onChange={(newValue) => setEndDate(newValue)}
-            slotProps={{
-              textField: {
-                size: 'small',
-                sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
-              }
-            }}
-          />
+              input: {
+                endAdornment: (
+                    <InputAdornment position="end">
+                    <SearchIcon />
+                    </InputAdornment>
+                  ),
+                  },
+                }}
+                />
+                <Autocomplete
+                options={projectsList}
+                value={project}
+                onChange={(_, newValue) => setProject(newValue as ProjectItem)}
+                getOptionLabel={(option) => (option as ProjectItem).name}
+                renderInput={(params) => (
+                  <TextField
+                  {...params}
+                  label="Project"
+                  size="small"
+                  sx={{ minWidth: 290 }}
+                  />
+                )}
+                renderValue={(selected) =>
+                  selected ? (
+                  <Chip
+                    label={(selected as ProjectItem).name}
+                    size="small"
+                    sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
+                  />
+                  ) : null
+                }
+                />
+                <Autocomplete
+                options={auditorsList}
+                value={auditor}
+                onChange={(_, newValue) => setAuditor(newValue as AuditorItem)}
+                getOptionLabel={(option) => (option as AuditorItem).name}
+                renderInput={(params) => (
+                  <TextField
+                  {...params}
+                  label="Auditor"
+                  size="small"
+                  sx={{ minWidth: 290 }}
+                  />
+                )}
+                renderValue={(selected) =>
+                  selected ? (
+                  <Chip
+                    label={(selected as AuditorItem).name}
+                    size="small"
+                    sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
+                  />
+                  ) : null
+                }
+                />  
+                <DatePicker
+                label="Start Date"
+                value={startDate}
+                onChange={(newValue) => setStartDate(newValue)}
+                slotProps={{
+                  textField: {
+                  size: 'small',
+                  sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
+                  }
+                }}
+                />
+                <DatePicker
+                label="End Date"
+                value={endDate}
+                onChange={(newValue) => setEndDate(newValue)}
+                slotProps={{
+                  textField: {
+                  size: 'small',
+                  sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
+                  }
+                }}
+                />
           <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <IconButton
               onClick={toggleSortDirection}
@@ -217,7 +215,7 @@ export const Reports: FC = () => {
                       }
                     }}
                     height="540"
-                    image={`${environment.aiCoreApiUrl}/api/v1/reports/${report.id}/image.png`}
+                    image={`${environment.apiUrl}/api/v1/reports/${report.id}/image.png`}
                     alt={report.name}
                     title="Hover to see full image"
                     onLoad={() => handleImageLoad(report.id)}
@@ -245,7 +243,7 @@ export const Reports: FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'end', alignItems: 'end', marginRight: '20px' }}>
                     <Button
                       variant="outlined"
-                      href={`${environment.aiCoreApiUrl}/api/v1/reports/${report.id}/download`}
+                      href={`${environment.apiUrl}/api/v1/reports/${report.id}/download`}
                       target="_blank"
                       rel="noopener"
                       sx={{ 

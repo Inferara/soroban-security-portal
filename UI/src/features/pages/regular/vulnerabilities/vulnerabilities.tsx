@@ -234,20 +234,19 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderOption={(props, option) => (
+                    <li {...props}>
                       <Chip
-                        {...getTagProps({ index })}
-                        key={index}
                         label={(option as VulnerabilitySeverity).name}
                         size="small"
                         sx={{
                           bgcolor: (() => {
                             switch ((option as VulnerabilitySeverity).name) {
-                              case 'Critical': return '#d32f2f';
-                              case 'High': return '#f57c00';
-                              case 'Medium': return '#fbc02d';
-                              case 'Low': return '#388e3c';
+                              case 'Critical': return '#c72e2b95';
+                              case 'High': return '#FF6B3D95';
+                              case 'Medium': return '#FFD84D95';
+                              case 'Low': return '#569E6795';
+                              case 'Info': return '#72F1FF95';
                               default: return '#e0e0e0';
                             }
                           })(),
@@ -255,8 +254,8 @@ export const Vulnerabilities: FC = () => {
                           fontWeight: 700,
                         }}
                       />
-                    ))
-                  }
+                    </li>
+                  )}
                 />
                 <Autocomplete
                   multiple
@@ -272,16 +271,15 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderValue={(selected) =>
+                    (selected as CategoryItem[]).map((option, index) => (
                       <Chip
-                        {...getTagProps({ index })}
                         key={index}
-                        label={(option as CategoryItem).name}
+                        label={option.name}
                         size="small"
                         sx={{
-                          bgcolor: (option as CategoryItem).bgColor,
-                          color: (option as CategoryItem).textColor,
+                          bgcolor: option.bgColor,
+                          color: option.textColor,
                           fontWeight: 700,
                         }}
                       />
@@ -302,12 +300,11 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderValue={(selected) =>
+                    (selected as ProjectItem[]).map((option, index) => (
                       <Chip
-                        {...getTagProps({ index })}
                         key={index}
-                        label={(option as ProjectItem).name}
+                        label={option.name}
                         size="small"
                         sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
                       />
@@ -328,12 +325,11 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderValue={(selected) =>
+                    (selected as AuditorItem[]).map((option, index) => (
                       <Chip
-                        {...getTagProps({ index })}
                         key={index}
-                        label={(option as AuditorItem).name}
+                        label={option.name}
                         size="small"
                         sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
                       />
@@ -354,12 +350,11 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderValue={(selected) =>
+                    (selected as VulnerabilitySource[]).map((option, index) => (
                       <Chip
-                        {...getTagProps({ index })}
                         key={index}
-                        label={(option as VulnerabilitySource).name}
+                        label={option.name}
                         size="small"
                         sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }}
                       />
@@ -397,8 +392,8 @@ export const Vulnerabilities: FC = () => {
                   </Typography>
                 </Stack>
                 <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                  {vuln.categories.map(category => (
-                    <Chip label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
+                  {vuln.categories.map((category, index) => (
+                    <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
                   ))}
                   <Chip label={vuln.project} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
                   <Chip label={vuln.auditor} size="small" sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }} />
@@ -467,7 +462,7 @@ export const Vulnerabilities: FC = () => {
                 ) : (() => {
                   const report = reportsList.find(report => report.name === vuln.source);
                   if (report) {
-                    const url = `${environment.aiCoreApiUrl}/api/v1/reports/${report.id}/download`;
+                    const url = `${environment.apiUrl}/api/v1/reports/${report.id}/download`;
                     return (
                       <MuiLink
                         href={url}

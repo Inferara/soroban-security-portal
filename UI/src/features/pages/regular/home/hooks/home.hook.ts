@@ -7,6 +7,7 @@ export interface VulnerabilityStatistics {
   high: number;
   medium: number;
   low: number;
+  info: number;
   total: number;
 }
 
@@ -26,6 +27,7 @@ export const useVulnerabilityStatistics = () => {
     high: 0,
     medium: 0,
     low: 0,
+    info: 0,
     total: 0
   });
   const [pieChartData, setPieChartData] = useState<PieChartData[]>([]);
@@ -38,6 +40,7 @@ export const useVulnerabilityStatistics = () => {
       high: 0,
       medium: 0,
       low: 0,
+      info: 0,
       total: vulns.length
     };
 
@@ -55,6 +58,9 @@ export const useVulnerabilityStatistics = () => {
           break;
         case 'low':
           stats.low++;
+          break;
+        case 'info':
+          stats.info++;
           break;
         default:
           // If severity doesn't match expected values, count as medium
@@ -74,25 +80,31 @@ export const useVulnerabilityStatistics = () => {
         id: 'critical',
         value: stats.critical,
         label: `${Math.round((stats.critical / total) * 100)}% Critical Issues`,
-        color: '#d32f2f' // Red
+        color: '#c72e2b95' // Red
       },
       {
         id: 'high',
         value: stats.high,
         label: `${Math.round((stats.high / total) * 100)}%  High Issues`,
-        color: '#f57c00' // Orange
+        color: '#FF6B3D95' // Orange
       },
       {
         id: 'medium',
         value: stats.medium,
         label: `${Math.round((stats.medium / total) * 100)}% Medium Issues`,
-        color: '#fbc02d' // Yellow
+        color: '#FFD84D95' // Yellow
       },
       {
         id: 'low',
         value: stats.low,
         label: `${Math.round((stats.low / total) * 100)}% Low Issues`,
-        color: '#006600' // Green
+        color: '#569E6795' // Green
+      },
+      {
+        id: 'info',
+        value: stats.info,
+        label: `${Math.round((stats.info / total) * 100)}% Info Issues`,
+        color: '#72F1FF95' // Blue
       }
     ].filter(item => item.value > 0); // Only show segments with data
   };

@@ -280,12 +280,12 @@ export const getSubscriptionsListCall = async (): Promise<Subscription[]> => {
 // Rest client
 const getRestClient = async (): Promise<RestApi> => {
     const accessToken = getAccessToken()
-    const restClient = new RestApi(environment.aiCoreApiUrl, `Bearer ${accessToken}`);
+    const restClient = new RestApi(environment.apiUrl, `Bearer ${accessToken}`);
     return restClient;
 };
 
 const getAccessToken = () => {
-    const oidcStorage = sessionStorage.getItem(`oidc.user:${environment.aiCoreApiUrl}/api/v1/connect:${environment.clientId}`)
+    const oidcStorage = sessionStorage.getItem(`oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`)
     if (!oidcStorage) {
         return null;
     }
