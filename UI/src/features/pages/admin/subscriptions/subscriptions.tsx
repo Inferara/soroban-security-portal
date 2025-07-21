@@ -55,6 +55,7 @@ export const Subscriptions: React.FC = () => {
           getRowId={(row: Subscription) => row.id}
           getRowHeight={() => 'auto'}
           sx={{
+            backgroundColor: 'transparent',
             '& .MuiDataGrid-cell': {
               whiteSpace: 'normal',
               display: 'grid',

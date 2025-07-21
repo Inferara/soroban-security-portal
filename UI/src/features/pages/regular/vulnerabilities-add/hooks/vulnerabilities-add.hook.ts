@@ -16,6 +16,7 @@ import {
 import { ProjectItem } from '../../../../../api/soroban-security-portal/models/project';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
+import { v4 } from 'uuid';
 
 export const useVulnerabilityAdd = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
@@ -23,6 +24,8 @@ export const useVulnerabilityAdd = () => {
   const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
   const [sourceList, setSourceList] = useState<VulnerabilitySource[]>([]);
   const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [picturesContainerGuid] = useState(v4());
   const dispatch = useAppDispatch();
 
   const getSeverities = async (): Promise<void> => {
@@ -50,9 +53,25 @@ export const useVulnerabilityAdd = () => {
     setSourceList(response);
   };
 
-  const addVulnerability = async (vulnerability: Vulnerability): Promise<void> => {
-    const response = await addVulnerabilityCall(vulnerability);
-    console.log(response);
+  const addVulnerability = async (vulnerability: Vulnerability, images?: File[]): Promise<void> => {
+    setIsUploading(true);
+    try {       
+      const formData = new FormData();
+      formData.append('vulnerability', JSON.stringify(vulnerability));
+      if (images && images.length > 0){
+        images.forEach((image) => {
+          formData.append(`images`, image);
+        });
+      }      
+      const response = await addVulnerabilityCall(formData);
+      console.log('Vulnerability added with images:', response);
+
+    } catch (error) {
+      console.error('Error adding vulnerability:', error);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // Set the current page
@@ -71,5 +90,7 @@ export const useVulnerabilityAdd = () => {
     auditorsList,
     sourceList,
     addVulnerability,
+    isUploading,
+    picturesContainerGuid,
   };
 };

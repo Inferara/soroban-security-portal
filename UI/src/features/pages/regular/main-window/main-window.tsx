@@ -203,7 +203,7 @@ export const MainWindow: FC = () => {
       <Toolbar /> {/* Spacer for AppBar */}
 
       {/* Main content area */}
-      <Box sx={{ flexGrow: 1, p: 3 }}>
+      <Box sx={{ flexGrow: 1, p: 0 }}>
         <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: 3, minHeight: '80vh' }}>
           <Routes>
             <Route path={`${environment.basePath}/`} element={<Home />} />

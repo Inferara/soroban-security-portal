@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import { useNavigate } from 'react-router-dom';
 import { GalaxyCanvas } from './galaxy-canvas';
 import { VulnerabilityPieChart } from './vulnerability-pie-chart';
+import { VulnerabilityTable } from './vulnerability-table';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
@@ -18,27 +19,33 @@ export const Home: FC = () => {
   };
 
   return (
-    <Box sx={{ position: 'relative', minHeight: '80vh', overflow: 'hidden' }}>
+    <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', elevation: 0 }}>
       {/* Content Overlay */}
       <Box
+        id="hero"
         sx={{
           position: 'relative',
           zIndex: 1,
-          p: 3,
-          minHeight: '800px',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
           backdropFilter: 'blur(2px)',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-          {/* Background */}
+        {/* GalaxyCanvas only covers hero section */}
+        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 2, pointerEvents: 'none' }}>
           <GalaxyCanvas />
-        </div>
-        <Typography variant="h2" component="h2"
+        </Box>
+        <Typography
+          variant="h2"
+          component="h2"
           sx={{
-            mb: 3,
+            mb: { xs: 2, md: 3 },
             color: 'black',
             textAlign: 'center',
-            paddingTop: '200px',
             textShadow: `
               -1px -1px 0 #DDCDB1,
                1px -1px 0 #DDCDB1,
@@ -49,17 +56,27 @@ export const Home: FC = () => {
               -2px  2px 0 #DDCDB1,
                2px  2px 0 #DDCDB1
             `,
-            fontWeight: 'bold'
-          }}>
+            fontWeight: 'bold',
+            position: 'relative',
+            zIndex: 3,
+            fontSize: 'clamp(3.75rem, 6vw, 7rem)',
+          }}
+        >
           WELCOME TO SOROBAN<br />SECURITY PORTAL
         </Typography>
 
-        <Typography variant="h6" component="h3"
+        <Typography
+          variant="h6"
+          component="h3"
           sx={{
-            mb: 4,
+            mb: { xs: 3, md: 4 },
             textAlign: 'center',
             color: '#DDCDB1',
-          }}>
+            position: 'relative',
+            fontSize: 'clamp(1.5rem, 1.5vw, 2rem)',
+            zIndex: 3,
+          }}
+        >
           It's your go-to hub for all things secure in the world of Soroban - Soroban's<br />
           smart contract platform. Think of it as your safety compass: audit history,<br />
           tools, tips and top-tier experts who've put Soroban projects through their<br />
@@ -67,18 +84,21 @@ export const Home: FC = () => {
         </Typography>
 
         {/* Action Buttons */}
-        <Box sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 3,
-          flexWrap: 'wrap',
-          mt: 4
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 3,
+            flexWrap: 'wrap',
+            mt: { xs: 2, md: 4 },
+            position: 'relative',
+            zIndex: 3,
+          }}
+        >
           <Button
             variant="contained"
             onClick={handleGetStarted}
             sx={{
-              backgroundColor: '#4f8cff',
               color: 'white',
               px: 4,
               py: 1.5,
@@ -86,11 +106,6 @@ export const Home: FC = () => {
               fontWeight: 900,
               textTransform: 'none',
               borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(79, 140, 255, 0.3)',
-              '&:hover': {
-                backgroundColor: '#3358e6',
-                boxShadow: '0 6px 16px rgba(79, 140, 255, 0.4)',
-              },
             }}
           >
             Get Started
@@ -118,18 +133,27 @@ export const Home: FC = () => {
             Learn More
           </Button>
         </Box>
-
       </Box>
+
       {/* Vulnerability Statistics Pie Chart */}
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        mb: 4
-      }}>
-        <VulnerabilityPieChart
-          height={350}
-          width={350}
-        />
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+          <div>
+            <VulnerabilityPieChart
+              height={350}
+              width={350}
+            />
+          </div>
+          <div style={{ paddingTop: '100px' }}>
+            <VulnerabilityTable />
+          </div>
+        </div>
       </Box>
     </Box>
   );

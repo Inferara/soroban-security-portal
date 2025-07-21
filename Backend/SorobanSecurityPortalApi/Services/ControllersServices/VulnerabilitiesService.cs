@@ -10,17 +10,20 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IMapper _mapper;
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
         private readonly IReportProcessor _reportProcessor;
+        private readonly IFileProcessor _fileProcessor;
         private readonly UserContextAccessor _userContextAccessor;
 
         public VulnerabilityService(
             IMapper mapper,
             IVulnerabilityProcessor vulnerabilityProcessor,
             IReportProcessor reportProcessor,
+            IFileProcessor fileProcessor,
             UserContextAccessor userContextAccessor)
         {
             _mapper = mapper;
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _reportProcessor = reportProcessor;
+            _fileProcessor = fileProcessor;
             _userContextAccessor = userContextAccessor;
         }
 
@@ -31,21 +34,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 new IdValue { Id = 1, Name = "Critical" },
                 new IdValue { Id = 2, Name = "High" },
                 new IdValue { Id = 3, Name = "Medium" },
-                new IdValue { Id = 4, Name = "Low" }
-            };
-            return result;
-        }
-
-        public async Task<List<IdValue>> ListCategories()
-        {
-            var result = new List<IdValue>
-            {
-                new IdValue { Id = 1, Name = "Overflow" },
-                new IdValue { Id = 2, Name = "Access Control" },
-                new IdValue { Id = 3, Name = "Logic Bug" },
-                new IdValue { Id = 4, Name = "Reentrancy" },
-                new IdValue { Id = 5, Name = "Timestamp" },
-
+                new IdValue { Id = 4, Name = "Low" },
+                new IdValue { Id = 5, Name = "Note" }
             };
             return result;
         }
@@ -79,10 +69,21 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return result;
         }
 
-        public async Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerabilityViewModel)
+        public async Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
         {
-            var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
             var loginName = await _userContextAccessor.GetLoginNameAsync();
+            foreach (var file in files)
+            {
+                if (file.BinFile != null && file.BinFile.Length > 0)
+                {
+                    var fileModel = _mapper.Map<Models.DbModels.FileModel>(file);
+                    fileModel.Date = DateTime.UtcNow;
+                    fileModel.Author = loginName;
+                    var addedFile = await _fileProcessor.Add(fileModel);
+                    file.Id = addedFile.Id;
+                }
+            }
+            var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
             vulnerabilityModel.Author = loginName;
             var addedVulnerability = await _vulnerabilityProcessor.Add(vulnerabilityModel);
             return _mapper.Map<VulnerabilityViewModel>(addedVulnerability);
@@ -111,10 +112,21 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<VulnerabilityViewModel>(vulnerability);
         }
 
-        public async Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerabilityViewModel)
+        public async Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
         {
             var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
             var loginName = await _userContextAccessor.GetLoginNameAsync();
+            foreach (var file in files)
+            {
+                if (file.BinFile != null && file.BinFile.Length > 0)
+                {
+                    var fileModel = _mapper.Map<Models.DbModels.FileModel>(file);
+                    fileModel.Date = DateTime.UtcNow;
+                    fileModel.Author = loginName;
+                    var addedFile = await _fileProcessor.Add(fileModel);
+                    file.Id = addedFile.Id;
+                }
+            }
             var updatedVulnerability = await _vulnerabilityProcessor.Update(loginName, vulnerabilityModel);
             return _mapper.Map<VulnerabilityViewModel>(updatedVulnerability);
         }
@@ -139,15 +151,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public interface IVulnerabilityService
     {
         Task<List<IdValue>> ListSeverities();
-        Task<List<IdValue>> ListCategories();
         Task<List<IdValueUrl>> ListSources();
         Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearch);
-        Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerability);
+        Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task Approve(int vulnerabilityId);
         Task Reject(int vulnerabilityId);
         Task Remove(int vulnerabilityId);
         Task<VulnerabilityViewModel> Get(int vulnerabilityId);
-        Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerability);
+        Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task<List<VulnerabilityViewModel>> GetList();
 
     }

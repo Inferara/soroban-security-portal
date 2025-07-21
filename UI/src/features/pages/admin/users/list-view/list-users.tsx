@@ -142,6 +142,7 @@ export const UserManagement: FC = () => {
           getRowId={(row: UserItem) => row.loginId}
           getRowHeight={() => 'auto'}
           sx={{
+            backgroundColor: 'transparent',
             '& .MuiDataGrid-cell': {
               whiteSpace: 'normal',
               display: 'grid',

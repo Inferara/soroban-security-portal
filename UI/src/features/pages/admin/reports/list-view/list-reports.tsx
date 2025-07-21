@@ -139,7 +139,7 @@ export const ReportManagement: FC = () => {
       headerName: 'Image',
       width: 380,
       renderCell: (params: GridRenderCellParams<Report>) => {
-        const imageUrl = `${environment.aiCoreApiUrl}/api/v1/reports/${params.row.id}/image.png`;
+        const imageUrl = `${environment.apiUrl}/api/v1/reports/${params.row.id}/image.png`;
         return (
           <CardMedia
             component="img"

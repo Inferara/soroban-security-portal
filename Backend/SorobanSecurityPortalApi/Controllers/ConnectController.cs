@@ -254,12 +254,12 @@ namespace SorobanSecurityPortalApi.Controllers
 
             var scopes = loginProcessViewModel!.Scope.Split(' ', '+');
             var isOfflineMode = scopes.Contains("offline_access");
-            var aiCoreCode = await _connectService.GetCodeBySsoId(accessToken, isOfflineMode, loginProcessViewModel);
-            if (aiCoreCode.StartsWith("Error:"))
-                return Unauthorized(new { error = aiCoreCode });
+            var internalCode = await _connectService.GetCodeBySsoId(accessToken, isOfflineMode, loginProcessViewModel);
+            if (internalCode.StartsWith("Error:"))
+                return Unauthorized(new { error = internalCode });
 
             var redirectUri = loginProcessViewModel.RedirectUri;
-            redirectUri += redirectUri.Contains('?') ? $"&code={aiCoreCode}" : $"?code={aiCoreCode}";
+            redirectUri += redirectUri.Contains('?') ? $"&code={internalCode}" : $"?code={internalCode}";
             if (!string.IsNullOrEmpty(state))
                 redirectUri += $"&state={loginProcessViewModel.State}";
 

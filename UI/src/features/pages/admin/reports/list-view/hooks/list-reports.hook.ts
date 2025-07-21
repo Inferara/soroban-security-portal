@@ -40,7 +40,7 @@ export const useListReports = (props: UseListReportsProps) => {
     }
 
     const downloadReport = async (reportId: number): Promise<void> => {
-        const url = `${environment.aiCoreApiUrl}/api/v1/reports/${reportId}/download`;
+        const url = `${environment.apiUrl}/api/v1/reports/${reportId}/download`;
         window.open(url, '_blank');
     }
 

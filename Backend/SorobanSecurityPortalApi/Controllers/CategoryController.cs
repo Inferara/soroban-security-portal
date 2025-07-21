@@ -1,6 +1,7 @@
 using SorobanSecurityPortalApi.Services.ControllersServices;
 using Microsoft.AspNetCore.Mvc;
 using SorobanSecurityPortalApi.Models.ViewModels;
+using SorobanSecurityPortalApi.Authorization.Attributes;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -15,6 +16,7 @@ namespace SorobanSecurityPortalApi.Controllers
             _categoryService = categoryService;
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPost]
         public async Task<IActionResult> Add(CategoryViewModel categoryViewModel)
         {
@@ -22,6 +24,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPut]
         public async Task<IActionResult> Update(CategoryViewModel categoryViewModel)
         {
@@ -29,6 +32,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

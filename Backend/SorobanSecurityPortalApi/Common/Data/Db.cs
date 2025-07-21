@@ -18,6 +18,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<ProjectModel> Project { get; set; }
         public DbSet<AuditorModel> Auditor { get; set; }
         public DbSet<CategoryModel> Category { get; set; }
+        public DbSet<FileModel> File { get; set; }
 
 
         private readonly IDbQuery _dbQuery;

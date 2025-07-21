@@ -116,6 +116,7 @@ export const ListCategories: FC = () => {
           getRowId={(row: CategoryItem) => row.id}
           getRowHeight={() => 'auto'}
           sx={{
+            backgroundColor: 'transparent',
             '& .MuiDataGrid-cell': {
               whiteSpace: 'normal',
               display: 'grid',

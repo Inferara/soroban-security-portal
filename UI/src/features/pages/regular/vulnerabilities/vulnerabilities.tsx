@@ -24,7 +24,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
 import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from '../../../../api/soroban-security-portal/models/vulnerability';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -61,6 +61,7 @@ export const Vulnerabilities: FC = () => {
   const { severitiesList, categoriesList, projectsList, auditorsList, sourceList, vulnerabilitiesList, searchVulnerabilities, reportsList } = useVulnerabilities();
   const auth = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const canAddVulnerability = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
@@ -125,6 +126,76 @@ export const Vulnerabilities: FC = () => {
   useEffect(() => {
     setCollapsedDescriptions(new Set(vulnerabilitiesList.map(vuln => vuln.id.toString())));
   }, [vulnerabilitiesList]);
+
+  // Apply filters from URL parameters
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const severityParam = searchParams.get('severity');
+    const projectParam = searchParams.get('project');
+    const sourceParam = searchParams.get('source');
+
+    let hasFilters = false;
+
+    if (categoryParam && categoriesList.length > 0) {
+      const category = categoriesList.find(c => c.name === categoryParam);
+      if (category) {
+        setCategories([category]);
+        hasFilters = true;
+        console.log('Applied category filter from URL:', categoryParam);
+      }
+    }
+
+    if (severityParam && severitiesList.length > 0) {
+      const severity = severitiesList.find(s => s.name === severityParam);
+      if (severity) {
+        setSeverities([severity]);
+        hasFilters = true;
+        console.log('Applied severity filter from URL:', severityParam);
+      }
+    }
+
+    if (projectParam && projectsList.length > 0) {
+      const project = projectsList.find(p => p.name === projectParam);
+      if (project) {
+        setProjects([project]);
+        hasFilters = true;
+        console.log('Applied project filter from URL:', projectParam);
+      }
+    }
+
+    if (sourceParam && sourceList.length > 0) {
+      const source = sourceList.find(s => s.name === sourceParam);
+      if (source) {
+        setSources([source]);
+        hasFilters = true;
+        console.log('Applied source filter from URL:', sourceParam);
+      }
+    }
+
+    if (hasFilters) {
+      setShowFilters(true);
+    }
+  }, [searchParams, categoriesList, severitiesList, projectsList, sourceList]);
+
+  // Auto-search when filters are applied from URL
+  useEffect(() => {
+    if (categoriesList.length > 0 && severitiesList.length > 0 && projectsList.length > 0 && sourceList.length > 0) {
+      const hasUrlFilters = searchParams.get('category') || searchParams.get('severity') || searchParams.get('project') || searchParams.get('source');
+      if (hasUrlFilters) {
+        console.log('Auto-searching with URL filters:', {
+          category: searchParams.get('category'),
+          severity: searchParams.get('severity'),
+          project: searchParams.get('project'),
+          source: searchParams.get('source')
+        });
+        // Small delay to ensure all filter lists are loaded
+        const timer = setTimeout(() => {
+          callSearch();
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [categoriesList, severitiesList, projectsList, sourceList, searchParams]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -234,20 +305,19 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderOption={(props, option) => (
+                    <li {...props}>
                       <Chip
-                        {...getTagProps({ index })}
-                        key={index}
                         label={(option as VulnerabilitySeverity).name}
                         size="small"
                         sx={{
                           bgcolor: (() => {
                             switch ((option as VulnerabilitySeverity).name) {
-                              case 'Critical': return '#d32f2f';
-                              case 'High': return '#f57c00';
-                              case 'Medium': return '#fbc02d';
-                              case 'Low': return '#388e3c';
+                              case 'Critical': return '#c72e2b95';
+                              case 'High': return '#FF6B3D95';
+                              case 'Medium': return '#FFD84D95';
+                              case 'Low': return '#569E6795';
+                              case 'Info': return '#72F1FF95';
                               default: return '#e0e0e0';
                             }
                           })(),
@@ -255,8 +325,8 @@ export const Vulnerabilities: FC = () => {
                           fontWeight: 700,
                         }}
                       />
-                    ))
-                  }
+                    </li>
+                  )}
                 />
                 <Autocomplete
                   multiple
@@ -272,16 +342,15 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderValue={(selected) =>
+                    (selected as CategoryItem[]).map((option, index) => (
                       <Chip
-                        {...getTagProps({ index })}
                         key={index}
-                        label={(option as CategoryItem).name}
+                        label={option.name}
                         size="small"
                         sx={{
-                          bgcolor: (option as CategoryItem).bgColor,
-                          color: (option as CategoryItem).textColor,
+                          bgcolor: option.bgColor,
+                          color: option.textColor,
                           fontWeight: 700,
                         }}
                       />
@@ -302,12 +371,11 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderValue={(selected) =>
+                    (selected as ProjectItem[]).map((option, index) => (
                       <Chip
-                        {...getTagProps({ index })}
                         key={index}
-                        label={(option as ProjectItem).name}
+                        label={option.name}
                         size="small"
                         sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
                       />
@@ -328,12 +396,11 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderValue={(selected) =>
+                    (selected as AuditorItem[]).map((option, index) => (
                       <Chip
-                        {...getTagProps({ index })}
                         key={index}
-                        label={(option as AuditorItem).name}
+                        label={option.name}
                         size="small"
                         sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
                       />
@@ -354,12 +421,11 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
+                  renderValue={(selected) =>
+                    (selected as VulnerabilitySource[]).map((option, index) => (
                       <Chip
-                        {...getTagProps({ index })}
                         key={index}
-                        label={(option as VulnerabilitySource).name}
+                        label={option.name}
                         size="small"
                         sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }}
                       />
@@ -397,8 +463,8 @@ export const Vulnerabilities: FC = () => {
                   </Typography>
                 </Stack>
                 <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                  {vuln.categories.map(category => (
-                    <Chip label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
+                  {vuln.categories.map((category, index) => (
+                    <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
                   ))}
                   <Chip label={vuln.project} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
                   <Chip label={vuln.auditor} size="small" sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }} />
@@ -467,7 +533,7 @@ export const Vulnerabilities: FC = () => {
                 ) : (() => {
                   const report = reportsList.find(report => report.name === vuln.source);
                   if (report) {
-                    const url = `${environment.aiCoreApiUrl}/api/v1/reports/${report.id}/download`;
+                    const url = `${environment.apiUrl}/api/v1/reports/${report.id}/download`;
                     return (
                       <MuiLink
                         href={url}
