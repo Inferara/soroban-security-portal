@@ -220,12 +220,14 @@ export const Vulnerabilities: FC = () => {
             onChange={e => setSearch(e.target.value)}
             placeholder="Search"
             sx={{ minWidth: 800 }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }
             }}
           />
           <DatePicker
@@ -305,13 +307,14 @@ export const Vulnerabilities: FC = () => {
                       sx={{ minWidth: 290 }}
                     />
                   )}
-                  renderOption={(props, option) => (
-                    <li {...props}>
+                  renderValue={(selected) => (
+                    (selected as VulnerabilitySeverity[]).map((option, index) => (
                       <Chip
+                        key={index}
                         label={(option as VulnerabilitySeverity).name}
                         size="small"
                         sx={{
-                          bgcolor: (() => {
+                            bgcolor: (() => {
                             switch ((option as VulnerabilitySeverity).name) {
                               case 'Critical': return '#c72e2b95';
                               case 'High': return '#FF6B3D95';
@@ -325,9 +328,10 @@ export const Vulnerabilities: FC = () => {
                           fontWeight: 700,
                         }}
                       />
-                    </li>
+                    ))
                   )}
                 />
+
                 <Autocomplete
                   multiple
                   options={categoriesList}
@@ -452,9 +456,11 @@ export const Vulnerabilities: FC = () => {
               border: '1px solid',
               backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
               borderLeft: `10px solid ${
-              vuln.severity === 'Critical' ? '#d32f2f' :
-              vuln.severity === 'High' ? '#f57c00' :
-              vuln.severity === 'Medium' ? '#fbc02d' :
+              vuln.severity === 'Critical' ? '#c72e2b95' :
+              vuln.severity === 'High' ? '#FF6B3D95' :
+              vuln.severity === 'Medium' ? '#FFD84D95' :
+              vuln.severity === 'Low' ? '#569E6795' :
+              vuln.severity === 'Info' ? '#72F1FF95' :
               '#388e3c'}` }}>
               <CardContent sx={{ flexGrow: 1 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>

@@ -27,7 +27,7 @@ export const ListCategories: FC = () => {
   const navigate = useNavigate();
 
   const currentPageState: CurrentPageState = {
-    pageName: 'Categories',
+    pageName: 'Tags',
     pageCode: 'categories',
     pageUrl: window.location.pathname,
     routePath: 'admin/categories',
