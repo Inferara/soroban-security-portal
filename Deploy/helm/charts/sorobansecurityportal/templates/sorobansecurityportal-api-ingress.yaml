@@ -23,3 +23,10 @@ spec:
             name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
             port:
               number: 8080
+      - path: /file
+        pathType: Prefix
+        backend:
+          service:
+            name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
+            port:
+              number: 8080

@@ -18,3 +18,8 @@ spec:
     services:
     - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
       port: 8080
+  - kind: Rule
+    match: Host(`{{ .Values.global.app.domain }}`) && PathPrefix(`/file`)
+    services:
+    - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
+      port: 8080

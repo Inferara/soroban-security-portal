@@ -26,7 +26,6 @@ namespace SorobanSecurityPortalApi.Controllers
             return File(result.BinFile, result.Type, result.Name);
         }
 
-        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpGet("api/v1/file/{containerGuid}")]
         public async Task<IActionResult> List(string containerGuid)
         {

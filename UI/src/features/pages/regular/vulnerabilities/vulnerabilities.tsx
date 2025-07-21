@@ -460,7 +460,7 @@ export const Vulnerabilities: FC = () => {
               vuln.severity === 'High' ? '#FF6B3D95' :
               vuln.severity === 'Medium' ? '#FFD84D95' :
               vuln.severity === 'Low' ? '#569E6795' :
-              vuln.severity === 'Info' ? '#72F1FF95' :
+              vuln.severity === 'Note' ? '#72F1FF95' :
               '#388e3c'}` }}>
               <CardContent sx={{ flexGrow: 1 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
