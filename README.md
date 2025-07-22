@@ -28,12 +28,12 @@ The Soroban Security Portal' purpose is to provide a cohesive knowledge base for
 
 By providing a unified knowledge base of common vulnerabilities and audit reports, developers can focus on building using Soroban safely.
 
-🤝 Contributing
+<img width="959" height="328" alt="image" src="https://github.com/user-attachments/assets/fef74946-be00-4321-aa50-6a8b248e4db6" />
+
+## 🤝 Contributing
 
 Contributions are welcome!
 
-📄 License
+## 📄 License
 
-This project is licensed under the Apache License 2.0. See [LICENSE](./LICENSE) for details.
-
-<img width="959" height="328" alt="image" src="https://github.com/user-attachments/assets/fef74946-be00-4321-aa50-6a8b248e4db6" />
+This project is licensed under # Apache License 2.0. See [LICENSE](./LICENSE) for details.
