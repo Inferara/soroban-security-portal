@@ -5,6 +5,7 @@
     window['env'] = {
         API_URL: '$APIURL',
         CLIENT_ID: 'SorobanSecurityPortal',
-        BASE_PATH: ''
+        BASE_PATH: '',
+        GA_ID: ''
     };
   })(this);  

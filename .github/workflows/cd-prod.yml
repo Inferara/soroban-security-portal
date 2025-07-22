@@ -49,6 +49,7 @@ jobs:
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GA_ID: ${{ secrets.GTAG }}
           LETSENCRYPT_ISSUER: ${{ secrets.LETSENCRYPT_ISSUER }}
         run: |
           # Generate a timestamp for build
@@ -65,6 +66,7 @@ jobs:
             --set global.app.build="$buildNumber" \
             --set global.app.domain="$HOST_NAME" \
             --set global.sorobansecurityportalui.apiUrl="$API_URL" \
+            --set global.sorobansecurityportalui.gaId="$GA_ID" \
             --set global.environment.namespace=sorobansecurityportal-ns \
             --set global.environment.name="$ENV_NAME" \
             --set global.postgres.dbName="$DB_NAME" \

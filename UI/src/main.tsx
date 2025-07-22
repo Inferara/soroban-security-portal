@@ -15,6 +15,9 @@ import { Role } from './api/soroban-security-portal/models/role';
 import { MainWindow } from './features/pages/regular/main-window/main-window';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
+import ReactGA from 'react-ga';
+
+ReactGA.initialize(environment.gaId);
 
 const oidcConfig = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

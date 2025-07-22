@@ -9,3 +9,4 @@ metadata:
     build: "{{ .Values.global.app.build }}"
 data:
   APIURL: "{{ .Values.global.sorobansecurityportalui.apiUrl }}"
+  GA_ID: "{{ .Values.global.sorobansecurityportalui.gaId }}"
