@@ -17,7 +17,9 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import ReactGA from 'react-ga4';
 
-ReactGA.initialize(environment.gaId);
+if (environment.gaId) {
+  ReactGA.initialize(environment.gaId);
+}
 
 const oidcConfig = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
