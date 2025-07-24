@@ -15,7 +15,7 @@ import { Role } from './api/soroban-security-portal/models/role';
 import { MainWindow } from './features/pages/regular/main-window/main-window';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
-import ReactGA from 'react-ga';
+import ReactGA from 'react-ga4';
 
 ReactGA.initialize(environment.gaId);
 
