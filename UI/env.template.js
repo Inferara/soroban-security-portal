@@ -6,6 +6,6 @@
         API_URL: '$APIURL',
         CLIENT_ID: 'SorobanSecurityPortal',
         BASE_PATH: '',
-        GA_ID: ''
+        GA_ID: '$GA_ID'
     };
-  })(this);  
+  })(this);
