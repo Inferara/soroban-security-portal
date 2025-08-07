@@ -30,7 +30,7 @@ namespace SorobanSecurityPortalApi.Common.SsoSources
         private const string DiscordUserInfoEndpoint = "https://discord.com/api/users/@me";
 
         private string RedirectUrl => $"{_config.AppUrl}/connect/callback";
-        private static string Scope => HttpUtility.UrlEncode("identify email");
+        private static string Scope => HttpUtility.UrlEncode("identify email guilds guilds.members.read");
 
         public async Task<ExtendedTokenModel> GetAccessTokenByCodeAsync(string code, string codeVerifier)
         {
