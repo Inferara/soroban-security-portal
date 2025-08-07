@@ -19,6 +19,9 @@ global:
     password: ""
   google:
     clientId: ""
+    clientSecret: ""
+  discord:
+    clientId: ""
     clientSecret: ""    
   qdrant:
     storage:
@@ -30,4 +33,7 @@ global:
     dbName: ""
     userName: ""
     password: ""
+  embedding:
+    model: "gemini-embedding-001"
+    key: ""
   letsEncryptIssuer: ""

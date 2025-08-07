@@ -1,6 +1,6 @@
 import { FC, useState } from 'react';
 import React from 'react';
-import { Box, Card, CardContent, CardMedia, Typography, Grid, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress } from '@mui/material';
+import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress, Tooltip } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -13,23 +13,25 @@ import { environment } from '../../../../environments/environment';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
-import { ProjectItem } from '../../../../api/soroban-security-portal/models/project';
+import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
+import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
 
 export const Reports: FC = () => {
   const { themeMode } = useTheme();
-  const { reportsList, searchReports, auditorsList, projectsList } = useReports();
+  const { reportsList, searchReports, auditorsList, protocolsList, companiesList } = useReports();
   const auth = useAuth();
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
-  const [project, setProject] = useState<ProjectItem | null>(null);
+  const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
+  const [company, setCompany] = useState<CompanyItem | null>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
-  const canAddReport = (auth: AuthContextProps) => 
+  const canAddReport = (auth: AuthContextProps) =>
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
-  
+
   const toggleSortDirection = () => {
     setSortDir(prev => prev === 'desc' ? 'asc' : 'desc');
   };
@@ -57,7 +59,7 @@ export const Reports: FC = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box>
+      <Box sx={{ padding: '24px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           {canAddReport(auth) && (
             <Button
@@ -70,96 +72,119 @@ export const Reports: FC = () => {
             </Button>
           )}
         </Box>
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField
             size="small"
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
             placeholder="Search"
-            sx={{ minWidth: 500 }}
+            sx={{ minWidth: { xs: 290, sm: 340, md: 400, lg: 500 } }}
             slotProps={{
               input: {
                 endAdornment: (
-                    <InputAdornment position="end">
+                  <InputAdornment position="end">
                     <SearchIcon />
-                    </InputAdornment>
-                  ),
-                  },
-                }}
-                />
-                <Autocomplete
-                options={projectsList}
-                value={project}
-                onChange={(_, newValue) => setProject(newValue as ProjectItem)}
-                getOptionLabel={(option) => (option as ProjectItem).name}
-                renderInput={(params) => (
-                  <TextField
-                  {...params}
-                  label="Project"
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+          <Autocomplete
+            options={companiesList}
+            value={company}
+            onChange={(_, newValue) => setCompany(newValue as CompanyItem)}
+            getOptionLabel={(option) => (option as CompanyItem).name}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Company"
+                size="small"
+                sx={{ minWidth: 290 }}
+              />
+            )}
+            renderValue={(selected) =>
+              selected ? (
+                <Chip
+                  label={(selected as CompanyItem).name}
                   size="small"
-                  sx={{ minWidth: 290 }}
-                  />
-                )}
-                renderValue={(selected) =>
-                  selected ? (
-                  <Chip
-                    label={(selected as ProjectItem).name}
-                    size="small"
-                    sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
-                  />
-                  ) : null
-                }
+                  sx={{ bgcolor: '#2b7fa2', color: '#F2F2F2' }}
                 />
-                <Autocomplete
-                options={auditorsList}
-                value={auditor}
-                onChange={(_, newValue) => setAuditor(newValue as AuditorItem)}
-                getOptionLabel={(option) => (option as AuditorItem).name}
-                renderInput={(params) => (
-                  <TextField
-                  {...params}
-                  label="Auditor"
+              ) : null
+            }
+          />
+          <Autocomplete
+            options={protocolsList}
+            value={protocol}
+            onChange={(_, newValue) => setProtocol(newValue as ProtocolItem)}
+            getOptionLabel={(option) => (option as ProtocolItem).name}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Protocol"
+                size="small"
+                sx={{ minWidth: 290 }}
+              />
+            )}
+            renderValue={(selected) =>
+              selected ? (
+                <Chip
+                  label={(selected as ProtocolItem).name}
                   size="small"
-                  sx={{ minWidth: 290 }}
-                  />
-                )}
-                renderValue={(selected) =>
-                  selected ? (
-                  <Chip
-                    label={(selected as AuditorItem).name}
-                    size="small"
-                    sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
-                  />
-                  ) : null
-                }
-                />  
-                <DatePicker
-                label="Start Date"
-                value={startDate}
-                onChange={(newValue) => setStartDate(newValue)}
-                slotProps={{
-                  textField: {
-                  size: 'small',
-                  sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
-                  }
-                }}
+                  sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
                 />
-                <DatePicker
-                label="End Date"
-                value={endDate}
-                onChange={(newValue) => setEndDate(newValue)}
-                slotProps={{
-                  textField: {
-                  size: 'small',
-                  sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
-                  }
-                }}
+              ) : null
+            }
+          />
+          <Autocomplete
+            options={auditorsList}
+            value={auditor}
+            onChange={(_, newValue) => setAuditor(newValue as AuditorItem)}
+            getOptionLabel={(option) => (option as AuditorItem).name}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Auditor"
+                size="small"
+                sx={{ minWidth: 290 }}
+              />
+            )}
+            renderValue={(selected) =>
+              selected ? (
+                <Chip
+                  label={(selected as AuditorItem).name}
+                  size="small"
+                  sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
                 />
+              ) : null
+            }
+          />
+          <DatePicker
+            label="Start Date"
+            value={startDate}
+            onChange={(newValue) => setStartDate(newValue)}
+            slotProps={{
+              textField: {
+                size: 'small',
+                sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
+              }
+            }}
+          />
+          <DatePicker
+            label="End Date"
+            value={endDate}
+            onChange={(newValue) => setEndDate(newValue)}
+            slotProps={{
+              textField: {
+                size: 'small',
+                sx: { minWidth: 200, backgroundColor: themeMode === 'light' ? '#fafafa' : 'background.paper' }
+              }
+            }}
+          />
           <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <IconButton
               onClick={toggleSortDirection}
-              sx={{ 
-                border: 1, 
+              sx={{
+                border: 1,
                 borderColor: 'divider',
                 transform: sortDir === 'asc' ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s'
@@ -176,12 +201,13 @@ export const Reports: FC = () => {
             color="primary"
             sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
             onClick={() => searchReports(
-              { 
-                searchText, 
-                project: project?.name || '',
+              {
+                searchText,
+                protocol: protocol?.name || '',
+                company: company?.name || '',
                 auditor: auditor?.name || '',
-                from: startDate?.toISOString().split('T')[0] || '', 
-                to: endDate?.toISOString().split('T')[0] || '',              
+                from: startDate?.toISOString().split('T')[0] || '',
+                to: endDate?.toISOString().split('T')[0] || '',
                 sortBy: 'date',
                 sortDirection: sortDir,
               })}
@@ -189,79 +215,94 @@ export const Reports: FC = () => {
             Search
           </Button>
         </Box>
-        <Typography variant="h3" sx={{ fontWeight: 600, mb: 1, color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2' }}>REPORTS</Typography>
-        <Grid container spacing={3}>
+      </Box>
+        <Typography variant="h3" sx={{ fontWeight: 600, pl: 3, pb: 3, mb: 1, color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2' }}>REPORTS</Typography>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gap: 3,
+            pl: 3,
+            pb: 3,
+          }}
+        >
           {reportsList.map((report) => (
-            <Grid size={4} key={report.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '10px', borderRadius: '20px', 
-                backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A', 
-                border: '1px solid', position: 'relative' }}>
-                  <CardMedia
-                    component="img"
-                    sx={{ 
-                      objectFit: 'cover',
-                      objectPosition: 'top',
-                      height: '440px',
-                      transition: 'all 0.3s ease-in-out',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        objectFit: 'contain',
-                        objectPosition: 'center',
-                        transform: 'scale(1.05)',
-                        zIndex: 1000,
-                        position: 'relative',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                        borderRadius: '8px'
-                      }
-                    }}
-                    height="540"
-                    image={`${environment.apiUrl}/api/v1/reports/${report.id}/image.png`}
-                    alt={report.name}
-                    title="Hover to see full image"
-                    onLoad={() => handleImageLoad(report.id)}
-                    onError={() => handleImageError(report.id)}
-                    onLoadStart={() => startImageLoading(report.id)}
-                  />
-                  {loadingImages[report.id] && (
-                    <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                      <CircularProgress size={40} sx={{ color: themeMode === 'light' ? '#1A1A1A' : '#fafafa' }} />
-                    </Box>
-                  )}
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    {report.name}
-                  </Typography>
+            <Card sx={{
+              height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '0px', borderRadius: '20px',
+              backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
+              border: '1px solid', position: 'relative'
+            }}>
+              <CardMedia
+                component="img"
+                sx={{
+                  objectFit: 'cover',
+                  objectPosition: 'top',
+                  height: '150px',
+                  transition: 'all 0.3s ease-in-out',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    objectFit: 'contain',
+                    objectPosition: 'center',
+                    transform: 'scale(1.05)',
+                    zIndex: 1000,
+                    position: 'relative',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    borderRadius: '8px'
+                  }
+                }}
+                height="540"
+                image={`${environment.apiUrl}/api/v1/reports/${report.id}/image.png`}
+                alt={report.name}
+                title={report.name}
+                onLoad={() => handleImageLoad(report.id)}
+                onError={() => handleImageError(report.id)}
+                onLoadStart={() => startImageLoading(report.id)}
+              />
+              {loadingImages[report.id] && (
+                <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                  <CircularProgress size={40} sx={{ color: themeMode === 'light' ? '#1A1A1A' : '#fafafa' }} />
+                </Box>
+              )}
+              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <Box>
+                  <Tooltip title={report.name} placement="top">
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {report.name}
+                    </Typography>
+                  </Tooltip>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     Published: {new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    For: {report.project}
+                    for: {report.company}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    By: {report.auditor}
+                    of: {report.protocol}
                   </Typography>
-                  <div style={{ display: 'flex', justifyContent: 'end', alignItems: 'end', marginRight: '20px' }}>
-                    <Button
-                      variant="outlined"
-                      href={`${environment.apiUrl}/api/v1/reports/${report.id}/download`}
-                      target="_blank"
-                      rel="noopener"
-                      sx={{ 
-                        fontWeight: 600, 
-                        borderRadius: 2, 
-                        backgroundColor: themeMode === 'light' ? '#1A1A1A' : '#fafafa', 
-                        color: themeMode === 'light' ? '#fafafa' : '#1A1A1A'
-                      }}
-                    >
-                      Download Report
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </Grid>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    by: {report.auditor}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                  <Button
+                    variant="outlined"
+                    href={`${environment.apiUrl}/api/v1/reports/${report.id}/download`}
+                    target="_blank"
+                    rel="noopener"
+                    sx={{
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      backgroundColor: themeMode === 'light' ? '#1A1A1A' : '#fafafa',
+                      color: themeMode === 'light' ? '#fafafa' : '#1A1A1A'
+                    }}
+                  >
+                    Download Report
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
-      </Box>
+        </Box>
     </LocalizationProvider>
   );
 };

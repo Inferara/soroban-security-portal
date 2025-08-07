@@ -15,10 +15,13 @@ namespace SorobanSecurityPortalApi.Controllers
     {
         private readonly IUserService _userService;
         private readonly Config _config;
-        public UserController(IUserService userService, Config config)           
+        private readonly UserContextAccessor _userContextAccessor;
+
+        public UserController(IUserService userService, Config config, UserContextAccessor userContextAccessor)           
         {
             _userService = userService;
             _config = config;
+            _userContextAccessor = userContextAccessor;
         }
 
         [Authorize]
@@ -26,7 +29,12 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> GetUser(int loginId)
         {
             var currentUser = this.GetLogin(); 
-            if (currentUser == null) return Unauthorized();
+            if (currentUser == null) 
+                return Unauthorized();
+            if (loginId == 0)
+            {
+                loginId = await _userContextAccessor.GetLoginIdAsync() ?? 0;
+            }
 
             var login = await _userService.GetLoginById(loginId);
             return Ok(login);
@@ -71,7 +79,7 @@ namespace SorobanSecurityPortalApi.Controllers
 
         [RoleAuthorize(Role.Admin)]
         [HttpPut("{loginId}")]
-        public async Task<IActionResult> UpdateUser(int loginId, [FromBody] EditLoginViewModel editLoginViewModel)
+        public async Task<IActionResult> UpdateUser(int loginId, [FromBody] LoginViewModel editLoginViewModel)
         {
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();

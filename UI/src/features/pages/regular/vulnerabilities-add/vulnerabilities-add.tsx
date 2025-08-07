@@ -1,4 +1,4 @@
-import { FC, useState, useRef } from 'react';
+import { FC, useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -32,11 +32,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Editor } from '@monaco-editor/react';
 import { useTheme as useThemeContext } from '../../../../contexts/ThemeContext';
-import { ProjectItem } from '../../../../api/soroban-security-portal/models/project';
+import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { CategoryItem } from '../../../../api/soroban-security-portal/models/category';
 import { showError } from '../../../dialog-handler/dialog-handler';
 import { environment } from '../../../../environments/environment';
+import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
 
 export const AddVulnerability: FC = () => {
   const { themeMode } = useThemeContext();
@@ -45,25 +46,48 @@ export const AddVulnerability: FC = () => {
   const [description, setDescription] = useState('');
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [severity, setSeverity] = useState<VulnerabilitySeverity | null>(null);
-  const [project, setProject] = useState<ProjectItem | null>(null);
+  const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
+  const [company, setCompany] = useState<CompanyItem | null>(null);
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
   const [source, setSource] = useState<VulnerabilitySource | null>(null);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [filteredProtocolsList, setFilteredProtocolsList] = useState<ProtocolItem[]>([]);
   const [imageError, setImageError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  const { severitiesList, categoriesList, projectsList, auditorsList, sourceList, addVulnerability, isUploading, picturesContainerGuid } = useVulnerabilityAdd();
+  const { 
+    severitiesList, 
+    categoriesList, 
+    protocolsList, 
+    companiesList, 
+    auditorsList, 
+    sourceList, 
+    addVulnerability, 
+    isUploading, 
+    picturesContainerGuid 
+  } = useVulnerabilityAdd();
+
   const auth = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   
+  useEffect(() => {
+    setFilteredProtocolsList(protocolsList.filter(protocol => protocol.companyId === company?.id));
+  }, [company]);
+
   const canAddVulnerability = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
   if (!canAddVulnerability(auth)) {
     navigate('/vulnerabilities');
   }
+
+  // Clear protocol selection when company changes
+  const handleCompanyChange = (_: React.SyntheticEvent, newCompany: CompanyItem | null) => {
+    setCompany(newCompany);
+    setProtocol(null); // Clear protocol selection when company changes
+  };
 
   const validateAndAddImage = (file: File) => {
     // Check if file is an image
@@ -138,7 +162,8 @@ export const AddVulnerability: FC = () => {
       description: description,
       severity: severity?.name || '',
       categories: categories.map(c => c.name),
-      project: project?.name || '',
+      company: company?.name || '',
+      protocol: protocol?.name || '',
       auditor: auditor?.name || '',
       source: source?.name || '',
       reportUrl: reportUrl,
@@ -150,7 +175,8 @@ export const AddVulnerability: FC = () => {
       !vulnerability.description || 
       !vulnerability.severity || 
       vulnerability.categories.length === 0 || 
-      !vulnerability.project || 
+      !vulnerability.company || 
+      !vulnerability.protocol || 
       !vulnerability.auditor ||
       !vulnerability.source) {
       showError('Please fill all fields');
@@ -279,14 +305,30 @@ export const AddVulnerability: FC = () => {
             </Grid>
             <Grid size={12}>
               <Autocomplete
-                options={projectsList}
-                value={project}
-                onChange={(_, newValue) => setProject(newValue)}
-                getOptionLabel={(option) => (option as ProjectItem).name}
+                options={companiesList}
+                value={company}
+                onChange={handleCompanyChange}
+                getOptionLabel={(option) => (option as CompanyItem).name}
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Project *"
+                    label="Company *"
+                    size="small"
+                    sx={{ width: '100%' }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid size={12}>
+              <Autocomplete
+                options={filteredProtocolsList}
+                value={protocol}
+                onChange={(_, newValue) => setProtocol(newValue)}
+                getOptionLabel={(option) => (option as ProtocolItem).name}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Protocol *"
                     size="small"
                     sx={{ width: '100%' }}
                   />
@@ -318,7 +360,7 @@ export const AddVulnerability: FC = () => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Source *"
+                    label="Report *"
                     size="small"
                     sx={{ width: '100%' }}
                   />

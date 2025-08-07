@@ -78,8 +78,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     IsEnabled = true,
                     Created = DateTime.UtcNow,
                     CreatedBy = "system",
-                    TokensLimit = 0,
+                    Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
+                        ? await GetImageByUrl(extendedTokenModel.Picture)
+                        : null
                 });
+            } 
+            else if (login.Image == null)
+            {
+                login.Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
+                    ? await GetImageByUrl(extendedTokenModel.Picture)
+                    : null;
+                await _loginProcessor.Update(login);
             }
 
             if (!login.IsEnabled)
@@ -95,7 +104,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 ValidUntilTime = loginProcessViewModel.IsPermanentToken
                     ? DateTime.UtcNow.AddDays(_config.PermanentTokenExpirationTimeDays)
                     : DateTime.UtcNow.AddMinutes(_config.TokenExpirationTimeMinutes),
-                Picture = extendedTokenModel.Picture,
+                Picture = (login.Image != null ? Convert.ToBase64String(login.Image) : ""),
             };
             _loginHistoryProcessor.Add(loginHistory);
             return loginHistory.Code;
@@ -116,8 +125,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     IsEnabled = true,
                     Created = DateTime.UtcNow,
                     CreatedBy = "system",
-                    TokensLimit = 0,
+                    Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
+                        ? await GetImageByUrl(extendedTokenModel.Picture)
+                        : null
                 });
+            }
+            else if (login.Image == null)
+            {
+                login.Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
+                    ? await GetImageByUrl(extendedTokenModel.Picture)
+                    : null;
+                await _loginProcessor.Update(login);
             }
 
             if (!login.IsEnabled)
@@ -133,7 +151,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 ValidUntilTime = loginProcessViewModel.IsPermanentToken
                     ? DateTime.UtcNow.AddDays(_config.PermanentTokenExpirationTimeDays)
                     : DateTime.UtcNow.AddMinutes(_config.TokenExpirationTimeMinutes),
-                Picture = extendedTokenModel.Picture,
+                Picture = (login.Image != null ? Convert.ToBase64String(login.Image) : ""),
             };
             _loginHistoryProcessor.Add(loginHistory);
             return loginHistory.Code;
@@ -165,6 +183,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
+        }
+
+        private async Task<byte[]> GetImageByUrl(string imageUrl)
+        {
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync(imageUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsByteArrayAsync();
+            }
+            return Array.Empty<byte>();
         }
 
         private async Task<TokenModel> GetTokenModel(LoginHistoryModel loginHistory)

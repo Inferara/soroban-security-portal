@@ -23,7 +23,7 @@ namespace SorobanSecurityPortalApi.Common
                     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
                     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
                 })
-                .ConfigurePrimaryHttpMessageHandler<OpenAiHttpCallHandler>();
+                .ConfigurePrimaryHttpMessageHandler<HttpCallHandler>();
 
             services.AddHttpClient(NoRetryClient, httpClient =>
                 {
@@ -36,7 +36,7 @@ namespace SorobanSecurityPortalApi.Common
                     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
                     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
                 })
-                .ConfigurePrimaryHttpMessageHandler<OpenAiHttpCallHandler>();
+                .ConfigurePrimaryHttpMessageHandler<HttpCallHandler>();
         }
 
         private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(ILogger<Startup> logger) => HttpPolicyExtensions

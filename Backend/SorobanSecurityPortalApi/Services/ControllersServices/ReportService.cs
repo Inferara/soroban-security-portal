@@ -2,9 +2,9 @@ using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
 using PDFtoImage;
+using Pgvector;
 using SkiaSharp;
 using SorobanSecurityPortalApi.Common;
-using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Common.DataParsers;
 
 namespace SorobanSecurityPortalApi.Services.ControllersServices
@@ -14,15 +14,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IMapper _mapper;
         private readonly IReportProcessor _reportProcessor;
         private readonly UserContextAccessor _userContextAccessor;
+        private readonly IGeminiEmbeddingService _embeddingService;
 
         public ReportService(
             IMapper mapper,
             IReportProcessor reportProcessor,
-            UserContextAccessor userContextAccessor)
+            UserContextAccessor userContextAccessor,
+            IGeminiEmbeddingService embeddingService)
         {
             _mapper = mapper;
             _reportProcessor = reportProcessor;
             _userContextAccessor = userContextAccessor;
+            _embeddingService = embeddingService;
         }
 
         public async Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearch)
@@ -44,6 +47,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var reportModel = _mapper.Map<Models.DbModels.ReportModel>(reportViewModel);
             reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
             reportModel.MdFile = PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile);
+            var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
+            reportModel.Embedding = new Vector(embeddingArray);
 
             var addedReport = await _reportProcessor.Add(reportModel);
             return _mapper.Map<ReportViewModel>(addedReport);
@@ -56,6 +61,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
                 reportModel.MdFile = PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile);
+                var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
+                reportModel.Embedding = new Vector(embeddingArray);
             }
             var loginName = await _userContextAccessor.GetLoginNameAsync();
             var updatedReport = await _reportProcessor.Edit(reportModel, loginName);

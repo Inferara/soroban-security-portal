@@ -97,7 +97,8 @@ export const ReportManagement: FC = () => {
       renderCell: (params: GridRenderCellParams<Report>) => (
         <>
           <div>Author: <span style={{ color: 'gray' }}>{params.row.author}</span></div>
-          <div>Project: <span style={{ color: 'gray' }}>{params.row.project}</span></div>
+          <div>Company: <span style={{ color: 'gray' }}>{params.row.company}</span></div>
+          <div>Protocol: <span style={{ color: 'gray' }}>{params.row.protocol}</span></div>
           <div>Auditor: <span style={{ color: 'gray' }}>{params.row.auditor}</span></div>
           <div>Date: <span style={{ color: 'gray' }}>{params.row.date.split('T')[0]}</span></div>
           <div>Published: <span style={{ color: 'gray' }}>{params.row.date.split('T')[0]}</span></div>

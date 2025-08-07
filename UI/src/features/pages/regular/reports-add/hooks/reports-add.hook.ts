@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { addReportCall, getAuditorListDataCall, getProjectListDataCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { addReportCall, getAuditorListDataCall, getCompanyListDataCall, getProtocolListDataCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { AddReport } from '../../../../../api/soroban-security-portal/models/report';
-import { ProjectItem } from '../../../../../api/soroban-security-portal/models/project';
+import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
+import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
 import { useAppDispatch } from '../../../../../app/hooks';
 
 export const useReportAdd = () => {
   const [isUploading, setIsUploading] = useState(false);
-  const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
+  const [protocolsList, setProtocolsList] = useState<ProtocolItem[]>([]);
+  const [companiesList, setCompaniesList] = useState<CompanyItem[]>([]);
   const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
   const dispatch = useAppDispatch();
 
@@ -30,9 +32,14 @@ export const useReportAdd = () => {
     }
   };
 
-  const getProjects = async (): Promise<void> => {
-    const response = await getProjectListDataCall();
-    setProjectsList(response);
+  const getProtocols = async (): Promise<void> => {
+    const response = await getProtocolListDataCall();
+    setProtocolsList(response);
+  };
+
+  const getCompanies = async (): Promise<void> => {
+    const response = await getCompanyListDataCall();
+    setCompaniesList(response);
   };
 
   const getAuditors = async (): Promise<void> => {
@@ -41,14 +48,16 @@ export const useReportAdd = () => {
   };
 
   useEffect(() => {
-    void getProjects();
+    void getProtocols();
+    void getCompanies();
     void getAuditors();
   }, [dispatch]);
 
   return {
     addReport,
     isUploading,
-    projectsList,
+    protocolsList,
+    companiesList,
     auditorsList,
   };
 }; 

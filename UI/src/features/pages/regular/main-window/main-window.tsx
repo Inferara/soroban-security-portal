@@ -16,6 +16,8 @@ import { Vulnerabilities } from '../vulnerabilities/vulnerabilities';
 import { AddVulnerability } from '../vulnerabilities-add/vulnerabilities-add';
 import { AddReport } from '../reports-add/reports-add';
 import { About } from '../about/about';
+import { Profile } from '../profile/profile';
+import { EditProfile } from '../profile/edit-profile';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -132,7 +134,7 @@ export const MainWindow: FC = () => {
                     {auth.user?.profile.picture ? (
                       <Box
                         component="img"
-                        src={auth.user.profile.picture}
+                        src={`data:image/png;base64,${auth.user.profile.picture}`}
                         alt="Profile"
                         sx={{
                           width: 44,
@@ -146,14 +148,14 @@ export const MainWindow: FC = () => {
                         sx={{
                           width: 44,
                           height: 44,
+                          border: '3px solid #FCD34D',
                           borderRadius: '50%',
-                          bgcolor: 'primary.main',
+                          bgcolor: '#9386b6',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: 'white',
-                          fontSize: '1.2rem',
-                          fontWeight: 600,
+                          color: 'black',
+                          fontSize: '24px',
                         }}
                       >
                         {auth.user?.profile.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -170,7 +172,8 @@ export const MainWindow: FC = () => {
                         },
                       }}
                     >
-                      <MenuItem onClick={handleUserMenuItemLogoutClick}>Logout</MenuItem>
+                      <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
+                      <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
                     </Menu>
                   </IconButton>
                 </>
@@ -213,6 +216,8 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/vulnerabilities`} element={<Vulnerabilities />} />
             <Route path={`${environment.basePath}/vulnerabilities/add`} element={<AddVulnerability />} />
             <Route path={`${environment.basePath}/about`} element={<About />} />
+            <Route path={`${environment.basePath}/profile`} element={<Profile />} />
+            <Route path={`${environment.basePath}/profile/edit`} element={<EditProfile />} />
           </Routes>
         </Box>
       </Box>

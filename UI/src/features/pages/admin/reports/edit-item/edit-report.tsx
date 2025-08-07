@@ -19,17 +19,19 @@ import { useNavigate } from 'react-router-dom';
 import { useEditReport } from './hooks';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
 import ReportIcon from '@mui/icons-material/Report';
-import { ProjectItem } from '../../../../../api/soroban-security-portal/models/project';
+import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { showError } from '../../../../dialog-handler/dialog-handler';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
 
 export const EditReport: FC = () => {
   const [name, setName] = useState('');
-  const [project, setProject] = useState<ProjectItem | null>(null);
+  const [company, setCompany] = useState<CompanyItem | null>(null);
+  const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
   const [date, setDate] = useState<Date | null>(null);
 
@@ -43,7 +45,8 @@ export const EditReport: FC = () => {
   const { 
     editReport, 
     report, 
-    projectsList,
+    companiesList,
+    protocolsList,
     auditorsList,
   } = useEditReport({ currentPageState });
 
@@ -64,9 +67,13 @@ export const EditReport: FC = () => {
     if (report) {
       setName(report.name);
       
-      // Find and set project
-      const foundProject = projectsList.find((p: ProjectItem) => p.name === report.project);
-      setProject(foundProject || null);
+      // Find and set company
+      const foundCompany = companiesList.find((c: CompanyItem) => c.name === report.company);
+      setCompany(foundCompany || null);
+
+      // Find and set protocol
+      const foundProtocol = protocolsList.find((p: ProtocolItem) => p.name === report.protocol);
+      setProtocol(foundProtocol || null);
       
       // Find and set auditor
       const foundAuditor = auditorsList.find((a: AuditorItem) => a.name === report.auditor);
@@ -77,7 +84,7 @@ export const EditReport: FC = () => {
         setDate(new Date(report.date));
       }
     }
-  }, [report, projectsList, auditorsList]);
+  }, [report, protocolsList, companiesList, auditorsList]);
 
   const handleEditReport = async () => {
     if (!report) return;
@@ -85,13 +92,15 @@ export const EditReport: FC = () => {
     const updatedReport: Report = {
       ...report,
       name: name,
-      project: project?.name || '',
+      company: company?.name || '',
+      protocol: protocol?.name || '',
       auditor: auditor?.name || '',
       date: date?.toISOString() || '',
     };
 
     if (!updatedReport.name || 
-      !updatedReport.project || 
+      !updatedReport.company || 
+      !updatedReport.protocol || 
       !updatedReport.auditor ||
       !updatedReport.date) {
       showError('Please fill all required fields');
@@ -161,14 +170,30 @@ export const EditReport: FC = () => {
               </Grid>
               <Grid size={12}>
                 <Autocomplete
-                  options={projectsList}
-                  value={project}
-                  onChange={(_, newValue) => setProject(newValue)}
-                  getOptionLabel={(option) => (option as ProjectItem).name}
+                  options={companiesList}
+                  value={company}
+                  onChange={(_, newValue) => setCompany(newValue)}
+                  getOptionLabel={(option) => (option as CompanyItem).name}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Project *"
+                      label="Company *"
+                      size="small"
+                      sx={{ width: '100%' }}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid size={12}>
+                <Autocomplete
+                  options={protocolsList}
+                  value={protocol}
+                  onChange={(_, newValue) => setProtocol(newValue)}
+                  getOptionLabel={(option) => (option as ProtocolItem).name}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Protocol *"
                       size="small"
                       sx={{ width: '100%' }}
                     />

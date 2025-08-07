@@ -80,7 +80,8 @@ namespace SorobanSecurityPortalApi.Controllers
                 Name = addReportViewModel.Title,
                 Date = addReportViewModel.Date,
                 Status = ReportModelStatus.New,
-                Project = addReportViewModel.Project,
+                Protocol = addReportViewModel.Protocol,
+                Company = addReportViewModel.Company,
                 Auditor = addReportViewModel.Auditor,
                 Author = userLoginName,
             };

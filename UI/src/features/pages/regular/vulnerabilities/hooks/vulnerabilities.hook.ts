@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { 
   getSeveritiesCall, 
   getCategoriesCall, 
-  getProjectListDataCall, 
+  getProtocolListDataCall, 
   getAuditorListDataCall,
   getSourceCall, 
   getVulnerabilitiesCall,
-  getReportListDataCall
+  getReportListDataCall,
+  getCompanyListDataCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppDispatch } from '../../../../../app/hooks';
 import { 
@@ -16,14 +17,16 @@ import {
   VulnerabilitySource 
 } from '../../../../../api/soroban-security-portal/models/vulnerability';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
-import { ProjectItem } from '../../../../../api/soroban-security-portal/models/project';
+import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
+import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
 
 export const useVulnerabilities = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
   const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
-  const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
+  const [protocolsList, setProtocolsList] = useState<ProtocolItem[]>([]);
+  const [companiesList, setCompaniesList] = useState<CompanyItem[]>([]);
   const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
   const [sourceList, setSourceList] = useState<VulnerabilitySource[]>([]);
   const [reportsList, setReportsList] = useState<Report[]>([]);
@@ -40,9 +43,14 @@ export const useVulnerabilities = () => {
     setCategoriesList(response);
   };
 
-  const getProjects = async (): Promise<void> => {
-    const response = await getProjectListDataCall();
-    setProjectsList(response);
+  const getProtocols = async (): Promise<void> => {
+    const response = await getProtocolListDataCall();
+    setProtocolsList(response);
+  };
+
+  const getCompanies = async (): Promise<void> => {
+    const response = await getCompanyListDataCall();
+    setCompaniesList(response);
   };
 
   const getAuditors = async (): Promise<void> => {
@@ -60,7 +68,7 @@ export const useVulnerabilities = () => {
       vulnerabilitySearch = {
         severities: [],
         categories: [],
-        projects: [],
+        protocols: [],
         sources: []
       };
     }
@@ -77,7 +85,8 @@ export const useVulnerabilities = () => {
   useEffect(() => {
     void getSeverities();
     void getCategories();
-    void getProjects();
+    void getCompanies();
+    void getProtocols();
     void getAuditors();
     void getSource();
     void getReports();
@@ -87,7 +96,8 @@ export const useVulnerabilities = () => {
   return {
     severitiesList,
     categoriesList,
-    projectsList,
+    companiesList,
+    protocolsList,
     auditorsList,
     sourceList,
     vulnerabilitiesList,

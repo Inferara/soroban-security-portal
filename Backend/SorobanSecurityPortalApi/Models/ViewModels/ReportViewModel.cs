@@ -12,7 +12,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string Author { get; set; } = "";
         public string LastActionBy { get; set; } = "";
         public DateTime LastActionAt { get; set; }
-        public string? Project { get; set; } = null;
+        public string? Protocol { get; set; } = null;
+        public string? Company { get; set; } = "";
         public string? Auditor { get; set; } = null;
     }
 
@@ -22,7 +23,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string Title { get; set; } = "";
         public string Url { get; set; } = "";
         public DateTime Date { get; set; }
-        public string? Project { get; set; } = null;
+        public string? Protocol { get; set; } = null;
+        public string? Company { get; set; } = "";
         public string? Auditor { get; set; } = null;
 
     }

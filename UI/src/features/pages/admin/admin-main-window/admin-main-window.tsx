@@ -15,7 +15,6 @@ import { useAuth } from 'react-oidc-context';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../../../app/hooks.ts';
 import { AdminLeftMenu } from '../left-menu/admin-left-menu.tsx';
-import { MyProfile } from '../my-profile/my-profile.tsx';
 import { NoPage } from '../no-page/no-page.tsx';
 import { Settings } from '../settings/settings.tsx';
 import './admin-main-window.css';
@@ -36,9 +35,12 @@ import { Subscriptions } from '../subscriptions/subscriptions.tsx';
 import { EditAuditor } from '../auditor/edit-item/edit-auditor.tsx';
 import { ListAuditors } from '../auditor/list-view/list-auditors.tsx';
 import { AddAuditor } from '../auditor/add-item/add-auditor.tsx';
-import { ListProjects } from '../project/list-view/list-projects.tsx';
-import { AddProject } from '../project/add-item/add-project.tsx';
-import { EditProject } from '../project/edit-item/edit-project.tsx';
+import { ListProtocols } from '../protocol/list-view/list-protocols.tsx';
+import { AddProtocol } from '../protocol/add-item/add-protocol.tsx';
+import { EditProtocol } from '../protocol/edit-item/edit-protocol.tsx';
+import { ListCompanies } from '../company/list-view/list-companies.tsx';
+import { AddCompany } from '../company/add-item/add-company.tsx';
+import { EditCompany } from '../company/edit-item/edit-company.tsx';
 import { ListCategories } from '../category/list-view/list-categories.tsx';
 import { AddCategory } from '../category/add-item/add-category.tsx';
 import { EditCategory } from '../category/edit-item/edit-category.tsx';
@@ -96,22 +98,17 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 export const AdminMainWindow: FC = () => {
   const auth = useAuth();
+  const navigate = useNavigate();
   const { themeMode, toggleTheme } = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [leftMenuOpen, setLeftMenuOpen] = useState(true);
   const open = Boolean(anchorEl);
   const currentPage = useAppSelector(selectCurrentPage);
-  const navigate = useNavigate();
 
   const handleUserMenuClick = (event: MouseEvent<HTMLButtonElement>) =>
     setAnchorEl(anchorEl == null ? event.currentTarget : null);
 
   const handleUserMenuClose = () => setAnchorEl(null);
-
-  const handleUserMenuItemProfileClick = () => {
-    setAnchorEl(null);
-    navigate('/admin/myprofile');
-  };
 
   const handleUserMenuItemLogoutClick = () => {
     setAnchorEl(null);
@@ -153,8 +150,8 @@ export const AdminMainWindow: FC = () => {
           <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleUserMenuClick}>
             {auth.user?.profile.picture ? (
               <Box
-                component="img"
-                src={auth.user.profile.picture}
+                component="img"                
+                src={`data:image/png;base64,${auth.user.profile.picture}`}
                 alt="Profile"
                 sx={{
                   width: 34,
@@ -175,8 +172,8 @@ export const AdminMainWindow: FC = () => {
                 'aria-labelledby': 'basic-button',
               }}
             >
-              <MenuItem onClick={handleUserMenuItemProfileClick}>My Profile</MenuItem>
-              <MenuItem onClick={handleUserMenuItemLogoutClick}>Logout</MenuItem>
+              <MenuItem onClick={() => navigate(`/profile`)}>My Profile</MenuItem>
+              <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
             </Menu>
           </IconButton>
         </Toolbar>
@@ -201,7 +198,6 @@ export const AdminMainWindow: FC = () => {
         <DrawerHeader />
         <Routes>
           <Route path={`${environment.basePath}/admin`} element={<VulnerabilityManagement />} />
-          <Route path={`${environment.basePath}/admin/myprofile`} element={<MyProfile />} />
 
           <Route path={`${environment.basePath}/admin/settings`} element={<Settings />} />
 
@@ -222,9 +218,13 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/auditors/add`} element={<AddAuditor />} />
           <Route path={`${environment.basePath}/admin/auditors/edit`} element={<EditAuditor />} />
 
-          <Route path={`${environment.basePath}/admin/projects`} element={<ListProjects />} />
-          <Route path={`${environment.basePath}/admin/projects/add`} element={<AddProject />} />
-          <Route path={`${environment.basePath}/admin/projects/edit`} element={<EditProject />} />
+          <Route path={`${environment.basePath}/admin/companies`} element={<ListCompanies />} />
+          <Route path={`${environment.basePath}/admin/companies/add`} element={<AddCompany />} />
+          <Route path={`${environment.basePath}/admin/companies/edit`} element={<EditCompany />} />
+
+          <Route path={`${environment.basePath}/admin/protocols`} element={<ListProtocols />} />
+          <Route path={`${environment.basePath}/admin/protocols/add`} element={<AddProtocol />} />
+          <Route path={`${environment.basePath}/admin/protocols/edit`} element={<EditProtocol />} />
 
           <Route path={`${environment.basePath}/admin/categories`} element={<ListCategories />} />
           <Route path={`${environment.basePath}/admin/categories/add`} element={<AddCategory />} />

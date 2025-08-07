@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Pgvector;
 
 namespace SorobanSecurityPortalApi.Models.DbModels
 {
@@ -17,8 +18,11 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string Author { get; set; } = "";
         public string LastActionBy { get; set; } = "";
         public DateTime LastActionAt { get; set; }
-        public string? Project { get; set; } = null;
+        public string? Protocol { get; set; } = null;
+        public string? Company { get; set; } = "";
         public string? Auditor { get; set; } = null;
+        [Column(TypeName = "vector(3072)")]
+        public Vector? Embedding { get; set; }
     }
 
     public class ReportModelStatus

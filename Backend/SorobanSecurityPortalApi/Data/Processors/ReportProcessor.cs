@@ -1,7 +1,6 @@
 using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
-using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Common.Extensions;
 using static SorobanSecurityPortalApi.Common.ExceptionHandlingMiddleware;
 
@@ -32,9 +31,13 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     var to = DateTime.SpecifyKind(reportSearch.To.Value, DateTimeKind.Utc);
                     query = query.Where(v => v.Date < to);
                 }
-                if (!string.IsNullOrEmpty(reportSearch.Project))
+                if (!string.IsNullOrEmpty(reportSearch.Company))
                 {
-                    query = query.Where(x => x.Project == reportSearch.Project);
+                    query = query.Where(x => x.Company == reportSearch.Company);
+                }
+                if (!string.IsNullOrEmpty(reportSearch.Protocol))
+                {
+                    query = query.Where(x => x.Protocol == reportSearch.Protocol);
                 }
                 if (!string.IsNullOrEmpty(reportSearch.Auditor))
                 {
@@ -79,7 +82,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 LastActionBy = v.LastActionBy,
                 LastActionAt = v.LastActionAt,
                 Auditor = v.Auditor,
-                Project = v.Project,
+                Protocol = v.Protocol,
+                Company = v.Company,
             });
             return await query.ToListAsync();
         }
@@ -101,7 +105,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
             existing.Status = reportModel.Status;
             existing.Date = reportModel.Date;
             existing.Name = reportModel.Name;
-            existing.Project = reportModel.Project;
+            existing.Protocol = reportModel.Protocol;
+            existing.Company = reportModel.Company;
             existing.Auditor = reportModel.Auditor;
             existing.LastActionBy = userName;
             existing.LastActionAt = DateTime.UtcNow;
@@ -168,7 +173,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 LastActionBy = v.LastActionBy,
                 LastActionAt = v.LastActionAt,
                 Auditor = v.Auditor,
-                Project = v.Project,
+                Protocol = v.Protocol,
+                Company = v.Company,
             });
             query = query.OrderByDescending(v => v.Id);
             return await query.ToListAsync();

@@ -1,6 +1,7 @@
 import PeopleIcon from '@mui/icons-material/People';
 import SettingsIcon from '@mui/icons-material/Settings';
 import BugReportIcon from '@mui/icons-material/BugReport';
+import BusinessIcon from '@mui/icons-material/Business';
 import ReportIcon from '@mui/icons-material/Report';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
@@ -67,9 +68,15 @@ export const AdminLeftMenu: FC = () => {
       visible: isAdminOrModerator(auth),
     },
     {
-      label: 'Projects',
+      label: 'Companies',
+      icon: <BusinessIcon />,
+      path: 'admin/companies',
+      visible: isAdminOrModerator(auth),
+    },
+    {
+      label: 'Protocols',
       icon: <TaskIcon />,
-      path: 'admin/projects',
+      path: 'admin/protocols',
       visible: isAdminOrModerator(auth),
     },
     {

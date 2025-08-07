@@ -8,8 +8,9 @@ import { User } from "oidc-client-ts"
 import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from './models/vulnerability';
 import { AddReport, Report, ReportSearch } from './models/report';
 import { AuditorItem } from './models/auditor';
-import { ProjectItem } from './models/project';
+import { ProtocolItem } from './models/protocol';
 import { CategoryItem } from './models/category';
+import { CompanyItem } from './models/company';
 
 // --- CATEGORIES ---
 export const getCategoriesCall = async (): Promise<CategoryItem[]> => {
@@ -76,31 +77,58 @@ export const getAuditorByIdCall = async (auditorId: number): Promise<AuditorItem
     return response.data as AuditorItem;
 };
 
-// --- PROJECTS ---
-export const getProjectListDataCall = async (): Promise<ProjectItem[]> => {
+// --- PROTOCOLS ---
+export const getProtocolListDataCall = async (): Promise<ProtocolItem[]> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/projects', 'GET');
-    return response.data as ProjectItem[];
+    const response = await client.request('api/v1/protocols', 'GET');
+    return response.data as ProtocolItem[];
 };
-export const removeProjectCall = async (projectId: number): Promise<boolean> => {   
+export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {   
     const client = await getRestClient();
-    const response = await client.request(`api/v1/projects/${projectId}`, 'DELETE');
+    const response = await client.request(`api/v1/protocols/${protocolId}`, 'DELETE');
     return response.data as boolean;
 };
-export const addProjectCall = async (project: ProjectItem): Promise<boolean> => {
+export const addProtocolCall = async (protocol: ProtocolItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/projects', 'POST', project);
+    const response = await client.request('api/v1/protocols', 'POST', protocol);
     return response.data as boolean;
 };
-export const editProjectCall = async (project: ProjectItem): Promise<boolean> => {
+export const editProtocolCall = async (protocol: ProtocolItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/projects`, 'PUT', project);
+    const response = await client.request(`api/v1/protocols`, 'PUT', protocol);
     return response.data as boolean;
 };
-export const getProjectByIdCall = async (projectId: number): Promise<ProjectItem> => {
+export const getProtocolByIdCall = async (protocolId: number): Promise<ProtocolItem> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/projects/${projectId}`, 'GET');
-    return response.data as ProjectItem;
+    const response = await client.request(`api/v1/protocols/${protocolId}`, 'GET');
+    return response.data as ProtocolItem;
+};
+
+// --- COMPANIES ---
+export const getCompanyListDataCall = async (): Promise<CompanyItem[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/companies', 'GET');
+    return response.data as CompanyItem[];
+};
+export const removeCompanyCall = async (companyId: number): Promise<boolean> => {   
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/companies/${companyId}`, 'DELETE');
+    return response.data as boolean;
+};
+export const addCompanyCall = async (company: CompanyItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/companies', 'POST', company);
+    return response.data as boolean;
+};
+export const editCompanyCall = async (company: CompanyItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/companies`, 'PUT', company);
+    return response.data as boolean;
+};
+export const getCompanyByIdCall = async (companyId: number): Promise<CompanyItem> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/companies/${companyId}`, 'GET');
+    return response.data as CompanyItem;
 };
 
 // --- REPORTS ---

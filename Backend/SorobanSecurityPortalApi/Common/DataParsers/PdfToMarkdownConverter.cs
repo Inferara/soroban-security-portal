@@ -39,7 +39,7 @@ namespace SorobanSecurityPortalApi.Common.DataParsers
             var headerFontSizeThreshold = 1.2;
             var letters = page.Letters;
             var words = page.GetWords();
-            var averageFontSize = letters.Average(l => l.FontSize);
+            var averageFontSize = letters.Count > 0 ? letters.Average(l => l.FontSize) : 8;
             var previousY = double.MaxValue;
             var boldPhraseBuilder = new StringBuilder();
             var isBoldPhrase = false;

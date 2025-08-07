@@ -1,3 +1,4 @@
+using SorobanSecurityPortalApi.Models.ViewModels;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -16,26 +17,16 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public LoginTypeEnum LoginType { get; set; } = LoginTypeEnum.Password;
         public DateTime Created { get; set; } = DateTime.UtcNow;
         public string CreatedBy { get; set; } = string.Empty;
-        public int TokensLimit { get; set; } = 0;
+        public string? PersonalInfo { get; set; } = string.Empty;
+        public byte[]? Image { get; set; }
+        [Column(TypeName = "jsonb")]
+        public List<ConnectedAccountModel>? ConnectedAccounts { get; set; } = new();
     }
 
-    public class LoginWithSpentModel: LoginModel
+    public class ConnectedAccountModel
     {
-        public LoginWithSpentModel(LoginModel loginModel)
-        {
-            LoginId = loginModel.LoginId;
-            FullName = loginModel.FullName;
-            Login = loginModel.Login;
-            PasswordHash = loginModel.PasswordHash;
-            Email = loginModel.Email;
-            IsEnabled = loginModel.IsEnabled;
-            Role = loginModel.Role;
-            LoginType = loginModel.LoginType;
-            Created = loginModel.Created;
-            CreatedBy = loginModel.CreatedBy;
-            TokensLimit = loginModel.TokensLimit;
-        }
-        public int? TokensSpent { get; set; } = 0;
+        public string ServiceName { get; set; } = "";
+        public string AccountId { get; set; } = "";
     }
 
     public enum RoleEnum

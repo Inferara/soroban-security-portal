@@ -2,23 +2,24 @@ using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Pgvector;
 
 namespace SorobanSecurityPortalApi.Common.Data
 {
     public class Db : DbContext
     {
         public DbSet<SettingsModel> Settings { get; set; }
-        public DbSet<ConnectionModel> Connection { get; set; }
         public DbSet<LoginModel> Login { get; set; }
         public DbSet<LoginHistoryModel> LoginHistory { get; set; }
         public DbSet<ClientSsoModel> ClientSso { get; set; }
         public DbSet<VulnerabilityModel> Vulnerability { get; set; }
         public DbSet<ReportModel> Report { get; set; }
         public DbSet<SubscriptionModel> Subscription { get; set; }
-        public DbSet<ProjectModel> Project { get; set; }
+        public DbSet<ProtocolModel> Protocol { get; set; }
         public DbSet<AuditorModel> Auditor { get; set; }
         public DbSet<CategoryModel> Category { get; set; }
         public DbSet<FileModel> File { get; set; }
+        public DbSet<CompanyModel> Company { get; set; }
 
 
         private readonly IDbQuery _dbQuery;
@@ -42,11 +43,16 @@ namespace SorobanSecurityPortalApi.Common.Data
             optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
 
             if (optionsBuilder.IsConfigured) return;
-            optionsBuilder.UseNpgsql(_dataSourceProvider.DataSource);
+            optionsBuilder.UseNpgsql(_dataSourceProvider.DataSource, o => o.UseVector());
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            builder.HasPostgresExtension("vector");
+            builder.Entity<ReportModel>()
+                .Property(x => x.Embedding)
+                .HasColumnType("vector(3072)");
+
             base.OnModelCreating(builder); 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function
@@ -87,7 +93,6 @@ namespace SorobanSecurityPortalApi.Common.Data
                     Role = RoleEnum.Admin,
                     FullName = "Admin",
                     Created = DateTime.UtcNow,
-                    TokensLimit = 0,
                 });
         }
     }

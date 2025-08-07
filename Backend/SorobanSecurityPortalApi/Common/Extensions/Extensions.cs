@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using JsonRepairUtils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
@@ -176,31 +175,6 @@ public static class Extensions
     public static string DecodeCharacters(this string value) => 
         Regex.Replace(value, @"\\\\u(?<Value>[a-zA-Z0-9]{4})", m => ((char)int.Parse(m.Groups["Value"].Value, NumberStyles.HexNumber)).ToString());
 
-
-    public static string FixJsonSyntax(this string? json)
-    {
-        // No answer - try one more time
-        if (string.IsNullOrEmpty(json))
-            return string.Empty;
-        // Sometimes we have description after JSON, so we need to remove it
-        var braceFirstIndex = json.IndexOf("{", StringComparison.InvariantCulture);
-        var braceLastIndex = json.LastIndexOf("}", StringComparison.InvariantCulture);
-        // No brace - not a JSON, try one more time
-        if (braceLastIndex == -1 || braceFirstIndex == -1)
-            return string.Empty;
-        // Remove all after last brace
-        if (braceLastIndex != json.Length - 1)
-        {
-            json = json.Remove(braceLastIndex + 1);
-        }
-        // Remove all before first brace
-        if (braceFirstIndex != 0)
-        {
-            json = json.Remove(0, braceFirstIndex);
-        }
-        json = new JsonRepair().Repair(json);
-        return json;
-    }
 
     public static string StripBase64(this string base64Data)
     {

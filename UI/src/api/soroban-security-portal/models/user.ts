@@ -5,6 +5,14 @@ export class EditUserItem {
     fullName: string = '';
     email: string = '';
     role: string = '';
+    image: string = '';
+    personalInfo: string = '';
+    connectedAccounts: ConnectedAccountItem[] = [];
+}
+
+export class ConnectedAccountItem {
+    serviceName: string = '';
+    accountId: string = '';
 }
 
 export class CreateUserItem extends EditUserItem {

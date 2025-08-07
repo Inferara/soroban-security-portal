@@ -73,7 +73,7 @@ public class Startup
         };
         services.AddSingleton(tokenValidationParameters);
         services.AddHttpContextAccessor();
-        services.AddScoped<OpenAiHttpCallHandler>();
+        services.AddScoped<HttpCallHandler>();
         services.AddHttpClients(extendedConfig, _logger);
         
         var combinedAuthenticationScheme = "Combined";

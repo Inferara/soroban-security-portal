@@ -18,7 +18,7 @@ export interface PieChartData {
   color: string;
 }
 
-export type FilterType = 'severity' | 'category' | 'project' | 'source';
+export type FilterType = 'severity' | 'category' | 'protocol' | 'source';
 
 export const useVulnerabilityStatistics = () => {
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
@@ -134,21 +134,21 @@ export const useVulnerabilityStatistics = () => {
     }));
   };
 
-  const generateProjectPieChartData = (vulns: Vulnerability[]): PieChartData[] => {
-    const projectCounts = new Map<string, number>();
+  const generateProtocolPieChartData = (vulns: Vulnerability[]): PieChartData[] => {
+    const protocolCounts = new Map<string, number>();
     
     vulns.forEach(vuln => {
-      const project = vuln.project || 'Unknown';
-      projectCounts.set(project, (projectCounts.get(project) || 0) + 1);
+      const protocol = vuln.protocol || 'Unknown';
+      protocolCounts.set(protocol, (protocolCounts.get(protocol) || 0) + 1);
     });
 
     const total = vulns.length || 1;
     const colors = ['#388e3c', '#4caf50', '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9', '#2e7d32', '#1b5e20'];
     
-    return Array.from(projectCounts.entries()).map(([project, count], index) => ({
-      id: project,
+    return Array.from(protocolCounts.entries()).map(([protocol, count], index) => ({
+      id: protocol,
       value: count,
-      label: `${Math.round((count / total) * 100)}% ${project}`,
+      label: `${Math.round((count / total) * 100)}% ${protocol}`,
       color: colors[index % colors.length]
     }));
   };
@@ -159,8 +159,8 @@ export const useVulnerabilityStatistics = () => {
         return generateSeverityPieChartData(stats || calculateStatistics(vulns));
       case 'category':
         return generateCategoryPieChartData(vulns);
-      case 'project':
-        return generateProjectPieChartData(vulns);
+      case 'protocol':
+        return generateProtocolPieChartData(vulns);
       default:
         return generateSeverityPieChartData(stats || calculateStatistics(vulns));
     }

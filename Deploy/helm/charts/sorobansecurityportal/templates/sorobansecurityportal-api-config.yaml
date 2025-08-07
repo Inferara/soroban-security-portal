@@ -44,3 +44,7 @@ data:
   DISTRIBUTEDCACHEPASSWORD: "{{ .Values.global.redis.password }}"
   GOOGLECLIENTID: "{{ .Values.global.google.clientId }}"
   GOOGLECLIENTSECRET: "{{ .Values.global.google.clientSecret }}"
+  DISCORDCLIENTID: "{{ .Values.global.discord.clientId }}"
+  DISCORDCLIENTSECRET: "{{ .Values.global.discord.clientSecret }}"
+  GEMINIEMBEDDINGMODEL: "{{ .Values.global.embedding.model }}"
+  GEMINIAPIKEY: "{{ .Values.global.embedding.key }}"

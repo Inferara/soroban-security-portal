@@ -27,12 +27,14 @@ import remarkMath from 'remark-math';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
+import rehypeKatex from 'rehype-katex';
 import { CodeBlock } from '../../../../../components/CodeBlock.tsx';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
-
+import 'katex/dist/katex.min.css'; 
+import './katex.css';
 
 export const VulnerabilityManagement: FC = () => {
 
@@ -160,7 +162,7 @@ export const VulnerabilityManagement: FC = () => {
           <ReactMarkdown
             skipHtml={false}
             remarkPlugins={[remarkParse, remarkGfm, remarkMath, remarkRehype]}
-            rehypePlugins={[rehypeRaw]}
+            rehypePlugins={[rehypeRaw, rehypeKatex]}
             components={{
               code: (props) => {
                 const { node, className, children, ...rest } = props;
@@ -179,6 +181,28 @@ export const VulnerabilityManagement: FC = () => {
                     </CodeBlock>
                   );
                 }
+              },
+              // Handle inline math
+              span: ({ className, children, ...props }) => {
+                if (className && className.includes('math')) {
+                  return (
+                    <span className={className} {...props}>
+                      {children}
+                    </span>
+                  );
+                }
+                return <span className={className} {...props}>{children}</span>;
+              },
+              // Handle block math
+              div: ({ className, children, ...props }) => {
+                if (className && className.includes('math')) {
+                  return (
+                    <div className={className} {...props}>
+                      {children}
+                    </div>
+                  );
+                }
+                return <div className={className} {...props}>{children}</div>;
               }
             }}
           >
@@ -208,7 +232,8 @@ export const VulnerabilityManagement: FC = () => {
         <div>
           <div>Tags: <span style={{ color: 'gray' }}>{params.row.categories.join(', ')}</span></div>
           <div>Source: <span style={{ color: 'gray' }}>{params.row.source}</span></div>
-          <div>Project: <span style={{ color: 'gray' }}>{params.row.project}</span></div>
+          <div>Company: <span style={{ color: 'gray' }}>{params.row.company}</span></div>
+          <div>Protocol: <span style={{ color: 'gray' }}>{params.row.protocol}</span></div>
           <div>Severity: <span style={{ color: 'gray' }}>{params.row.severity}</span></div>
           <div>Last Action: <span style={{ color: 'gray' }}>{params.row.lastActionBy}</span></div>
           <div>Last Action At: <span style={{ color: 'gray' }}>{params.row.lastActionAt?.split('.')[0].replace('T', ' ')}</span></div>

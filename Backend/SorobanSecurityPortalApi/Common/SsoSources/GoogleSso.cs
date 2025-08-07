@@ -25,12 +25,6 @@ namespace SorobanSecurityPortalApi.Common.SsoSources
         }
 
         public const string AcrValueConst = "google";
-        public static class Parameters
-        {
-            public const string Domain = "Domain";
-            public const string AutoAdmin = "AutoAdmin";
-            public const string EmailRegex = "EmailRegex";
-        }
 
         private const string CodeChallenge = "ThisIsntRandomButItNeedsToBe43CharactersLong";
 

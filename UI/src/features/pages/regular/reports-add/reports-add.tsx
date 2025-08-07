@@ -24,17 +24,19 @@ import ReportIcon from '@mui/icons-material/Report';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { AddReport as AddReportItem } from '../../../../api/soroban-security-portal/models/report';
-import { ProjectItem } from '../../../../api/soroban-security-portal/models/project';
+import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { showError } from '../../../../features/dialog-handler/dialog-handler';
+import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
 
 export const AddReport: FC = () => {
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
-  const [project, setProject] = useState<ProjectItem | null>(null);
+  const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
+  const [company, setCompany] = useState<CompanyItem | null>(null);
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
   const [date, setDate] = useState<Date | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -42,7 +44,7 @@ export const AddReport: FC = () => {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { addReport, isUploading, projectsList, auditorsList } = useReportAdd();
+  const { addReport, isUploading, protocolsList, auditorsList, companiesList } = useReportAdd();
   const auth = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -124,7 +126,8 @@ export const AddReport: FC = () => {
       id: 0,
       title: title,
       url: url,
-      project: project?.name || '',
+      protocol: protocol?.name || '',
+      company: company?.name || '',
       auditor: auditor?.name || '',
       date: date?.toISOString() || '',
     };
@@ -184,14 +187,14 @@ export const AddReport: FC = () => {
               </Grid>
               <Grid size={12}>
                 <Autocomplete
-                  options={projectsList}
-                  value={project}
-                  onChange={(_, newValue) => setProject(newValue as ProjectItem)}
-                  getOptionLabel={(option) => (option as ProjectItem).name}
+                  options={companiesList}
+                  value={company}
+                  onChange={(_, newValue) => setCompany(newValue as CompanyItem)}
+                  getOptionLabel={(option) => (option as CompanyItem).name}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Project"
+                      label="Company"
                       size="small"
                       sx={{ minWidth: 290 }}
                     />
@@ -201,7 +204,34 @@ export const AddReport: FC = () => {
                       <Chip
                         {...getTagProps({ index })}
                         key={index}
-                        label={(option as ProjectItem).name}
+                        label={(option as CompanyItem).name}
+                        size="small"
+                        sx={{ bgcolor: '#2b7fa2', color: '#F2F2F2' }}
+                      />
+                    ))
+                  }
+                />
+              </Grid>              
+              <Grid size={12}>
+                <Autocomplete
+                  options={protocolsList}
+                  value={protocol}
+                  onChange={(_, newValue) => setProtocol(newValue as ProtocolItem)}
+                  getOptionLabel={(option) => (option as ProtocolItem).name}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Protocol"
+                      size="small"
+                      sx={{ minWidth: 290 }}
+                    />
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={index}
+                        label={(option as ProtocolItem).name}
                         size="small"
                         sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
                       />

@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Pgvector;
 using SorobanSecurityPortalApi.Common.Data;
+using SorobanSecurityPortalApi.Models.DbModels;
 
 #nullable disable
 
@@ -21,6 +23,7 @@ namespace SorobanSecurityPortalApi.Migrations
                 .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.AuditorModel", b =>
@@ -134,46 +137,38 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("client_sso");
                 });
 
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ConnectionModel", b =>
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.CompanyModel", b =>
                 {
-                    b.Property<int>("ConnectionId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("connection_id");
+                        .HasColumnName("id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ConnectionId"));
-
-                    b.Property<Dictionary<string, string>>("Content")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("content");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("created_by");
 
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<int>("Type")
-                        .HasColumnType("integer")
-                        .HasColumnName("type");
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
 
-                    b.Property<int?>("WorkspaceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("workspace_id");
+                    b.HasKey("Id")
+                        .HasName("pk_company");
 
-                    b.HasKey("ConnectionId")
-                        .HasName("pk_connection");
-
-                    b.ToTable("connection");
+                    b.ToTable("company");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.FileModel", b =>
@@ -281,6 +276,10 @@ namespace SorobanSecurityPortalApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LoginId"));
 
+                    b.Property<List<ConnectedAccountModel>>("ConnectedAccounts")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("connected_accounts");
+
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created");
@@ -300,6 +299,10 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("text")
                         .HasColumnName("full_name");
 
+                    b.Property<byte[]>("Image")
+                        .HasColumnType("bytea")
+                        .HasColumnName("image");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("is_enabled");
@@ -318,13 +321,13 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
 
+                    b.Property<string>("PersonalInfo")
+                        .HasColumnType("text")
+                        .HasColumnName("personal_info");
+
                     b.Property<int>("Role")
                         .HasColumnType("integer")
                         .HasColumnName("role");
-
-                    b.Property<int>("TokensLimit")
-                        .HasColumnType("integer")
-                        .HasColumnName("tokens_limit");
 
                     b.HasKey("LoginId")
                         .HasName("pk_login");
@@ -335,7 +338,8 @@ namespace SorobanSecurityPortalApi.Migrations
                         new
                         {
                             LoginId = 1,
-                            Created = new DateTime(2025, 7, 20, 17, 13, 45, 710, DateTimeKind.Utc).AddTicks(7296),
+                            ConnectedAccounts = new List<ConnectedAccountModel>(),
+                            Created = new DateTime(2025, 8, 3, 13, 53, 42, 395, DateTimeKind.Utc).AddTicks(294),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -343,12 +347,12 @@ namespace SorobanSecurityPortalApi.Migrations
                             Login = "admin@sorobansecurity.com",
                             LoginType = 1,
                             PasswordHash = "wh+Wm18D0z1D4E+PE252gg==",
-                            Role = 2,
-                            TokensLimit = 0
+                            PersonalInfo = "",
+                            Role = 2
                         });
                 });
 
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProjectModel", b =>
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProtocolModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -356,6 +360,10 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CompanyId")
+                        .HasColumnType("integer")
+                        .HasColumnName("company_id");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
@@ -404,9 +412,17 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("bytea")
                         .HasColumnName("bin_file");
 
+                    b.Property<string>("Company")
+                        .HasColumnType("text")
+                        .HasColumnName("company");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date");
+
+                    b.Property<Vector>("Embedding")
+                        .HasColumnType("vector(3072)")
+                        .HasColumnName("embedding");
 
                     b.Property<byte[]>("Image")
                         .HasColumnType("bytea")
@@ -431,9 +447,9 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<string>("Project")
+                    b.Property<string>("Protocol")
                         .HasColumnType("text")
-                        .HasColumnName("project");
+                        .HasColumnName("protocol");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -521,6 +537,11 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("categories");
 
+                    b.Property<string>("Company")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("company");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date");
@@ -544,10 +565,10 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("text")
                         .HasColumnName("pictures_container_guid");
 
-                    b.Property<string>("Project")
+                    b.Property<string>("Protocol")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("project");
+                        .HasColumnName("protocol");
 
                     b.Property<string>("ReportUrl")
                         .IsRequired()

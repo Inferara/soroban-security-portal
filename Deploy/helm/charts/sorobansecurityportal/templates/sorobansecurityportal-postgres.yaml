@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-postgres"
-          image: postgres:16.1
+          image: pgvector/pgvector:0.8.0-pg16
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 5432

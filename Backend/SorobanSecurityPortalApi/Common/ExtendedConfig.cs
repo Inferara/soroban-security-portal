@@ -116,6 +116,18 @@ public class ExtendedConfig
     [Description("Allow Basic Auth for Chat / Search")]
     [Tooltip("Specifies if Basic Authentication is allowed for Chat and Search. When enabled, the user can log in using a username and password. Only a few endpoints are available with Basic auth.")]
     public bool AllowBasicAuth => GetValue<bool>("AllowBasicAuth", true);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
+    [Description("Embedding Model")]
+    [Tooltip("The Embedding Model is used to generate embeddings for the text. This is used for search and chat features. Supported models: `text-embedding-3-small`, `text-embedding-3-large`, `gemini-embedding-text-v1`")]
+    public string GeminiEmbeddingModel => GetValue<string>("GeminiEmbeddingModel", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Password)]
+    [Description("Gemini API Key")]
+    [Tooltip("The Gemini API Key is used to authenticate the application with the Gemini API service. This is required for using the Gemini embedding model and other Gemini features.")]
+    public string GeminiApiKey => GetValue<string>("GeminiApiKey", "");
 }
 
 [AttributeUsage(AttributeTargets.Property)]
@@ -190,25 +202,9 @@ public class CategoryAttribute : Attribute, IAttributeHandler
     {
         [System.ComponentModel.Description("Common settings")]
         Common,
-        [System.ComponentModel.Description("UI Theme")]
-        UiTheme,
-        [System.ComponentModel.Description("Ingestion")]
-        Ingestion,
         [System.ComponentModel.Description("Authentication")]
         Authentication,
-        [System.ComponentModel.Description("JIRA Connector")]
-        Jira,
-        [System.ComponentModel.Description("Debug")]
-        Debug,
-        [System.ComponentModel.Description("Nuget")]
-        Nuget,
-        [System.ComponentModel.Description("Key Vault Storage")]
-        KeyVaultStorage,
-        [System.ComponentModel.Description("Git Storage")]
-        GitStorage,
-        [System.ComponentModel.Description("MCP Server")]
-        McpServer,
-        [System.ComponentModel.Description("Public Calls")]
-        PublicCalls,
+        [System.ComponentModel.Description("Search")]
+        Search,
     }
 }

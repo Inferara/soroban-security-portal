@@ -1,18 +1,17 @@
 import { ChangeEvent, FC, useState } from 'react';
 import {
-  Card,
-  CardMedia,
-  CardActions,
-  CardContent,
   TextField,
   Button,
   Typography,
   CircularProgress,
   Box,
+  Divider,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
 import { useAuth } from 'react-oidc-context';
-import Divider from '@mui/material/Divider';
 import { environment } from './../../environments/environment';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 interface Props {
   errorText: string;
@@ -23,12 +22,18 @@ export const Authentication: FC<Props> = (props: Props) => {
   const auth = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   const handleUsernameChange = (event: ChangeEvent<HTMLInputElement>) => {
     setUsername(event.target.value);
   };
 
   const handlePasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
     setPassword(event.target.value);
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleLogin = async () => {
@@ -47,175 +52,321 @@ export const Authentication: FC<Props> = (props: Props) => {
     await auth.signinRedirect(signinRedirectArgs);
   };
 
-  const renderSsoSection = () => {
-    return (
-      <>
-        <Button
-          variant="outlined"
-          onClick={() => handleSsoLogin('google')}
-          sx={{
-            margin: '10px auto',
-            width: '230px',
-            height: '41px',
-            borderRadius: '4px',
-            textTransform: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px',
-            border: '2px solid',
-            borderColor: 'divider',
-            '&:hover': {
-              backgroundColor: 'action.hover',
-            },
-          }}
-        >
-          <img
-            src="/static/images/google.svg"
-            alt="Google Logo"
-            style={{ marginRight: '10px', height: '20px' }}
-          />
-          Sign in with Google
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={() => handleSsoLogin('discord')}
-          sx={{
-            margin: '10px auto',
-            width: '230px',
-            height: '41px',
-            borderRadius: '4px',
-            textTransform: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px',
-            border: '2px solid',
-            borderColor: 'divider',
-            '&:hover': {
-              backgroundColor: 'action.hover',
-            },
-          }}
-        >
-          <img
-            src="/static/images/discord.svg"
-            alt="Discord Logo"
-            style={{ marginRight: '10px', height: '20px' }}
-          />
-          Sign in with Discord
-        </Button>
-      </>
-    );
-  }
-
-  const renderInternalLoginSection = () =>
-    (
-      <>
-        <CardContent style={{ position: 'relative' }}>
-          <TextField
-            fullWidth
-            id="outlined-username-input"
-            label="User Name"
-            type="text"
-            disabled={props.isLoading}
-            autoComplete="current-username"
-            onChange={handleUsernameChange}
-          />
-          {props.isLoading ? <CircularProgress color="inherit" className="spinner" /> : <></>}
-        </CardContent>
-        <CardContent>
-          <TextField
-            fullWidth
-            id="outlined-password-input"
-            label="Password"
-            type="password"
-            disabled={props.isLoading}
-            autoComplete="current-password"
-            onChange={handlePasswordChange}
-          />
-          <Typography 
-            gutterBottom 
-            variant="h5" 
-            component="div" 
-            sx={{ 
-              color: 'error.main',
-              fontSize: '0.8rem',
-              marginTop: '0.5rem',
-              marginBottom: '0.5rem',
-            }}
-          >
-            {props.errorText}
-          </Typography>
-        </CardContent>
-        <CardActions>
-          <Button
-            type="button"
-            fullWidth
-            variant="contained"
-            color="primary"
-            onClick={handleLogin}
-            title="Login"
-            sx={{ padding: '20px' }}
-          >
-            Login
-          </Button>
-        </CardActions>
-        <Divider>OR</Divider>
-      </>
-    );
-
   return (
     <Box 
       sx={{ 
         width: '100vw',
         height: '100vh',
-        backgroundColor: 'background.default',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         position: 'fixed',
         top: 0,
         left: 0,
       }}
     >
+      {/* Left Column - Login Form */}
       <Box
         sx={{
-          borderRadius: '16px',
-          boxShadow: (theme) => `0 0 0 3px ${theme.palette.divider}, 0 2px 4px ${theme.palette.action.hover}`,
-          padding: '20px',
-          width: '340px',
-          backgroundColor: 'background.paper',
-          transform: 'scale(0.8)',
+          width: '40%',
+          backgroundColor: 'white',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '40px',
         }}
       >
-        <form>
-          <Card sx={{ 
-            boxShadow: 'none',
-            backgroundColor: 'background.paper',
-          }}>
-            <Card sx={{ 
-              boxShadow: 'none',
-              backgroundColor: 'background.paper',
-            }}>
-              <CardContent>
-                <Box sx={{ margin: 0, padding: 0 }}>
-                  <CardMedia 
-                    sx={{ 
-                      maxWidth: '300px',
-                      margin: 0,
-                      objectFit: 'fill',
-                    }}
-                    image="/static/images/logo.png" 
-                    title="Soroban Security Portal" 
-                    component="img" 
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-            {renderInternalLoginSection()}
-            {renderSsoSection()}
-          </Card>
-        </form>
+        {props.isLoading ? (
+          // Show only spinner when loading
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            <CircularProgress 
+              size={60} 
+              sx={{ 
+                color: '#1976d2',
+                marginBottom: '20px',
+              }} 
+            />
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: 'grey.600',
+                textAlign: 'center',
+              }}
+            >
+              Signing you in...
+            </Typography>
+          </Box>
+        ) : (
+          // Show login form when not loading
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: '400px',
+            }}
+          >
+            {/* Title */}
+            <Typography 
+              variant="h3" 
+              component="h1" 
+              sx={{ 
+                fontWeight: 'bold',
+                color: 'black',
+                marginBottom: '40px',
+                textAlign: 'center',
+              }}
+            >
+              Enter the Portal!
+            </Typography>
+
+            {/* Username Field */}
+            <Box sx={{ marginBottom: '20px' }}>             
+              <TextField
+                fullWidth
+                value={username}
+                onChange={handleUsernameChange}
+                disabled={props.isLoading}
+                placeholder="Username"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    border: '1px solid black',
+                    WebkitTextFillColor: 'black',
+                    WebkitBoxShadow: 'none',
+                    '& fieldset': {
+                      border: 'none',
+                    },
+                    '&:hover fieldset': {
+                      border: 'none',
+                    },
+                    '&.Mui-focused fieldset': {
+                      border: 'none',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    color: 'black',
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    '-webkit-text-fill-color': 'black !important',
+                    '-webkit-box-shadow': 'none !important',
+                  },
+                  '& .MuiInputBase-input::placeholder': {
+                    color: 'grey.500',
+                    opacity: 1,
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Password Field */}
+            <Box sx={{ marginBottom: '30px' }}>
+              <TextField
+                fullWidth
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={handlePasswordChange}
+                disabled={props.isLoading}
+                placeholder="Password"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    border: '1px solid black',
+                    '& fieldset': {
+                      border: 'none',
+                    },
+                    '&:hover fieldset': {
+                      border: 'none',
+                    },
+                    '&.Mui-focused fieldset': {
+                      border: 'none',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    color: 'black',
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    '-webkit-text-fill-color': 'black !important',
+                    '-webkit-box-shadow': 'none !important',
+                  },
+                  '& .MuiInputBase-input::placeholder': {
+                    color: 'grey.500',
+                    opacity: 1,
+                  },
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => togglePasswordVisibility()}
+                        edge="end"
+                        sx={{
+                          color: 'black',
+                        }}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Box>
+
+            {/* Error Text */}
+            {props.errorText && (
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: 'error.main',
+                  fontSize: '0.8rem',
+                  marginBottom: '20px',
+                  textAlign: 'center',
+                }}
+              >
+                {props.errorText}
+              </Typography>
+            )}
+
+            {/* Login Button */}
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleLogin}
+              disabled={props.isLoading}
+              sx={{
+                backgroundColor: '#1976d2',
+                color: 'white',
+                borderRadius: '10px',
+                padding: '12px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                textTransform: 'none',
+                marginBottom: '30px',
+                '&:hover': {
+                  backgroundColor: '#1565c0',
+                },
+              }}
+            >
+              Log in
+            </Button>
+
+            {/* Divider */}
+            <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+              <Divider sx={{ flex: 1, backgroundColor: 'grey.300' }} />
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: 'grey.600',
+                  margin: '0 15px',
+                  fontSize: '0.875rem',
+                }}
+              >
+                or
+              </Typography>
+              <Divider sx={{ flex: 1, backgroundColor: 'grey.300' }} />
+            </Box>
+
+            {/* Social Login Buttons */}
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => handleSsoLogin('google')}
+              disabled={props.isLoading}
+              sx={{
+                border: '1px solid #e0e0e0',
+                borderRadius: '10px',
+                padding: '12px',
+                fontSize: '16px',
+                textTransform: 'none',
+                color: 'black',
+                backgroundColor: 'white',
+                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                '&:hover': {
+                  backgroundColor: '#f5f5f5',
+                  border: '1px solid #e0e0e0',
+                },
+              }}
+            >
+              Sign in with Google &nbsp;
+              <img
+                src="/static/images/google.svg"
+                alt="Google Logo"
+                style={{ marginRight: '10px', height: '20px' }}
+              />
+            </Button>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => handleSsoLogin('discord')}
+              disabled={props.isLoading}
+              sx={{
+                border: '1px solid #e0e0e0',
+                borderRadius: '10px',
+                padding: '12px',
+                fontSize: '16px',
+                textTransform: 'none',
+                color: 'black',
+                backgroundColor: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                '&:hover': {
+                  backgroundColor: '#f5f5f5',
+                  border: '1px solid #e0e0e0',
+                },
+              }}
+            >
+              Sign in with Discord&nbsp;
+              <img
+                src="/static/images/discord.svg"
+                alt="Discord Logo"
+                style={{ marginRight: '10px', height: '20px' }}
+              />
+            </Button>
+          </Box>
+        )}
+      </Box>
+
+      {/* Right Column - Visual Element */}
+      <Box
+        sx={{
+          width: '60%',
+          backgroundColor: '#2c2c2c',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            width: '300px',
+            height: '300px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Logo */}
+          <img
+            src="/static/images/logo.png"
+            alt="Soroban Security Portal"
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain',
+            }}
+          />
+        </Box>
       </Box>
     </Box>
   );

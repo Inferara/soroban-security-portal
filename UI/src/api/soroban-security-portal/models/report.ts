@@ -3,7 +3,8 @@ export interface Report {
   name: string;
   image?: string;
   date: string;
-  project: string;
+  protocol: string;
+  company: string;
   auditor: string;
   status?: string;
   author?: string;
@@ -14,7 +15,8 @@ export interface Report {
 export interface AddReport {
   id: number;
   title: string;
-  project: string;
+  protocol: string;
+  company: string;
   auditor: string;
   date: string;
   url: string;
@@ -24,7 +26,8 @@ export interface ReportSearch {
   searchText?: string;
   from?: string;
   to?: string;
-  project?: string;
+  protocol?: string;
+  company?: string;
   auditor?: string;
   sortBy?: 'date' | 'name';
   sortDirection?: 'asc' | 'desc';
