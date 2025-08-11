@@ -8,7 +8,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { useAuth } from 'react-oidc-context';
 import IconButton from '@mui/material/IconButton';
-import { Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink } from '@mui/material';
+import { Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink, styled, Avatar } from '@mui/material';
 import { environment } from '../../../../environments/environment';
 import { Home } from '../home/home';
 import { Reports } from '../reports/reports';
@@ -29,6 +29,15 @@ import ChatIcon from '@mui/icons-material/Chat';
 import { useMainWindow } from './hooks';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
+
+const StyledAvatar = styled(Avatar)(() => ({
+  width: 40,
+  height: 40,
+  backgroundColor: '#9386b6', 
+  border: '3px solid #FCD34D',
+  fontSize: '18px',
+  fontWeight: 'bold',
+}));
 
 export const MainWindow: FC = () => {
   const navigate = useNavigate();
@@ -51,6 +60,15 @@ export const MainWindow: FC = () => {
 
   const isActiveRoute = (path: string) => {
     return location.pathname === `${environment.basePath}${path}`;
+  };
+    
+  const getUserInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   let navigationItems = [
@@ -134,7 +152,7 @@ export const MainWindow: FC = () => {
                     {auth.user?.profile.picture ? (
                       <Box
                         component="img"
-                        src={`data:image/png;base64,${auth.user.profile.picture}`}
+                        src={`${environment.apiUrl}${auth.user.profile.picture}`}
                         alt="Profile"
                         sx={{
                           width: 44,
@@ -144,22 +162,9 @@ export const MainWindow: FC = () => {
                         }}
                       />
                     ) : (
-                      <Box
-                        sx={{
-                          width: 44,
-                          height: 44,
-                          border: '3px solid #FCD34D',
-                          borderRadius: '50%',
-                          bgcolor: '#9386b6',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'black',
-                          fontSize: '24px',
-                        }}
-                      >
-                        {auth.user?.profile.name?.charAt(0)?.toUpperCase() || 'U'}
-                      </Box>
+                      <StyledAvatar>
+                        {getUserInitials(auth.user?.profile.name || 'User Name')}
+                      </StyledAvatar>
                     )}
                     <Menu
                       id="basic-menu"

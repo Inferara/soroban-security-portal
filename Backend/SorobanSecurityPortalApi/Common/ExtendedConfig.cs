@@ -128,6 +128,32 @@ public class ExtendedConfig
     [Description("Gemini API Key")]
     [Tooltip("The Gemini API Key is used to authenticate the application with the Gemini API service. This is required for using the Gemini embedding model and other Gemini features.")]
     public string GeminiApiKey => GetValue<string>("GeminiApiKey", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Double)]
+    [Description("Name Weight via Trigram Search")]
+    [Tooltip("The Name Weight via Trigram Search is used to specify the weight of the name field in the trigram search. This is used to improve search results by giving more weight to the name field when searching for reports and vulnerabilities.")]
+    public double TrigramNameWeight => GetValue<double>("TrigramNameWeight", 5);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Double)]
+    [Description("Content Weight via Trigram Search")]
+    [Tooltip("The Content Weight via Trigram Search is used to specify the weight of the content field in the trigram search. This is used to improve search results by giving more weight to the content field when searching for reports and vulnerabilities.")]
+    public double TrigramContentWeight => GetValue<double>("TrigramContentWeight", 3);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Double)]
+    [Description("Name Weight via Vector Search")]
+    [Tooltip("The Name Weight via Vector Search is used to specify the weight of the name field in the vector search. This is used to improve search results by giving more weight to the name field when searching for reports and vulnerabilities.")]
+    public double VectorContentWeight => GetValue<double>("VectorContentWeight", 10);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Double)]
+    [Description("Min Relevance for Search")]
+    [Tooltip("The Min Relevance for Search is used to specify the minimum relevance score for search results. This is used to filter out low-relevance results from search queries.")]
+    public double MinRelevanceForSearch => GetValue<double>("MinRelevanceForSearch", 6);
+
+
 }
 
 [AttributeUsage(AttributeTargets.Property)]

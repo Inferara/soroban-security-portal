@@ -39,6 +39,13 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [HttpPost("total")]
+        public async Task<IActionResult> SearchTotal([FromBody] VulnerabilitySearchViewModel? vulnerabilitySearch)
+        {
+            var result = await _vulnerabilityService.SearchTotal(vulnerabilitySearch);
+            return Ok(result);
+        }
+
         [RoleAuthorize(Role.Admin, Role.Moderator, Role.Contributor)]
         [HttpPost("add")]
         [RequestSizeLimit(25_000_000)]

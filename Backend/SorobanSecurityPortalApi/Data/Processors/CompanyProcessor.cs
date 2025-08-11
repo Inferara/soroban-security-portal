@@ -36,6 +36,24 @@ namespace SorobanSecurityPortalApi.Data.Processors
             {
                 throw new KeyNotFoundException($"Company with ID {companyModel.Id} not found");
             }
+
+            // Update all Vulnerabilities where Company name matches the old name
+            var vulnerabilitiesToUpdate = await _db.Vulnerability
+                .Where(v => v.Company == existingCompany.Name)
+                .ToListAsync();
+            foreach (var vulnerability in vulnerabilitiesToUpdate)
+            {
+                vulnerability.Company = companyModel.Name;
+            }
+            // Update all Report where Company name matches the old name
+            var reportsToUpdate = await _db.Report
+                .Where(v => v.Company == existingCompany.Name)
+                .ToListAsync();
+            foreach (var report in reportsToUpdate)
+            {
+                report.Company = companyModel.Name;
+            }
+
             existingCompany.Name = companyModel.Name;
             existingCompany.Url = companyModel.Url;
             await _db.SaveChangesAsync();

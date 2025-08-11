@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import React from 'react';
 import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress, Tooltip } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -15,6 +15,7 @@ import { useTheme } from '../../../../contexts/ThemeContext';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
+import ReactGA from 'react-ga4';
 
 export const Reports: FC = () => {
   const { themeMode } = useTheme();
@@ -31,6 +32,10 @@ export const Reports: FC = () => {
   const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
   const canAddReport = (auth: AuthContextProps) =>
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
+
+  useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: "/reports", title: "Reports Page" });
+  }, [])
 
   const toggleSortDirection = () => {
     setSortDir(prev => prev === 'desc' ? 'asc' : 'desc');
@@ -52,9 +57,12 @@ export const Reports: FC = () => {
   React.useEffect(() => {
     const initialLoadingState: { [key: number]: boolean } = {};
     reportsList.forEach(report => {
-      initialLoadingState[report.id] = true;
+      // Only set to loading if not already in the state
+      if (!(report.id in loadingImages)) {
+        initialLoadingState[report.id] = true;
+      }
     });
-    setLoadingImages(initialLoadingState);
+    setLoadingImages(prev => ({ ...prev, ...initialLoadingState }));
   }, [reportsList]);
 
   return (
@@ -77,6 +85,20 @@ export const Reports: FC = () => {
             size="small"
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                searchReports({
+                  searchText,
+                  protocol: protocol?.name || '',
+                  company: company?.name || '',
+                  auditor: auditor?.name || '',
+                  from: startDate?.toISOString().split('T')[0] || '',
+                  to: endDate?.toISOString().split('T')[0] || '',
+                  sortBy: 'date',
+                  sortDirection: sortDir,
+                });
+              }
+            }}
             placeholder="Search"
             sx={{ minWidth: { xs: 290, sm: 340, md: 400, lg: 500 } }}
             slotProps={{
@@ -227,11 +249,13 @@ export const Reports: FC = () => {
           }}
         >
           {reportsList.map((report) => (
-            <Card sx={{
-              height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '0px', borderRadius: '20px',
-              backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-              border: '1px solid', position: 'relative'
-            }}>
+            <Card 
+              key={report.id}
+              sx={{
+                height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '0px', borderRadius: '20px',
+                backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
+                border: '1px solid', position: 'relative'
+              }}>
               <CardMedia
                 component="img"
                 sx={{

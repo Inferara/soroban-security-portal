@@ -28,8 +28,8 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpGet("{loginId}")]
         public async Task<IActionResult> GetUser(int loginId)
         {
-            var currentUser = this.GetLogin(); 
-            if (currentUser == null) 
+            var currentUser = this.GetLogin();
+            if (currentUser == null)
                 return Unauthorized();
             if (loginId == 0)
             {
@@ -38,6 +38,18 @@ namespace SorobanSecurityPortalApi.Controllers
 
             var login = await _userService.GetLoginById(loginId);
             return Ok(login);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("{loginId}/avatar.png")]
+        public async Task<IActionResult> GetUserAvatar(int loginId)
+        {
+            var login = await _userService.GetLoginById(loginId);
+            if (login.Image == null || login.Image.Length == 0)
+            {
+                return BadRequest("Avatar is not found.");
+            }
+            return File(login.Image, "image/png", $"avatar.png");
         }
 
         [RoleAuthorize(Role.Admin)]

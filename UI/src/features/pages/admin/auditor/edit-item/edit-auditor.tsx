@@ -65,10 +65,9 @@ export const EditAuditor: FC = () => {
         <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
-            required={false}
+            required={true}
             id="name"
             label="Name"
-            disabled={true}
             value={name}
             onChange={(e) => setName(e.target.value)}
             type="text"

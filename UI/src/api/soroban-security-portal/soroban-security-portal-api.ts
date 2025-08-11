@@ -189,6 +189,11 @@ export const getVulnerabilitiesCall = async (vulnerabilitySearch?: Vulnerability
     const response = await client.request('api/v1/vulnerabilities', 'POST', vulnerabilitySearch);
     return response.data as Vulnerability[];
 };
+export const getVulnerabilitiesTotalCall = async (vulnerabilitySearch?: VulnerabilitySearch): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/vulnerabilities/total', 'POST', vulnerabilitySearch);
+    return response.data as number;
+};
 export const addVulnerabilityCall = async (vulnerability: Vulnerability | FormData): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities/add', 'POST', vulnerability);

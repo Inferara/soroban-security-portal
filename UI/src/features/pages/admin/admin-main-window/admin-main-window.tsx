@@ -1,7 +1,6 @@
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import MenuIcon from '@mui/icons-material/Menu';
-import PersonIcon from '@mui/icons-material/Person';
-import { Grid, Menu, MenuItem } from '@mui/material';
+import { Avatar, Grid, Menu, MenuItem } from '@mui/material';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -51,6 +50,15 @@ const drawerMarginLeft = 24;
 interface AppBarProps extends MuiAppBarProps {
   leftMenuOpen: boolean;
 }
+
+const StyledAvatar = styled(Avatar)(() => ({
+  width: 40,
+  height: 40,
+  backgroundColor: '#9386b6', 
+  border: '3px solid #FCD34D',
+  fontSize: '18px',
+  fontWeight: 'bold',
+}));
 
 const Main = styled('main', {
   shouldForwardProp: (prop) => prop !== 'leftMenuOpen',
@@ -115,6 +123,15 @@ export const AdminMainWindow: FC = () => {
     auth.signoutRedirect();
   };
 
+  const getUserInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <Box sx={{ display: 'flex', position: 'relative', transform: `scale(${0.8})`, transformOrigin: 'top left', width: `125vw`, minHeight: `125vh`}}>
       <CssBaseline />
@@ -151,7 +168,7 @@ export const AdminMainWindow: FC = () => {
             {auth.user?.profile.picture ? (
               <Box
                 component="img"                
-                src={`data:image/png;base64,${auth.user.profile.picture}`}
+                src={`${environment.apiUrl}${auth.user.profile.picture}`}
                 alt="Profile"
                 sx={{
                   width: 34,
@@ -161,7 +178,9 @@ export const AdminMainWindow: FC = () => {
                 }}
               />
             ) : (
-              <PersonIcon />
+              <StyledAvatar>
+                {getUserInitials(auth.user?.profile.name || 'User Name')}
+              </StyledAvatar>
             )}
             <Menu
               id="basic-menu"

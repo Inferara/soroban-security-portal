@@ -68,7 +68,7 @@ namespace SorobanSecurityPortalApi.Common.SsoSources
                 Ip = "",
                 Picture = hasAvatar
                     ? $"https://cdn.discordapp.com/avatars/{userContent.JsonGet<string>("id")}/{userContent.JsonGet<string>("avatar")}.png"
-                    : "/static/images/noavatar.png"
+                    : ""
             };
         }
 

@@ -1,3 +1,5 @@
+using Pgvector;
+
 namespace SorobanSecurityPortalApi.Models.DbModels
 {
     public class ReportSearchModel
@@ -10,6 +12,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string? Company { get; set; } = null;
         public string? Protocol { get; set; } = null;
         public string? Auditor { get; set; } = null;
+        public Vector? Embedding { get; set; } = null;
 
     }
 }

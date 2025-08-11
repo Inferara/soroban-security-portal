@@ -62,6 +62,16 @@ export const EditReport: FC = () => {
     navigate('/admin/reports');
   }
 
+  const handleSetProtocol = (newProtocol: ProtocolItem | null) => {
+    setProtocol(newProtocol);
+    const company = companiesList.find(c => c.id === newProtocol?.companyId);
+    if (company) {
+      setCompany(company);
+    } else {
+      setCompany(null);
+    }
+  };
+
   // Populate form when report data is loaded
   useEffect(() => {
     if (report) {
@@ -170,25 +180,9 @@ export const EditReport: FC = () => {
               </Grid>
               <Grid size={12}>
                 <Autocomplete
-                  options={companiesList}
-                  value={company}
-                  onChange={(_, newValue) => setCompany(newValue)}
-                  getOptionLabel={(option) => (option as CompanyItem).name}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Company *"
-                      size="small"
-                      sx={{ width: '100%' }}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid size={12}>
-                <Autocomplete
                   options={protocolsList}
                   value={protocol}
-                  onChange={(_, newValue) => setProtocol(newValue)}
+                  onChange={(_, newValue) => handleSetProtocol(newValue)}
                   getOptionLabel={(option) => (option as ProtocolItem).name}
                   renderInput={(params) => (
                     <TextField

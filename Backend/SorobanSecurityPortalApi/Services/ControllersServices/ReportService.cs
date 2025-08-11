@@ -6,6 +6,7 @@ using Pgvector;
 using SkiaSharp;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.DataParsers;
+using SorobanSecurityPortalApi.Models.DbModels;
 
 namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
@@ -28,9 +29,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _embeddingService = embeddingService;
         }
 
-        public async Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearch)
+        public async Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearchViewModel)
         {
-            var searchResult = await _reportProcessor.Search(_mapper.Map<Models.DbModels.ReportSearchModel>(reportSearch));
+            var reportSearchModel =  _mapper.Map<ReportSearchModel>(reportSearchViewModel);
+            if (reportSearchModel != null && !string.IsNullOrEmpty(reportSearchModel.SearchText))
+            {
+                var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportSearchModel.SearchText);
+                reportSearchModel.Embedding = new Vector(embeddingArray);
+            }
+            var searchResult = await _reportProcessor.Search(reportSearchModel);
             var result = _mapper.Map<List<ReportViewModel>>(searchResult);
             return result;
         }

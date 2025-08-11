@@ -7,7 +7,8 @@ import {
   getSourceCall, 
   getVulnerabilitiesCall,
   getReportListDataCall,
-  getCompanyListDataCall
+  getCompanyListDataCall,
+  getVulnerabilitiesTotalCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppDispatch } from '../../../../../app/hooks';
 import { 
@@ -31,6 +32,9 @@ export const useVulnerabilities = () => {
   const [sourceList, setSourceList] = useState<VulnerabilitySource[]>([]);
   const [reportsList, setReportsList] = useState<Report[]>([]);
   const [vulnerabilitiesList, setVulnerabilitiesList] = useState<Vulnerability[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const dispatch = useAppDispatch();
 
   const getSeverities = async (): Promise<void> => {
@@ -69,16 +73,36 @@ export const useVulnerabilities = () => {
         severities: [],
         categories: [],
         protocols: [],
-        sources: []
+        sources: [],
+        page: currentPage,
+        pageSize: pageSize
       };
+    } else {
+      vulnerabilitySearch.page = vulnerabilitySearch.page || currentPage;
+      vulnerabilitySearch.pageSize = vulnerabilitySearch.pageSize || pageSize;
     }
     const response = await getVulnerabilitiesCall(vulnerabilitySearch);
     setVulnerabilitiesList(response);
+    await getTotalItems(vulnerabilitySearch);
+  };
+
+  const getTotalItems = async (vulnerabilitySearch?: VulnerabilitySearch): Promise<void> => {
+    const response = await getVulnerabilitiesTotalCall(vulnerabilitySearch);
+    setTotalItems(response);
   };
 
   const getReports = async (): Promise<void> => {
     const response = await getReportListDataCall();
     setReportsList(response);
+  };
+
+  const setPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const setItemsPerPage = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
   };
 
   // Set the current page
@@ -90,7 +114,15 @@ export const useVulnerabilities = () => {
     void getAuditors();
     void getSource();
     void getReports();
-    void searchVulnerabilities();
+    // Initial search with pagination
+    void searchVulnerabilities({
+      severities: [],
+      categories: [],
+      protocols: [],
+      sources: [],
+      page: 1,
+      pageSize: 10
+    });
   }, [dispatch]);
 
   return {
@@ -102,6 +134,11 @@ export const useVulnerabilities = () => {
     sourceList,
     vulnerabilitiesList,
     reportsList,
-    searchVulnerabilities
+    searchVulnerabilities,
+    totalItems,
+    currentPage,
+    pageSize,
+    setPage,
+    setItemsPerPage
   };
 };

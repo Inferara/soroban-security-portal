@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useRef } from 'react';
+import { FC, useState, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -51,7 +51,6 @@ export const AddVulnerability: FC = () => {
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
   const [source, setSource] = useState<VulnerabilitySource | null>(null);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [filteredProtocolsList, setFilteredProtocolsList] = useState<ProtocolItem[]>([]);
   const [imageError, setImageError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -72,10 +71,6 @@ export const AddVulnerability: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   
-  useEffect(() => {
-    setFilteredProtocolsList(protocolsList.filter(protocol => protocol.companyId === company?.id));
-  }, [company]);
-
   const canAddVulnerability = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
@@ -83,10 +78,14 @@ export const AddVulnerability: FC = () => {
     navigate('/vulnerabilities');
   }
 
-  // Clear protocol selection when company changes
-  const handleCompanyChange = (_: React.SyntheticEvent, newCompany: CompanyItem | null) => {
-    setCompany(newCompany);
-    setProtocol(null); // Clear protocol selection when company changes
+  const handleSetProtocol = (newProtocol: ProtocolItem | null) => {
+    setProtocol(newProtocol);
+    const company = companiesList.find(c => c.id === newProtocol?.companyId);
+    if (company) {
+      setCompany(company);
+    } else {
+      setCompany(null);
+    }
   };
 
   const validateAndAddImage = (file: File) => {
@@ -305,25 +304,9 @@ export const AddVulnerability: FC = () => {
             </Grid>
             <Grid size={12}>
               <Autocomplete
-                options={companiesList}
-                value={company}
-                onChange={handleCompanyChange}
-                getOptionLabel={(option) => (option as CompanyItem).name}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Company *"
-                    size="small"
-                    sx={{ width: '100%' }}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={12}>
-              <Autocomplete
-                options={filteredProtocolsList}
+                options={protocolsList}
                 value={protocol}
-                onChange={(_, newValue) => setProtocol(newValue)}
+                onChange={(_, newValue) => handleSetProtocol(newValue)}
                 getOptionLabel={(option) => (option as ProtocolItem).name}
                 renderInput={(params) => (
                   <TextField
@@ -360,7 +343,7 @@ export const AddVulnerability: FC = () => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Report *"
+                    label="Report"
                     size="small"
                     sx={{ width: '100%' }}
                   />

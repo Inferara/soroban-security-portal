@@ -1,92 +1,105 @@
 using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
+using Pgvector;
 using SorobanSecurityPortalApi.Common.Extensions;
 using static SorobanSecurityPortalApi.Common.ExceptionHandlingMiddleware;
+using Pgvector.EntityFrameworkCore;
+using SorobanSecurityPortalApi.Common;
 
 namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class ReportProcessor : IReportProcessor
     {
         private readonly Db _db;
+        private readonly ExtendedConfig _extendedConfig;
 
-        public ReportProcessor(Db db)
+        public ReportProcessor(Db db, ExtendedConfig extendedConfig)
         {
             _db = db;
+            _extendedConfig = extendedConfig;
         }
 
         public async Task<List<ReportModel>> Search(ReportSearchModel? reportSearch)
         {
-            var query = _db.Report.AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved);
+            var q = _db.Report.AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved);
 
             if (reportSearch != null)
             {
-                if (reportSearch.From != null)
+                if (reportSearch.From is not null)
                 {
                     var from = DateTime.SpecifyKind(reportSearch.From.Value, DateTimeKind.Utc);
-                    query = query.Where(v => v.Date > from);
+                    q = q.Where(v => v.Date >= from);
                 }
-                if (reportSearch.To != null)
+                if (reportSearch.To is not null)
                 {
                     var to = DateTime.SpecifyKind(reportSearch.To.Value, DateTimeKind.Utc);
-                    query = query.Where(v => v.Date < to);
+                    q = q.Where(v => v.Date <= to);
                 }
-                if (!string.IsNullOrEmpty(reportSearch.Company))
+                if (!string.IsNullOrWhiteSpace(reportSearch.Company))
+                    q = q.Where(x => x.Company == reportSearch.Company);
+
+                if (!string.IsNullOrWhiteSpace(reportSearch.Protocol))
+                    q = q.Where(x => x.Protocol == reportSearch.Protocol);
+
+                if (!string.IsNullOrWhiteSpace(reportSearch.Auditor))
+                    q = q.Where(x => x.Auditor == reportSearch.Auditor);
+
+                // Build a single scoring expression
+                if (!string.IsNullOrWhiteSpace(reportSearch.SearchText) || reportSearch.Embedding is not null)
                 {
-                    query = query.Where(x => x.Company == reportSearch.Company);
+                    var searchText = reportSearch.SearchText ?? "";
+                    var queryEmbedding = reportSearch.Embedding;
+
+                    q = q
+                        .Select(v => new
+                        {
+                            v,
+                            TextScore =
+                                (string.IsNullOrEmpty(searchText)
+                                    ? 0.0
+                                    : (TrigramExtensions.TrigramSimilarity(v.Name, searchText) * _extendedConfig.TrigramNameWeight 
+                                       + TrigramExtensions.TrigramSimilarity(v.MdFile, searchText) * _extendedConfig.TrigramContentWeight)),
+                            VecScore =
+                                (queryEmbedding == null || v.Embedding == null)
+                                    ? 0.0
+                                    : (1.0 - v.Embedding.CosineDistance(queryEmbedding!)) * _extendedConfig.VectorContentWeight
+                        })
+                        .Where(x => _extendedConfig.MinRelevanceForSearch < (x.TextScore + x.VecScore))
+                        .OrderByDescending(x => x.TextScore + x.VecScore)
+                        .Select(x => x.v);
                 }
-                if (!string.IsNullOrEmpty(reportSearch.Protocol))
+                else if (!string.IsNullOrWhiteSpace(reportSearch.SortBy))
                 {
-                    query = query.Where(x => x.Protocol == reportSearch.Protocol);
-                }
-                if (!string.IsNullOrEmpty(reportSearch.Auditor))
-                {
-                    query = query.Where(x => x.Auditor == reportSearch.Auditor);
-                }
-                if (!string.IsNullOrEmpty(reportSearch.SearchText))
-                {
-                    query = query.OrderByDescending(v =>
-                        TrigramExtensions.TrigramSimilarity(v.Name, reportSearch.SearchText) * 5 + TrigramExtensions.TrigramSimilarity(v.MdFile, reportSearch.SearchText));
-                }
-                if (!string.IsNullOrEmpty(reportSearch.SearchText))
-                {
-                    query = query.OrderByDescending(v =>
-                        TrigramExtensions.TrigramSimilarity(v.Name, reportSearch.SearchText) * 5 + TrigramExtensions.TrigramSimilarity(v.MdFile, reportSearch.SearchText));
-                }
-                else if (reportSearch.SortBy != null)
-                {
-                    switch (reportSearch.SortBy)
+                    q = reportSearch.SortBy switch
                     {
-                        case "date":
-                            query = reportSearch.SortDirection == "asc" ? query.OrderBy(v => v.Date) : query.OrderByDescending(v => v.Date);
-                            break;
-                        case "name":
-                            query = reportSearch.SortDirection == "asc" ? query.OrderBy(v => v.Name) : query.OrderByDescending(v => v.Name);
-                            break;
-                        default:
-                            throw new ArgumentException("Invalid sort by option");
-                    }
+                        "date" => reportSearch.SortDirection == "asc" ? q.OrderBy(v => v.Date) : q.OrderByDescending(v => v.Date),
+                        "name" => reportSearch.SortDirection == "asc" ? q.OrderBy(v => v.Name) : q.OrderByDescending(v => v.Name),
+                        _ => throw new ArgumentException("Invalid sort by option")
+                    };
                 }
             }
             else
             {
-                query = query.OrderByDescending(v => v.Id);
+                q = q.OrderByDescending(v => v.Id);
             }
-            query = query.Select(v => new ReportModel
-            {
-                Id = v.Id,
-                Name = v.Name,
-                Date = v.Date,
-                Status = v.Status,
-                Author = v.Author,
-                LastActionBy = v.LastActionBy,
-                LastActionAt = v.LastActionAt,
-                Auditor = v.Auditor,
-                Protocol = v.Protocol,
-                Company = v.Company,
-            });
-            return await query.ToListAsync();
+            return await q
+                .Select(v => new ReportModel
+                {
+                    Id = v.Id,
+                    Name = v.Name,
+                    Date = v.Date,
+                    Status = v.Status,
+                    Author = v.Author,
+                    LastActionBy = v.LastActionBy,
+                    LastActionAt = v.LastActionAt,
+                    Auditor = v.Auditor,
+                    Protocol = v.Protocol,
+                    Company = v.Company
+                })
+                .ToListAsync();
         }
+
 
         public async Task<ReportModel> Add(ReportModel reportModel)
         {
@@ -179,6 +192,44 @@ namespace SorobanSecurityPortalApi.Data.Processors
             query = query.OrderByDescending(v => v.Id);
             return await query.ToListAsync();
         }
+
+        public async Task<List<ReportModel>> GetListForEmbedding()
+        {
+            var query = _db.Report
+                .AsNoTracking()
+                .Where(v => v.Embedding == null)
+                .OrderByDescending(v => v.Id);
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<ReportModel>> GetListForFix()
+        {
+            var query = _db.Report
+                .AsNoTracking()
+                .Where(v => string.IsNullOrEmpty(v.MdFile) || v.MdFile == "Sequence contains no elements")
+                .OrderByDescending(v => v.Id);
+            return await query.ToListAsync();
+        }
+
+        public async Task UpdateEmbedding(int reportId, Vector embedding)
+        {
+            var existing = await _db.Report.FirstAsync(item => item.Id == reportId);
+            if (existing == null)
+                throw new SorobanSecurityPortalUiException($"Report with ID {reportId} not found.");
+            existing.Embedding = embedding;
+            _db.Report.Update(existing);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task UpdateMdFile(int reportId, string mdFile)
+        {
+            var existing = await _db.Report.FirstAsync(item => item.Id == reportId);
+            if (existing == null)
+                throw new SorobanSecurityPortalUiException($"Report with ID {reportId} not found.");
+            existing.MdFile = mdFile;
+            _db.Report.Update(existing);
+            await _db.SaveChangesAsync();
+        }
     }
 
     public interface IReportProcessor
@@ -191,5 +242,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task Reject(int reportId, string userName);
         Task Remove(int reportId);
         Task<List<ReportModel>> GetList();
+        Task<List<ReportModel>> GetListForEmbedding();
+        Task<List<ReportModel>> GetListForFix();
+        Task UpdateEmbedding(int reportId, Vector embedding);
+        Task UpdateMdFile(int reportId, string mdFile);
+        
+
     }
 }

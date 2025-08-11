@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import React, { FC, useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -12,6 +12,12 @@ import {
   InputAdornment,
   IconButton,
   Autocomplete,
+  Pagination,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  CircularProgress,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import SearchIcon from '@mui/icons-material/Search';
@@ -34,15 +40,15 @@ import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
 import rehypeKatex from 'rehype-katex';
-import { useEffect } from 'react';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { CategoryItem } from '../../../../api/soroban-security-portal/models/category';
 import { environment } from '../../../../environments/environment';
 import { CodeBlock } from '../../../../components/CodeBlock';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
-import 'katex/dist/katex.min.css'; 
+import 'katex/dist/katex.min.css';
 import './katex.css';
+import ReactGA from 'react-ga4';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -60,17 +66,33 @@ export const Vulnerabilities: FC = () => {
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedVulnerability, setSelectedVulnerability] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [isLoading, setIsLoading] = useState(false);
+  const currentPageRef = useRef(currentPage);
 
-  const { 
-    severitiesList, 
-    categoriesList, 
-    companiesList, 
-    protocolsList, 
-    auditorsList, 
-    sourceList, 
-    vulnerabilitiesList, 
-    searchVulnerabilities, 
-    reportsList 
+  // Update ref when currentPage changes
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+
+  useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: "/vulnerabilities", title: "Vulnerabilities Page" });
+  }, [])
+
+  const {
+    severitiesList,
+    categoriesList,
+    companiesList,
+    protocolsList,
+    auditorsList,
+    sourceList,
+    vulnerabilitiesList,
+    reportsList,
+    searchVulnerabilities,
+    totalItems,
+    setPage,
+    setItemsPerPage
   } = useVulnerabilities();
   const auth = useAuth();
   const navigate = useNavigate();
@@ -86,6 +108,50 @@ export const Vulnerabilities: FC = () => {
     setShowFilters(prev => !prev);
   };
 
+  const clearAllFilters = () => {
+    setSeverities([]);
+    setCategories([]);
+    setCompanies([]);
+    setProtocols([]);
+    setAuditors([]);
+    setSources([]);
+    setSearch('');
+    setStartDate(null);
+    setEndDate(null);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (_: React.ChangeEvent<unknown>, page: number) => {
+    setCurrentPage(page);
+    setPage(page);
+    // Trigger search immediately when page changes
+    setTimeout(() => {
+      if (totalItems > 0) {
+        callSearch();
+      }
+    }, 0);
+  };
+
+  const handlePageSizeChange = (event: any) => {
+    const newPageSize = event.target.value;
+    const newTotalPages = Math.ceil(totalItems / newPageSize);
+    
+    // Calculate the new current page to keep the user roughly in the same position
+    const newCurrentPage = Math.min(currentPage, newTotalPages);
+    
+    setPageSize(newPageSize);
+    setItemsPerPage(newPageSize);
+    setCurrentPage(newCurrentPage);
+    setPage(newCurrentPage);
+    
+    // Trigger search immediately when page size changes
+    setTimeout(() => {
+      if (totalItems > 0) {
+        callSearch();
+      }
+    }, 0);
+  };
+
   const getCategory = (categoryName: string) => {
     const category = categoriesList.find(c => c.name === categoryName);
     return category;
@@ -97,6 +163,7 @@ export const Vulnerabilities: FC = () => {
     }
     else{
       setSelectedVulnerability(vulnerability);
+      ReactGA.event({ category: "Vulnerability", action: "view", label: "Open Vulnerability Preview" });
     }
   };
 
@@ -115,6 +182,7 @@ export const Vulnerabilities: FC = () => {
     setSearch('');
     setStartDate(null);
     setEndDate(null);
+    setCurrentPage(1); // Reset to first page when filters change
 
     // Set the appropriate filter based on the chip type
     switch (filterType) {
@@ -157,8 +225,13 @@ export const Vulnerabilities: FC = () => {
       to: '',
       sortBy: sortBy,
       sortDirection: sortDir,
+      page: 1, // Reset to first page
+      pageSize: pageSize,
     };
-    void searchVulnerabilities(vulnerabilitySearch);
+    setIsLoading(true);
+    void searchVulnerabilities(vulnerabilitySearch).finally(() => {
+      setIsLoading(false);
+    });
   };
 
   // Apply filters from URL parameters
@@ -168,8 +241,27 @@ export const Vulnerabilities: FC = () => {
     const companyParam = searchParams.get('company');
     const protocolParam = searchParams.get('protocol');
     const sourceParam = searchParams.get('source');
+    const pageParam = searchParams.get('page');
+    const pageSizeParam = searchParams.get('pageSize');
 
     let hasFilters = false;
+
+    // Set pagination from URL
+    if (pageParam) {
+      const page = parseInt(pageParam, 10);
+      if (page > 0) {
+        setCurrentPage(page);
+        setPage(page);
+      }
+    }
+
+    if (pageSizeParam) {
+      const size = parseInt(pageSizeParam, 10);
+      if ([10, 20, 50, 100].includes(size)) {
+        setPageSize(size);
+        setItemsPerPage(size);
+      }
+    }
 
     if (categoryParam && categoriesList.length > 0) {
       const category = categoriesList.find(c => c.name === categoryParam);
@@ -218,6 +310,7 @@ export const Vulnerabilities: FC = () => {
 
     if (hasFilters) {
       setShowFilters(true);
+      setCurrentPage(1); // Reset to first page when filters are applied from URL
     }
   }, [searchParams, categoriesList, severitiesList, protocolsList, sourceList]);
 
@@ -234,6 +327,7 @@ export const Vulnerabilities: FC = () => {
         });
         // Small delay to ensure all filter lists are loaded
         const timer = setTimeout(() => {
+          setCurrentPage(1); // Reset to first page before searching
           callSearch();
         }, 100);
         return () => clearTimeout(timer);
@@ -241,26 +335,98 @@ export const Vulnerabilities: FC = () => {
     }
   }, [categoriesList, severitiesList, protocolsList, sourceList, searchParams]);
 
-  const callSearch = () => {
+  // Ensure current page is valid after filtering
+  useEffect(() => {
+    const maxPage = Math.ceil(totalItems / pageSize);
+    if (totalItems > 0 && currentPage > maxPage) {
+      const newPage = Math.max(1, maxPage);
+      setCurrentPage(newPage);
+      setPage(newPage);
+    }
+  }, [totalItems, pageSize, currentPage]);
+
+  // Update URL when pagination changes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (currentPage > 1) {
+      params.set('page', currentPage.toString());
+    } else {
+      params.delete('page');
+    }
+    if (pageSize !== 10) {
+      params.set('pageSize', pageSize.toString());
+    } else {
+      params.delete('pageSize');
+    }
+
+    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+    window.history.replaceState({}, '', newUrl);
+  }, [currentPage, pageSize, searchParams]);
+
+  // Handle browser navigation (back/forward buttons)
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const pageParam = params.get('page');
+      const pageSizeParam = params.get('pageSize');
+
+      if (pageParam) {
+        const page = parseInt(pageParam, 10);
+        if (page > 0 && page !== currentPage) {
+          setCurrentPage(page);
+          setPage(page);
+        }
+      }
+
+      if (pageSizeParam) {
+        const size = parseInt(pageSizeParam, 10);
+        if ([5, 10, 20, 50].includes(size) && size !== pageSize) {
+          setPageSize(size);
+          setItemsPerPage(size);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentPage, pageSize]);
+
+  const callSearch = (overrides?: Partial<{
+    severities: VulnerabilitySeverity[];
+    categories: CategoryItem[];
+    companies: CompanyItem[];
+    protocols: ProtocolItem[];
+    auditors: AuditorItem[];
+    sources: VulnerabilitySource[];
+    searchText: string;
+    from: string;
+    to: string;
+  }>) => {
+    setIsLoading(true);
     const vulnerabilitySearch: VulnerabilitySearch = {
-      severities: severities.map(s => s.name),
-      categories: categories.map(c => c.name),
-      companies: companies.map(c => c.name),
-      protocols: protocols.map(p => p.name),
-      auditors: auditors.map(a => a.name),
-      sources: sources.map(s => s.name),
-      searchText: search,
-      from: startDate?.toISOString().split('T')[0] || '',
-      to: endDate?.toISOString().split('T')[0] || '',
+      severities: (overrides?.severities ?? severities).map(s => s.name),
+      categories: (overrides?.categories ?? categories).map(c => c.name),
+      companies: (overrides?.companies ?? companies).map(c => c.name),
+      protocols: (overrides?.protocols ?? protocols).map(p => p.name),
+      auditors: (overrides?.auditors ?? auditors).map(a => a.name),
+      sources: (overrides?.sources ?? sources).map(s => s.name),
+      searchText: overrides?.searchText ?? search,
+      from: overrides?.from ?? (startDate?.toISOString().split('T')[0] || ''),
+      to: overrides?.to ?? (endDate?.toISOString().split('T')[0] || ''),
       sortBy: sortBy,
       sortDirection: sortDir,
+      page: currentPageRef.current,
+      pageSize: pageSize,
     };
-    void searchVulnerabilities(vulnerabilitySearch);
+    setIsLoading(true);
+    void searchVulnerabilities(vulnerabilitySearch).finally(() => {
+      setIsLoading(false);
+    });
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ padding: '24px' }}>        
+      <Box sx={{ padding: '24px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           {canAddVulnerability(auth) && (
             <Button
@@ -279,6 +445,11 @@ export const Vulnerabilities: FC = () => {
             size="small"
             value={search}
             onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                callSearch();
+              }
+            }}
             placeholder="Search"
             sx={{ minWidth: 750 }}
             slotProps={{
@@ -346,10 +517,43 @@ export const Vulnerabilities: FC = () => {
           <Button
             variant="contained"
             color="primary"
+            disabled={isLoading}
             sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
-            onClick={() => { callSearch(); }}
+            onClick={() => {
+              setCurrentPage(1); // Reset to first page when searching
+              callSearch();
+            }}
           >
-            Search
+            {isLoading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} color="inherit" />
+                Searching...
+              </Box>
+            ) : (
+              'Search'
+            )}
+          </Button>
+          <Button
+            variant="outlined"
+            color="secondary"
+            disabled={isLoading}
+            sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
+            onClick={() => {
+              clearAllFilters();
+              callSearch({
+                severities: [],
+                categories: [],
+                companies: [],
+                protocols: [],
+                auditors: [],
+                sources: [],
+                searchText: '',
+                from: '',
+                to: ''
+              });
+            }}
+          >
+            Clear Filters
           </Button>
         </Box>
         {showFilters && (
@@ -531,12 +735,21 @@ export const Vulnerabilities: FC = () => {
           </Box>
         )}
       </Box>
-      <Typography variant="h3" sx={{ pl: 3, pb:3, fontWeight: 600, mb: 1, color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2' }}>ENGAGE</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, px: 3 }}>
+        <Typography variant="h3" sx={{ fontWeight: 600, color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2' }}>
+          ENGAGE
+        </Typography>
+        {!isLoading && vulnerabilitiesList.length > 0 && (
+          <Typography variant="body2" color="text.secondary">
+            Page {currentPage} of {Math.ceil(totalItems / pageSize)}
+          </Typography>
+        )}
+      </Box>
       <Box sx={{ display: 'flex', height: '60vh' }}>
         {/* Vulnerabilities List Section */}
-        <Box sx={{ 
-          width: selectedVulnerability ? '50%' : '100%', 
-          overflow: 'auto', 
+        <Box sx={{
+          width: selectedVulnerability ? '50%' : '100%',
+          overflow: 'auto',
           borderColor: 'divider',
           transition: 'width 0.3s ease-in-out',
           '&::-webkit-scrollbar': {
@@ -557,23 +770,52 @@ export const Vulnerabilities: FC = () => {
             backgroundColor: 'transparent',
           },
         }}>
-          <Box sx={{ pl: 3, pr: 3, pb: 3 }}>            
+          <Box sx={{ pl: 3, pr: 3, pb: 3 }}>
             {/* Vulnerability cards */}
             <Grid container spacing={3}>
-              {vulnerabilitiesList.length === 0 && (
+              {isLoading && (
                 <Grid size={12}>
-                  <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 6 }}>
-                    No vulnerabilities found for the selected filters.
-                  </Typography>
+                  <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
+                    <Typography variant="h6" color="text.secondary">
+                      Loading vulnerabilities...
+                    </Typography>
+                  </Box>
                 </Grid>
               )}
-              {vulnerabilitiesList.map(vuln => (
+              {!isLoading && vulnerabilitiesList.length === 0 && (
+                <Grid size={12}>
+                  <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
+                    <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                      {currentPage > 1 ? 'No more vulnerabilities on this page' : 'No vulnerabilities found'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {currentPage > 1
+                        ? 'Try going back to the first page or adjusting your search criteria.'
+                        : 'Try adjusting your search criteria or filters to find more results.'
+                      }
+                    </Typography>
+                    {currentPage > 1 && (
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => {
+                          setCurrentPage(1);
+                          setPage(1);
+                        }}
+                      >
+                        Go to First Page
+                      </Button>
+                    )}
+                  </Box>
+                </Grid>
+              )}
+              {!isLoading && vulnerabilitiesList.map(vuln => (
                 <Grid size={12} key={vuln.id}>
-                  <Card 
+                  <Card
                     sx={{
-                      height: '100%', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
                       borderRadius: '20px',
                       border: '1px solid',
                       backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
@@ -653,13 +895,95 @@ export const Vulnerabilities: FC = () => {
                 </Grid>
               ))}
             </Grid>
+
+            {/* Pagination Controls */}
+            {!isLoading && vulnerabilitiesList.length > 0 && totalItems > pageSize && (
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mt: 3,
+                px: 2,
+                flexWrap: 'wrap',
+                gap: 2
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {`${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, totalItems)} of ${totalItems}`}
+                  </Typography>
+                  <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <InputLabel>Items per page</InputLabel>
+                    <Select
+                      value={pageSize}
+                      label="Items per page"
+                      onChange={handlePageSizeChange}
+                    >
+                      <MenuItem value={10}>10</MenuItem>
+                      <MenuItem value={20}>20</MenuItem>
+                      <MenuItem value={50}>50</MenuItem>
+                      <MenuItem value={100}>100</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                <Pagination
+                  count={Math.ceil(totalItems / pageSize)}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  showFirstButton
+                  showLastButton
+                  size="medium"
+                  sx={{
+                    '& .MuiPaginationItem-root': {
+                      color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2',
+                      '&.Mui-selected': {
+                        backgroundColor: '#1976d2',
+                        color: '#ffffff',
+                      },
+                      '&:hover': {
+                        backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                      },
+                    },
+                  }}
+                />
+              </Box>
+            )}
+
+            {/* Total count display for single page */}
+            {!isLoading && vulnerabilitiesList.length > 0 && totalItems <= pageSize && (
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mt: 3,
+                px: 2
+              }}>
+                <Typography variant="body2" color="text.secondary">
+                  {`${totalItems} vulnerabilit${totalItems !== 1 ? 'ies' : 'y'} found`}
+                </Typography>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Items per page</InputLabel>
+                  <Select
+                    value={pageSize}
+                    label="Items per page"
+                    onChange={handlePageSizeChange}
+                  >
+                    <MenuItem value={10}>10</MenuItem>
+                    <MenuItem value={20}>20</MenuItem>
+                    <MenuItem value={50}>50</MenuItem>
+                    <MenuItem value={100}>100</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
           </Box>
         </Box>
         {/* Vulnerability Profile Section */}
         {selectedVulnerability && (
           <Box sx={{
-            width: '50%', 
-            overflow: 'auto', 
+            width: '50%',
+            overflow: 'auto',
             transition: 'width 0.3s ease-in-out',
             '&::-webkit-scrollbar': {
               width: '12px',
@@ -679,7 +1003,7 @@ export const Vulnerabilities: FC = () => {
               backgroundColor: 'transparent',
             },
           }}>
-            <Box sx={{ p: 0 }}>             
+            <Box sx={{ pl: 1, pr: 1 }}>
               <Card sx={{
                 borderRadius: '20px',
                 border: '1px solid',
@@ -687,14 +1011,15 @@ export const Vulnerabilities: FC = () => {
                 mb: 3
               }}>
                 <CardContent>
-                  <Box sx={{ mb: 2 }}>
+                  <Box sx={{ mb: 2, l: 2 }}>
                     <Stack spacing={1}>
+                      <Typography variant='h3' sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>{selectedVulnerability.title}</Typography>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '40px' }}>
                         <Typography variant="body2" color="text.primary">Severity:
-                          <Chip 
-                            label={selectedVulnerability.severity} 
-                            size="small" 
-                            sx={{ 
+                          <Chip
+                            label={selectedVulnerability.severity}
+                            size="small"
+                            sx={{
                               marginLeft: '12px',
                               border: '2px solid',
                               backgroundColor: 'transparent',
@@ -715,13 +1040,13 @@ export const Vulnerabilities: FC = () => {
                                 transform: 'scale(1.05)',
                                 transition: 'all 0.2s ease-in-out'
                               }
-                            }} 
+                            }}
                             onClick={() => handleChipClick('severity', selectedVulnerability.severity)}
                           />
                         </Typography>
-                        <IconButton 
+                        <IconButton
                           onClick={handleCloseProfile}
-                          sx={{ 
+                          sx={{
                             color: themeMode === 'light' ? 'text.secondary' : 'text.disabled',
                             '&:hover': {
                               color: 'text.primary'
@@ -733,10 +1058,10 @@ export const Vulnerabilities: FC = () => {
                       </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
                         <Typography variant="body2" color="text.primary">Report info:
-                          <Chip 
-                            label={selectedVulnerability.source} 
-                            size="small" 
-                            sx={{ 
+                          <Chip
+                            label={selectedVulnerability.source}
+                            size="small"
+                            sx={{
                               marginLeft: '12px',
                               border: '2px solid',
                               backgroundColor: 'transparent',
@@ -747,17 +1072,17 @@ export const Vulnerabilities: FC = () => {
                                 transform: 'scale(1.05)',
                                 transition: 'all 0.2s ease-in-out'
                               }
-                            }} 
+                            }}
                             onClick={() => handleChipClick('source', selectedVulnerability.source)}
                           />
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
                         <Typography variant="body2" color="text.primary">Company:
-                          <Chip 
-                            label={selectedVulnerability.company} 
-                            size="small" 
-                            sx={{ 
+                          <Chip
+                            label={selectedVulnerability.company}
+                            size="small"
+                            sx={{
                               marginLeft: '12px',
                               border: '2px solid',
                               backgroundColor: 'transparent',
@@ -768,17 +1093,17 @@ export const Vulnerabilities: FC = () => {
                                 transform: 'scale(1.05)',
                                 transition: 'all 0.2s ease-in-out'
                               }
-                            }} 
+                            }}
                             onClick={() => handleChipClick('company', selectedVulnerability.company)}
                           />
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
                         <Typography variant="body2" color="text.primary">Protocol:
-                          <Chip 
-                            label={selectedVulnerability.protocol} 
-                            size="small" 
-                            sx={{ 
+                          <Chip
+                            label={selectedVulnerability.protocol}
+                            size="small"
+                            sx={{
                               marginLeft: '12px',
                               border: '2px solid',
                               backgroundColor: 'transparent',
@@ -789,7 +1114,7 @@ export const Vulnerabilities: FC = () => {
                                 transform: 'scale(1.05)',
                                 transition: 'all 0.2s ease-in-out'
                               }
-                            }} 
+                            }}
                             onClick={() => handleChipClick('protocol', selectedVulnerability.protocol)}
                           />
                         </Typography>
@@ -815,7 +1140,7 @@ export const Vulnerabilities: FC = () => {
                   </Box>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, textTransform: 'uppercase' }}>Description</Typography>
-                    <Box sx={{ 
+                    <Box sx={{
                       '& .katex-display': {
                         margin: '1em 0 !important',
                         textAlign: 'center',

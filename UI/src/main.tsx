@@ -40,6 +40,10 @@ export function AppWrapper() {
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
 
   useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: "/main", title: "Main Page" });
+  }, [])
+
+  useEffect(() => {
     const sessionInfo = store.getState().sessionInfo;
     if (!sessionInfo.isAuthenticated) {
       dispatch(

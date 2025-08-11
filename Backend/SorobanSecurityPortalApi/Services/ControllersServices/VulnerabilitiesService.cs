@@ -2,6 +2,7 @@ using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
+using Pgvector;
 
 namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
@@ -11,6 +12,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
         private readonly IReportProcessor _reportProcessor;
         private readonly IFileProcessor _fileProcessor;
+        private readonly IGeminiEmbeddingService _embeddingService;
         private readonly UserContextAccessor _userContextAccessor;
 
         public VulnerabilityService(
@@ -18,12 +20,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IVulnerabilityProcessor vulnerabilityProcessor,
             IReportProcessor reportProcessor,
             IFileProcessor fileProcessor,
+            IGeminiEmbeddingService embeddingService,
             UserContextAccessor userContextAccessor)
         {
             _mapper = mapper;
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _reportProcessor = reportProcessor;
             _fileProcessor = fileProcessor;
+            _embeddingService = embeddingService;
             _userContextAccessor = userContextAccessor;
         }
 
@@ -62,11 +66,28 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         }
 
 
-        public async Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearch)
+        public async Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearchViewModel)
         {
-            var searchResult = await _vulnerabilityProcessor.Search(_mapper.Map<Models.DbModels.VulnerabilitySearchModel>(vulnerabilitySearch));
+            var vulnerabilitySearchModel = _mapper.Map<Models.DbModels.VulnerabilitySearchModel>(vulnerabilitySearchViewModel);
+            if (vulnerabilitySearchModel != null && !string.IsNullOrEmpty(vulnerabilitySearchModel.SearchText))
+            {
+                var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(vulnerabilitySearchModel.SearchText);
+                vulnerabilitySearchModel.Embedding = new Vector(embeddingArray);
+            }
+            var searchResult = await _vulnerabilityProcessor.Search(vulnerabilitySearchModel);
             var result = _mapper.Map<List<VulnerabilityViewModel>>(searchResult);
             return result;
+        }
+
+        public async Task<int> SearchTotal(VulnerabilitySearchViewModel? vulnerabilitySearchViewModel)
+        {
+            var vulnerabilitySearchModel = _mapper.Map<Models.DbModels.VulnerabilitySearchModel>(vulnerabilitySearchViewModel);
+            if (vulnerabilitySearchModel != null && !string.IsNullOrEmpty(vulnerabilitySearchModel.SearchText))
+            {
+                var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(vulnerabilitySearchModel.SearchText);
+                vulnerabilitySearchModel.Embedding = new Vector(embeddingArray);
+            }
+            return await _vulnerabilityProcessor.SearchTotal(_mapper.Map<Models.DbModels.VulnerabilitySearchModel>(vulnerabilitySearchModel));
         }
 
         public async Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
@@ -153,6 +174,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<IdValue>> ListSeverities();
         Task<List<IdValueUrl>> ListSources();
         Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearch);
+        Task<int> SearchTotal(VulnerabilitySearchViewModel? vulnerabilitySearch);
         Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task Approve(int vulnerabilityId);
         Task Reject(int vulnerabilityId);

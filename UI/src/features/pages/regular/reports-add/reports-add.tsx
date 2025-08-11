@@ -55,6 +55,16 @@ export const AddReport: FC = () => {
   if (!canAddReport(auth)) {
     navigate('/reports');
   }
+  
+  const handleSetProtocol = (newProtocol: ProtocolItem | null) => {
+    setProtocol(newProtocol);
+    const company = companiesList.find(c => c.id === newProtocol?.companyId);
+    if (company) {
+      setCompany(company);
+    } else {
+      setCompany(null);
+    }
+  };
 
   const validateAndSetFile = (file: File) => {
     // Check if file is PDF
@@ -184,39 +194,12 @@ export const AddReport: FC = () => {
                   onChange={e => setTitle(e.target.value)}
                   required
                 />
-              </Grid>
-              <Grid size={12}>
-                <Autocomplete
-                  options={companiesList}
-                  value={company}
-                  onChange={(_, newValue) => setCompany(newValue as CompanyItem)}
-                  getOptionLabel={(option) => (option as CompanyItem).name}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Company"
-                      size="small"
-                      sx={{ minWidth: 290 }}
-                    />
-                  )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        {...getTagProps({ index })}
-                        key={index}
-                        label={(option as CompanyItem).name}
-                        size="small"
-                        sx={{ bgcolor: '#2b7fa2', color: '#F2F2F2' }}
-                      />
-                    ))
-                  }
-                />
-              </Grid>              
+              </Grid>           
               <Grid size={12}>
                 <Autocomplete
                   options={protocolsList}
                   value={protocol}
-                  onChange={(_, newValue) => setProtocol(newValue as ProtocolItem)}
+                  onChange={(_, newValue) => handleSetProtocol(newValue as ProtocolItem)}
                   getOptionLabel={(option) => (option as ProtocolItem).name}
                   renderInput={(params) => (
                     <TextField

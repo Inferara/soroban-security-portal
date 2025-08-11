@@ -104,7 +104,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 ValidUntilTime = loginProcessViewModel.IsPermanentToken
                     ? DateTime.UtcNow.AddDays(_config.PermanentTokenExpirationTimeDays)
                     : DateTime.UtcNow.AddMinutes(_config.TokenExpirationTimeMinutes),
-                Picture = (login.Image != null ? Convert.ToBase64String(login.Image) : ""),
+                Picture = (login.Image != null && login.Image.Length > 0 ? $"/api/v1/user/{login.LoginId}/avatar.png" : ""),
             };
             _loginHistoryProcessor.Add(loginHistory);
             return loginHistory.Code;
@@ -151,7 +151,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 ValidUntilTime = loginProcessViewModel.IsPermanentToken
                     ? DateTime.UtcNow.AddDays(_config.PermanentTokenExpirationTimeDays)
                     : DateTime.UtcNow.AddMinutes(_config.TokenExpirationTimeMinutes),
-                Picture = (login.Image != null ? Convert.ToBase64String(login.Image) : ""),
+                Picture = (login.Image != null && login.Image.Length > 0 ? $"/api/v1/user/{login.LoginId}/avatar.png" : "")
             };
             _loginHistoryProcessor.Add(loginHistory);
             return loginHistory.Code;
