@@ -6,16 +6,19 @@ import { useNavigate } from 'react-router-dom';
 import { GalaxyCanvas } from './galaxy-canvas';
 import { VulnerabilityPieChart } from './vulnerability-pie-chart';
 import { VulnerabilityTable } from './vulnerability-table';
+import ReactGA from 'react-ga4';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    navigate('/login');
+    navigate('/vulnerabilities');
+    ReactGA.event({ category: "Vulnerability", action: "click", label: "Warp button click" });
   };
 
   const handleLearnMore = () => {
     navigate('/about');
+    ReactGA.event({ category: "About", action: "click", label: "Learn More button click" });
   };
 
   return (
@@ -95,7 +98,7 @@ export const Home: FC = () => {
             zIndex: 3,
           }}
         >
-          <Button
+            <Button
             variant="contained"
             onClick={handleGetStarted}
             sx={{
@@ -104,12 +107,41 @@ export const Home: FC = () => {
               py: 1.5,
               fontSize: '1.1rem',
               fontWeight: 900,
-              textTransform: 'none',
+              textTransform: 'uppercase',
               borderRadius: '8px',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: '-150%',
+              width: '200%',
+              height: '100%',
+              background: 'linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 70%)',
+              transform: 'skewX(-20deg)',
+              animation: 'glitter 2s infinite',
+              },
             }}
-          >
-            Get Started
-          </Button>
+            >
+            Warp
+            </Button>
+
+            <style>
+            {`
+              @keyframes glitter {
+              0% {
+                left: -150%;
+              }
+              50% {
+                left: 150%;
+              }
+              100% {
+                left: 150%;
+              }
+              }
+            `}
+            </style>
 
           <Button
             variant="outlined"

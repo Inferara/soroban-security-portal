@@ -1,5 +1,5 @@
 import RestApi from '../rest-api';
-import { UserItem, CreateUserItem, EditUserItem } from './models/user';
+import { UserItem, CreateUserItem, EditUserItem, SelfEditUserItem } from './models/user';
 import { SettingsItem } from './models/settings';
 import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
@@ -279,6 +279,11 @@ export const createUserCall = async (createUserItem: CreateUserItem): Promise<bo
 export const editUserCall = async (loginId: number, userItem: EditUserItem): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/user/${loginId}`, 'PUT', userItem);
+    return response.data as boolean;
+}
+export const selfEditUserCall = async (loginId: number, userItem: SelfEditUserItem): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/user/self/${loginId}`, 'PUT', userItem);
     return response.data as boolean;
 }
 export const removeUserCall = async (userId: number): Promise<void> => {

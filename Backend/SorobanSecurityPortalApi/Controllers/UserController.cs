@@ -101,6 +101,27 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(saved);
         }
 
+        [RoleAuthorize(Role.User)]
+        [HttpPut("self/{loginId}")]
+        public async Task<IActionResult> SelfUpdateUser(int loginId, [FromBody] LoginSelfUpdateViewModel userUpdateSelfViewModel)
+        {
+            var currentUser = this.GetLogin();
+            if (currentUser == null) return Unauthorized();
+            var user = await _userService.GetLoginById(loginId);
+            if (user.IsEnabled == false)
+            {
+                return BadRequest("User is disabled.");
+            }
+            if (user.LoginId != loginId)
+            {
+                return BadRequest("You can only update your own profile.");
+            }
+
+            var saved = await _userService.SelfUpdate(loginId, userUpdateSelfViewModel);
+
+            return Ok(saved);
+        }
+
         [RoleAuthorize(Role.Admin)]
         [HttpDelete("{loginId}")]
         public async Task<IActionResult> DeleteUser(int loginId)

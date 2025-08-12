@@ -19,4 +19,13 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string ServiceName { get; set; } = "";
         public string AccountId { get; set; } = "";
     }
+
+    public class LoginSelfUpdateViewModel
+    {
+        public int LoginId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string? PersonalInfo { get; set; } = string.Empty;
+        public byte[]? Image { get; set; }
+        public List<ConnectedAccountViewModel>? ConnectedAccounts { get; set; } = new();
+    }
 }

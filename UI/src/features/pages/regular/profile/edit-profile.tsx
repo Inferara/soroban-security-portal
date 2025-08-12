@@ -89,7 +89,10 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
 }));
 
 const ConnectButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#fafafa', // Light gray background
+  backgroundColor: '#fafafa',
+  '&:disabled': {
+    backgroundColor: '#4b4646ff', // Slightly darker gray for disabled state
+  },
   width: '100px',
   color: '#374151', // Dark gray text
   borderRadius: '8px',
@@ -411,7 +414,7 @@ export const EditProfile: React.FC = () => {
                   {account.name}
                 </AccountName>
               </AccountInfo>
-              <ConnectButton>
+              <ConnectButton disabled={true}>
                 Connect
               </ConnectButton>
             </AccountItem>

@@ -43,4 +43,12 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         SsoGoogle = 2,
         SsoDiscord = 3
     }
+
+    public enum ConnectedAccountTypeEnum
+    {
+        Google = 1,
+        Discord = 2,
+        GitHub = 3,
+        Twitter = 4
+    }
 }

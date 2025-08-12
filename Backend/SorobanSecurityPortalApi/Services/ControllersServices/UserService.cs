@@ -66,6 +66,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return true;
         }
 
+        public async Task<bool> SelfUpdate(int loginId, LoginSelfUpdateViewModel userUpdateSelfViewModel)
+        {
+            var login = await _loginProcessor.GetById(loginId);
+            var loginModel = _mapper.Map<LoginModel>(userUpdateSelfViewModel);
+            login.FullName = loginModel.FullName;
+            login.PersonalInfo = loginModel.PersonalInfo;
+            login.Image = loginModel.Image;
+            login.ConnectedAccounts = loginModel.ConnectedAccounts;
+            await _loginProcessor.Update(login);
+            return true;
+        }
+
         public async Task<bool?> Delete(int loginId)
         {
             var login = await _loginProcessor.GetById(loginId);
@@ -100,6 +112,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task EnabledChange(int loginId, bool isEnabled);
         Task<LoginSummaryViewModel?> Add(LoginSummaryViewModel loginSummaryViewModel);
         Task<bool> Update(int loginId, LoginViewModel editLoginViewModel);
+        Task<bool> SelfUpdate(int loginId, LoginSelfUpdateViewModel editLoginViewModel);
         Task<bool?> Delete(int loginId);
         Task<bool> ChangePassword(string login, ChangePasswordViewModel changePasswordViewModel);
         Task<List<LoginSummaryViewModel>> List();

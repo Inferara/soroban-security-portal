@@ -1,13 +1,16 @@
 import { LoginType } from "./client-sso";
 
-export class EditUserItem {
-    isEnabled: boolean = false;
+export class SelfEditUserItem {
     fullName: string = '';
-    email: string = '';
-    role: string = '';
     image: string = '';
     personalInfo: string = '';
     connectedAccounts: ConnectedAccountItem[] = [];
+}
+
+export class EditUserItem extends SelfEditUserItem {
+    isEnabled: boolean = false;
+    email: string = '';
+    role: string = '';
 }
 
 export class ConnectedAccountItem {

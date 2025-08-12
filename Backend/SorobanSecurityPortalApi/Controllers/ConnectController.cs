@@ -81,7 +81,6 @@ namespace SorobanSecurityPortalApi.Controllers
             if (responseType != "code")
                 return BadRequest("Invalid response_type, code is the only supported");
 
-            // Microsoft SSO, save the state and redirect to Microsoft login
             var acrValuesArray = acrValues.Split(' ');
             var isPermanentToken = acrValuesArray.Contains(PermanentAcrValue);
             if (isPermanentToken)

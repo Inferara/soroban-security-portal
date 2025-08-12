@@ -43,6 +43,12 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .FirstOrDefaultAsync(item => item.Login == login && item.LoginType == loginType);
         }
 
+        public async Task<LoginModel?> GetByEmail(string email)
+        {
+            return await _db.Login.AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Email == email);
+        }
+
         public async Task Update(LoginModel loginModel)
         {
             var existingLogin = await _db.Login
@@ -84,6 +90,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<List<LoginModel>> List();
         Task<LoginModel?> GetById(int id);
         Task<LoginModel?> GetByLogin(string login, LoginTypeEnum loginType);
+        Task<LoginModel?> GetByEmail(string email);
         Task Update(LoginModel login);
         Task Delete(int id);
         Task<LoginModel> Add(LoginModel login);

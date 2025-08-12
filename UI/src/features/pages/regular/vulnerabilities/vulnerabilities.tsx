@@ -1013,7 +1013,7 @@ export const Vulnerabilities: FC = () => {
                 <CardContent>
                   <Box sx={{ mb: 2, l: 2 }}>
                     <Stack spacing={1}>
-                      <Typography variant='h3' sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>{selectedVulnerability.title}</Typography>
+                      <Typography variant='h6' sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>{selectedVulnerability.title}</Typography>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '40px' }}>
                         <Typography variant="body2" color="text.primary">Severity:
                           <Chip

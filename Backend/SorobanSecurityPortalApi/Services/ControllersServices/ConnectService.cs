@@ -68,21 +68,37 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, LoginTypeEnum.SsoDiscord);
             if (login == null)
             {
-                login = await _loginProcessor.Add(new LoginModel
+                login = await _loginProcessor.GetByEmail(extendedTokenModel.Email);
+                if (login != null)
                 {
-                    Login = extendedTokenModel.Email,
-                    Email = extendedTokenModel.Email,
-                    FullName = extendedTokenModel.Name,
-                    Role = RoleEnum.User,
-                    LoginType = LoginTypeEnum.SsoDiscord,
-                    IsEnabled = true,
-                    Created = DateTime.UtcNow,
-                    CreatedBy = "system",
-                    Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
-                        ? await GetImageByUrl(extendedTokenModel.Picture)
-                        : null
-                });
-            } 
+                    if (!login.ConnectedAccounts!.Any(ca => ca.ServiceName == "Discord" && ca.AccountId == extendedTokenModel.Email))
+                    {
+                        login.ConnectedAccounts.Add(new ConnectedAccountModel
+                        {
+                            ServiceName = "Discord",
+                            AccountId = extendedTokenModel.Email
+                        });
+                        await _loginProcessor.Update(login);
+                    }
+                }
+                else
+                {
+                    login = await _loginProcessor.Add(new LoginModel
+                    {
+                        Login = extendedTokenModel.Email,
+                        Email = extendedTokenModel.Email,
+                        FullName = extendedTokenModel.Name,
+                        Role = RoleEnum.User,
+                        LoginType = LoginTypeEnum.SsoDiscord,
+                        IsEnabled = true,
+                        Created = DateTime.UtcNow,
+                        CreatedBy = "system",
+                        Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
+                            ? await GetImageByUrl(extendedTokenModel.Picture)
+                            : null
+                    });
+                }
+            }
             else if (login.Image == null)
             {
                 login.Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
@@ -115,20 +131,36 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, LoginTypeEnum.SsoGoogle);
             if (login == null)
             {
-                login = await _loginProcessor.Add(new LoginModel
+                login = await _loginProcessor.GetByEmail(extendedTokenModel.Email);
+                if (login != null)
                 {
-                    Login = extendedTokenModel.Email,
-                    Email = extendedTokenModel.Email,
-                    FullName = extendedTokenModel.Name,
-                    Role = RoleEnum.User,
-                    LoginType = LoginTypeEnum.SsoGoogle,
-                    IsEnabled = true,
-                    Created = DateTime.UtcNow,
-                    CreatedBy = "system",
-                    Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
-                        ? await GetImageByUrl(extendedTokenModel.Picture)
-                        : null
-                });
+                    if (!login.ConnectedAccounts!.Any(ca => ca.ServiceName == "Google" && ca.AccountId == extendedTokenModel.Email))
+                    {
+                        login.ConnectedAccounts.Add(new ConnectedAccountModel
+                        {
+                            ServiceName = "Google",
+                            AccountId = extendedTokenModel.Email
+                        });
+                        await _loginProcessor.Update(login);
+                    }
+                }
+                else
+                {
+                    login = await _loginProcessor.Add(new LoginModel
+                    {
+                        Login = extendedTokenModel.Email,
+                        Email = extendedTokenModel.Email,
+                        FullName = extendedTokenModel.Name,
+                        Role = RoleEnum.User,
+                        LoginType = LoginTypeEnum.SsoGoogle,
+                        IsEnabled = true,
+                        Created = DateTime.UtcNow,
+                        CreatedBy = "system",
+                        Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
+                            ? await GetImageByUrl(extendedTokenModel.Picture)
+                            : null
+                    });
+                }
             }
             else if (login.Image == null)
             {
@@ -263,7 +295,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 IssuerSigningKey = _config.AuthSecurityKey.GetSymmetricSecurityKey(),
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
-            };         
+            };
             var tokenHandler = new JwtSecurityTokenHandler();
             var principal = await tokenHandler.ValidateTokenAsync(accessToken, tokenValidationParameters);
             if (!principal.IsValid)

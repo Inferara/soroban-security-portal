@@ -200,7 +200,7 @@ export const Profile: React.FC = () => {
             </UserInfo>
           </AvatarContainer>
           {
-            false && userId == 0 && (
+            userId == 0 && (
               <EditButton
                 variant="contained"
                 startIcon={<EditIcon />}
