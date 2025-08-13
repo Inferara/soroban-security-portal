@@ -1,8 +1,10 @@
-using SorobanSecurityPortalApi.Common;
-using SorobanSecurityPortalApi.Data.Processors;
-using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
 using Pgvector;
+using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Data;
+using SorobanSecurityPortalApi.Data.Processors;
+using SorobanSecurityPortalApi.Models.DbModels;
+using SorobanSecurityPortalApi.Models.ViewModels;
 
 namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
@@ -157,6 +159,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var vulnerabilities = await _vulnerabilityProcessor.GetList();
             return _mapper.Map<List<VulnerabilityViewModel>>(vulnerabilities);
         }
+
+        public async Task<VulnerabilitiesStatisticsViewModel> GetStatistics()
+        {
+            return await _vulnerabilityProcessor.GetStatistics();
+        }
     }
 
     public class IdValue
@@ -182,6 +189,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<VulnerabilityViewModel> Get(int vulnerabilityId);
         Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task<List<VulnerabilityViewModel>> GetList();
-
+        Task<VulnerabilitiesStatisticsViewModel> GetStatistics();
     }
 }

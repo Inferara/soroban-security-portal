@@ -22,7 +22,6 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
 
     public class LoginSelfUpdateViewModel
     {
-        public int LoginId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string? PersonalInfo { get; set; } = string.Empty;
         public byte[]? Image { get; set; }

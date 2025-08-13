@@ -5,7 +5,7 @@ import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
 import { environment } from './../../environments/environment';
 import { User } from "oidc-client-ts"
-import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from './models/vulnerability';
+import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityStatistics } from './models/vulnerability';
 import { AddReport, Report, ReportSearch } from './models/report';
 import { AuditorItem } from './models/auditor';
 import { ProtocolItem } from './models/protocol';
@@ -188,6 +188,11 @@ export const getVulnerabilitiesCall = async (vulnerabilitySearch?: Vulnerability
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities', 'POST', vulnerabilitySearch);
     return response.data as Vulnerability[];
+};
+export const getVulnerabilitiesStatistics = async (): Promise<VulnerabilityStatistics> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/vulnerabilities/statistics', 'GET');
+    return response.data as VulnerabilityStatistics;
 };
 export const getVulnerabilitiesTotalCall = async (vulnerabilitySearch?: VulnerabilitySearch): Promise<number> => {
     const client = await getRestClient();

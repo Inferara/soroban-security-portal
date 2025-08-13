@@ -78,7 +78,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                             ServiceName = "Discord",
                             AccountId = extendedTokenModel.Email
                         });
-                        await _loginProcessor.Update(login);
+                    await _loginProcessor.Update(login);
                     }
                 }
                 else
@@ -98,7 +98,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                             : null
                     });
                 }
-            }
+            } 
             else if (login.Image == null)
             {
                 login.Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
@@ -295,7 +295,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 IssuerSigningKey = _config.AuthSecurityKey.GetSymmetricSecurityKey(),
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
-            };
+            };         
             var tokenHandler = new JwtSecurityTokenHandler();
             var principal = await tokenHandler.ValidateTokenAsync(accessToken, tokenValidationParameters);
             if (!principal.IsValid)

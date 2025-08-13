@@ -1,6 +1,6 @@
-﻿namespace SorobanSecurityPortalApi.Models.ViewModels
+﻿namespace SorobanSecurityPortalApi.Models.DbModels
 {
-    public class VulnerabilitiesStatisticsViewModel
+    public class VulnerabilitiesStatisticsModel
     {
         public int Total { get; set; }
         public Dictionary<string, int> BySeverity { get; set; } = new Dictionary<string, int>
