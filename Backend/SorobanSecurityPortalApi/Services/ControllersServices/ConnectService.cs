@@ -99,7 +99,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     });
                 }
             } 
-            else if (login.Image == null)
+            else if (login.Image == null || login.Image.Length == 0)
             {
                 login.Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
                     ? await GetImageByUrl(extendedTokenModel.Picture)
@@ -162,7 +162,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     });
                 }
             }
-            else if (login.Image == null)
+            else if (login.Image == null || login.Image.Length == 0)
             {
                 login.Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
                     ? await GetImageByUrl(extendedTokenModel.Picture)

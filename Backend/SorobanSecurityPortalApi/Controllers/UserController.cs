@@ -101,7 +101,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(saved);
         }
 
-        [RoleAuthorize(Role.User)]
+        [Authorize]
         [HttpPut("self/{loginId}")]
         public async Task<IActionResult> SelfUpdateUser(int loginId, [FromBody] LoginSelfUpdateViewModel userUpdateSelfViewModel)
         {
