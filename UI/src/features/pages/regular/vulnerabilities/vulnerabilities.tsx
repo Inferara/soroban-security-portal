@@ -68,7 +68,7 @@ export const Vulnerabilities: FC = () => {
   const [selectedVulnerability, setSelectedVulnerability] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const currentPageRef = useRef(currentPage);
 
   // Update ref when currentPage changes
@@ -92,8 +92,14 @@ export const Vulnerabilities: FC = () => {
     searchVulnerabilities,
     totalItems,
     setPage,
-    setItemsPerPage
+    setItemsPerPage,
+    isLoadingInitial,
   } = useVulnerabilities();
+
+  useEffect(() => {
+    setIsLoading(isLoadingInitial);
+  }, [isLoadingInitial]);
+
   const auth = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

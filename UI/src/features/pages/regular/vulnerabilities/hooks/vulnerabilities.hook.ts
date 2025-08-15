@@ -22,6 +22,7 @@ import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
+import { se } from 'date-fns/locale';
 
 export const useVulnerabilities = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
@@ -35,6 +36,7 @@ export const useVulnerabilities = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const dispatch = useAppDispatch();
 
   const getSeverities = async (): Promise<void> => {
@@ -81,9 +83,11 @@ export const useVulnerabilities = () => {
       vulnerabilitySearch.page = vulnerabilitySearch.page || currentPage;
       vulnerabilitySearch.pageSize = vulnerabilitySearch.pageSize || pageSize;
     }
+    setIsLoadingInitial(true);
     const response = await getVulnerabilitiesCall(vulnerabilitySearch);
     setVulnerabilitiesList(response);
     await getTotalItems(vulnerabilitySearch);
+    setIsLoadingInitial(false);
   };
 
   const getTotalItems = async (vulnerabilitySearch?: VulnerabilitySearch): Promise<void> => {
@@ -139,6 +143,7 @@ export const useVulnerabilities = () => {
     currentPage,
     pageSize,
     setPage,
-    setItemsPerPage
+    setItemsPerPage,
+    isLoadingInitial
   };
 };
