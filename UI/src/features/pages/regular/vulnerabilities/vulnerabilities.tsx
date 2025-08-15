@@ -938,9 +938,22 @@ export const Vulnerabilities: FC = () => {
                 <CardContent>
                   <Box sx={{ mb: 2, l: 2 }}>
                     <Stack spacing={1}>
-                      <Typography variant='h6' sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>{selectedVulnerability.title}</Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'row'}}>
+                        <Typography variant='h6' sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>{selectedVulnerability.title}</Typography>
+                        <IconButton
+                          onClick={handleCloseProfile}
+                          sx={{
+                            color: themeMode === 'light' ? 'text.secondary' : 'text.disabled',
+                            '&:hover': {
+                              color: 'text.primary'
+                            }
+                          }}
+                        >
+                          <CloseIcon />
+                        </IconButton>
+                      </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '40px' }}>
-                        <Typography variant="body2" color="text.primary">Severity:
+                        <Typography variant="body2" color="text.primary" component="div">Severity:
                           <Chip
                             label={selectedVulnerability.severity}
                             size="small"
@@ -969,17 +982,6 @@ export const Vulnerabilities: FC = () => {
                             onClick={() => handleChipClick('severity', selectedVulnerability.severity)}
                           />
                         </Typography>
-                        <IconButton
-                          onClick={handleCloseProfile}
-                          sx={{
-                            color: themeMode === 'light' ? 'text.secondary' : 'text.disabled',
-                            '&:hover': {
-                              color: 'text.primary'
-                            }
-                          }}
-                        >
-                          <CloseIcon />
-                        </IconButton>
                       </Box>
                       {(selectedVulnerability.source) && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
@@ -1039,6 +1041,10 @@ export const Vulnerabilities: FC = () => {
                               border: '2px solid',
                               backgroundColor: 'transparent',
                               fontWeight: 700,
+                              maxWidth: '250px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
                               cursor: 'pointer',
                               '&:hover': {
                                 opacity: 0.8,

@@ -22,7 +22,6 @@ import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
-import { se } from 'date-fns/locale';
 
 export const useVulnerabilities = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
