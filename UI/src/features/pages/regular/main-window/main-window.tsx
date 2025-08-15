@@ -213,7 +213,7 @@ export const MainWindow: FC = () => {
 
       {/* Main content area */}
       <Box sx={{ flexGrow: 1, p: 0 }}>
-        <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: 3, minHeight: '80vh' }}>
+        <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: 3, minHeight: '91vh' }}>
           <Routes>
             <Route path={`${environment.basePath}/`} element={<Home />} />
             <Route path={`${environment.basePath}/reports`} element={<Reports />} />
@@ -228,142 +228,144 @@ export const MainWindow: FC = () => {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ backgroundColor: 'background.paper', color: 'secondary.main', p: 4, mt: 'auto' }}>
-        <Stack direction="row" spacing={4} alignItems="flex-start" justifyContent="space-between">
-          {/* Subscribe Section */}
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
-              Subscribe to updates
-            </Typography>
+      {(location.pathname === 'home' || location.pathname === '/') && (
+        <Box sx={{ backgroundColor: 'background.paper', color: 'secondary.main', p: 4, mt: 'auto' }}>
+          <Stack direction="row" spacing={4} alignItems="flex-start" justifyContent="space-between">
+            {/* Subscribe Section */}
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
+                Subscribe to updates
+              </Typography>
 
-            <Box
-              component="form"
-              onSubmit={handleSubscribe}
-              sx={{
-                display: 'flex',
-                borderBottom: `1px solid ${themeMode === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'}`,
-                pb: 1,
-                mb: 3,
-              }}
-            >
-              <TextField
-                variant="standard"
-                placeholder="Your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isSubscribing}
-                slotProps={{
-                  input: {
-                    disableUnderline: true,
-                    sx: { color: 'secondary.main', backgroundColor: 'transparent' },
-                  }
-                }}
-                fullWidth
-              />
-              <Button
-                type="submit"
-                disabled={isSubscribing}
+              <Box
+                component="form"
+                onSubmit={handleSubscribe}
                 sx={{
-                  color: 'secondary.main',
-                  fontWeight: 'bold',
-                  backgroundColor: 'transparent',
-                  textTransform: 'none',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 216, 77, 0.1)',
-                  },
-                  '&:disabled': {
-                    color: 'rgba(255, 255, 255, 0.38)',
-                  }
+                  display: 'flex',
+                  borderBottom: `1px solid ${themeMode === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'}`,
+                  pb: 1,
+                  mb: 3,
                 }}
               >
-                {isSubscribing ? 'Subscribing...' : 'Subscribe'}
-              </Button>
+                <TextField
+                  variant="standard"
+                  placeholder="Your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubscribing}
+                  slotProps={{
+                    input: {
+                      disableUnderline: true,
+                      sx: { color: 'secondary.main', backgroundColor: 'transparent' },
+                    }
+                  }}
+                  fullWidth
+                />
+                <Button
+                  type="submit"
+                  disabled={isSubscribing}
+                  sx={{
+                    color: 'secondary.main',
+                    fontWeight: 'bold',
+                    backgroundColor: 'transparent',
+                    textTransform: 'none',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 216, 77, 0.1)',
+                    },
+                    '&:disabled': {
+                      color: 'rgba(255, 255, 255, 0.38)',
+                    }
+                  }}
+                >
+                  {isSubscribing ? 'Subscribing...' : 'Subscribe'}
+                </Button>
+              </Box>
             </Box>
-          </Box>
 
-          {/* Social Icons Section */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
-              &nbsp;
+            {/* Social Icons Section */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
+                &nbsp;
+              </Typography>
+              <Stack direction="row" spacing={2}>
+                <Tooltip title="Contact us via email" arrow>
+                  <IconButton
+                    sx={{ color: 'secondary.main' }}
+                    aria-label="email"
+                    component="a"
+                    href="mailto:info@inferara.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MailOutlineIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Follow us on X (Twitter)" arrow>
+                  <IconButton
+                    sx={{ color: 'secondary.main' }}
+                    aria-label="x-twitter"
+                    component="a"
+                    href="https://www.x.com/Inferara_kk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <TwitterIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Join our Discord community" arrow>
+                  <IconButton
+                    sx={{ color: 'secondary.main' }}
+                    aria-label="discord"
+                    component="a"
+                    href="https://discord.gg/NgWfmnmS5C"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ChatIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Check out our GitHub" arrow>
+                  <IconButton
+                    sx={{ color: 'secondary.main' }}
+                    aria-label="github"
+                    component="a"
+                    href="https://www.github.com/inferara/soroban-security-portal"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <GitHubIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Join our Telegram channel" arrow>
+                  <IconButton
+                    sx={{ color: 'secondary.main' }}
+                    aria-label="telegram"
+                    component="a"
+                    href="https://t.me/inferara"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <TelegramIcon />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Box>
+          </Stack>
+
+          <Typography variant="body2" align="center" sx={{ color: 'secondary.main', mt: 3 }}>
+            Made by{' '}
+            <Typography
+              component="a"
+              href="https://inferara.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ color: 'inherit', textDecoration: 'underline', display: 'inline' }}
+            >
+              Inferara
             </Typography>
-            <Stack direction="row" spacing={2}>
-              <Tooltip title="Contact us via email" arrow>
-                <IconButton
-                  sx={{ color: 'secondary.main' }}
-                  aria-label="email"
-                  component="a"
-                  href="mailto:info@inferara.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MailOutlineIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Follow us on X (Twitter)" arrow>
-                <IconButton
-                  sx={{ color: 'secondary.main' }}
-                  aria-label="x-twitter"
-                  component="a"
-                  href="https://www.x.com/Inferara_kk"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <TwitterIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Join our Discord community" arrow>
-                <IconButton
-                  sx={{ color: 'secondary.main' }}
-                  aria-label="discord"
-                  component="a"
-                  href="https://discord.gg/NgWfmnmS5C"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ChatIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Check out our GitHub" arrow>
-                <IconButton
-                  sx={{ color: 'secondary.main' }}
-                  aria-label="github"
-                  component="a"
-                  href="https://www.github.com/inferara/soroban-security-portal"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <GitHubIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Join our Telegram channel" arrow>
-                <IconButton
-                  sx={{ color: 'secondary.main' }}
-                  aria-label="telegram"
-                  component="a"
-                  href="https://t.me/inferara"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <TelegramIcon />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          </Box>
-        </Stack>
-
-        <Typography variant="body2" align="center" sx={{ color: 'secondary.main', mt: 3 }}>
-          Made by{' '}
-          <Typography
-            component="a"
-            href="https://inferara.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ color: 'inherit', textDecoration: 'underline', display: 'inline' }}
-          >
-            Inferara
           </Typography>
-        </Typography>
-      </Box>
+        </Box>
+      )}
       <ErrorDialog />
     </Box>
   );

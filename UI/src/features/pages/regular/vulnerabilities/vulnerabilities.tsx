@@ -135,15 +135,15 @@ export const Vulnerabilities: FC = () => {
   const handlePageSizeChange = (event: any) => {
     const newPageSize = event.target.value;
     const newTotalPages = Math.ceil(totalItems / newPageSize);
-    
+
     // Calculate the new current page to keep the user roughly in the same position
     const newCurrentPage = Math.min(currentPage, newTotalPages);
-    
+
     setPageSize(newPageSize);
     setItemsPerPage(newPageSize);
     setCurrentPage(newCurrentPage);
     setPage(newCurrentPage);
-    
+
     // Trigger search immediately when page size changes
     setTimeout(() => {
       if (totalItems > 0) {
@@ -161,7 +161,7 @@ export const Vulnerabilities: FC = () => {
     if (selectedVulnerability === vulnerability) {
       setSelectedVulnerability(null);
     }
-    else{
+    else {
       setSelectedVulnerability(vulnerability);
       ReactGA.event({ category: "Vulnerability", action: "view", label: "Open Vulnerability Preview" });
     }
@@ -419,6 +419,9 @@ export const Vulnerabilities: FC = () => {
       pageSize: pageSize,
     };
     setIsLoading(true);
+    if (selectedVulnerability !== null) {
+      setSelectedVulnerability(null);
+    }
     void searchVulnerabilities(vulnerabilitySearch).finally(() => {
       setIsLoading(false);
     });
@@ -745,9 +748,11 @@ export const Vulnerabilities: FC = () => {
           </Typography>
         )}
       </Box>
-      <Box sx={{ display: 'flex', height: '60vh' }}>
-        {/* Vulnerabilities List Section */}
-        <Box sx={{
+      {/* Vulnerabilities List Section */}
+      <Box sx={{ pl: 3, pr: 3, pb: 3, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'row', height: '65vh'}}>
+        {/* Vulnerability cards */}
+        <Grid container spacing={3} sx={{
           width: selectedVulnerability ? '50%' : '100%',
           overflow: 'auto',
           borderColor: 'divider',
@@ -770,84 +775,102 @@ export const Vulnerabilities: FC = () => {
             backgroundColor: 'transparent',
           },
         }}>
-          <Box sx={{ pl: 3, pr: 3, pb: 3 }}>
-            {/* Vulnerability cards */}
-            <Grid container spacing={3}>
-              {isLoading && (
-                <Grid size={12}>
-                  <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
-                    <Typography variant="h6" color="text.secondary">
-                      Loading vulnerabilities...
-                    </Typography>
-                  </Box>
-                </Grid>
-              )}
-              {!isLoading && vulnerabilitiesList.length === 0 && (
-                <Grid size={12}>
-                  <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
-                    <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-                      {currentPage > 1 ? 'No more vulnerabilities on this page' : 'No vulnerabilities found'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {currentPage > 1
-                        ? 'Try going back to the first page or adjusting your search criteria.'
-                        : 'Try adjusting your search criteria or filters to find more results.'
-                      }
-                    </Typography>
-                    {currentPage > 1 && (
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => {
-                          setCurrentPage(1);
-                          setPage(1);
-                        }}
-                      >
-                        Go to First Page
-                      </Button>
-                    )}
-                  </Box>
-                </Grid>
-              )}
-              {!isLoading && vulnerabilitiesList.map(vuln => (
-                <Grid size={12} key={vuln.id}>
-                  <Card
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      borderRadius: '20px',
-                      border: '1px solid',
-                      backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-                      borderLeft: `10px solid ${vuln.severity === 'Critical' ? '#c72e2b95' :
-                          vuln.severity === 'High' ? '#FF6B3D95' :
-                            vuln.severity === 'Medium' ? '#FFD84D95' :
-                              vuln.severity === 'Low' ? '#569E6795' :
-                                vuln.severity === 'Note' ? '#72F1FF95' :
-                                  '#388e3c'}`,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease-in-out',
-                      ...(selectedVulnerability?.id === vuln.id && {
-                        backgroundColor: '#6a6a6a',
-                      })
+          {isLoading && (
+            <Grid size={12}>
+              <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
+                <Typography variant="h6" color="text.secondary">
+                  Loading vulnerabilities...
+                </Typography>
+              </Box>
+            </Grid>
+          )}
+          {!isLoading && vulnerabilitiesList.length === 0 && (
+            <Grid size={12}>
+              <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
+                <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                  {currentPage > 1 ? 'No more vulnerabilities on this page' : 'No vulnerabilities found'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  {currentPage > 1
+                    ? 'Try going back to the first page or adjusting your search criteria.'
+                    : 'Try adjusting your search criteria or filters to find more results.'
+                  }
+                </Typography>
+                {currentPage > 1 && (
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => {
+                      setCurrentPage(1);
+                      setPage(1);
                     }}
-                    onClick={() => handleCardClick(vuln)}
                   >
-                    <CardContent sx={{ flexGrow: 1, paddingBottom: '8px !important' }}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>
-                          {vuln.title}
-                        </Typography>
-                      </Stack>
-                      <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
-                        {vuln.categories.map((category, index) => (
-                          <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
-                        ))}
-                        <Chip label={vuln.protocol} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
-                        <Box sx={{ flexGrow: 1 }} />
-                        {vuln.source === 'External' ? (
+                    Go to First Page
+                  </Button>
+                )}
+              </Box>
+            </Grid>
+          )}
+          {!isLoading && vulnerabilitiesList.map(vuln => (
+            <Grid size={12} key={vuln.id}>
+              <Card
+                sx={{
+                  mr: 1,
+                  maxHeight: '100',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: '20px',
+                  border: '1px solid',
+                  backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
+                  borderLeft: `10px solid ${vuln.severity === 'Critical' ? '#c72e2b95' :
+                    vuln.severity === 'High' ? '#FF6B3D95' :
+                      vuln.severity === 'Medium' ? '#FFD84D95' :
+                        vuln.severity === 'Low' ? '#569E6795' :
+                          vuln.severity === 'Note' ? '#72F1FF95' :
+                            '#388e3c'}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
+                  ...(selectedVulnerability?.id === vuln.id && {
+                    backgroundColor: '#6a6a6a',
+                  })
+                }}
+                onClick={() => handleCardClick(vuln)}
+              >
+                <CardContent sx={{ flexGrow: 1, paddingBottom: '8px !important' }}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>
+                      {vuln.title}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
+                    {vuln.categories.map((category, index) => (
+                      <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
+                    ))}
+                    <Chip label={vuln.protocol} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
+                    <Box sx={{ flexGrow: 1 }} />
+                    {vuln.source === 'External' ? (
+                      <MuiLink
+                        href={vuln.reportUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ textDecoration: 'none' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{ textTransform: 'none' }}
+                        >
+                          View Report
+                        </Button>
+                      </MuiLink>
+                    ) : (() => {
+                      const report = reportsList.find(report => report.name === vuln.source);
+                      if (report) {
+                        const url = `${environment.apiUrl}/api/v1/reports/${report.id}/download`;
+                        return (
                           <MuiLink
-                            href={vuln.reportUrl}
+                            href={url}
                             target="_blank"
                             rel="noopener noreferrer"
                             sx={{ textDecoration: 'none' }}
@@ -861,124 +884,20 @@ export const Vulnerabilities: FC = () => {
                               View Report
                             </Button>
                           </MuiLink>
-                        ) : (() => {
-                          const report = reportsList.find(report => report.name === vuln.source);
-                          if (report) {
-                            const url = `${environment.apiUrl}/api/v1/reports/${report.id}/download`;
-                            return (
-                              <MuiLink
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={{ textDecoration: 'none' }}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  sx={{ textTransform: 'none' }}
-                                >
-                                  View Report
-                                </Button>
-                              </MuiLink>
-                            );
-                          }
-                          return (
-                            <Typography variant="caption" color="text.disabled">
-                              No report available
-                            </Typography>
-                          );
-                        })()}
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
+                        );
+                      }
+                      return (
+                        <Typography variant="caption" color="text.disabled">
+                          No report available
+                        </Typography>
+                      );
+                    })()}
+                  </Stack>
+                </CardContent>
+              </Card>
             </Grid>
-
-            {/* Pagination Controls */}
-            {!isLoading && vulnerabilitiesList.length > 0 && totalItems > pageSize && (
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mt: 3,
-                px: 2,
-                flexWrap: 'wrap',
-                gap: 2
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {`${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, totalItems)} of ${totalItems}`}
-                  </Typography>
-                  <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel>Items per page</InputLabel>
-                    <Select
-                      value={pageSize}
-                      label="Items per page"
-                      onChange={handlePageSizeChange}
-                    >
-                      <MenuItem value={10}>10</MenuItem>
-                      <MenuItem value={20}>20</MenuItem>
-                      <MenuItem value={50}>50</MenuItem>
-                      <MenuItem value={100}>100</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-
-                <Pagination
-                  count={Math.ceil(totalItems / pageSize)}
-                  page={currentPage}
-                  onChange={handlePageChange}
-                  color="primary"
-                  showFirstButton
-                  showLastButton
-                  size="medium"
-                  sx={{
-                    '& .MuiPaginationItem-root': {
-                      color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2',
-                      '&.Mui-selected': {
-                        backgroundColor: '#1976d2',
-                        color: '#ffffff',
-                      },
-                      '&:hover': {
-                        backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                      },
-                    },
-                  }}
-                />
-              </Box>
-            )}
-
-            {/* Total count display for single page */}
-            {!isLoading && vulnerabilitiesList.length > 0 && totalItems <= pageSize && (
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mt: 3,
-                px: 2
-              }}>
-                <Typography variant="body2" color="text.secondary">
-                  {`${totalItems} vulnerabilit${totalItems !== 1 ? 'ies' : 'y'} found`}
-                </Typography>
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Items per page</InputLabel>
-                  <Select
-                    value={pageSize}
-                    label="Items per page"
-                    onChange={handlePageSizeChange}
-                  >
-                    <MenuItem value={10}>10</MenuItem>
-                    <MenuItem value={20}>20</MenuItem>
-                    <MenuItem value={50}>50</MenuItem>
-                    <MenuItem value={100}>100</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-            )}
-          </Box>
-        </Box>
+          ))}
+        </Grid>
         {/* Vulnerability Profile Section */}
         {selectedVulnerability && (
           <Box sx={{
@@ -1056,6 +975,7 @@ export const Vulnerabilities: FC = () => {
                           <CloseIcon />
                         </IconButton>
                       </Box>
+                      {(selectedVulnerability.source) && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
                         <Typography variant="body2" color="text.primary">Report info:
                           <Chip
@@ -1066,6 +986,10 @@ export const Vulnerabilities: FC = () => {
                               border: '2px solid',
                               backgroundColor: 'transparent',
                               fontWeight: 700,
+                              maxWidth: '250px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
                               cursor: 'pointer',
                               '&:hover': {
                                 opacity: 0.8,
@@ -1077,6 +1001,7 @@ export const Vulnerabilities: FC = () => {
                           />
                         </Typography>
                       </Box>
+                      )}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
                         <Typography variant="body2" color="text.primary">Company:
                           <Chip
@@ -1217,6 +1142,89 @@ export const Vulnerabilities: FC = () => {
                 </CardContent>
               </Card>
             </Box>
+          </Box>
+        )}
+        </Box>
+
+        {/* Pagination Controls */}
+        {!isLoading && vulnerabilitiesList.length > 0 && totalItems > pageSize && (
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mt: 3,
+            px: 2,
+            flexWrap: 'wrap',
+            gap: 2
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                {`${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, totalItems)} of ${totalItems}`}
+              </Typography>
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Items per page</InputLabel>
+                <Select
+                  value={pageSize}
+                  label="Items per page"
+                  onChange={handlePageSizeChange}
+                >
+                  <MenuItem value={10}>10</MenuItem>
+                  <MenuItem value={20}>20</MenuItem>
+                  <MenuItem value={50}>50</MenuItem>
+                  <MenuItem value={100}>100</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Pagination
+              count={Math.ceil(totalItems / pageSize)}
+              page={currentPage}
+              onChange={handlePageChange}
+              color="primary"
+              showFirstButton
+              showLastButton
+              size="medium"
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2',
+                  '&.Mui-selected': {
+                    backgroundColor: '#1976d2',
+                    color: '#ffffff',
+                  },
+                  '&:hover': {
+                    backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                  },
+                },
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Total count display for single page */}
+        {!isLoading && vulnerabilitiesList.length > 0 && totalItems <= pageSize && (
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mt: 3,
+            px: 2
+          }}>
+            <Typography variant="body2" color="text.secondary">
+              {`${totalItems} vulnerabilit${totalItems !== 1 ? 'ies' : 'y'} found`}
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Items per page</InputLabel>
+              <Select
+                value={pageSize}
+                label="Items per page"
+                onChange={handlePageSizeChange}
+              >
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={20}>20</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={100}>100</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
         )}
       </Box>

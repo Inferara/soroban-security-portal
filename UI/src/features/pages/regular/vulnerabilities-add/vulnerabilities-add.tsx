@@ -172,12 +172,10 @@ export const AddVulnerability: FC = () => {
     };
     if (!vulnerability.title || 
       !vulnerability.description || 
-      !vulnerability.severity || 
-      vulnerability.categories.length === 0 || 
+      !vulnerability.severity ||
       !vulnerability.company || 
       !vulnerability.protocol || 
-      !vulnerability.auditor ||
-      !vulnerability.source) {
+      !vulnerability.auditor) {
       showError('Please fill all fields');
       return;
     }
