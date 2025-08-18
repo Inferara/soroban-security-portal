@@ -755,10 +755,10 @@ export const Vulnerabilities: FC = () => {
         )}
       </Box>
       {/* Vulnerabilities List Section */}
-      <Box sx={{ pl: 3, pr: 3, pb: 3, display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'row', height: '65vh'}}>
+      <Box sx={{ pl: 3, pr: 3, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'row', height: '70vh'}}>
         {/* Vulnerability cards */}
-        <Grid container spacing={3} sx={{
+        <Stack spacing={3} sx={{
           width: selectedVulnerability ? '50%' : '100%',
           overflow: 'auto',
           borderColor: 'divider',
@@ -818,13 +818,10 @@ export const Vulnerabilities: FC = () => {
             </Grid>
           )}
           {!isLoading && vulnerabilitiesList.map(vuln => (
-            <Grid size={12} key={vuln.id}>
+            <Box key={vuln.id}>
               <Card
                 sx={{
                   mr: 1,
-                  maxHeight: '100',
-                  display: 'flex',
-                  flexDirection: 'column',
                   borderRadius: '20px',
                   border: '1px solid',
                   backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
@@ -901,9 +898,9 @@ export const Vulnerabilities: FC = () => {
                   </Stack>
                 </CardContent>
               </Card>
-            </Grid>
+              </Box>
           ))}
-        </Grid>
+        </Stack>
         {/* Vulnerability Profile Section */}
         {selectedVulnerability && (
           <Box sx={{
@@ -985,7 +982,7 @@ export const Vulnerabilities: FC = () => {
                       </Box>
                       {(selectedVulnerability.source) && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
-                        <Typography variant="body2" color="text.primary">Report info:
+                        <Typography variant="body2" color="text.primary" component="div">Report info:
                           <Chip
                             label={selectedVulnerability.source}
                             size="small"
@@ -1011,7 +1008,7 @@ export const Vulnerabilities: FC = () => {
                       </Box>
                       )}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
-                        <Typography variant="body2" color="text.primary">Company:
+                        <Typography variant="body2" color="text.primary" component="div">Company:
                           <Chip
                             label={selectedVulnerability.company}
                             size="small"
@@ -1032,7 +1029,7 @@ export const Vulnerabilities: FC = () => {
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
-                        <Typography variant="body2" color="text.primary">Protocol:
+                        <Typography variant="body2" color="text.primary" component="div">Protocol:
                           <Chip
                             label={selectedVulnerability.protocol}
                             size="small"
