@@ -7,7 +7,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
+import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { useReports } from './hooks';
 import { environment } from '../../../../environments/environment';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
@@ -16,6 +16,7 @@ import { AuditorItem } from '../../../../api/soroban-security-portal/models/audi
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
 import ReactGA from 'react-ga4';
+import { showError } from '../../../dialog-handler/dialog-handler';
 
 export const Reports: FC = () => {
   const { themeMode } = useTheme();
@@ -30,8 +31,11 @@ export const Reports: FC = () => {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
+
   const canAddReport = (auth: AuthContextProps) =>
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
+
+  const canDownloadReport = (auth: AuthContextProps) => isAuthorized(auth);
 
   useEffect(() => {
     ReactGA.send({ hitType: "pageview", page: "/reports", title: "Reports Page" });
@@ -51,6 +55,21 @@ export const Reports: FC = () => {
 
   const startImageLoading = (reportId: number) => {
     setLoadingImages(prev => ({ ...prev, [reportId]: true }));
+  };
+
+  const handleReportDownload = (reportId: number) => {
+    if (!canDownloadReport(auth)) {
+      showError("Log in to download the report");
+      ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = `${environment.apiUrl}/api/v1/reports/${reportId}/download?token=${auth.user?.access_token}`;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
   };
 
   // Initialize loading state for all reports
@@ -310,9 +329,7 @@ export const Reports: FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                   <Button
                     variant="outlined"
-                    href={`${environment.apiUrl}/api/v1/reports/${report.id}/download`}
-                    target="_blank"
-                    rel="noopener"
+                    onClick={() => handleReportDownload(report.id)}
                     sx={{
                       fontWeight: 600,
                       borderRadius: 2,

@@ -27,7 +27,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
+import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
 import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from '../../../../api/soroban-security-portal/models/vulnerability';
@@ -49,6 +49,7 @@ import { CompanyItem } from '../../../../api/soroban-security-portal/models/comp
 import 'katex/dist/katex.min.css';
 import './katex.css';
 import ReactGA from 'react-ga4';
+import { showError } from '../../../dialog-handler/dialog-handler';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -106,8 +107,11 @@ export const Vulnerabilities: FC = () => {
   const canAddVulnerability = (auth: AuthContextProps) =>
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
+  const canDownloadReport = (auth: AuthContextProps) => isAuthorized(auth);
+
   const toggleSortDirection = () => {
     setSortDir(prev => prev === 'desc' ? 'asc' : 'desc');
+    callSearch();
   };
 
   const toggleFilters = () => {
@@ -175,6 +179,21 @@ export const Vulnerabilities: FC = () => {
 
   const handleCloseProfile = () => {
     setSelectedVulnerability(null);
+  };
+
+  const handleDownloadReport = (reportId: number) => {
+    if (!canDownloadReport(auth)) {
+      showError("Log in to download the report");
+      ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = `${environment.apiUrl}/api/v1/reports/${reportId}/download?token=${auth.user?.access_token}`;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
   };
 
   const handleChipClick = (filterType: string, value: string) => {
@@ -253,19 +272,20 @@ export const Vulnerabilities: FC = () => {
     let hasFilters = false;
 
     // Set pagination from URL
-    if (pageParam) {
-      const page = parseInt(pageParam, 10);
-      if (page > 0) {
-        setCurrentPage(page);
-        setPage(page);
-      }
-    }
-
     if (pageSizeParam) {
       const size = parseInt(pageSizeParam, 10);
       if ([10, 20, 50, 100].includes(size)) {
         setPageSize(size);
         setItemsPerPage(size);
+      }
+    }
+
+    if (pageParam) {
+      const page = parseInt(pageParam, 10);
+      if (page > 0) {
+        setCurrentPage(page);
+        setPage(page);
+        callSearch();
       }
     }
 
@@ -514,10 +534,11 @@ export const Vulnerabilities: FC = () => {
             sx={{
               border: 1,
               borderColor: 'divider',
-              bgcolor: showFilters ? 'primary.main' : 'transparent',
+              bgcolor: showFilters ? 'inherit' : 'transparent',
               color: showFilters ? 'white' : 'inherit',
               '&:hover': {
-                bgcolor: showFilters ? 'primary.dark' : 'action.hover'
+                // bgcolor: showFilters ? 'primary.dark' : 'action.hover'
+                borderColor: showFilters ? 'primary.main' : 'divider'
               }
             }}
           >
@@ -870,23 +891,18 @@ export const Vulnerabilities: FC = () => {
                     ) : (() => {
                       const report = reportsList.find(report => report.name === vuln.source);
                       if (report) {
-                        const url = `${environment.apiUrl}/api/v1/reports/${report.id}/download`;
                         return (
-                          <MuiLink
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            sx={{ textDecoration: 'none' }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
                             <Button
                               variant="outlined"
                               size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadReport(report.id);
+                              }}
                               sx={{ textTransform: 'none' }}
                             >
-                              View Report
+                              Download Report
                             </Button>
-                          </MuiLink>
                         );
                       }
                       return (

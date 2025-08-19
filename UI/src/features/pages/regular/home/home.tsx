@@ -159,6 +159,7 @@ export const Home: FC = () => {
               '&:hover': {
                 backgroundColor: 'rgba(250, 250, 250, 0.1)',
                 borderColor: '#fafafa',
+                color: '#fafafa',
               },
             }}
           >
