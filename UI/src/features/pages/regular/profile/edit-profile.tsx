@@ -202,11 +202,39 @@ export const EditProfile: React.FC = () => {
       showError('Name is required');
       return;
     }
+    let avatarImage = image;
+
+    if (!avatarImage) {
+      const avatarElement = document.querySelector('.MuiAvatar-root') as HTMLElement;
+      if (avatarElement) {
+      const canvas = document.createElement('canvas');
+      const scaleFactor = 2; // Increase PPI by scaling the canvas
+      canvas.width = avatarElement.offsetWidth * scaleFactor;
+      canvas.height = avatarElement.offsetHeight * scaleFactor;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.scale(scaleFactor, scaleFactor); // Scale the drawing context
+        context.fillStyle = 'rgb(147, 134, 182)';
+        context.fillRect(0, 0, canvas.width / scaleFactor, canvas.height / scaleFactor);
+        context.font = '400 25px Roboto, Rubik, Helvetica, Arial, sans-serif';
+        context.fillStyle = 'rgb(30, 30, 30)';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(
+          getUserInitials(name || 'User Name'),
+          canvas.width / (2 * scaleFactor),
+          canvas.height / (2 * scaleFactor) + 1 // Move text 1 pixel down
+        );
+      }
+        avatarImage = canvas.toDataURL('image/png').split(',')[1]; // Convert to base64
+      }
+    }
+
     const updateSuccess = await updateProfile({
       fullName: name,
       login: username,
       personalInfo: aboutYou,
-      image: image || undefined,
+      image: avatarImage || undefined,
     });
 
     if (updateSuccess) {
