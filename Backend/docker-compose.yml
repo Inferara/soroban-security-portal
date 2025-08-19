@@ -13,7 +13,6 @@ services:
       - DBTIMEOUT=30000
       - DBPGPOOLSIZE=30
       - DBCONNECTIONTIMEOUT=300
-      - QDRANTURL=http://host.docker.internal:6348
       - PROXY=
       - TOKENEXPIRATIONTIMEMINUTES=60
       - AUTHISSUER=SorobanSecurityPortal
@@ -59,18 +58,6 @@ services:
     networks:
       - soroban-security-portal-network
       
-  soroban-security-portal-qdrant:
-    image: qdrant/qdrant:v1.9.2
-    restart: always
-    container_name: soroban-security-portal-qdrant
-    ports:
-      - "6348:6333"
-      - "6349:6334"
-    volumes:
-      - soroban-security-portal-qdrant-db-volume:/qdrant/storage
-    networks:
-      - soroban-security-portal-network
-      
   soroban-security-portal-cache:
     image: redis:latest
     container_name: soroban-security-portal-cache
@@ -86,7 +73,6 @@ services:
 volumes:
   soroban-security-portal-db-vector-volume:
   soroban-security-portal-default-db-vector-volume:
-  soroban-security-portal-qdrant-db-volume:
 networks:
   soroban-security-portal-network:
     driver: bridge

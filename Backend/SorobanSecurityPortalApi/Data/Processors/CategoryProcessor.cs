@@ -6,32 +6,33 @@ namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class CategoryProcessor : ICategoryProcessor
     {
-        private readonly Db _db;
-
-        public CategoryProcessor(Db db)
+        private readonly IDbContextFactory<Db> _dbFactory;
+        public CategoryProcessor(IDbContextFactory<Db> dbFactory)
         {
-            _db = db;
+            _dbFactory = dbFactory;
         }
 
         public async Task<CategoryModel> Add(CategoryModel categoryModel)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
             if (categoryModel == null)
             {
                 throw new ArgumentNullException(nameof(categoryModel), "Category model cannot be null");
             }
             categoryModel.Date = DateTime.UtcNow;
-            _db.Category.Add(categoryModel);
-            await _db.SaveChangesAsync();
+            db.Category.Add(categoryModel);
+            await db.SaveChangesAsync();
             return categoryModel;
         }
 
         public async Task<CategoryModel> Update(CategoryModel categoryModel)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
             if (categoryModel == null)
             {
                 throw new ArgumentNullException(nameof(categoryModel), "Category model cannot be null");
             }
-            var existingCategory = await _db.Category.FindAsync(categoryModel.Id);
+            var existingCategory = await db.Category.FindAsync(categoryModel.Id);
             if (existingCategory == null)
             {
                 throw new KeyNotFoundException($"Category with ID {categoryModel.Id} not found");
@@ -39,24 +40,26 @@ namespace SorobanSecurityPortalApi.Data.Processors
             existingCategory.Name = categoryModel.Name;
             existingCategory.BgColor = categoryModel.BgColor;
             existingCategory.TextColor = categoryModel.TextColor;
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             return existingCategory;
         }
 
         public async Task Delete(int categoryModelId)
         {
-            var category = await _db.Category.FindAsync(categoryModelId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var category = await db.Category.FindAsync(categoryModelId);
             if (category == null)
             {
                 throw new KeyNotFoundException($"Category with ID {categoryModelId} not found");
             }
-            _db.Category.Remove(category);
-            await _db.SaveChangesAsync();
+            db.Category.Remove(category);
+            await db.SaveChangesAsync();
         }
 
         public async Task<List<CategoryModel>> List()
         {
-            return await _db.Category.OrderByDescending(x => x.Id).ToListAsync();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Category.OrderByDescending(x => x.Id).ToListAsync();
         }
     }
 

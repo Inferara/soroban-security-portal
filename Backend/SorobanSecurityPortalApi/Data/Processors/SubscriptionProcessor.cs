@@ -6,26 +6,28 @@ namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class SubscriptionProcessor : ISubscriptionProcessor
     {
-        private readonly Db _db;
+        private readonly IDbContextFactory<Db> _dbFactory;
 
-        public SubscriptionProcessor(Db db)
+        public SubscriptionProcessor(IDbContextFactory<Db> dbFactory)
         {
-            _db = db;
+            _dbFactory = dbFactory;
         }
 
         public async Task<SubscriptionModel> Subscribe(SubscriptionModel subscriptionModel)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
             if (subscriptionModel.Id != 0)
                 throw new ArgumentException("Subscription identifier must be zero");
             subscriptionModel.Date = DateTime.UtcNow;
-            await _db.Subscription.AddAsync(subscriptionModel);
-            await _db.SaveChangesAsync();
+            await db.Subscription.AddAsync(subscriptionModel);
+            await db.SaveChangesAsync();
             return subscriptionModel;
         }
 
         public async Task<List<SubscriptionModel>> List()
         {
-            return await _db.Subscription.AsNoTracking().OrderByDescending(x => x.Id).ToListAsync();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Subscription.AsNoTracking().OrderByDescending(x => x.Id).ToListAsync();
         }
     }
 

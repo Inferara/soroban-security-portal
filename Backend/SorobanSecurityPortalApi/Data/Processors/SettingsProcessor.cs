@@ -6,18 +6,17 @@ namespace SorobanSecurityPortalApi.Data.Processors;
 
 public class SettingsProcessor : ISettingsProcessor
 {
-    private readonly Db _db;
-    private readonly IDbQuery _dbQuery;
+    private readonly IDbContextFactory<Db> _dbFactory;
 
-    public SettingsProcessor(Db db, IDbQuery dbQuery)
+    public SettingsProcessor(IDbContextFactory<Db> dbFactor)
     {
-        _db = db;
-        _dbQuery = dbQuery;
+        _dbFactory = dbFactor;
     }
 
     public Dictionary<string, string> Get(SettingType settingType, int? entityId = null)
     {
-        var settingValue = _db.Settings.AsNoTracking().FirstOrDefault(item => item.SettingsType == settingType && item.EntityId == entityId);
+        using var db = _dbFactory.CreateDbContext();
+        var settingValue = db.Settings.AsNoTracking().FirstOrDefault(item => item.SettingsType == settingType && item.EntityId == entityId);
         if (settingValue?.Content != null)
         {
             return settingValue.Content;
@@ -27,7 +26,8 @@ public class SettingsProcessor : ISettingsProcessor
 
     public void Set(SettingType settingType, Dictionary<string, string> value, int? entityId = null)
     {
-        var settingValue = _db.Settings.FirstOrDefault(item => item.SettingsType == settingType && item.EntityId == entityId);
+        using var db = _dbFactory.CreateDbContext();
+        var settingValue = db.Settings.FirstOrDefault(item => item.SettingsType == settingType && item.EntityId == entityId);
         if (settingValue == null)
         {
             settingValue = new SettingsModel
@@ -36,13 +36,13 @@ public class SettingsProcessor : ISettingsProcessor
                 EntityId = entityId,
                 Content = value
             };
-            _db.Settings.Add(settingValue);
+            db.Settings.Add(settingValue);
         }
         else
         {
             settingValue.Content = value;
         }
-        _db.SaveChanges();
+        db.SaveChanges();
     }
 }
 

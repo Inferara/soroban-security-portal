@@ -11,18 +11,19 @@ namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class ReportProcessor : IReportProcessor
     {
-        private readonly Db _db;
+        private readonly IDbContextFactory<Db> _dbFactory;
         private readonly ExtendedConfig _extendedConfig;
 
-        public ReportProcessor(Db db, ExtendedConfig extendedConfig)
+        public ReportProcessor(IDbContextFactory<Db> dbFactory, ExtendedConfig extendedConfig)
         {
-            _db = db;
+            _dbFactory = dbFactory;
             _extendedConfig = extendedConfig;
         }
 
         public async Task<List<ReportModel>> Search(ReportSearchModel? reportSearch)
         {
-            var q = _db.Report.AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var q = db.Report.AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved);
 
             if (reportSearch != null)
             {
@@ -103,18 +104,33 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task<ReportModel> Add(ReportModel reportModel)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
             if (reportModel == null)
                 throw new ArgumentNullException(nameof(reportModel));
             reportModel.Status = ReportModelStatus.New;
-            _db.Report.Add(reportModel);
-            await _db.SaveChangesAsync();
+            db.Report.Add(reportModel);
+            await db.SaveChangesAsync();
             return reportModel;
         }
 
         public async Task<ReportModel> Edit(ReportModel reportModel, string userName)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
             if (reportModel.Id == 0) throw new ArgumentException("Identifier mustn't be zero");
-            var existing = await _db.Report.FirstAsync(item => item.Id == reportModel.Id);
+            var existing = await db.Report.FirstAsync(item => item.Id == reportModel.Id);
+
+            if (reportModel.Name != existing.Name)
+            {
+                // Update all Vulnerabilities where Source name matches the old name
+                var vulnerabilitiesToUpdate = await db.Vulnerability
+                    .Where(v => v.Source == existing.Name)
+                    .ToListAsync();
+                foreach (var vulnerability in vulnerabilitiesToUpdate)
+                {
+                    vulnerability.Source = reportModel.Name;
+                }
+            }
+
             existing.Status = reportModel.Status;
             existing.Date = reportModel.Date;
             existing.Name = reportModel.Name;
@@ -129,14 +145,16 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 existing.Image = reportModel.Image;
                 existing.MdFile = reportModel.MdFile;
             }
-            _db.Report.Update(existing);
-            await _db.SaveChangesAsync();
+            db.Report.Update(existing);
+
+            await db.SaveChangesAsync();
             return existing;
         }
 
         public async Task<ReportModel> Get(int reportId)
         {
-            var report = await _db.Report.AsNoTracking().FirstOrDefaultAsync(item => item.Id == reportId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var report = await db.Report.AsNoTracking().FirstOrDefaultAsync(item => item.Id == reportId);
             if (report == null)
                 throw new SorobanSecurityPortalUiException($"Report with ID {reportId} not found.");
             if (report.BinFile == null)
@@ -146,36 +164,40 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task Approve(int reportId, string userName)
         {
-            var existing = await _db.Report.FirstAsync(item => item.Id == reportId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var existing = await db.Report.FirstAsync(item => item.Id == reportId);
             existing.Status = ReportModelStatus.Approved;
             existing.LastActionBy = userName;
             existing.LastActionAt = DateTime.UtcNow;
-            _db.Report.Update(existing);
-            await _db.SaveChangesAsync();
+            db.Report.Update(existing);
+            await db.SaveChangesAsync();
         }
 
         public async Task Reject(int reportId, string userName)
         {
-            var existing = await _db.Report.FirstAsync(item => item.Id == reportId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var existing = await db.Report.FirstAsync(item => item.Id == reportId);
             existing.Status = ReportModelStatus.Rejected;
             existing.LastActionBy = userName;
             existing.LastActionAt = DateTime.UtcNow;
-            _db.Report.Update(existing);
-            await _db.SaveChangesAsync();
+            db.Report.Update(existing);
+            await db.SaveChangesAsync();
         }
 
         public async Task Remove(int reportId)
         {
-            var existing = await _db.Report.FirstAsync(item => item.Id == reportId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var existing = await db.Report.FirstAsync(item => item.Id == reportId);
             if (existing == null)
                 return;
-            _db.Report.Remove(existing);
-            await _db.SaveChangesAsync();
+            db.Report.Remove(existing);
+            await db.SaveChangesAsync();
         }
 
         public async Task<List<ReportModel>> GetList()
         {
-            var query = _db.Report.AsNoTracking();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var query = db.Report.AsNoTracking();
             query = query.Select(v => new ReportModel
             {
                 Id = v.Id,
@@ -195,7 +217,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task<List<ReportModel>> GetListForEmbedding()
         {
-            var query = _db.Report
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var query = db.Report
                 .AsNoTracking()
                 .Where(v => v.Embedding == null)
                 .OrderByDescending(v => v.Id);
@@ -204,7 +227,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task<List<ReportModel>> GetListForFix()
         {
-            var query = _db.Report
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var query = db.Report
                 .AsNoTracking()
                 .Where(v => string.IsNullOrEmpty(v.MdFile) || v.MdFile == "Sequence contains no elements")
                 .OrderByDescending(v => v.Id);
@@ -213,22 +237,24 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task UpdateEmbedding(int reportId, Vector embedding)
         {
-            var existing = await _db.Report.FirstAsync(item => item.Id == reportId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var existing = await db.Report.FirstAsync(item => item.Id == reportId);
             if (existing == null)
                 throw new SorobanSecurityPortalUiException($"Report with ID {reportId} not found.");
             existing.Embedding = embedding;
-            _db.Report.Update(existing);
-            await _db.SaveChangesAsync();
+            db.Report.Update(existing);
+            await db.SaveChangesAsync();
         }
 
         public async Task UpdateMdFile(int reportId, string mdFile)
         {
-            var existing = await _db.Report.FirstAsync(item => item.Id == reportId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var existing = await db.Report.FirstAsync(item => item.Id == reportId);
             if (existing == null)
                 throw new SorobanSecurityPortalUiException($"Report with ID {reportId} not found.");
             existing.MdFile = mdFile;
-            _db.Report.Update(existing);
-            await _db.SaveChangesAsync();
+            db.Report.Update(existing);
+            await db.SaveChangesAsync();
         }
     }
 

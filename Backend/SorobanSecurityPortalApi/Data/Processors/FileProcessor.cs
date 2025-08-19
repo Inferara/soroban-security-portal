@@ -7,26 +7,28 @@ namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class FileProcessor : IFileProcessor
     {
-        private readonly Db _db;
+        private readonly IDbContextFactory<Db> _dbFactory;
 
-        public FileProcessor(Db db)
+        public FileProcessor(IDbContextFactory<Db> dbFactory)
         {
-            _db = db;
+            _dbFactory = dbFactory;
         }
 
         public async Task<FileModel> Add(FileModel fileModel)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
             if (fileModel == null)
                 throw new ArgumentNullException(nameof(fileModel));
             fileModel.Date = DateTime.UtcNow;
-            _db.File.Add(fileModel);
-            await _db.SaveChangesAsync();
+            db.File.Add(fileModel);
+            await db.SaveChangesAsync();
             return fileModel;
         }
 
         public async Task<FileModel> Get(int fileId)
         {
-            var file = await _db.File.AsNoTracking().FirstOrDefaultAsync(item => item.Id == fileId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var file = await db.File.AsNoTracking().FirstOrDefaultAsync(item => item.Id == fileId);
             if (file == null)
                 throw new SorobanSecurityPortalUiException($"File with ID {fileId} not found.");
             if (file.BinFile == null)
@@ -35,7 +37,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
         }
         public async Task<FileModel> Get(string containerGuid, string fileName)
         {
-            var file = await _db.File.AsNoTracking().FirstOrDefaultAsync(item => item.ContainerGuid.ToLower() == containerGuid.ToLower() && item.Name.ToLower() == fileName.ToLower());
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var file = await db.File.AsNoTracking().FirstOrDefaultAsync(item => item.ContainerGuid.ToLower() == containerGuid.ToLower() && item.Name.ToLower() == fileName.ToLower());
             if (file == null)
                 throw new SorobanSecurityPortalUiException($"File '{fileName}' not found in container '{containerGuid}'.");
             if (file.BinFile == null)
@@ -45,25 +48,28 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task Remove(int fileId)
         {
-            var existing = await _db.File.FirstAsync(item => item.Id == fileId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var existing = await db.File.FirstAsync(item => item.Id == fileId);
             if (existing == null)
                 return;
-            _db.File.Remove(existing);
-            await _db.SaveChangesAsync();
+            db.File.Remove(existing);
+            await db.SaveChangesAsync();
         }
 
         public async Task Remove(string containerGuid, string fileName)
         {
-            var existing = await _db.File.FirstOrDefaultAsync(item => item.ContainerGuid.ToLower() == containerGuid.ToLower() && item.Name.ToLower() == fileName.ToLower());
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var existing = await db.File.FirstOrDefaultAsync(item => item.ContainerGuid.ToLower() == containerGuid.ToLower() && item.Name.ToLower() == fileName.ToLower());
             if (existing == null)
                 return;
-            _db.File.Remove(existing);
-            await _db.SaveChangesAsync();
+            db.File.Remove(existing);
+            await db.SaveChangesAsync();
         }
 
         public async Task<List<FileModel>> List(string containerGuid)
         {
-            return await _db.File
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.File
                 .AsNoTracking()
                 .Select(v => new FileModel
                 {

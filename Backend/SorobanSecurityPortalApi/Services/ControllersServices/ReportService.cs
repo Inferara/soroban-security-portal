@@ -51,7 +51,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
         {
-            var reportModel = _mapper.Map<Models.DbModels.ReportModel>(reportViewModel);
+            var reportModel = _mapper.Map<ReportModel>(reportViewModel);
             reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
             reportModel.MdFile = PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile);
             var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
@@ -63,7 +63,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<ReportViewModel> Update(ReportViewModel reportViewModel)
         {
-            var reportModel = _mapper.Map<Models.DbModels.ReportModel>(reportViewModel);
+            var reportModel = _mapper.Map<ReportModel>(reportViewModel);
             if (reportModel.BinFile != null && reportModel.BinFile.Length > 0)
             {
                 reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);

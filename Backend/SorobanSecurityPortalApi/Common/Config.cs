@@ -21,7 +21,6 @@ public class Config
         DistributedCacheUrl = GetValue<string>(appSettings, "DistributedCacheUrl");
         DistributedCachePassword = GetValue<string>(appSettings, "DistributedCachePassword");
         AppUrl = GetValue<string>(appSettings, "AppUrl");
-        QdrantUrl = GetValue<string>(appSettings, "QdrantUrl");
     }
 
     private T GetValue<T>(string config, string key)
@@ -50,5 +49,4 @@ public class Config
     public string DistributedCacheUrl { get; set; }
     public string DistributedCachePassword { get; set; }
     public string AppUrl { get; set; }
-    public string QdrantUrl { get; set; }
 }

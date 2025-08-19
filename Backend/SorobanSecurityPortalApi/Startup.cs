@@ -40,7 +40,12 @@ public class Startup
 
         services.AddSingleton(_config);
         services.AddSingleton<IDataSourceProvider, DataSourceProvider>(e => new DataSourceProvider(_config));
-        services.ForInterfacesMatching("^I").OfAssemblies(Assembly.GetExecutingAssembly()).AddTransients();
+        services.ForInterfacesMatching("^I.*Processor$")
+            .OfAssemblies(Assembly.GetExecutingAssembly())
+            .AddScoped();
+        services.ForInterfacesMatching("^I(?!.*Processor$).*")
+            .OfAssemblies(Assembly.GetExecutingAssembly())
+            .AddTransients();
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = _config.DistributedCacheUrl;
@@ -50,7 +55,8 @@ public class Startup
                 Password = _config.DistributedCachePassword,
             };
         });
-        services.AddTransient<Db>();
+        services.AddScoped<Db>();
+        services.AddDbContextFactory<Db>();
         services.AddHttpContextAccessor();
         services.AddSingleton(sp => sp);
         services.AddScoped<UserContextAccessor>();

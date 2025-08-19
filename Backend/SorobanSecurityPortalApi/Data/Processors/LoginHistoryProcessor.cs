@@ -6,27 +6,27 @@ namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class LoginHistoryProcessor : ILoginHistoryProcessor
     {
-        private readonly IDbQuery _dbQuery;
-        private readonly Db _db;
+        private readonly IDbContextFactory<Db> _dbFactory;
 
-        public LoginHistoryProcessor(Db db, IDbQuery dbQuery)
+        public LoginHistoryProcessor(IDbContextFactory<Db> dbFactory)
         {
-            _dbQuery = dbQuery;
-            _db = db;
+            _dbFactory = dbFactory;
         }
 
         public LoginHistoryModel Add(LoginHistoryModel loginHistory)
         {
-            _db.LoginHistory.Add(loginHistory);
-            _db.SaveChanges();
+            using var db = _dbFactory.CreateDbContext();
+            db.LoginHistory.Add(loginHistory);
+            db.SaveChanges();
             return loginHistory;
         }
 
         public LoginHistoryModel? GetByRefreshToken(string refreshToken)
         {
+            using var db = _dbFactory.CreateDbContext();
             if (string.IsNullOrEmpty(refreshToken))
                 return null;
-            var result = _db.LoginHistory.AsNoTracking().FirstOrDefault(item => item.RefreshToken == refreshToken);
+            var result = db.LoginHistory.AsNoTracking().FirstOrDefault(item => item.RefreshToken == refreshToken);
             if (result == null || result.ValidUntilTime < DateTime.UtcNow)
                 return null;
             return result;
@@ -34,9 +34,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public LoginHistoryModel? GetByCode(string code)
         {
+            using var db = _dbFactory.CreateDbContext();
             if (string.IsNullOrEmpty(code))
                 return null;
-            var result = _db.LoginHistory.AsNoTracking().FirstOrDefault(item => item.Code == code);
+            var result = db.LoginHistory.AsNoTracking().FirstOrDefault(item => item.Code == code);
             if (result == null || result.ValidUntilTime < DateTime.UtcNow)
                 return null;
             return result;
@@ -44,7 +45,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public LoginHistoryModel? GetBySessionId(int sessionId)
         {
-            var result = _db.LoginHistory.AsNoTracking().FirstOrDefault(item => item.LoginHistoryId == sessionId);
+            using var db = _dbFactory.CreateDbContext();
+            var result = db.LoginHistory.AsNoTracking().FirstOrDefault(item => item.LoginHistoryId == sessionId);
             if (result == null || result.ValidUntilTime < DateTime.UtcNow)
                 return null;
             return result;
@@ -52,12 +54,13 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public void Update(LoginHistoryModel loginHistory)
         {
-            var existingLoginHistory = _db.LoginHistory.FirstOrDefault(item => item.LoginHistoryId == loginHistory.LoginHistoryId);
+            using var db = _dbFactory.CreateDbContext();
+            var existingLoginHistory = db.LoginHistory.FirstOrDefault(item => item.LoginHistoryId == loginHistory.LoginHistoryId);
             if (existingLoginHistory == null)
                 return;
-            _db.Entry(existingLoginHistory).CurrentValues.SetValues(loginHistory);
-            _db.LoginHistory.Update(existingLoginHistory);
-            _db.SaveChanges();
+            db.Entry(existingLoginHistory).CurrentValues.SetValues(loginHistory);
+            db.LoginHistory.Update(existingLoginHistory);
+            db.SaveChanges();
         }
     }
 

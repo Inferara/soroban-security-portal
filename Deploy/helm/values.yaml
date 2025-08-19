@@ -22,11 +22,7 @@ global:
     clientSecret: ""
   discord:
     clientId: ""
-    clientSecret: ""    
-  qdrant:
-    storage:
-      storageClassName: "local-path"
-      size: "5Gi"
+    clientSecret: ""
   postgres:
     storageClassName: "local-path"
     storageSize: 5Gi

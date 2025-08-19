@@ -6,74 +6,110 @@ namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class ProtocolProcessor : IProtocolProcessor
     {
-        private readonly Db _db;
+        private readonly IDbContextFactory<Db> _dbFactory;
 
-        public ProtocolProcessor(Db db)
+        public ProtocolProcessor(IDbContextFactory<Db> dbFactory)
         {
-            _db = db;
+            _dbFactory = dbFactory;
         }
 
         public async Task<ProtocolModel> Add(ProtocolModel protocolModel)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
             if (protocolModel == null)
             {
                 throw new ArgumentNullException(nameof(protocolModel), "Protocol model cannot be null");
             }
             protocolModel.Date = DateTime.UtcNow;
-            _db.Protocol.Add(protocolModel);
-            await _db.SaveChangesAsync();
+            db.Protocol.Add(protocolModel);
+            await db.SaveChangesAsync();
             return protocolModel;
         }
 
         public async Task<ProtocolModel> Update(ProtocolModel protocolModel)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
             if (protocolModel == null)
             {
                 throw new ArgumentNullException(nameof(protocolModel), "Protocol model cannot be null");
             }
-            var existingProtocol = await _db.Protocol.FindAsync(protocolModel.Id);
+            var existingProtocol = await db.Protocol.FindAsync(protocolModel.Id);
             if (existingProtocol == null)
             {
                 throw new KeyNotFoundException($"Protocol with ID {protocolModel.Id} not found");
             }
-            // Update all Vulnerabilities where Protocol name matches the old name
-            var vulnerabilitiesToUpdate = await _db.Vulnerability
-                .Where(v => v.Protocol == existingProtocol.Name)
-                .ToListAsync();
-            foreach (var vulnerability in vulnerabilitiesToUpdate)
+
+            if (protocolModel.Name != existingProtocol.Name)
             {
-                vulnerability.Protocol = protocolModel.Name;
+                // Update all Vulnerabilities where Protocol name matches the old name
+                var vulnerabilitiesToUpdate = await db.Vulnerability
+                    .Where(v => v.Protocol == existingProtocol.Name)
+                    .ToListAsync();
+                foreach (var vulnerability in vulnerabilitiesToUpdate)
+                {
+                    vulnerability.Protocol = protocolModel.Name;
+                }
+                // Update all Report where Protocol name matches the old name
+                var reportsToUpdate = await db.Report
+                    .Where(v => v.Protocol == existingProtocol.Name)
+                    .ToListAsync();
+                foreach (var report in reportsToUpdate)
+                {
+                    report.Protocol = protocolModel.Name;
+                }
             }
-            // Update all Report where Protocol name matches the old name
-            var reportsToUpdate = await _db.Report
-                .Where(v => v.Protocol == existingProtocol.Name)
-                .ToListAsync();
-            foreach (var report in reportsToUpdate)
+            if (protocolModel.CompanyId != existingProtocol.CompanyId)
             {
-                report.Protocol = protocolModel.Name;
+                var newCompany = await db.Company.FindAsync(protocolModel.CompanyId);
+                if(newCompany == null)
+                {
+                    throw new KeyNotFoundException($"Company with ID {protocolModel.CompanyId} not found");
+                }
+                // Update all Vulnerabilities with new Company name where Protocol name matches the old name
+                var vulnerabilitiesToUpdate = await db.Vulnerability
+                    .Where(v => v.Protocol == existingProtocol.Name)
+                    .ToListAsync();
+                foreach (var vulnerability in vulnerabilitiesToUpdate)
+                {
+                    vulnerability.Company = newCompany.Name;
+                }
+                // Update all Reports with new Company name where Protocol name matches the old name
+                var reportsToUpdate = await db.Report
+                    .Where(v => v.Protocol == existingProtocol.Name)
+                    .ToListAsync();
+                foreach (var report in reportsToUpdate)
+                {
+                    report.Company = newCompany.Name;
+                }
             }
+
 
             existingProtocol.Name = protocolModel.Name;
             existingProtocol.CompanyId = protocolModel.CompanyId;
             existingProtocol.Url = protocolModel.Url;
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             return existingProtocol;
         }
 
         public async Task Delete(int protocolModelId)
         {
-            var protocol = await _db.Protocol.FindAsync(protocolModelId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var protocol = await db.Protocol.FindAsync(protocolModelId);
             if (protocol == null)
             {
                 throw new KeyNotFoundException($"Protocol with ID {protocolModelId} not found");
             }
-            _db.Protocol.Remove(protocol);
-            await _db.SaveChangesAsync();
+            db.Protocol.Remove(protocol);
+            await db.SaveChangesAsync();
         }
 
         public async Task<List<ProtocolModel>> List()
         {
-            return await _db.Protocol.OrderByDescending(x => x.Id).ToListAsync();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Protocol
+                .AsNoTracking()
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
         }
     }
 

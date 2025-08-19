@@ -20,7 +20,6 @@ data:
   DBPGPOOLSIZE: "30"
   DBCONNECTIONTIMEOUT: "300"
 
-  QDRANTURL: "http://{{ .Values.global.environment.name }}-sorobansecurityportal-qdrant-loadbalancer:6333"
   TOKENEXPIRATIONTIMEMINUTES: "60"
   AUTHISSUER: "SorobanSecurityPortal"
   AUTHAUDIENCE: "SorobanSecurityPortalClient"
