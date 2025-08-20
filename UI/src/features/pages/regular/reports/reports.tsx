@@ -317,13 +317,13 @@ export const Reports: FC = () => {
                     Published: {new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    for: {report.company}
+                    Company: {report.company}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    of: {report.protocol}
+                    Protocol: {report.protocol}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    by: {report.auditor}
+                    Auditor: {report.auditor}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
