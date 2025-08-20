@@ -5,6 +5,7 @@ export enum ErrorType {
     Error = 'error',
     Warning = 'warning',
     Success = 'success',
+    Message = 'message'
 }
 
 export interface CurrentErrorState {

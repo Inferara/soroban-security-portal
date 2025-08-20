@@ -24,3 +24,11 @@ export const showSuccess = async (successText: string) => {
         isClosed: false,
     }));
 };
+
+export const showMessage = async (messageText: string) => {
+    store.dispatch(setCurrentError({
+        errorText: messageText,
+        errorType: ErrorType.Message,
+        isClosed: false,
+    }));
+};

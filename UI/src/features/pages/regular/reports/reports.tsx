@@ -15,8 +15,8 @@ import { useTheme } from '../../../../contexts/ThemeContext';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
+import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
-import { showError } from '../../../dialog-handler/dialog-handler';
 
 export const Reports: FC = () => {
   const { themeMode } = useTheme();
@@ -59,7 +59,7 @@ export const Reports: FC = () => {
 
   const handleReportDownload = (reportId: number) => {
     if (!canDownloadReport(auth)) {
-      showError("Log in to download the report");
+      showMessage("Log in to download the report");
       ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
       return;
     }

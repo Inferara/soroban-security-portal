@@ -46,10 +46,10 @@ import { CategoryItem } from '../../../../api/soroban-security-portal/models/cat
 import { environment } from '../../../../environments/environment';
 import { CodeBlock } from '../../../../components/CodeBlock';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
+import { showMessage } from '../../../dialog-handler/dialog-handler';
 import 'katex/dist/katex.min.css';
 import './katex.css';
 import ReactGA from 'react-ga4';
-import { showError } from '../../../dialog-handler/dialog-handler';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -183,7 +183,7 @@ export const Vulnerabilities: FC = () => {
 
   const handleDownloadReport = (reportId: number) => {
     if (!canDownloadReport(auth)) {
-      showError("Log in to download the report");
+      showMessage("Log in to download the report");
       ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
       return;
     }
