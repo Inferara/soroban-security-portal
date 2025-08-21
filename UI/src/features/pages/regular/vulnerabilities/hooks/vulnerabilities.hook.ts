@@ -74,7 +74,7 @@ export const useVulnerabilities = () => {
         severities: [],
         categories: [],
         protocols: [],
-        sources: [],
+        reports: [],
         page: currentPage,
         pageSize: pageSize
       };
@@ -122,7 +122,7 @@ export const useVulnerabilities = () => {
       severities: [],
       categories: [],
       protocols: [],
-      sources: [],
+      reports: [],
       page: 1,
       pageSize: 10
     });

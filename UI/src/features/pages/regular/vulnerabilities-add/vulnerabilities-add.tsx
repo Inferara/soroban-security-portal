@@ -161,10 +161,14 @@ export const AddVulnerability: FC = () => {
       description: description,
       severity: severity?.name || '',
       categories: categories.map(c => c.name),
-      company: company?.name || '',
-      protocol: protocol?.name || '',
-      auditor: auditor?.name || '',
-      source: source?.name || '',
+      companyName: company?.name || '',
+      companyId: company?.id || -1,
+      protocolName: protocol?.name || '',
+      protocolId: protocol?.id || -1,
+      auditorName: auditor?.name || '',
+      auditorId: auditor?.id || -1,
+      reportName: source?.name || '',
+      reportId: source?.id || -1,
       reportUrl: reportUrl,
       picturesContainerGuid: picturesContainerGuid,
       date: new Date(),
@@ -173,9 +177,9 @@ export const AddVulnerability: FC = () => {
     if (!vulnerability.title || 
       !vulnerability.description || 
       !vulnerability.severity ||
-      !vulnerability.company || 
-      !vulnerability.protocol || 
-      !vulnerability.auditor) {
+      !vulnerability.companyName || 
+      !vulnerability.protocolName || 
+      !vulnerability.auditorName) {
       showError('Please fill all fields');
       return;
     }

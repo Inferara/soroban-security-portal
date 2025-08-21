@@ -97,9 +97,9 @@ export const ReportManagement: FC = () => {
       renderCell: (params: GridRenderCellParams<Report>) => (
         <>
           <div>Author: <span style={{ color: 'gray' }}>{params.row.author}</span></div>
-          <div>Company: <span style={{ color: 'gray' }}>{params.row.company}</span></div>
-          <div>Protocol: <span style={{ color: 'gray' }}>{params.row.protocol}</span></div>
-          <div>Auditor: <span style={{ color: 'gray' }}>{params.row.auditor}</span></div>
+          <div>Company: <span style={{ color: 'gray' }}>{params.row.companyName}</span></div>
+          <div>Protocol: <span style={{ color: 'gray' }}>{params.row.protocolName}</span></div>
+          <div>Auditor: <span style={{ color: 'gray' }}>{params.row.auditorName}</span></div>
           <div>Date: <span style={{ color: 'gray' }}>{params.row.date.split('T')[0]}</span></div>
           <div>Published: <span style={{ color: 'gray' }}>{params.row.date.split('T')[0]}</span></div>
           <div>Title: <span style={{ color: 'gray' }}>{params.row.name}</span></div>

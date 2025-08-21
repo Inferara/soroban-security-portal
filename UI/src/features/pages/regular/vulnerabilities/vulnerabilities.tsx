@@ -244,7 +244,7 @@ export const Vulnerabilities: FC = () => {
       companies: filterType === 'company' ? [value] : [],
       protocols: filterType === 'protocol' ? [value] : [],
       auditors: filterType === 'auditor' ? [value] : [],
-      sources: filterType === 'source' ? [value] : [],
+      reports: filterType === 'source' ? [value] : [],
       searchText: '',
       from: '',
       to: '',
@@ -435,7 +435,7 @@ export const Vulnerabilities: FC = () => {
       companies: (overrides?.companies ?? companies).map(c => c.name),
       protocols: (overrides?.protocols ?? protocols).map(p => p.name),
       auditors: (overrides?.auditors ?? auditors).map(a => a.name),
-      sources: (overrides?.sources ?? sources).map(s => s.name),
+      reports: (overrides?.sources ?? sources).map(s => s.name),
       searchText: overrides?.searchText ?? search,
       from: overrides?.from ?? (startDate?.toISOString().split('T')[0] || ''),
       to: overrides?.to ?? (endDate?.toISOString().split('T')[0] || ''),
@@ -870,9 +870,9 @@ export const Vulnerabilities: FC = () => {
                     {vuln.categories.map((category, index) => (
                       <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
                     ))}
-                    <Chip label={vuln.protocol} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
+                    <Chip label={vuln.protocolName} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
                     <Box sx={{ flexGrow: 1 }} />
-                    {vuln.source === 'External' ? (
+                    {vuln.reportName === 'External' ? (
                       <MuiLink
                         href={vuln.reportUrl}
                         target="_blank"
@@ -889,7 +889,7 @@ export const Vulnerabilities: FC = () => {
                         </Button>
                       </MuiLink>
                     ) : (() => {
-                      const report = reportsList.find(report => report.name === vuln.source);
+                      const report = reportsList.find(report => report.name === vuln.reportName);
                       if (report) {
                         return (
                             <Button
@@ -996,11 +996,11 @@ export const Vulnerabilities: FC = () => {
                           />
                         </Typography>
                       </Box>
-                      {(selectedVulnerability.source) && (
+                      {(selectedVulnerability.reportName) && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
                         <Typography variant="body2" color="text.primary" component="div">Report info:
                           <Chip
-                            label={selectedVulnerability.source}
+                            label={selectedVulnerability.reportName}
                             size="small"
                             sx={{
                               marginLeft: '12px',
@@ -1018,7 +1018,7 @@ export const Vulnerabilities: FC = () => {
                                 transition: 'all 0.2s ease-in-out'
                               }
                             }}
-                            onClick={() => handleChipClick('source', selectedVulnerability.source)}
+                            onClick={() => handleChipClick('source', selectedVulnerability.reportName)}
                           />
                         </Typography>
                       </Box>
@@ -1026,7 +1026,7 @@ export const Vulnerabilities: FC = () => {
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
                         <Typography variant="body2" color="text.primary" component="div">Company:
                           <Chip
-                            label={selectedVulnerability.company}
+                            label={selectedVulnerability.companyName}
                             size="small"
                             sx={{
                               marginLeft: '12px',
@@ -1040,14 +1040,14 @@ export const Vulnerabilities: FC = () => {
                                 transition: 'all 0.2s ease-in-out'
                               }
                             }}
-                            onClick={() => handleChipClick('company', selectedVulnerability.company)}
+                            onClick={() => handleChipClick('company', selectedVulnerability.companyName)}
                           />
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
                         <Typography variant="body2" color="text.primary" component="div">Protocol:
                           <Chip
-                            label={selectedVulnerability.protocol}
+                            label={selectedVulnerability.protocolName}
                             size="small"
                             sx={{
                               marginLeft: '12px',
@@ -1065,12 +1065,12 @@ export const Vulnerabilities: FC = () => {
                                 transition: 'all 0.2s ease-in-out'
                               }
                             }}
-                            onClick={() => handleChipClick('protocol', selectedVulnerability.protocol)}
+                            onClick={() => handleChipClick('protocol', selectedVulnerability.protocolName)}
                           />
                         </Typography>
                         <MuiLink
                           href={(() => {
-                            const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocol);
+                            const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
                             return protocol?.url || '#';
                           })()}
                           target="_blank"

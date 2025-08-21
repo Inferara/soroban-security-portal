@@ -108,9 +108,9 @@ export const Reports: FC = () => {
               if (e.key === 'Enter') {
                 searchReports({
                   searchText,
-                  protocol: protocol?.name || '',
-                  company: company?.name || '',
-                  auditor: auditor?.name || '',
+                  protocolName: protocol?.name || '',
+                  companyName: company?.name || '',
+                  auditorName: auditor?.name || '',
                   from: startDate?.toISOString().split('T')[0] || '',
                   to: endDate?.toISOString().split('T')[0] || '',
                   sortBy: 'date',
@@ -244,9 +244,9 @@ export const Reports: FC = () => {
             onClick={() => searchReports(
               {
                 searchText,
-                protocol: protocol?.name || '',
-                company: company?.name || '',
-                auditor: auditor?.name || '',
+                protocolName: protocol?.name || '',
+                companyName: company?.name || '',
+                auditorName: auditor?.name || '',
                 from: startDate?.toISOString().split('T')[0] || '',
                 to: endDate?.toISOString().split('T')[0] || '',
                 sortBy: 'date',
@@ -317,13 +317,13 @@ export const Reports: FC = () => {
                     Published: {new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Company: {report.company}
+                    Company: {report.companyName}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Protocol: {report.protocol}
+                    Protocol: {report.protocolName}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Auditor: {report.auditor}
+                    Auditor: {report.auditorName}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>

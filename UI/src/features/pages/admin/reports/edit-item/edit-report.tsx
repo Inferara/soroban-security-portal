@@ -78,15 +78,15 @@ export const EditReport: FC = () => {
       setName(report.name);
       
       // Find and set company
-      const foundCompany = companiesList.find((c: CompanyItem) => c.name === report.company);
+      const foundCompany = companiesList.find((c: CompanyItem) => c.id === report.companyId);
       setCompany(foundCompany || null);
 
       // Find and set protocol
-      const foundProtocol = protocolsList.find((p: ProtocolItem) => p.name === report.protocol);
+      const foundProtocol = protocolsList.find((p: ProtocolItem) => p.id === report.protocolId);
       setProtocol(foundProtocol || null);
       
       // Find and set auditor
-      const foundAuditor = auditorsList.find((a: AuditorItem) => a.name === report.auditor);
+      const foundAuditor = auditorsList.find((a: AuditorItem) => a.id === report.auditorId);
       setAuditor(foundAuditor || null);
       
       // Set date
@@ -102,16 +102,19 @@ export const EditReport: FC = () => {
     const updatedReport: Report = {
       ...report,
       name: name,
-      company: company?.name || '',
-      protocol: protocol?.name || '',
-      auditor: auditor?.name || '',
+      protocolId: protocol?.id || -1,
+      protocolName: protocol?.name || '',
+      auditorId: auditor?.id || -1,
+      auditorName: auditor?.name || '',
+      companyName: company?.name || '',
+      companyId: company?.id || -1,
       date: date?.toISOString() || '',
     };
 
     if (!updatedReport.name || 
-      !updatedReport.company || 
-      !updatedReport.protocol || 
-      !updatedReport.auditor ||
+      !updatedReport.companyId || 
+      !updatedReport.protocolId || 
+      !updatedReport.auditorId ||
       !updatedReport.date) {
       showError('Please fill all required fields');
       return;
