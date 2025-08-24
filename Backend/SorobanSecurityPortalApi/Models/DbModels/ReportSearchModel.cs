@@ -9,9 +9,9 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public DateTime? To { get; set; }
         public string? SortBy { get; set; }
         public string? SortDirection { get; set; }
-        public string? Company { get; set; } = null;
-        public string? Protocol { get; set; } = null;
-        public string? Auditor { get; set; } = null;
+        public string? CompanyName { get; set; } = null;
+        public string? ProtocolName { get; set; } = null;
+        public string? AuditorName { get; set; } = null;
         public Vector? Embedding { get; set; } = null;
 
     }

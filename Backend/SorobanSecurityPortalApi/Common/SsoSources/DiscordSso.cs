@@ -1,8 +1,9 @@
-using System.Text;
-using System.Web;
 using Microsoft.Extensions.Caching.Distributed;
 using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Models.ViewModels;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Web;
 
 namespace SorobanSecurityPortalApi.Common.SsoSources
 {
@@ -59,6 +60,8 @@ namespace SorobanSecurityPortalApi.Common.SsoSources
             var userContent = await userResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
             var hasAvatar = !string.IsNullOrEmpty(userContent.JsonGet<string>("avatar"));
 
+            var member = await GetGuildMemberAsync(accessToken, StellarDevelopersGuildMember.GuildId);
+
             return new ExtendedTokenModel
             {
                 AccessToken = accessToken,
@@ -68,7 +71,8 @@ namespace SorobanSecurityPortalApi.Common.SsoSources
                 Ip = "",
                 Picture = hasAvatar
                     ? $"https://cdn.discordapp.com/avatars/{userContent.JsonGet<string>("id")}/{userContent.JsonGet<string>("avatar")}.png"
-                    : ""
+                    : "",
+                GuildMemberInfo = member
             };
         }
 
@@ -85,6 +89,23 @@ namespace SorobanSecurityPortalApi.Common.SsoSources
                 + $"&state={state}";
 
             return $"{DiscordAuthorizeEndpoint}?{parameters}";
+        }
+
+        private async Task<StellarDevelopersGuildMember?> GetGuildMemberAsync(string accessToken, string guildId)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, $"https://discord.com/api/users/@me/guilds/{guildId}/member");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            var httpClient = GetHttpClient();
+            using var guildResponse = await httpClient.SendAsync(req).ConfigureAwait(false);
+            var json = await guildResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            if (guildResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null; // not a member
+
+            if (!guildResponse.IsSuccessStatusCode)
+                throw new InvalidOperationException($"Fetching guild membership failed ({(int)guildResponse.StatusCode}): {json}");
+
+            return json.JsonGet<StellarDevelopersGuildMember>();
         }
 
         private HttpClient GetHttpClient() => _httpClientFactory.CreateClient(HttpClients.RetryClient);

@@ -231,9 +231,9 @@ export const VulnerabilityManagement: FC = () => {
       renderCell: (params: GridRenderCellParams<Vulnerability>) => (
         <div>
           <div>Tags: <span style={{ color: 'gray' }}>{params.row.categories.join(', ')}</span></div>
-          <div>Source: <span style={{ color: 'gray' }}>{params.row.source}</span></div>
-          <div>Company: <span style={{ color: 'gray' }}>{params.row.company}</span></div>
-          <div>Protocol: <span style={{ color: 'gray' }}>{params.row.protocol}</span></div>
+          <div>Source: <span style={{ color: 'gray' }}>{params.row.reportName}</span></div>
+          <div>Company: <span style={{ color: 'gray' }}>{params.row.companyName}</span></div>
+          <div>Protocol: <span style={{ color: 'gray' }}>{params.row.protocolName}</span></div>
           <div>Severity: <span style={{ color: 'gray' }}>{params.row.severity}</span></div>
           <div>Last Action: <span style={{ color: 'gray' }}>{params.row.lastActionBy}</span></div>
           <div>Last Action At: <span style={{ color: 'gray' }}>{params.row.lastActionAt?.split('.')[0].replace('T', ' ')}</span></div>

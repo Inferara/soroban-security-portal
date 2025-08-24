@@ -39,50 +39,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 throw new KeyNotFoundException($"Protocol with ID {protocolModel.Id} not found");
             }
 
-            if (protocolModel.Name != existingProtocol.Name)
-            {
-                // Update all Vulnerabilities where Protocol name matches the old name
-                var vulnerabilitiesToUpdate = await db.Vulnerability
-                    .Where(v => v.Protocol == existingProtocol.Name)
-                    .ToListAsync();
-                foreach (var vulnerability in vulnerabilitiesToUpdate)
-                {
-                    vulnerability.Protocol = protocolModel.Name;
-                }
-                // Update all Report where Protocol name matches the old name
-                var reportsToUpdate = await db.Report
-                    .Where(v => v.Protocol == existingProtocol.Name)
-                    .ToListAsync();
-                foreach (var report in reportsToUpdate)
-                {
-                    report.Protocol = protocolModel.Name;
-                }
-            }
-            if (protocolModel.CompanyId != existingProtocol.CompanyId)
-            {
-                var newCompany = await db.Company.FindAsync(protocolModel.CompanyId);
-                if(newCompany == null)
-                {
-                    throw new KeyNotFoundException($"Company with ID {protocolModel.CompanyId} not found");
-                }
-                // Update all Vulnerabilities with new Company name where Protocol name matches the old name
-                var vulnerabilitiesToUpdate = await db.Vulnerability
-                    .Where(v => v.Protocol == existingProtocol.Name)
-                    .ToListAsync();
-                foreach (var vulnerability in vulnerabilitiesToUpdate)
-                {
-                    vulnerability.Company = newCompany.Name;
-                }
-                // Update all Reports with new Company name where Protocol name matches the old name
-                var reportsToUpdate = await db.Report
-                    .Where(v => v.Protocol == existingProtocol.Name)
-                    .ToListAsync();
-                foreach (var report in reportsToUpdate)
-                {
-                    report.Company = newCompany.Name;
-                }
-            }
-
 
             existingProtocol.Name = protocolModel.Name;
             existingProtocol.CompanyId = protocolModel.CompanyId;

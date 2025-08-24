@@ -81,9 +81,8 @@ namespace SorobanSecurityPortalApi.Controllers
                 Name = addReportViewModel.Title,
                 Date = addReportViewModel.Date,
                 Status = ReportModelStatus.New,
-                Protocol = addReportViewModel.Protocol,
-                Company = addReportViewModel.Company,
-                Auditor = addReportViewModel.Auditor,
+                ProtocolId = addReportViewModel.ProtocolId,
+                AuditorId = addReportViewModel.AuditorId,
                 Author = userLoginName,
             };
             if (file != null && file.Length > 0)

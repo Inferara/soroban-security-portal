@@ -43,7 +43,7 @@ export const AddReport: FC = () => {
   const [fileError, setFileError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  //TODO when set protocol or auditor or a company, filter what we have, not choose the first one
   const { addReport, isUploading, protocolsList, auditorsList, companiesList } = useReportAdd();
   const auth = useAuth();
   const navigate = useNavigate();
@@ -64,6 +64,16 @@ export const AddReport: FC = () => {
     } else {
       setCompany(null);
     }
+  };
+
+  const handleSetCompany = (newCompany: CompanyItem | null) => {
+    if (newCompany) {
+      setCompany(newCompany);
+    } else {
+      setCompany(null);
+    }
+    const protocols = protocolsList.filter(p => p.companyId === newCompany?.id);
+    setProtocol(protocols.length > 0 ? protocols[0] : null);
   };
 
   const validateAndSetFile = (file: File) => {
@@ -136,9 +146,8 @@ export const AddReport: FC = () => {
       id: 0,
       title: title,
       url: url,
-      protocol: protocol?.name || '',
-      company: company?.name || '',
-      auditor: auditor?.name || '',
+      protocolId: protocol?.id || -1,
+      auditorId: auditor?.id || -1,
       date: date?.toISOString() || '',
     };
 
@@ -194,7 +203,34 @@ export const AddReport: FC = () => {
                   onChange={e => setTitle(e.target.value)}
                   required
                 />
-              </Grid>           
+              </Grid>
+              <Grid size={12}>
+                <Autocomplete
+                  options={companiesList}
+                  value={company}
+                  onChange={(_, newValue) => handleSetCompany(newValue as CompanyItem)}
+                  getOptionLabel={(option) => (option as CompanyItem).name}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Company"
+                      size="small"
+                      sx={{ minWidth: 290 }}
+                    />
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={index}
+                        label={(option as CompanyItem).name}
+                        size="small"
+                        sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
+                      />
+                    ))
+                  }
+                />
+              </Grid> 
               <Grid size={12}>
                 <Autocomplete
                   options={protocolsList}

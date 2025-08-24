@@ -38,22 +38,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
             {
                 throw new KeyNotFoundException($"Auditor with ID {auditorModel.Id} not found");
             }
-            // Update all Vulnerabilities where Auditor name matches the old name
-            var vulnerabilitiesToUpdate = await db.Vulnerability
-                .Where(v => v.Auditor == existingAuditor.Name)
-                .ToListAsync();
-            foreach (var vulnerability in vulnerabilitiesToUpdate)
-            {
-                vulnerability.Auditor = auditorModel.Name;
-            }
-            // Update all Report where Auditor name matches the old name
-            var reportsToUpdate = await db.Report
-                .Where(v => v.Auditor == existingAuditor.Name)
-                .ToListAsync();
-            foreach (var report in reportsToUpdate)
-            {
-                report.Auditor = auditorModel.Name;
-            }
 
             existingAuditor.Name = auditorModel.Name;
             existingAuditor.Url = auditorModel.Url;

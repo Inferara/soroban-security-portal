@@ -20,7 +20,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string? PersonalInfo { get; set; } = string.Empty;
         public byte[]? Image { get; set; }
         [Column(TypeName = "jsonb")]
-        public List<ConnectedAccountModel>? ConnectedAccounts { get; set; } = new();
+        public List<ConnectedAccountModel>? ConnectedAccounts { get; set; } = [];
     }
 
     public class ConnectedAccountModel
@@ -31,10 +31,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
     public enum RoleEnum
     {
-        User = 1,
-        Admin = 2,
-        Contributor = 3,
-        Moderator = 4
+        User = 100,
+        Contributor = 200,
+        Moderator = 300,
+        Admin = 1000,
     }
 
     public enum LoginTypeEnum

@@ -3,9 +3,12 @@ export interface Report {
   name: string;
   image?: string;
   date: string;
-  protocol: string;
-  company: string;
-  auditor: string;
+  protocolId: number;
+  protocolName: string;
+  companyId: number;
+  companyName: string;
+  auditorId: number;
+  auditorName: string;
   status?: string;
   author?: string;
   lastActionBy?: string;
@@ -15,9 +18,8 @@ export interface Report {
 export interface AddReport {
   id: number;
   title: string;
-  protocol: string;
-  company: string;
-  auditor: string;
+  protocolId: number;
+  auditorId: number;
   date: string;
   url: string;
 }
@@ -26,9 +28,9 @@ export interface ReportSearch {
   searchText?: string;
   from?: string;
   to?: string;
-  protocol?: string;
-  company?: string;
-  auditor?: string;
+  protocolName?: string;
+  companyName?: string;
+  auditorName?: string; //TODO change to id?
   sortBy?: 'date' | 'name';
   sortDirection?: 'asc' | 'desc';
 }
