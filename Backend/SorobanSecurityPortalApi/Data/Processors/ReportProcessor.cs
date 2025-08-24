@@ -23,7 +23,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<List<ReportModel>> Search(ReportSearchModel? reportSearch)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var q = db.Report.AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved);
+            var q = db.Report
+                .Include(v => v.Auditor)
+                .Include(v => v.Protocol)
+                .ThenInclude(p => p.Company)
+                .AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved);
 
             if (reportSearch != null)
             {
@@ -37,14 +41,14 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     var to = DateTime.SpecifyKind(reportSearch.To.Value, DateTimeKind.Utc);
                     q = q.Where(v => v.Date <= to);
                 }
-                if (!string.IsNullOrWhiteSpace(reportSearch.Company))
-                    q = q.Where(x => x.Company == reportSearch.Company);
+                if (!string.IsNullOrWhiteSpace(reportSearch.CompanyName))
+                    q = q.Where(x => x.Protocol.Company.Name == reportSearch.CompanyName);
 
-                if (!string.IsNullOrWhiteSpace(reportSearch.Protocol))
-                    q = q.Where(x => x.Protocol == reportSearch.Protocol);
+                if (!string.IsNullOrWhiteSpace(reportSearch.ProtocolName))
+                    q = q.Where(x => x.Protocol.Name == reportSearch.ProtocolName);
 
-                if (!string.IsNullOrWhiteSpace(reportSearch.Auditor))
-                    q = q.Where(x => x.Auditor == reportSearch.Auditor);
+                if (!string.IsNullOrWhiteSpace(reportSearch.AuditorName))
+                    q = q.Where(x => x.Auditor.Name == reportSearch.AuditorName);
 
                 // Build a single scoring expression
                 if (!string.IsNullOrWhiteSpace(reportSearch.SearchText) || reportSearch.Embedding is not null)
@@ -95,8 +99,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     LastActionBy = v.LastActionBy,
                     LastActionAt = v.LastActionAt,
                     Auditor = v.Auditor,
-                    Protocol = v.Protocol,
-                    Company = v.Company
+                    Protocol = v.Protocol
                 })
                 .ToListAsync();
         }
@@ -119,24 +122,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
             if (reportModel.Id == 0) throw new ArgumentException("Identifier mustn't be zero");
             var existing = await db.Report.FirstAsync(item => item.Id == reportModel.Id);
 
-            if (reportModel.Name != existing.Name)
-            {
-                // Update all Vulnerabilities where Source name matches the old name
-                var vulnerabilitiesToUpdate = await db.Vulnerability
-                    .Where(v => v.Source == existing.Name)
-                    .ToListAsync();
-                foreach (var vulnerability in vulnerabilitiesToUpdate)
-                {
-                    vulnerability.Source = reportModel.Name;
-                }
-            }
-
             existing.Status = reportModel.Status;
             existing.Date = reportModel.Date;
             existing.Name = reportModel.Name;
-            existing.Protocol = reportModel.Protocol;
-            existing.Company = reportModel.Company;
-            existing.Auditor = reportModel.Auditor;
+            existing.ProtocolId = reportModel.ProtocolId;
+            existing.AuditorId = reportModel.AuditorId;
             existing.LastActionBy = userName;
             existing.LastActionAt = DateTime.UtcNow;
             if(reportModel.BinFile is { Length: > 0 })
@@ -197,7 +187,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<List<ReportModel>> GetList()
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var query = db.Report.AsNoTracking();
+            var query = db.Report
+                .Include(r => r.Auditor)
+                .Include(r => r.Protocol)
+                .ThenInclude(p => p.Company)
+                .AsNoTracking();
             query = query.Select(v => new ReportModel
             {
                 Id = v.Id,
@@ -208,8 +202,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 LastActionBy = v.LastActionBy,
                 LastActionAt = v.LastActionAt,
                 Auditor = v.Auditor,
-                Protocol = v.Protocol,
-                Company = v.Company,
+                Protocol = v.Protocol, 
             });
             query = query.OrderByDescending(v => v.Id);
             return await query.ToListAsync();

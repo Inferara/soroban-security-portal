@@ -18,11 +18,22 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string Author { get; set; } = "";
         public string LastActionBy { get; set; } = "";
         public DateTime LastActionAt { get; set; }
-        public string? Protocol { get; set; } = null;
-        public string? Company { get; set; } = "";
-        public string? Auditor { get; set; } = null;
+        [ForeignKey("Protocol")]
+        public int? ProtocolId { get; set; }
+        public ProtocolModel? Protocol { get; set; } = null!;
+        [ForeignKey("Auditor")]
+        public int? AuditorId { get; set; }
+        public AuditorModel? Auditor { get; set; } = null!;
         [Column(TypeName = "vector(3072)")]
         public Vector? Embedding { get; set; }
+        public List<VulnerabilityModel> Vulnerabilities { get; set; } = new();
+
+        //TODO delete
+        [Column("protocol")]
+        public string? ProtocolLegacy { get; set; } = null;
+        public string? Company { get; set; } = "";
+        [Column("auditor")]
+        public string? AuditorLegacy { get; set; } = null;
     }
 
     public class ReportModelStatus

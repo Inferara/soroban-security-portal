@@ -49,6 +49,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return reportViewModel;
         }
 
+        //TODO UI should send Protocol and Auditor as Ids, not names. Then need to update the mapping used at the line 55
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
         {
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
@@ -105,8 +106,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<List<ReportViewModel>> GetList()
         {
-            var vulnerabilities = await _reportProcessor.GetList();
-            return _mapper.Map<List<ReportViewModel>>(vulnerabilities);
+            var reports = await _reportProcessor.GetList();
+            return _mapper.Map<List<ReportViewModel>>(reports);
         }
     }
 

@@ -69,16 +69,27 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (login == null)
             {
                 login = await _loginProcessor.GetByEmail(extendedTokenModel.Email);
+                var userRole = GetRoleFromDiscordGuild(extendedTokenModel);
                 if (login != null)
                 {
+                    var updated = false;
                     if (!login.ConnectedAccounts!.Any(ca => ca.ServiceName == "Discord" && ca.AccountId == extendedTokenModel.Email))
                     {
-                        login.ConnectedAccounts.Add(new ConnectedAccountModel
+                        login.ConnectedAccounts!.Add(new ConnectedAccountModel
                         {
                             ServiceName = "Discord",
                             AccountId = extendedTokenModel.Email
                         });
-                    await _loginProcessor.Update(login);
+                        updated = true;
+                    }
+                    if (userRole > login.Role)
+                    {
+                        login.Role = userRole;
+                        updated = true;
+                    }
+                    if (updated)
+                    {
+                        await _loginProcessor.Update(login);
                     }
                 }
                 else
@@ -88,7 +99,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                         Login = extendedTokenModel.Email,
                         Email = extendedTokenModel.Email,
                         FullName = extendedTokenModel.Name,
-                        Role = RoleEnum.User,
+                        Role = userRole,
                         LoginType = LoginTypeEnum.SsoDiscord,
                         IsEnabled = true,
                         Created = DateTime.UtcNow,
@@ -335,6 +346,27 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             var idToken = new JwtSecurityTokenHandler().WriteToken(idTokenAccessToken);
             return idToken;
+        }
+
+        private RoleEnum GetRoleFromDiscordGuild(ExtendedTokenModel extendedTokenModel)
+        {
+            if (extendedTokenModel.GuildMemberInfo == null)
+            {
+                return RoleEnum.User;
+            }
+            if (extendedTokenModel.GuildMemberInfo.IsPathfinder())
+            {
+                return RoleEnum.User;
+            }
+            else if (extendedTokenModel.GuildMemberInfo.IsNavigator())
+            {
+                return RoleEnum.Contributor;
+            }
+            else if (extendedTokenModel.GuildMemberInfo.IsPilot())
+            {
+                return RoleEnum.Moderator;
+            }
+            return RoleEnum.User;
         }
 
         public void Logout(string idToken)
