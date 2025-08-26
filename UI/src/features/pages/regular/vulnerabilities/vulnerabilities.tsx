@@ -460,8 +460,6 @@ export const Vulnerabilities: FC = () => {
           {canAddVulnerability(auth) && (
             <Button
               variant="contained"
-              color="primary"
-              sx={{ fontWeight: 600, borderRadius: 2 }}
               onClick={() => navigate('/vulnerabilities/add')}
             >
               Add Vulnerability
@@ -546,9 +544,7 @@ export const Vulnerabilities: FC = () => {
           </IconButton>
           <Button
             variant="contained"
-            color="primary"
             disabled={isLoading}
-            sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
             onClick={() => {
               setCurrentPage(1); // Reset to first page when searching
               callSearch();
@@ -564,10 +560,8 @@ export const Vulnerabilities: FC = () => {
             )}
           </Button>
           <Button
-            variant="outlined"
-            color="secondary"
+            variant="contained"
             disabled={isLoading}
-            sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
             onClick={() => {
               clearAllFilters();
               callSearch({
@@ -871,46 +865,6 @@ export const Vulnerabilities: FC = () => {
                       <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
                     ))}
                     <Chip label={vuln.protocolName} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
-                    <Box sx={{ flexGrow: 1 }} />
-                    {vuln.reportName === 'External' ? (
-                      <MuiLink
-                        href={vuln.reportUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ textDecoration: 'none' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          sx={{ textTransform: 'none' }}
-                        >
-                          View Report
-                        </Button>
-                      </MuiLink>
-                    ) : (() => {
-                      const report = reportsList.find(report => report.name === vuln.reportName);
-                      if (report) {
-                        return (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadReport(report.id);
-                              }}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              Download Report
-                            </Button>
-                        );
-                      }
-                      return (
-                        <Typography variant="caption" color="text.disabled">
-                          No report available
-                        </Typography>
-                      );
-                    })()}
                   </Stack>
                 </CardContent>
               </Card>
@@ -1021,6 +975,45 @@ export const Vulnerabilities: FC = () => {
                             onClick={() => handleChipClick('source', selectedVulnerability.reportName)}
                           />
                         </Typography>
+                        {selectedVulnerability.reportName === 'External' ? (
+                          <MuiLink
+                            href={selectedVulnerability.reportUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ textDecoration: 'none' }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button
+                              variant="contained"
+                              size="small"
+                              sx={{ textTransform: 'none', width: 150, height: 30 }}
+                            >
+                              View Report
+                            </Button>
+                          </MuiLink>
+                        ) : (() => {
+                          const report = reportsList.find(report => report.name === selectedVulnerability.reportName);
+                          if (report) {
+                            return (
+                                <Button
+                                  variant="contained"
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadReport(report.id);
+                                  }}
+                                  sx={{ textTransform: 'none', width: 150, height: 30 }}
+                                >
+                                  Download Report
+                                </Button>
+                            );
+                          }
+                          return (
+                            <Typography variant="caption" color="text.disabled">
+                              No report available
+                            </Typography>
+                          );
+                        })()}
                       </Box>
                       )}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
@@ -1070,19 +1063,38 @@ export const Vulnerabilities: FC = () => {
                         </Typography>
                         <MuiLink
                           href={(() => {
-                            const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
-                            return protocol?.url || '#';
+                          const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
+                          return protocol?.url || '#';
                           })()}
                           target="_blank"
                           rel="noopener noreferrer"
                           sx={{ textDecoration: 'none' }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
+                            if (protocol?.url) {
+                              window.open(protocol.url, '_blank');
+                            }
+                          }}
                         >
                           <Button
-                            variant="outlined"
-                            size="small"
-                            sx={{ textTransform: 'none' }}
+                          variant="contained"
+                          size="small"
+                          sx={{
+                            color: 'background.default',
+                            borderColor: 'primary.main',
+                            backgroundColor: 'primary.main',
+                            textTransform: 'none',
+                            width: 150,
+                            height: 30,
+                            '&:hover': {
+                              backgroundColor: 'rgba(250, 250, 250, 0.1)',
+                              borderColor: 'primary.main',
+                              color: 'primary.main',
+                            },
+                           }}
                           >
-                            View source code
+                          View source code
                           </Button>
                         </MuiLink>
                       </Box>

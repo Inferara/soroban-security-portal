@@ -191,20 +191,12 @@ export const MainWindow: FC = () => {
                 sx={{
                   ml: 2,
                   borderRadius: '6px',
-                  fontWeight: 700,
-                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
-                  textTransform: 'none',
+                  textTransform: 'uppercase',
                   px: 3,
                   py: 1,
-                  fontSize: '1rem',
-                  background: 'linear-gradient(90deg, #4f8cff 0%, #3358e6 100%)',
-                  '&:hover': {
-                    background: 'linear-gradient(90deg, #3358e6 0%, #4f8cff 100%)',
-                    boxShadow: '0 4px 16px 0 rgba(51,88,230,0.12)'
-                  }
                 }}
               >
-                LOG IN
+                Log In
               </Button>)
           }
         </Toolbar>
@@ -283,7 +275,16 @@ export const MainWindow: FC = () => {
             </Box>
 
             {/* Social Icons Section */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              '& .MuiButtonBase-root': {
+                '&:hover': {
+                  color: '#2D4EFF',
+                }
+              }
+            }}>
               <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
                 &nbsp;
               </Typography>

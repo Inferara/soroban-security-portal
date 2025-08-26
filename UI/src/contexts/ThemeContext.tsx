@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createTheme, Theme } from '@mui/material/styles';
+import { createTheme, PaletteColor, PaletteOptions, Theme } from '@mui/material/styles';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -16,7 +16,7 @@ const lightTheme = createTheme({
     fontFamily: [
       "Roboto",
       "Rubik",
-      "Helvetica", 
+      "Helvetica",
       "Arial",
       "sans-serif",
     ].join(','),
@@ -106,35 +106,37 @@ const lightTheme = createTheme({
   },
 });
 
+const darkThemePalette: PaletteOptions = {
+  mode: 'dark',
+  primary: {
+    main: '#F2F2F2',
+    contrastText: '#DDCDB1',
+  },
+  secondary: {
+    main: '#DDCDB1',
+  },
+  text: {
+    primary: '#F2F2F2',
+    secondary: '#b3b3b3',
+  },
+  background: {
+    paper: '#1e1e1e',
+    default: '#1e1e1e',
+  },
+  divider: '#333333',
+};
+
 const darkTheme = createTheme({
   typography: {
     fontFamily: [
       "Roboto",
       "Rubik",
-      "Helvetica", 
+      "Helvetica",
       "Arial",
       "sans-serif",
     ].join(','),
   },
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#F2F2F2',
-      contrastText: '#DDCDB1',
-    },
-    secondary: {
-      main: '#DDCDB1',
-    },
-    text: {
-      primary: '#F2F2F2',
-      secondary: '#b3b3b3',
-    },
-    background: {
-      paper: '#1e1e1e',
-      default: '#1e1e1e',
-    },
-    divider: '#333333',
-  },
+  palette: darkThemePalette,
   components: {
     MuiAppBar: {
       styleOverrides: {
@@ -157,8 +159,11 @@ const darkTheme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
+          fontSize: '1rem',
+          fontWeight: 900,
+          borderRadius: '8px',
           backgroundColor: '#2D4EFF',
-          color: '#F2F2F2',
+          color: (darkThemePalette.primary as PaletteColor).main,
           '&:hover': {
             backgroundColor: '#1a3fd9',
           },
@@ -186,9 +191,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   useEffect(() => {
     localStorage.setItem('themeMode', themeMode);
-    
-    // Set CSS custom properties for theme-aware styling
-    // This approach works well with Material-UI and allows for dynamic theming
     const root = document.documentElement;
     if (themeMode === 'dark') {
       root.style.setProperty('--highlight-bg', '#1a1a1a');

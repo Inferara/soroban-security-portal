@@ -48,6 +48,12 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             protocolModel = await _protocolProcessor.Update(protocolModel);
             return _mapper.Map<ProtocolViewModel>(protocolModel);
         }
+
+        public async Task<ProtocolStatisticsChangesViewModel> GetStatisticsChanges()
+        {
+            var statsChange = await _protocolProcessor.GetStatisticsChanges();
+            return _mapper.Map<ProtocolStatisticsChangesViewModel>(statsChange);
+        }
     }
 
     public interface IProtocolService
@@ -56,5 +62,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<ProtocolViewModel>> List();
         Task Delete(int id);
         Task<ProtocolViewModel> Update(ProtocolViewModel protocolViewModel);
+        Task<ProtocolStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

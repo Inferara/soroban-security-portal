@@ -55,19 +55,6 @@ const UserDetails = styled(Typography)(() => ({
   marginBottom: '4px',
 }));
 
-const EditButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#3B82F6', // Blue background
-  color: '#ffffff',
-  borderRadius: '8px',
-  padding: theme.spacing(1, 3),
-  textTransform: 'none',
-  fontSize: '14px',
-  fontWeight: 500,
-  '&:hover': {
-    backgroundColor: '#2563EB',
-  },
-}));
-
 const ContentSection = styled(Paper)(({ theme }) => ({
   border: '1px solid #f2f2f2', // Light gray border
   borderRadius: '8px',
@@ -201,7 +188,7 @@ export const Profile: React.FC = () => {
           </AvatarContainer>
           {
             userId == 0 && (
-              <EditButton
+              <Button
                 variant="contained"
                 startIcon={<EditIcon />}
                 onClick={() => {
@@ -209,7 +196,7 @@ export const Profile: React.FC = () => {
                 }}
               >
                 Edit Profile
-              </EditButton>
+              </Button>
             )
           }
         </ProfileHeader>
@@ -353,14 +340,6 @@ export const Profile: React.FC = () => {
                 <Button 
                   variant="contained" 
                   onClick={handleChangePassword}
-                  fullWidth
-                  sx={{ 
-                    mt: 1,
-                    backgroundColor: '#3B82F6',
-                    '&:hover': {
-                      backgroundColor: '#2563EB',
-                    },
-                  }}
                 >
                   Update Password
                 </Button>

@@ -62,6 +62,23 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await using var db = await _dbFactory.CreateDbContextAsync();
             return await db.Auditor.OrderByDescending(x => x.Id).ToListAsync();
         }
+
+        public async Task<AuditorStatisticsChangesViewModel> GetStatisticsChanges()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var ago = DateTime.UtcNow.AddMonths(-1);
+            var newAuditors = await db.Auditor
+                .AsNoTracking()
+                .Where(v => v.Date >= ago)
+                .CountAsync();
+            return new AuditorStatisticsChangesViewModel
+            {
+                Total = await db.Auditor
+                    .AsNoTracking()
+                    .CountAsync(),
+                New = newAuditors
+            };
+        }
     }
 
     public interface IAuditorProcessor
@@ -70,5 +87,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<AuditorModel> Update(AuditorModel auditorModel);
         Task Delete(int auditorModelId);
         Task<List<AuditorModel>> List();
+        Task<AuditorStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getVulnerabilitiesStatistics } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { VulnerabilityStatistics } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { getVulnerabilitiesStatistics, getVulnerabilitiesStatisticsChanges, getReportStatisticsChanges, getProtocolStatisticsChanges, getAuditorStatisticsChanges } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { VulnerabilityStatistics, StatisticsChanges } from '../../../../../api/soroban-security-portal/models/vulnerability';
 
 export interface VulnerabilityStatisticsBySeverity {
   critical: number;
@@ -33,8 +33,12 @@ export const useVulnerabilityStatistics = () => {
   const [pieChartData, setPieChartData] = useState<PieChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [vulnerabilitiesStatisticsChange, setVulnerabilitiesStatisticsChange] = useState<StatisticsChanges>();
+  const [reportsStatisticsChange, setReportsStatisticsChange] = useState<StatisticsChanges>();
+  const [protocolsStatisticsChange, setProtocolsStatisticsChange] = useState<StatisticsChanges>();
+  const [auditorsStatisticsChange, setAuditorsStatisticsChange] = useState<StatisticsChanges>();
 
-  const calculateStatistics = (vulns: VulnerabilityStatistics): VulnerabilityStatisticsBySeverity => {
+  const mapStatistics = (vulns: VulnerabilityStatistics): VulnerabilityStatisticsBySeverity => {
     const stats = {
       critical: vulns.bySeverity['critical'] || 0,
       high: vulns.bySeverity['high'] || 0,
@@ -48,7 +52,7 @@ export const useVulnerabilityStatistics = () => {
 
   const generateSeverityPieChartData = (stats: VulnerabilityStatisticsBySeverity): PieChartData[] => {
     const total = stats.total || 1; // Avoid division by zero
-    
+
     return [
       {
         id: 'critical',
@@ -85,14 +89,14 @@ export const useVulnerabilityStatistics = () => {
 
   const generateCategoryPieChartData = (vulns: VulnerabilityStatistics): PieChartData[] => {
     const categoryCounts = new Map<string, number>();
-    
+
     Object.entries(vulns.byTag).forEach(([tag, count]) => {
       categoryCounts.set(tag, count);
     });
 
     const total = vulns.total || 1;
     const colors = ['#1976d2', '#42a5f5', '#90caf9', '#bbdefb', '#e3f2fd', '#2196f3', '#21cbf3', '#64b5f6'];
-    
+
     return Array.from(categoryCounts.entries()).map(([category, count], index) => ({
       id: category,
       value: count,
@@ -103,7 +107,7 @@ export const useVulnerabilityStatistics = () => {
 
   // const generateProtocolPieChartData = (vulns: VulnerabilityStatistics): PieChartData[] => {
   //   const protocolCounts = new Map<string, number>();
-    
+
   //   vulns.forEach(vuln => {
   //     const protocol = vuln.protocol || 'Unknown';
   //     protocolCounts.set(protocol, (protocolCounts.get(protocol) || 0) + 1);
@@ -111,7 +115,7 @@ export const useVulnerabilityStatistics = () => {
 
   //   const total = vulns.length || 1;
   //   const colors = ['#388e3c', '#4caf50', '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9', '#2e7d32', '#1b5e20'];
-    
+
   //   return Array.from(protocolCounts.entries()).map(([protocol, count], index) => ({
   //     id: protocol,
   //     value: count,
@@ -123,33 +127,42 @@ export const useVulnerabilityStatistics = () => {
   const generatePieChartData = (filterType: FilterType, vulns: VulnerabilityStatistics, stats?: VulnerabilityStatisticsBySeverity): PieChartData[] => {
     switch (filterType) {
       case 'severity':
-        return generateSeverityPieChartData(stats || calculateStatistics(vulns));
+        return generateSeverityPieChartData(stats || mapStatistics(vulns));
       case 'category':
         return generateCategoryPieChartData(vulns);
       // case 'protocol':
       //   return generateProtocolPieChartData(vulns);
       default:
-        return generateSeverityPieChartData(stats || calculateStatistics(vulns));
+        return generateSeverityPieChartData(stats || mapStatistics(vulns));
     }
   };
 
   const updatePieChartData = (filterType: FilterType) => {
-    const stats = calculateStatistics(vulnerabilities!);
+    const stats = mapStatistics(vulnerabilities!);
     const pieData = generatePieChartData(filterType, vulnerabilities!, stats);
     setPieChartData(pieData);
   };
 
-  const loadVulnerabilities = async () => {
+  const loadStatistics = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const vulns = await getVulnerabilitiesStatistics();
       setVulnerabilities(vulns);
-      
-      const stats = calculateStatistics(vulns);
+
+      const stats = mapStatistics(vulns);
       setStatistics(stats);
-      
+
+      const vulnerabilitiesStatisticsChange = await getVulnerabilitiesStatisticsChanges();
+      setVulnerabilitiesStatisticsChange(vulnerabilitiesStatisticsChange);
+      const reportsStatisticsChange = await getReportStatisticsChanges();
+      setReportsStatisticsChange(reportsStatisticsChange);
+      const protocolsStatisticsChange = await getProtocolStatisticsChanges();
+      setProtocolsStatisticsChange(protocolsStatisticsChange);
+      const auditorsStatisticsChange = await getAuditorStatisticsChanges();
+      setAuditorsStatisticsChange(auditorsStatisticsChange);
+
       const pieData = generatePieChartData('severity', vulns, stats);
       setPieChartData(pieData);
     } catch (err) {
@@ -161,7 +174,7 @@ export const useVulnerabilityStatistics = () => {
   };
 
   useEffect(() => {
-    loadVulnerabilities();
+    loadStatistics();
   }, []);
 
   return {
@@ -170,7 +183,11 @@ export const useVulnerabilityStatistics = () => {
     pieChartData,
     loading,
     error,
-    refresh: loadVulnerabilities,
+    vulnerabilitiesStatisticsChange,
+    reportsStatisticsChange,
+    protocolsStatisticsChange,
+    auditorsStatisticsChange,
+    refresh: loadStatistics,
     updatePieChartData
   };
-}; 
+};

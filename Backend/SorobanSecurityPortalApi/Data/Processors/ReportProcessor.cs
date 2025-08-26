@@ -1,11 +1,12 @@
-using SorobanSecurityPortalApi.Common.Data;
-using SorobanSecurityPortalApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
 using Pgvector;
-using SorobanSecurityPortalApi.Common.Extensions;
-using static SorobanSecurityPortalApi.Common.ExceptionHandlingMiddleware;
 using Pgvector.EntityFrameworkCore;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Data;
+using SorobanSecurityPortalApi.Common.Extensions;
+using SorobanSecurityPortalApi.Models.DbModels;
+using SorobanSecurityPortalApi.Models.ViewModels;
+using static SorobanSecurityPortalApi.Common.ExceptionHandlingMiddleware;
 
 namespace SorobanSecurityPortalApi.Data.Processors
 {
@@ -249,6 +250,23 @@ namespace SorobanSecurityPortalApi.Data.Processors
             db.Report.Update(existing);
             await db.SaveChangesAsync();
         }
+
+        public async Task<ReportStatisticsChangesViewModel> GetStatisticsChanges()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var ago = DateTime.UtcNow.AddMonths(-1);
+            var newReports = await db.Report
+                .AsNoTracking()
+                .Where(v => v.Status == ReportModelStatus.Approved && v.Date >= ago)
+                .CountAsync();
+            return new ReportStatisticsChangesViewModel
+            {
+                Total = await db.Report
+                    .AsNoTracking()
+                    .CountAsync(v => v.Status == ReportModelStatus.Approved),
+                New = newReports
+            };
+        }
     }
 
     public interface IReportProcessor
@@ -265,7 +283,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<List<ReportModel>> GetListForFix();
         Task UpdateEmbedding(int reportId, Vector embedding);
         Task UpdateMdFile(int reportId, string mdFile);
-        
-
+        Task<ReportStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

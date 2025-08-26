@@ -59,5 +59,12 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             return Ok(protocol);
         }
+
+        [HttpGet("statistics/changes")]
+        public async Task<IActionResult> GetStatisticsChanges()
+        {
+            var result = await _protocolService.GetStatisticsChanges();
+            return Ok(result);
+        }
     }
 }

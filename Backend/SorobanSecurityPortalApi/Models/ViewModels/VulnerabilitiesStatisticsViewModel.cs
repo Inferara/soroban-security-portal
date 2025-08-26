@@ -13,4 +13,10 @@
         };
         public Dictionary<string, int> ByTag { get; set; } = new Dictionary<string, int>();
     }
+
+    public class VulnerabilityStatisticsChangesViewModel
+    {
+        public int Total { get; set; }
+        public int New { get; set; }
+    }
 }

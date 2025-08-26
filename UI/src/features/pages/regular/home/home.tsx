@@ -7,9 +7,11 @@ import { GalaxyCanvas } from './galaxy-canvas';
 import { VulnerabilityPieChart } from './vulnerability-pie-chart';
 import { VulnerabilityTable } from './vulnerability-table';
 import ReactGA from 'react-ga4';
+import { StatisticsChanges } from './statistics-changes';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
+  const showTable = false;
 
   const handleGetStarted = () => {
     navigate('/vulnerabilities');
@@ -47,7 +49,7 @@ export const Home: FC = () => {
           component="h2"
           sx={{
             mb: { xs: 2, md: 3 },
-            color: 'black',
+            color: 'background.default',
             textAlign: 'center',
             textShadow: `
               -1px -1px 0 #DDCDB1,
@@ -74,7 +76,7 @@ export const Home: FC = () => {
           sx={{
             mb: { xs: 3, md: 4 },
             textAlign: 'center',
-            color: '#DDCDB1',
+            color: 'primary.contrastText',
             position: 'relative',
             fontSize: 'clamp(1.5rem, 1.5vw, 2rem)',
             zIndex: 3,
@@ -99,30 +101,27 @@ export const Home: FC = () => {
           }}
         >
             <Button
-            variant="contained"
-            onClick={handleGetStarted}
-            sx={{
-              color: 'white',
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 900,
-              textTransform: 'uppercase',
-              borderRadius: '8px',
-              position: 'relative',
-              overflow: 'hidden',
-              '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: '-150%',
-              width: '200%',
-              height: '100%',
-              background: 'linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 70%)',
-              transform: 'skewX(-20deg)',
-              animation: 'glitter 2s infinite',
-              },
-            }}
+              variant="contained"
+              onClick={handleGetStarted}
+              sx={{
+                px: 4,
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: '-150%',
+                  width: '200%',
+                  height: '100%',
+                  background: 'linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 70%)',
+                  transform: 'skewX(-20deg)',
+                  animation: 'glitter 2s infinite',
+                },
+              }}
             >
             Warp
             </Button>
@@ -147,19 +146,16 @@ export const Home: FC = () => {
             variant="outlined"
             onClick={handleLearnMore}
             sx={{
-              color: '#1A1A1A',
-              borderColor: '#fafafa',
-              backgroundColor: '#fafafa',
+              color: 'background.default',
+              borderColor: 'primary.main',
+              backgroundColor: 'primary.main',
               px: 4,
               py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 900,
               textTransform: 'none',
-              borderRadius: '8px',
               '&:hover': {
                 backgroundColor: 'rgba(250, 250, 250, 0.1)',
-                borderColor: '#fafafa',
-                color: '#fafafa',
+                borderColor: 'primary.main',
+                color: 'primary.main',
               },
             }}
           >
@@ -168,12 +164,17 @@ export const Home: FC = () => {
         </Box>
       </Box>
 
+      <Box sx={{ p: 4}}>
+        <StatisticsChanges />
+      </Box>
       {/* Vulnerability Statistics Pie Chart */}
       <Box
         sx={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
+          pt: 25,
+          pb: 20
         }}
       >
         <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
@@ -183,9 +184,11 @@ export const Home: FC = () => {
               width={350}
             />
           </div>
-          <div style={{ paddingTop: '100px', paddingBottom: '100px' }}>
-            <VulnerabilityTable />
-          </div>
+          {showTable && (
+            <div style={{ paddingTop: '100px', paddingBottom: '100px' }}>
+              <VulnerabilityTable />
+            </div>
+          )}
         </div>
       </Box>
     </Box>
