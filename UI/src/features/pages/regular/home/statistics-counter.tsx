@@ -192,7 +192,7 @@ export const AnimatedSuperscriptCounter: FC<AnimatedSuperscriptCounterProps> = (
                     pl: 1,
                 }
             }} badgeContent={text}>
-                <Typography variant="h1" color="text.secondary">
+                <Typography variant="h1" color="primary.contrastText">
                     {formatted}
                 </Typography>
             </Badge>

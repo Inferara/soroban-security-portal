@@ -49,7 +49,7 @@ export const Home: FC = () => {
           component="h2"
           sx={{
             mb: { xs: 2, md: 3 },
-            color: 'black',
+            color: 'background.default',
             textAlign: 'center',
             textShadow: `
               -1px -1px 0 #DDCDB1,
@@ -76,7 +76,7 @@ export const Home: FC = () => {
           sx={{
             mb: { xs: 3, md: 4 },
             textAlign: 'center',
-            color: '#DDCDB1',
+            color: 'primary.contrastText',
             position: 'relative',
             fontSize: 'clamp(1.5rem, 1.5vw, 2rem)',
             zIndex: 3,
@@ -101,30 +101,27 @@ export const Home: FC = () => {
           }}
         >
             <Button
-            variant="contained"
-            onClick={handleGetStarted}
-            sx={{
-              color: 'white',
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 900,
-              textTransform: 'uppercase',
-              borderRadius: '8px',
-              position: 'relative',
-              overflow: 'hidden',
-              '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: '-150%',
-              width: '200%',
-              height: '100%',
-              background: 'linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 70%)',
-              transform: 'skewX(-20deg)',
-              animation: 'glitter 2s infinite',
-              },
-            }}
+              variant="contained"
+              onClick={handleGetStarted}
+              sx={{
+                px: 4,
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: '-150%',
+                  width: '200%',
+                  height: '100%',
+                  background: 'linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 70%)',
+                  transform: 'skewX(-20deg)',
+                  animation: 'glitter 2s infinite',
+                },
+              }}
             >
             Warp
             </Button>
@@ -149,19 +146,16 @@ export const Home: FC = () => {
             variant="outlined"
             onClick={handleLearnMore}
             sx={{
-              color: '#1A1A1A',
-              borderColor: '#fafafa',
-              backgroundColor: '#fafafa',
+              color: 'background.default',
+              borderColor: 'primary.main',
+              backgroundColor: 'primary.main',
               px: 4,
               py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 900,
               textTransform: 'none',
-              borderRadius: '8px',
               '&:hover': {
                 backgroundColor: 'rgba(250, 250, 250, 0.1)',
-                borderColor: '#fafafa',
-                color: '#fafafa',
+                borderColor: 'primary.main',
+                color: 'primary.main',
               },
             }}
           >

@@ -60,19 +60,6 @@ const UserDetails = styled(Typography)(() => ({
   marginBottom: '4px',
 }));
 
-const SaveButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#3B82F6', // Blue background
-  color: '#ffffff',
-  borderRadius: '8px',
-  padding: theme.spacing(1, 3),
-  textTransform: 'none',
-  fontSize: '14px',
-  fontWeight: 500,
-  '&:hover': {
-    backgroundColor: '#2563EB',
-  },
-}));
-
 const ContentSection = styled(Paper)(({ theme }) => ({
   border: '1px solid #f2f2f2', // Light gray border
   borderRadius: '8px',
@@ -86,23 +73,6 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
   fontWeight: 'bold',
   color: '#ffffff',
   marginBottom: theme.spacing(2),
-}));
-
-const ConnectButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#fafafa',
-  '&:disabled': {
-    backgroundColor: '#4b4646ff', // Slightly darker gray for disabled state
-  },
-  width: '100px',
-  color: '#374151', // Dark gray text
-  borderRadius: '8px',
-  padding: theme.spacing(1, 2),
-  textTransform: 'none',
-  fontSize: '12px',
-  fontWeight: 500,
-  '&:hover': {
-    backgroundColor: '#aaaaaa',
-  },
 }));
 
 const AccountItem = styled(Box)(({ theme }) => ({
@@ -316,10 +286,10 @@ export const EditProfile: React.FC = () => {
   };
 
   const connectedAccounts = [
-    { name: 'Google account', icon: <GoogleIcon sx={{ color: '#ffffff' }} />, connected: false },
-    { name: 'Discord account', icon: <ChatIcon sx={{ color: '#ffffff' }} />, connected: false },
-    { name: 'GitHub account', icon: <GitHubIcon sx={{ color: '#ffffff' }} />, connected: false },
-    { name: 'X account', icon: <XIcon sx={{ color: '#ffffff' }} />, connected: false },
+    { name: 'Google account', icon: <GoogleIcon sx={{ color: 'primary.main' }} />, connected: false },
+    { name: 'Discord account', icon: <ChatIcon sx={{ color: 'primary.main' }} />, connected: false },
+    { name: 'GitHub account', icon: <GitHubIcon sx={{ color: 'primary.main' }} />, connected: false },
+    { name: 'X account', icon: <XIcon sx={{ color: 'primary.main' }} />, connected: false },
   ];
 
   return (
@@ -375,13 +345,13 @@ export const EditProfile: React.FC = () => {
               </UserDetails>
             </UserInfo>
           </AvatarContainer>
-          <SaveButton
+          <Button
             variant="contained"
             onClick={handleSaveProfile}
             disabled={isLoading}
           >
             Save Profile
-          </SaveButton>
+          </Button>
         </ProfileHeader>
 
         {/* Personal Information Section */}
@@ -442,9 +412,19 @@ export const EditProfile: React.FC = () => {
                   {account.name}
                 </AccountName>
               </AccountInfo>
-              <ConnectButton disabled={true}>
+              <Button disabled={false} variant="contained" sx={{
+                  color: 'background.default',
+                  borderColor: 'primary.main',
+                  backgroundColor: 'primary.main',
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: 'rgba(250, 250, 250, 0.1)',
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                  },
+                }}>
                 Connect
-              </ConnectButton>
+              </Button>
             </AccountItem>
           ))}
         </ContentSection>

@@ -91,8 +91,6 @@ export const Reports: FC = () => {
           {canAddReport(auth) && (
             <Button
               variant="contained"
-              color="primary"
-              sx={{ fontWeight: 600, borderRadius: 2 }}
               onClick={() => navigate('/reports/add')}
             >
               Add Report
@@ -239,8 +237,6 @@ export const Reports: FC = () => {
           </span>
           <Button
             variant="contained"
-            color="primary"
-            sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
             onClick={() => searchReports(
               {
                 searchText,
@@ -328,14 +324,14 @@ export const Reports: FC = () => {
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     onClick={() => handleReportDownload(report.id)}
-                    sx={{
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      backgroundColor: themeMode === 'light' ? '#1A1A1A' : '#fafafa',
-                      color: themeMode === 'light' ? '#fafafa' : '#1A1A1A'
-                    }}
+                    // sx={{
+                    //   fontWeight: 600,
+                    //   borderRadius: 2,
+                    //   backgroundColor: themeMode === 'light' ? '#1A1A1A' : '#fafafa',
+                    //   color: themeMode === 'light' ? '#fafafa' : '#1A1A1A'
+                    // }}
                   >
                     Download Report
                   </Button>

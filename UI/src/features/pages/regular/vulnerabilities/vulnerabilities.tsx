@@ -460,8 +460,6 @@ export const Vulnerabilities: FC = () => {
           {canAddVulnerability(auth) && (
             <Button
               variant="contained"
-              color="primary"
-              sx={{ fontWeight: 600, borderRadius: 2 }}
               onClick={() => navigate('/vulnerabilities/add')}
             >
               Add Vulnerability
@@ -546,9 +544,7 @@ export const Vulnerabilities: FC = () => {
           </IconButton>
           <Button
             variant="contained"
-            color="primary"
             disabled={isLoading}
-            sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
             onClick={() => {
               setCurrentPage(1); // Reset to first page when searching
               callSearch();
@@ -564,10 +560,8 @@ export const Vulnerabilities: FC = () => {
             )}
           </Button>
           <Button
-            variant="outlined"
-            color="secondary"
+            variant="contained"
             disabled={isLoading}
-            sx={{ fontWeight: 600, borderRadius: 2, height: 40, alignSelf: 'flex-end' }}
             onClick={() => {
               clearAllFilters();
               callSearch({
@@ -990,9 +984,9 @@ export const Vulnerabilities: FC = () => {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Button
-                              variant="outlined"
+                              variant="contained"
                               size="small"
-                              sx={{ textTransform: 'none' }}
+                              sx={{ textTransform: 'none', width: 150, height: 30 }}
                             >
                               View Report
                             </Button>
@@ -1002,13 +996,13 @@ export const Vulnerabilities: FC = () => {
                           if (report) {
                             return (
                                 <Button
-                                  variant="outlined"
+                                  variant="contained"
                                   size="small"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDownloadReport(report.id);
                                   }}
-                                  sx={{ textTransform: 'none' }}
+                                  sx={{ textTransform: 'none', width: 150, height: 30 }}
                                 >
                                   Download Report
                                 </Button>
@@ -1084,9 +1078,21 @@ export const Vulnerabilities: FC = () => {
                           }}
                         >
                           <Button
-                          variant="outlined"
+                          variant="contained"
                           size="small"
-                          sx={{ textTransform: 'none' }}
+                          sx={{
+                            color: 'background.default',
+                            borderColor: 'primary.main',
+                            backgroundColor: 'primary.main',
+                            textTransform: 'none',
+                            width: 150,
+                            height: 30,
+                            '&:hover': {
+                              backgroundColor: 'rgba(250, 250, 250, 0.1)',
+                              borderColor: 'primary.main',
+                              color: 'primary.main',
+                            },
+                           }}
                           >
                           View source code
                           </Button>

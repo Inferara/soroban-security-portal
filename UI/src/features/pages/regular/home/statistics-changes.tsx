@@ -29,7 +29,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
           targetRaw={vulnerabilitiesStatisticsChange?.total ?? 0}
           supRaw={vulnerabilitiesStatisticsChange?.new ?? 0}
         />
-        <Typography variant="h4" sx={{ color: "#9e9e9e", textTransform: "uppercase", mt: 1 }}>
+        <Typography variant="h4" sx={{ color: "text.primary", textTransform: "uppercase", mt: 1 }}>
           Vulnerabilities
         </Typography>
       </Grid>
@@ -42,7 +42,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
           targetRaw={reportsStatisticsChange?.total ?? 0}
           supRaw={reportsStatisticsChange?.new ?? 0}
         />
-        <Typography variant="h4" sx={{ color: "#9e9e9e", textTransform: "uppercase", mt: 1 }}>
+        <Typography variant="h4" sx={{ color: "text.primary", textTransform: "uppercase", mt: 1 }}>
           Reports
         </Typography>
       </Grid>
@@ -55,7 +55,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
           targetRaw={protocolsStatisticsChange?.total ?? 0}
           supRaw={protocolsStatisticsChange?.new ?? 0}
         />
-        <Typography variant="h4" sx={{ color: "#9e9e9e", textTransform: "uppercase", mt: 1 }}>
+        <Typography variant="h4" sx={{ color: "text.primary", textTransform: "uppercase", mt: 1 }}>
           Protocols
         </Typography>
       </Grid>
@@ -68,7 +68,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
           targetRaw={auditorsStatisticsChange?.total ?? 0}
           supRaw={auditorsStatisticsChange?.new ?? 0}
         />
-        <Typography variant="h4" sx={{ color: "#9e9e9e", textTransform: "uppercase", mt: 1 }}>
+        <Typography variant="h4" sx={{ color: "text.primary", textTransform: "uppercase", mt: 1 }}>
           Auditors
         </Typography>
       </Grid>
