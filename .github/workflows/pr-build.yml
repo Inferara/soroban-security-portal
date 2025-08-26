@@ -3,7 +3,10 @@ name: PR Build
 on:
   pull_request:
     branches:
-      - '**'
+      - include:
+          - '**'
+        exclude:
+          - 'main'
 
 jobs:
   build:
