@@ -14,7 +14,8 @@ import {
   Box, 
   Tooltip,
   Select,
-  MenuItem} from '@mui/material'
+  MenuItem,
+  Stack} from '@mui/material'
 import { useSettings } from './hooks';
 import { styled } from '@mui/material/styles';
 import { SettingsItem, DateType } from '../../../../api/soroban-security-portal/models/settings';
@@ -231,14 +232,19 @@ export const Settings: React.FC = () => {
             </React.Fragment>
           ))
         }
-        <Grid size={12}>
-          <Item>
-            <Button onClick={handleSave}>Save</Button>
-            <Button onClick={handleReboot}>Reboot</Button>
-            <Button onClick={() => history.back()}>Cancel</Button>
-          </Item>
-        </Grid>
       </Grid>      
+      <Stack sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 2,
+          marginTop: 2,
+          flexDirection: 'row'
+        }}>
+        <Button onClick={handleSave}>Save</Button>
+        <Button onClick={handleReboot}>Reboot</Button>
+        <Button onClick={() => history.back()}>Cancel</Button>
+      </Stack>
     </Box>
   );
 }

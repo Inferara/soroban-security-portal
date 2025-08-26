@@ -210,16 +210,16 @@ export const AddVulnerability: FC = () => {
               <BugReportIcon fontSize="large" />
             </Avatar>
           }
-          title={<Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.primary.dark }}>Add Vulnerability</Typography>}
-          subheader={<Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>Report a new security issue</Typography>}
+          title={<Typography variant="h4" sx={{ fontWeight: 700, color: 'background.default' }}>Add Vulnerability</Typography>}
+          subheader={<Typography variant="subtitle1" sx={{ color: 'background.default' }}>Report a new security issue</Typography>}
           sx={{ bgcolor: theme.palette.primary.light, px: 4, py: 3, borderBottom: `1px solid ${theme.palette.divider}` }}
         />
         <CardContent sx={{ px: { xs: 2, sm: 4, md: 6 }, py: { xs: 2, sm: 4 } }}>
           <Grid container spacing={4}>
             {/* Basic Information Section */}
             <Grid size={12}>
-              <Box sx={{ bgcolor: theme.palette.success.light, px: 2, py: 1.5, borderRadius: 2, mb: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.success.dark }}>
+              <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
                   Basic Information
                 </Typography>
               </Box>
@@ -250,8 +250,8 @@ export const AddVulnerability: FC = () => {
 
             {/* Classification Section */}
             <Grid size={12}>
-              <Box sx={{ bgcolor: theme.palette.warning.light, px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.warning.dark }}>
+              <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
                   Classification
                 </Typography>
               </Box>
@@ -353,8 +353,8 @@ export const AddVulnerability: FC = () => {
               />
             </Grid>
             <Grid size={12}>
-              <Box sx={{ bgcolor: theme.palette.info.light, px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.info.dark }}>
+              <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
                   Images (Optional). Files Container Guid: {picturesContainerGuid}
                 </Typography>
               </Box>
@@ -405,12 +405,11 @@ export const AddVulnerability: FC = () => {
                       Drag and drop up to 5 images here, or click to browse
                     </Typography>
                     <Button
-                      variant="outlined"
+                      variant="contained"
                       onClick={(e) => {
                         e.stopPropagation();
                         imageInputRef.current?.click();
                       }}
-                      sx={{ borderRadius: 2 }}
                     >
                       Choose Images
                     </Button>
@@ -513,12 +512,11 @@ export const AddVulnerability: FC = () => {
                     </Box>
                     {selectedImages.length < 5 && (
                       <Button
-                        variant="outlined"
+                        variant="contained"
                         onClick={(e) => {
                           e.stopPropagation();
                           imageInputRef.current?.click();
                         }}
-                        sx={{ mt: 2, borderRadius: 2 }}
                       >
                         Add More Images
                       </Button>
@@ -553,8 +551,7 @@ export const AddVulnerability: FC = () => {
               <Divider sx={{ my: 3 }} />
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                 <Button
-                  variant="outlined"
-                  sx={{ fontWeight: 600, borderRadius: 2, minWidth: 120 }}
+                  variant="contained"
                   onClick={() => navigate('/vulnerabilities')}
                 >
                   Cancel
@@ -562,7 +559,6 @@ export const AddVulnerability: FC = () => {
                 <Button
                   variant="contained"
                   color="success"
-                  sx={{ fontWeight: 600, borderRadius: 2, minWidth: 180, fontSize: 18, py: 1.2, boxShadow: 2 }}
                   onClick={addNewVulnerability}
                   disabled={isUploading}
                 >

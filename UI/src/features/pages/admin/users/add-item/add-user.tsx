@@ -1,5 +1,4 @@
-import { Button, Grid, MenuItem, Paper, Select, TextField } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Button, Grid, MenuItem, Select, Stack, TextField } from '@mui/material';
 import { FC, useState } from 'react';
 import { CreateUserItem } from '../../../../../api/soroban-security-portal/models/user.ts';
 import { showError } from '../../../../dialog-handler/dialog-handler.ts';
@@ -8,14 +7,6 @@ import { useAddUser } from './hooks';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
-
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: '0px',
-  textAlign: 'center',
-  border: '0px',
-  boxShadow: 'none',
-}));
 
 export const AddUser: FC = () => {
   const navigate = useNavigate();
@@ -62,10 +53,7 @@ export const AddUser: FC = () => {
   return (
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
-        <Grid size={12} sx={{textAlign: 'center'}} >   
-          <h3>New User</h3>
-        </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }} >
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -76,7 +64,7 @@ export const AddUser: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }} >
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -87,7 +75,7 @@ export const AddUser: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -98,7 +86,7 @@ export const AddUser: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
           <Select
             sx={{ width: defaultUiSettings.editControlSize }}
             id="role-select"
@@ -110,8 +98,8 @@ export const AddUser: FC = () => {
             <MenuItem value={Role.Contributor}>Contributor</MenuItem>
             <MenuItem value={Role.Moderator}>Moderator</MenuItem>
           </Select>
-        </Grid>        
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
+        </Grid>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -123,7 +111,7 @@ export const AddUser: FC = () => {
             type="password"
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -135,13 +123,11 @@ export const AddUser: FC = () => {
             type="password"
           />
         </Grid>
-        <Grid size={12}>
-          <Item>
-            <Button onClick={handleCreateUser}>Create User</Button>
-            <Button onClick={() => history.back()}>Cancel</Button>
-          </Item>
-        </Grid>
       </Grid>
+      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+        <Button onClick={handleCreateUser}>Create User</Button>
+        <Button onClick={() => history.back()}>Cancel</Button>
+      </Stack>
     </div>
   );
 };

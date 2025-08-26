@@ -1,4 +1,4 @@
-import { Button, Grid, MenuItem, Paper, Select, TextField } from '@mui/material';
+import { Button, Grid, MenuItem, Paper, Select, Stack, TextField } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { FC, useEffect, useState } from 'react';
 import { EditUserItem } from '../../../../../api/soroban-security-portal/models/user';
@@ -113,13 +113,11 @@ export const EditUser: FC = () => {
             <MenuItem value={Role.Moderator}>Moderator</MenuItem>
           </Select>
         </Grid>
-        <Grid size={12}>
-          <Item>
-            <Button onClick={handleEditUser}>Save</Button>
-            <Button onClick={() => history.back()}>Cancel</Button>
-          </Item>
-        </Grid>
       </Grid>
+      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+        <Button onClick={handleEditUser}>Save</Button>
+        <Button onClick={() => history.back()}>Cancel</Button>
+      </Stack>
     </div>
   );
 };

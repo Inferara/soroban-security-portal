@@ -1,4 +1,4 @@
-import { Button, Grid, Paper, TextField } from '@mui/material';
+import { Button, Grid, Paper, Stack, TextField } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { FC, useEffect, useState } from 'react';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
@@ -59,9 +59,6 @@ export const EditCompany: FC = () => {
   return (
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
-        <Grid size={12} sx={{textAlign: 'center'}}>
-          <h3>Edit Company</h3>
-        </Grid>
         <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
@@ -84,13 +81,11 @@ export const EditCompany: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12}>
-          <Item>
-            <Button onClick={handleEditCompany}>Save</Button>
-            <Button onClick={() => history.back()}>Cancel</Button>
-          </Item>
-        </Grid>
       </Grid>
+      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+        <Button onClick={handleEditCompany}>Save</Button>
+        <Button onClick={() => history.back()}>Cancel</Button>
+      </Stack>
     </div>
   );
 };
