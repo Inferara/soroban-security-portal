@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Models.DbModels;
+using SorobanSecurityPortalApi.Models.ViewModels;
 
 namespace SorobanSecurityPortalApi.Data.Processors
 {
@@ -38,8 +39,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
             {
                 throw new KeyNotFoundException($"Protocol with ID {protocolModel.Id} not found");
             }
-
-
             existingProtocol.Name = protocolModel.Name;
             existingProtocol.CompanyId = protocolModel.CompanyId;
             existingProtocol.Url = protocolModel.Url;
@@ -67,6 +66,23 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .OrderByDescending(x => x.Id)
                 .ToListAsync();
         }
+
+        public async Task<ProtocolStatisticsChangesViewModel> GetStatisticsChanges()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var ago = DateTime.UtcNow.AddMonths(-1);
+            var newProtocols = await db.Protocol
+                .AsNoTracking()
+                .Where(v => v.Date >= ago)
+                .CountAsync();
+            return new ProtocolStatisticsChangesViewModel
+            {
+                Total = await db.Protocol
+                    .AsNoTracking()
+                    .CountAsync(),
+                New = newProtocols
+            };
+        }
     }
 
     public interface IProtocolProcessor
@@ -75,5 +91,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<ProtocolModel> Update(ProtocolModel protocolModel);
         Task Delete(int protocolModelId);
         Task<List<ProtocolModel>> List();
+        Task<ProtocolStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

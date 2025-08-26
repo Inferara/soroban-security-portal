@@ -1,9 +1,11 @@
 using Microsoft.Extensions.Caching.Distributed;
 using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Models.ViewModels;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Web;
+using static System.Net.WebRequestMethods;
 
 namespace SorobanSecurityPortalApi.Common.SsoSources
 {

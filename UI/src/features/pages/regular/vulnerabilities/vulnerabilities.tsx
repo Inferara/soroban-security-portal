@@ -871,46 +871,6 @@ export const Vulnerabilities: FC = () => {
                       <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
                     ))}
                     <Chip label={vuln.protocolName} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
-                    <Box sx={{ flexGrow: 1 }} />
-                    {vuln.reportName === 'External' ? (
-                      <MuiLink
-                        href={vuln.reportUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ textDecoration: 'none' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          sx={{ textTransform: 'none' }}
-                        >
-                          View Report
-                        </Button>
-                      </MuiLink>
-                    ) : (() => {
-                      const report = reportsList.find(report => report.name === vuln.reportName);
-                      if (report) {
-                        return (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadReport(report.id);
-                              }}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              Download Report
-                            </Button>
-                        );
-                      }
-                      return (
-                        <Typography variant="caption" color="text.disabled">
-                          No report available
-                        </Typography>
-                      );
-                    })()}
                   </Stack>
                 </CardContent>
               </Card>
@@ -1021,6 +981,45 @@ export const Vulnerabilities: FC = () => {
                             onClick={() => handleChipClick('source', selectedVulnerability.reportName)}
                           />
                         </Typography>
+                        {selectedVulnerability.reportName === 'External' ? (
+                          <MuiLink
+                            href={selectedVulnerability.reportUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ textDecoration: 'none' }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              sx={{ textTransform: 'none' }}
+                            >
+                              View Report
+                            </Button>
+                          </MuiLink>
+                        ) : (() => {
+                          const report = reportsList.find(report => report.name === selectedVulnerability.reportName);
+                          if (report) {
+                            return (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadReport(report.id);
+                                  }}
+                                  sx={{ textTransform: 'none' }}
+                                >
+                                  Download Report
+                                </Button>
+                            );
+                          }
+                          return (
+                            <Typography variant="caption" color="text.disabled">
+                              No report available
+                            </Typography>
+                          );
+                        })()}
                       </Box>
                       )}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
@@ -1070,19 +1069,26 @@ export const Vulnerabilities: FC = () => {
                         </Typography>
                         <MuiLink
                           href={(() => {
-                            const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
-                            return protocol?.url || '#';
+                          const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
+                          return protocol?.url || '#';
                           })()}
                           target="_blank"
                           rel="noopener noreferrer"
                           sx={{ textDecoration: 'none' }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
+                            if (protocol?.url) {
+                              window.open(protocol.url, '_blank');
+                            }
+                          }}
                         >
                           <Button
-                            variant="outlined"
-                            size="small"
-                            sx={{ textTransform: 'none' }}
+                          variant="outlined"
+                          size="small"
+                          sx={{ textTransform: 'none' }}
                           >
-                            View source code
+                          View source code
                           </Button>
                         </MuiLink>
                       </Box>

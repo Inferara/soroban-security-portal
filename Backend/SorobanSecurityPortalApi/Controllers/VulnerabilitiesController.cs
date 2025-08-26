@@ -180,5 +180,12 @@ namespace SorobanSecurityPortalApi.Controllers
             var result = await _vulnerabilityService.GetStatistics();
             return Ok(result);
         }
+
+        [HttpGet("statistics/changes")]
+        public async Task<IActionResult> GetStatisticsChanges()
+        {
+            var result = await _vulnerabilityService.GetStatisticsChange();
+            return Ok(result);
+        }
     }
 }

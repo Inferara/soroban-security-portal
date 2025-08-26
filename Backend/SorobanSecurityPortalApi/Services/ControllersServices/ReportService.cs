@@ -109,6 +109,12 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var reports = await _reportProcessor.GetList();
             return _mapper.Map<List<ReportViewModel>>(reports);
         }
+
+        public async Task<ReportStatisticsChangesViewModel> GetStatisticsChanges()
+        {
+            var stats = await _reportProcessor.GetStatisticsChanges();
+            return _mapper.Map<ReportStatisticsChangesViewModel>(stats);
+        }
     }
 
     public interface IReportService
@@ -121,6 +127,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task Reject(int vulnerabilityId);
         Task Remove(int reportId);
         Task<List<ReportViewModel>> GetList();
-
+        Task<ReportStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

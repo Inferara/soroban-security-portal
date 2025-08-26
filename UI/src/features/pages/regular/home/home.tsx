@@ -7,9 +7,11 @@ import { GalaxyCanvas } from './galaxy-canvas';
 import { VulnerabilityPieChart } from './vulnerability-pie-chart';
 import { VulnerabilityTable } from './vulnerability-table';
 import ReactGA from 'react-ga4';
+import { StatisticsChanges } from './statistics-changes';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
+  const showTable = false;
 
   const handleGetStarted = () => {
     navigate('/vulnerabilities');
@@ -168,12 +170,17 @@ export const Home: FC = () => {
         </Box>
       </Box>
 
+      <Box sx={{ p: 4}}>
+        <StatisticsChanges />
+      </Box>
       {/* Vulnerability Statistics Pie Chart */}
       <Box
         sx={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
+          pt: 25,
+          pb: 20
         }}
       >
         <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
@@ -183,9 +190,11 @@ export const Home: FC = () => {
               width={350}
             />
           </div>
-          <div style={{ paddingTop: '100px', paddingBottom: '100px' }}>
-            <VulnerabilityTable />
-          </div>
+          {showTable && (
+            <div style={{ paddingTop: '100px', paddingBottom: '100px' }}>
+              <VulnerabilityTable />
+            </div>
+          )}
         </div>
       </Box>
     </Box>

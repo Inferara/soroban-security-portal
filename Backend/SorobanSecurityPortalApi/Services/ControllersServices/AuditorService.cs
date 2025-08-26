@@ -48,6 +48,12 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             auditorModel = await _auditorProcessor.Update(auditorModel);
             return _mapper.Map<AuditorViewModel>(auditorModel);
         }
+
+        public async Task<AuditorStatisticsChangesViewModel> GetStatisticsChanges()
+        {
+            var statsChange = await _auditorProcessor.GetStatisticsChanges();
+            return _mapper.Map<AuditorStatisticsChangesViewModel>(statsChange);
+        }
     }
 
     public interface IAuditorService
@@ -56,5 +62,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<AuditorViewModel>> List();
         Task Delete(int id);
         Task<AuditorViewModel> Update(AuditorViewModel auditorViewModel);
+        Task<AuditorStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

@@ -5,7 +5,7 @@ import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
 import { environment } from './../../environments/environment';
 import { User } from "oidc-client-ts"
-import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityStatistics } from './models/vulnerability';
+import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityStatistics, StatisticsChanges } from './models/vulnerability';
 import { AddReport, Report, ReportSearch } from './models/report';
 import { AuditorItem } from './models/auditor';
 import { ProtocolItem } from './models/protocol';
@@ -76,6 +76,11 @@ export const getAuditorByIdCall = async (auditorId: number): Promise<AuditorItem
     const response = await client.request(`api/v1/auditors/${auditorId}`, 'GET');
     return response.data as AuditorItem;
 };
+export const getAuditorStatisticsChanges = async (): Promise<StatisticsChanges> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/auditors/statistics/changes', 'GET');
+    return response.data as StatisticsChanges;
+};
 
 // --- PROTOCOLS ---
 export const getProtocolListDataCall = async (): Promise<ProtocolItem[]> => {
@@ -102,6 +107,11 @@ export const getProtocolByIdCall = async (protocolId: number): Promise<ProtocolI
     const client = await getRestClient();
     const response = await client.request(`api/v1/protocols/${protocolId}`, 'GET');
     return response.data as ProtocolItem;
+};
+export const getProtocolStatisticsChanges = async (): Promise<StatisticsChanges> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/protocols/statistics/changes', 'GET');
+    return response.data as StatisticsChanges;
 };
 
 // --- COMPANIES ---
@@ -172,6 +182,11 @@ export const editReportCall = async (report: Report): Promise<boolean> => {
     const response = await client.request(`api/v1/reports/${report.id}`, 'PUT', report);
     return response.data as boolean;
 };
+export const getReportStatisticsChanges = async (): Promise<StatisticsChanges> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/reports/statistics/changes', 'GET');
+    return response.data as StatisticsChanges;
+};
 
 // --- VULNERABILITIES ---
 export const getSeveritiesCall = async (): Promise<VulnerabilitySeverity[]> => {
@@ -193,6 +208,11 @@ export const getVulnerabilitiesStatistics = async (): Promise<VulnerabilityStati
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities/statistics', 'GET');
     return response.data as VulnerabilityStatistics;
+};
+export const getVulnerabilitiesStatisticsChanges = async (): Promise<StatisticsChanges> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/vulnerabilities/statistics/changes', 'GET');
+    return response.data as StatisticsChanges;
 };
 export const getVulnerabilitiesTotalCall = async (vulnerabilitySearch?: VulnerabilitySearch): Promise<number> => {
     const client = await getRestClient();

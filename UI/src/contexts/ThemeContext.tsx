@@ -186,9 +186,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   useEffect(() => {
     localStorage.setItem('themeMode', themeMode);
-    
-    // Set CSS custom properties for theme-aware styling
-    // This approach works well with Material-UI and allows for dynamic theming
     const root = document.documentElement;
     if (themeMode === 'dark') {
       root.style.setProperty('--highlight-bg', '#1a1a1a');

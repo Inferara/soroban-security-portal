@@ -164,6 +164,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             return await _vulnerabilityProcessor.GetStatistics();
         }
+
+        public async Task<VulnerabilityStatisticsChangesViewModel> GetStatisticsChange()
+        {
+            return await _vulnerabilityProcessor.GetStatisticsChanges();
+        }
     }
 
     public class IdValue
@@ -190,5 +195,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task<List<VulnerabilityViewModel>> GetList();
         Task<VulnerabilitiesStatisticsViewModel> GetStatistics();
+        Task<VulnerabilityStatisticsChangesViewModel> GetStatisticsChange();
     }
 }
