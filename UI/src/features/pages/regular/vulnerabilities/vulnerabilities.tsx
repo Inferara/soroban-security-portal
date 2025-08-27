@@ -50,6 +50,7 @@ import { showMessage } from '../../../dialog-handler/dialog-handler';
 import 'katex/dist/katex.min.css';
 import './katex.css';
 import ReactGA from 'react-ga4';
+import { VulnerabilityCard } from './vulnerability-card';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -106,6 +107,19 @@ export const Vulnerabilities: FC = () => {
   const [searchParams] = useSearchParams();
   const canAddVulnerability = (auth: AuthContextProps) =>
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
+
+  const [isOnSmallScreen, setIsOnSmallScreen] = useState(window.innerWidth < 650);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsOnSmallScreen(window.innerWidth < 650);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const canDownloadReport = (auth: AuthContextProps) => isAuthorized(auth);
 
@@ -478,7 +492,7 @@ export const Vulnerabilities: FC = () => {
               }
             }}
             placeholder="Search"
-            sx={{ minWidth: 750 }}
+            sx={{ width: '100%', maxWidth: 930 }}
             slotProps={{
               input: {
                 endAdornment: (
@@ -774,7 +788,7 @@ export const Vulnerabilities: FC = () => {
         <Box sx={{ display: 'flex', flexDirection: 'row', height: '70vh'}}>
         {/* Vulnerability cards */}
         <Stack spacing={3} sx={{
-          width: selectedVulnerability ? '50%' : '100%',
+          width: selectedVulnerability ? ( isOnSmallScreen ? '100%' : '50%') : '100%',
           overflow: 'auto',
           borderColor: 'divider',
           transition: 'width 0.3s ease-in-out',
@@ -873,313 +887,14 @@ export const Vulnerabilities: FC = () => {
         </Stack>
         {/* Vulnerability Profile Section */}
         {selectedVulnerability && (
-          <Box sx={{
-            width: '50%',
-            overflow: 'auto',
-            transition: 'width 0.3s ease-in-out',
-            '&::-webkit-scrollbar': {
-              width: '12px',
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: 'rgba(0, 0, 0, 0.1)',
-              borderRadius: '4px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: '4px',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              },
-            },
-            '&::-webkit-scrollbar-corner': {
-              backgroundColor: 'transparent',
-            },
-          }}>
-            <Box sx={{ pl: 1, pr: 1 }}>
-              <Card sx={{
-                borderRadius: '20px',
-                border: '1px solid',
-                backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-                mb: 3
-              }}>
-                <CardContent>
-                  <Box sx={{ mb: 2, l: 2 }}>
-                    <Stack spacing={1}>
-                      <Box sx={{ display: 'flex', flexDirection: 'row'}}>
-                        <Typography variant='h6' sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>{selectedVulnerability.title}</Typography>
-                        <IconButton
-                          onClick={handleCloseProfile}
-                          sx={{
-                            color: themeMode === 'light' ? 'text.secondary' : 'text.disabled',
-                            '&:hover': {
-                              color: 'text.primary'
-                            }
-                          }}
-                        >
-                          <CloseIcon />
-                        </IconButton>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '40px' }}>
-                        <Typography variant="body2" color="text.primary" component="div">Severity:
-                          <Chip
-                            label={selectedVulnerability.severity}
-                            size="small"
-                            sx={{
-                              marginLeft: '12px',
-                              border: '2px solid',
-                              backgroundColor: 'transparent',
-                              borderColor: (() => {
-                                switch (selectedVulnerability.severity) {
-                                  case 'Critical': return '#c72e2b95';
-                                  case 'High': return '#FF6B3D95';
-                                  case 'Medium': return '#FFD84D95';
-                                  case 'Low': return '#569E6795';
-                                  case 'Note': return '#72F1FF95';
-                                  default: return '#e0e0e0';
-                                }
-                              })(),
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              '&:hover': {
-                                opacity: 0.8,
-                                transform: 'scale(1.05)',
-                                transition: 'all 0.2s ease-in-out'
-                              }
-                            }}
-                            onClick={() => handleChipClick('severity', selectedVulnerability.severity)}
-                          />
-                        </Typography>
-                      </Box>
-                      {(selectedVulnerability.reportName) && (
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
-                        <Typography variant="body2" color="text.primary" component="div">Report info:
-                          <Chip
-                            label={selectedVulnerability.reportName}
-                            size="small"
-                            sx={{
-                              marginLeft: '12px',
-                              border: '2px solid',
-                              backgroundColor: 'transparent',
-                              fontWeight: 700,
-                              maxWidth: '250px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              cursor: 'pointer',
-                              '&:hover': {
-                                opacity: 0.8,
-                                transform: 'scale(1.05)',
-                                transition: 'all 0.2s ease-in-out'
-                              }
-                            }}
-                            onClick={() => handleChipClick('source', selectedVulnerability.reportName)}
-                          />
-                        </Typography>
-                        {selectedVulnerability.reportName === 'External' ? (
-                          <MuiLink
-                            href={selectedVulnerability.reportUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            sx={{ textDecoration: 'none' }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              variant="contained"
-                              size="small"
-                              sx={{ textTransform: 'none', width: 150, height: 30 }}
-                            >
-                              View Report
-                            </Button>
-                          </MuiLink>
-                        ) : (() => {
-                          const report = reportsList.find(report => report.name === selectedVulnerability.reportName);
-                          if (report) {
-                            return (
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownloadReport(report.id);
-                                  }}
-                                  sx={{ textTransform: 'none', width: 150, height: 30 }}
-                                >
-                                  Download Report
-                                </Button>
-                            );
-                          }
-                          return (
-                            <Typography variant="caption" color="text.disabled">
-                              No report available
-                            </Typography>
-                          );
-                        })()}
-                      </Box>
-                      )}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
-                        <Typography variant="body2" color="text.primary" component="div">Company:
-                          <Chip
-                            label={selectedVulnerability.companyName}
-                            size="small"
-                            sx={{
-                              marginLeft: '12px',
-                              border: '2px solid',
-                              backgroundColor: 'transparent',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              '&:hover': {
-                                opacity: 0.8,
-                                transform: 'scale(1.05)',
-                                transition: 'all 0.2s ease-in-out'
-                              }
-                            }}
-                            onClick={() => handleChipClick('company', selectedVulnerability.companyName)}
-                          />
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', height: '32px' }}>
-                        <Typography variant="body2" color="text.primary" component="div">Protocol:
-                          <Chip
-                            label={selectedVulnerability.protocolName}
-                            size="small"
-                            sx={{
-                              marginLeft: '12px',
-                              border: '2px solid',
-                              backgroundColor: 'transparent',
-                              fontWeight: 700,
-                              maxWidth: '250px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              cursor: 'pointer',
-                              '&:hover': {
-                                opacity: 0.8,
-                                transform: 'scale(1.05)',
-                                transition: 'all 0.2s ease-in-out'
-                              }
-                            }}
-                            onClick={() => handleChipClick('protocol', selectedVulnerability.protocolName)}
-                          />
-                        </Typography>
-                        <MuiLink
-                          href={(() => {
-                          const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
-                          return protocol?.url || '#';
-                          })()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{ textDecoration: 'none' }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            const protocol = protocolsList.find(p => p.name === selectedVulnerability.protocolName);
-                            if (protocol?.url) {
-                              window.open(protocol.url, '_blank');
-                            }
-                          }}
-                        >
-                          <Button
-                          variant="contained"
-                          size="small"
-                          sx={{
-                            color: 'background.default',
-                            borderColor: 'primary.main',
-                            backgroundColor: 'primary.main',
-                            textTransform: 'none',
-                            width: 150,
-                            height: 30,
-                            '&:hover': {
-                              backgroundColor: 'rgba(250, 250, 250, 0.1)',
-                              borderColor: 'primary.main',
-                              color: 'primary.main',
-                            },
-                           }}
-                          >
-                          View source code
-                          </Button>
-                        </MuiLink>
-                      </Box>
-                    </Stack>
-                  </Box>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, textTransform: 'uppercase' }}>Description</Typography>
-                    <Box sx={{
-                      '& .katex-display': {
-                        margin: '1em 0 !important',
-                        textAlign: 'center',
-                        overflowX: 'auto',
-                        overflowY: 'hidden'
-                      },
-                      '& .katex': {
-                        fontSize: '1em !important',
-                        lineHeight: '1.2 !important'
-                      },
-                      '& .katex-inline': {
-                        display: 'inline !important',
-                        margin: '0 !important',
-                        padding: '0 !important'
-                      }
-                    }}>
-                      <ReactMarkdown
-                        skipHtml={false}
-                        remarkPlugins={[remarkParse, remarkGfm, remarkMath, remarkRehype]}
-                        rehypePlugins={[rehypeRaw, rehypeKatex]}
-                        components={{
-                          code: (props) => {
-                            const { node, className, children, ...rest } = props;
-                            const inline = (props as any).inline;
-                            const match = /language-(\w+)/.exec(className || '');
-                            if (!inline && match) {
-                              return (
-                                <CodeBlock className={className} {...rest}>
-                                  {String(children).replace(/\n$/, '')}
-                                </CodeBlock>
-                              );
-                            } else {
-                              return (
-                                <CodeBlock className={className} inline={true} {...rest}>
-                                  {String(children).replace(/\n$/, '')}
-                                </CodeBlock>
-                              );
-                            }
-                          },
-                          // Handle inline math
-                          span: ({ className, children, ...props }) => {
-                            if (className && className.includes('math')) {
-                              return (
-                                <span className={className} {...props}>
-                                  {children}
-                                </span>
-                              );
-                            }
-                            return <span className={className} {...props}>{children}</span>;
-                          },
-                          // Handle block math
-                          div: ({ className, children, ...props }) => {
-                            if (className && className.includes('math')) {
-                              return (
-                                <div className={className} {...props}>
-                                  {children}
-                                </div>
-                              );
-                            }
-                            return <div className={className} {...props}>{children}</div>;
-                          }
-                        }}
-                      >
-                        {selectedVulnerability.description
-                          // Convert escaped dollar signs to regular ones for math rendering
-                          .replace(/\\\$/g, '$')
-                        }
-                      </ReactMarkdown>
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'right' }}>
-                    <Typography variant="body2" color="text.secondary">Discovered: {new Date(selectedVulnerability.date).toLocaleDateString()}</Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          </Box>
+          <VulnerabilityCard
+            selectedVulnerability={selectedVulnerability}
+            reportsList={reportsList}
+            protocolsList={protocolsList}
+            handleCloseProfile={handleCloseProfile}
+            handleChipClick={handleChipClick}
+            handleDownloadReport={handleDownloadReport}
+            isModal={isOnSmallScreen} />
         )}
         </Box>
 

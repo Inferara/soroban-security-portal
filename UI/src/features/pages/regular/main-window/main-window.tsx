@@ -55,7 +55,7 @@ export const MainWindow: FC = () => {
 
   // mobile drawer
   const [mobileOpen, setMobileOpen] = useState(false);
-  const toggleMobile = (val: boolean) => () => setMobileOpen(val);
+  const toggleMobile  = () => setMobileOpen(prev => !prev);
 
   const { email, setEmail, isSubscribing, handleSubscribe } = useMainWindow();
 
@@ -146,7 +146,7 @@ export const MainWindow: FC = () => {
           {/* Hamburger on mobile */}
           <IconButton
             aria-label="open navigation"
-            onClick={toggleMobile(true)}
+            onClick={toggleMobile}
             sx={{ display: { xs: 'inline-flex', md: 'none' }, mr: 1 }}
             edge="start"
           >
@@ -188,7 +188,7 @@ export const MainWindow: FC = () => {
           {/* Right: Profile/Login */}
           {auth.user ? (
             <>
-              <Typography noWrap component="div" sx={{ display: { xs: 'none', sm: 'block' }, mr: 2, fontSize: '1.2rem' }}>
+              <Typography noWrap component="div" sx={{ display: { xs: 'block', sm: 'block' }, mr: 2, fontSize: '1.2rem' }}>
                 {auth.user?.profile.name}
               </Typography>
               <IconButton color="inherit" aria-label="open user menu" edge="end" onClick={handleUserMenuClick}>
@@ -222,7 +222,7 @@ export const MainWindow: FC = () => {
               color="primary"
               variant="contained"
               onClick={() => navigate('/login')}
-              sx={{ ml: 2, borderRadius: '6px', textTransform: 'uppercase', px: 3, py: 1 }}
+              sx={{ ml: 2, borderRadius: '6px', textTransform: 'uppercase', px: 3, py: 1,  display: { xs: 'none', md: 'inline-flex' } }}
             >
               Log In
             </Button>
@@ -234,7 +234,7 @@ export const MainWindow: FC = () => {
       <Drawer
         anchor="left"
         open={mobileOpen}
-        onClose={toggleMobile(false)}
+        onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }}
         slotProps={{ paper: { sx: { width: 300 } } }}
       >
