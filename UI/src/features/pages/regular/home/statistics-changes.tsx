@@ -16,11 +16,10 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
   return (
     <Grid
       container
-      spacing={{ xs: 4, md: 20, lg: 40 }}
+      spacing={{ xs: 10, md: 20, lg: 25 }}
       alignItems="center"
-      sx={{ px: { xs: 2, sm: 0 } }}
     >
-      <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "left", md: "right" } }}>
+      <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "center", md: "right" } }}>
         <AnimatedSuperscriptCounter
           duration={1000}
           superDuration={800}
@@ -33,7 +32,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
           Vulnerabilities
         </Typography>
       </Grid>
-      <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "left", md: "left" } }}>
+      <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "center", md: "left" } }}>
         <AnimatedSuperscriptCounter
           duration={1000}
           superDuration={800}
@@ -46,7 +45,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
           Reports
         </Typography>
       </Grid>
-      <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "left", md: "right" } }}>
+      <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "center", md: "right" } }}>
         <AnimatedSuperscriptCounter
           duration={1000}
           superDuration={800}
@@ -59,7 +58,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
           Protocols
         </Typography>
       </Grid>
-      <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "left", md: "left" } }}>
+      <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "center", md: "left" } }}>
         <AnimatedSuperscriptCounter
           duration={1000}
           superDuration={800}

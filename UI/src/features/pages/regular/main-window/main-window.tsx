@@ -108,7 +108,7 @@ export const MainWindow: FC = () => {
               if (!event.ctrlKey && !event.metaKey) {
                 event.preventDefault();
                 navigate(item.path);
-                setMobileOpen(false); // close drawer on navigation (mobile)
+                setMobileOpen(false);
               }
             }}
           >
@@ -235,8 +235,8 @@ export const MainWindow: FC = () => {
         anchor="left"
         open={mobileOpen}
         onClose={toggleMobile(false)}
-        ModalProps={{ keepMounted: true }} // better mobile perf
-        PaperProps={{ sx: { width: 300 } }}
+        ModalProps={{ keepMounted: true }}
+        slotProps={{ paper: { sx: { width: 300 } } }}
       >
         <Box role="presentation" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
@@ -253,7 +253,6 @@ export const MainWindow: FC = () => {
                   key={item.path}
                   selected={isActive}
                   onClick={(e) => {
-                    // emulate your ctrl/cmd open-in-new behavior
                     const evt = e as unknown as MouseEvent & { ctrlKey?: boolean; metaKey?: boolean };
                     if (evt.ctrlKey || evt.metaKey) {
                       window.open(fullPath, '_blank', 'noopener,noreferrer');
@@ -265,8 +264,10 @@ export const MainWindow: FC = () => {
                 >
                   <ListItemText
                     primary={item.label}
-                    primaryTypographyProps={{
-                      fontWeight: isActive ? 700 : 500
+                    slotProps={{
+                      primary: {
+                        fontWeight: isActive ? 700 : 500
+                      }
                     }}
                   />
                 </ListItemButton>
