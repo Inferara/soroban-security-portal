@@ -259,7 +259,7 @@ export const VulnerabilityManagement: FC = () => {
           }}
           rows={vulnerabilityListData}
           columns={columnsData}
-          showToolbar={true}
+          showToolbar
           slots={{
             toolbar: CustomToolbar,
           }}

@@ -156,16 +156,16 @@ export const EditReport: FC = () => {
                 <ReportIcon fontSize="large" />
               </Avatar>
             }
-            title={<Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.primary.dark }}>Edit Report</Typography>}
-            subheader={<Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>Update report information</Typography>}
+            title={<Typography variant="h4" sx={{ fontWeight: 700, color: 'background.default' }}>Edit Report</Typography>}
+            subheader={<Typography variant="subtitle1" sx={{ color: 'background.default' }}>Update report information</Typography>}
             sx={{ bgcolor: theme.palette.primary.light, px: 4, py: 3, borderBottom: `1px solid ${theme.palette.divider}` }}
           />
           <CardContent sx={{ px: { xs: 2, sm: 4, md: 6 }, py: { xs: 2, sm: 4 } }}>
             <Grid container spacing={4}>
               {/* Basic Information Section */}
               <Grid size={12}>
-                <Box sx={{ bgcolor: theme.palette.success.light, px: 2, py: 1.5, borderRadius: 2, mb: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.success.dark }}>
+                <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
                     Basic Information
                   </Typography>
                 </Box>
@@ -230,8 +230,7 @@ export const EditReport: FC = () => {
                 <Divider sx={{ my: 3 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                   <Button
-                    variant="outlined"
-                    sx={{ fontWeight: 600, borderRadius: 2, minWidth: 120 }}
+                    variant="contained"
                     onClick={() => navigate('/admin/reports')}
                   >
                     Cancel
@@ -239,7 +238,6 @@ export const EditReport: FC = () => {
                   <Button
                     variant="contained"
                     color="success"
-                    sx={{ fontWeight: 600, borderRadius: 2, minWidth: 180, fontSize: 18, py: 1.2, boxShadow: 2 }}
                     onClick={handleEditReport}
                   >
                     Update Report

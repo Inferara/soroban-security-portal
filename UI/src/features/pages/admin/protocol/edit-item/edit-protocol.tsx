@@ -1,5 +1,4 @@
-import { Autocomplete, Button, Grid, Paper, TextField } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Autocomplete, Button, Grid, Stack, TextField } from '@mui/material';
 import { FC, useEffect, useState } from 'react';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol.ts';
 import { showError } from '../../../../dialog-handler/dialog-handler.ts';
@@ -8,14 +7,6 @@ import { useEditProtocol } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
-
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: '0px',
-  textAlign: 'center',
-  border: '0px',
-  boxShadow: 'none',
-}));
 
 export const EditProtocol: FC = () => {
   const navigate = useNavigate();
@@ -63,9 +54,6 @@ export const EditProtocol: FC = () => {
   return (
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
-        <Grid size={12} sx={{textAlign: 'center'}}>
-          <h3>Edit Protocol</h3>
-        </Grid>
         <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
@@ -103,13 +91,11 @@ export const EditProtocol: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12}>
-          <Item>
-            <Button onClick={handleEditProtocol}>Save</Button>
-            <Button onClick={() => history.back()}>Cancel</Button>
-          </Item>
-        </Grid>
       </Grid>
+      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+        <Button onClick={handleEditProtocol}>Save</Button>
+        <Button onClick={() => history.back()}>Cancel</Button>
+      </Stack>
     </div>
   );
 };

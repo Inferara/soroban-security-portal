@@ -8,6 +8,7 @@ import { VulnerabilityPieChart } from './vulnerability-pie-chart';
 import { VulnerabilityTable } from './vulnerability-table';
 import ReactGA from 'react-ga4';
 import { StatisticsChanges } from './statistics-changes';
+import { useState, useEffect } from 'react';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
@@ -22,6 +23,19 @@ export const Home: FC = () => {
     navigate('/about');
     ReactGA.event({ category: "About", action: "click", label: "Learn More button click" });
   };
+
+  const [isOnSmallScreen, setIsOnSmallScreen] = useState(window.innerWidth < 650);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsOnSmallScreen(window.innerWidth < 650);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   return (
     <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', elevation: 0 }}>
@@ -168,7 +182,7 @@ export const Home: FC = () => {
         <StatisticsChanges />
       </Box>
       {/* Vulnerability Statistics Pie Chart */}
-      <Box
+     {!isOnSmallScreen && (<Box
         sx={{
           display: 'flex',
           justifyContent: 'center',
@@ -190,7 +204,7 @@ export const Home: FC = () => {
             </div>
           )}
         </div>
-      </Box>
+      </Box>)}
     </Box>
   );
 };

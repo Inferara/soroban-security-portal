@@ -8,7 +8,11 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { useAuth } from 'react-oidc-context';
 import IconButton from '@mui/material/IconButton';
-import { Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink, styled, Avatar } from '@mui/material';
+import {
+  Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink, styled, Avatar,
+  Drawer, List, ListItemButton, ListItemText, Divider
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
 import { environment } from '../../../../environments/environment';
 import { Home } from '../home/home';
 import { Reports } from '../reports/reports';
@@ -33,7 +37,7 @@ import { Role } from '../../../../api/soroban-security-portal/models/role';
 const StyledAvatar = styled(Avatar)(() => ({
   width: 40,
   height: 40,
-  backgroundColor: '#9386b6', 
+  backgroundColor: '#9386b6',
   border: '3px solid #FCD34D',
   fontSize: '18px',
   fontWeight: 'bold',
@@ -44,8 +48,15 @@ export const MainWindow: FC = () => {
   const location = useLocation();
   const auth = useAuth();
   const { themeMode, toggleTheme } = useTheme();
+
+  // user menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+
+  // mobile drawer
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const toggleMobile  = () => setMobileOpen(prev => !prev);
+
   const { email, setEmail, isSubscribing, handleSubscribe } = useMainWindow();
 
   const handleUserMenuClick = (event: MouseEvent<HTMLButtonElement>) =>
@@ -61,7 +72,7 @@ export const MainWindow: FC = () => {
   const isActiveRoute = (path: string) => {
     return location.pathname === `${environment.basePath}${path}`;
   };
-    
+
   const getUserInitials = (name: string) => {
     return name
       .split(' ')
@@ -81,131 +92,216 @@ export const MainWindow: FC = () => {
     navigationItems.push({ label: 'Admin', path: '/admin' });
   }
 
+  const NavButtons = () => (
+    <>
+      {navigationItems.map((item) => {
+        const isActive = isActiveRoute(item.path);
+        const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
+        return (
+          <MuiLink
+            key={item.path}
+            href={fullPath}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ textDecoration: 'none' }}
+            onClick={(event) => {
+              if (!event.ctrlKey && !event.metaKey) {
+                event.preventDefault();
+                navigate(item.path);
+                setMobileOpen(false);
+              }
+            }}
+          >
+            <Button
+              sx={{
+                color: isActive ? '#FFD84D' : '#DDCDB1',
+                height: '54px',
+                backgroundColor: 'transparent',
+                fontSize: isActive ? '1.5rem' : '1.2rem',
+                fontWeight: isActive ? 600 : 400,
+                textTransform: 'none',
+                '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
+              }}
+              fullWidth
+            >
+              {item.label}
+            </Button>
+          </MuiLink>
+        );
+      })}
+    </>
+  );
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Top AppBar */}
-      <AppBar position="fixed" sx={{ 
-        zIndex: (theme) => theme.zIndex.drawer + 1, 
-        borderBottom: themeMode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '0px'
-      }}>
-        <Toolbar sx={{ bgcolor: 'background.paper', paddingTop: '10px' }}>
-          <img src="/static/images/logo.png" alt="Logo" style={{ height: 70, marginRight: 6 }} />         
-          {/* Navigation Buttons */}
-          <Box sx={{ display: 'flex', ml: 4, gap: 1 }}>
-            {navigationItems.map((item) => {
-              const isActive = isActiveRoute(item.path);
-              const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
-              return (
-                <MuiLink
-                  key={item.path}
-                  href={fullPath}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ textDecoration: 'none' }}
-                  onClick={(event) => {
-                    // If not Ctrl/Cmd click, prevent default and navigate normally
-                    if (!event.ctrlKey && !event.metaKey) {
-                      event.preventDefault();
-                      navigate(item.path);
-                    }
-                  }}
-                >
-                  <Button
-                    sx={{
-                      color: isActive ? '#FFD84D' : '#DDCDB1',
-                      height: '54px',
-                      backgroundColor: 'transparent',
-                      fontSize: isActive ? '1.5rem' : '1.2rem',
-                      fontWeight: isActive ? 600 : 400,
-                      textTransform: 'none',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 216, 77, 0.1)',
-                      },
-                    }}
-                  >
-                    {item.label}
-                  </Button>
-                </MuiLink>
-              );
-            })}
+      <AppBar
+        position="fixed"
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          borderBottom: themeMode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '0px'
+        }}
+      >
+        <Toolbar sx={{ bgcolor: 'background.paper', py: { xs: 0.5, md: 1.25 } }}>
+          {/* Hamburger on mobile */}
+          <IconButton
+            aria-label="open navigation"
+            onClick={toggleMobile}
+            sx={{ display: { xs: 'inline-flex', md: 'none' }, mr: 1 }}
+            edge="start"
+          >
+            <MenuIcon />
+          </IconButton>
+
+          {/* Logo */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box
+              component="img"
+              src="/static/images/logo.png"
+              alt="Logo"
+              sx={{ height: { xs: 44, sm: 56, md: 70 }, mr: { xs: 1, md: 2 } }}
+            />
+            <Typography
+              variant="h6"
+              sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 700 }}
+            >
+              {/* Optional brand text if you want */}
+            </Typography>
+          </Box>
+
+          {/* Desktop navigation */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, ml: 4, gap: 1 }}>
+            <NavButtons />
           </Box>
 
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Theme Toggle Button */}
-            <IconButton 
-              color="inherit" 
-              onClick={toggleTheme}
-              sx={{ mr: 1 }}
-              style={{visibility: 'hidden'}}
-            >
-              {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-            </IconButton>
-          {
-            auth.user 
-              ? (
-                <>
-                  <Typography noWrap component="div" sx={{ overflow: 'unset', marginRight: '20px', fontSize: '1.2rem' }}>
-                    {auth.user?.profile.name}
-                  </Typography>
-                  <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleUserMenuClick}>
-                    {auth.user?.profile.picture ? (
-                      <Box
-                        component="img"
-                        src={`${environment.apiUrl}${auth.user.profile.picture}`}
-                        alt="Profile"
-                        sx={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: '50%',
-                          objectFit: 'cover'
-                        }}
-                      />
-                    ) : (
-                      <StyledAvatar>
-                        {getUserInitials(auth.user?.profile.name || 'User Name')}
-                      </StyledAvatar>
-                    )}
-                    <Menu
-                      id="basic-menu"
-                      anchorEl={anchorEl}
-                      open={open}
-                      onClose={handleUserMenuClose}
-                      slotProps={{
-                        list: {
-                          'aria-labelledby': 'basic-button',
-                        },
-                      }}
-                    >
-                      <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
-                      <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
-                    </Menu>
-                  </IconButton>
-                </>
-              )
-              :
-              (<Button
-                color="primary"
-                variant="contained"
-                onClick={() => navigate('/login')}
-                sx={{
-                  ml: 2,
-                  borderRadius: '6px',
-                  textTransform: 'uppercase',
-                  px: 3,
-                  py: 1,
-                }}
+          {/* Theme Toggle (currently hidden per your code) */}
+          <IconButton
+            color="inherit"
+            onClick={toggleTheme}
+            sx={{ mr: 1, visibility: 'hidden' }}  // keep your hidden behavior
+          >
+            {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+
+          {/* Right: Profile/Login */}
+          {auth.user ? (
+            <>
+              <Typography noWrap component="div" sx={{ display: { xs: 'block', sm: 'block' }, mr: 2, fontSize: '1.2rem' }}>
+                {auth.user?.profile.name}
+              </Typography>
+              <IconButton color="inherit" aria-label="open user menu" edge="end" onClick={handleUserMenuClick}>
+                {auth.user?.profile.picture ? (
+                  <Box
+                    component="img"
+                    src={`${environment.apiUrl}${auth.user.profile.picture}`}
+                    alt="Profile"
+                    sx={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <StyledAvatar>
+                    {getUserInitials(auth.user?.profile.name || 'User Name')}
+                  </StyledAvatar>
+                )}
+              </IconButton>
+
+              <Menu
+                id="user-menu"
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleUserMenuClose}
+                slotProps={{ list: { 'aria-labelledby': 'user-menu-button' } }}
               >
-                Log In
-              </Button>)
-          }
+                <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
+                <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
+              </Menu>
+            </>
+          ) : (
+            <Button
+              color="primary"
+              variant="contained"
+              onClick={() => navigate('/login')}
+              sx={{ ml: 2, borderRadius: '6px', textTransform: 'uppercase', px: 3, py: 1,  display: { xs: 'none', md: 'inline-flex' } }}
+            >
+              Log In
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="left"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={{ keepMounted: true }}
+        slotProps={{ paper: { sx: { width: 300 } } }}
+      >
+        <Box role="presentation" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
+            <Box component="img" src="/static/images/logo.png" alt="Logo" sx={{ height: 40, mr: 1 }} />
+            <Typography variant="h6" fontWeight={700}>Menu</Typography>
+          </Box>
+          <Divider />
+          <List sx={{ py: 0 }}>
+            {navigationItems.map((item) => {
+              const isActive = isActiveRoute(item.path);
+              const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
+              return (
+                <ListItemButton
+                  key={item.path}
+                  selected={isActive}
+                  onClick={(e) => {
+                    const evt = e as unknown as MouseEvent & { ctrlKey?: boolean; metaKey?: boolean };
+                    if (evt.ctrlKey || evt.metaKey) {
+                      window.open(fullPath, '_blank', 'noopener,noreferrer');
+                    } else {
+                      navigate(item.path);
+                    }
+                    setMobileOpen(false);
+                  }}
+                >
+                  <ListItemText
+                    primary={item.label}
+                    slotProps={{
+                      primary: {
+                        fontWeight: isActive ? 700 : 500
+                      }
+                    }}
+                  />
+                </ListItemButton>
+              );
+            })}
+          </List>
+          <Divider sx={{ mt: 'auto' }} />
+          <Box sx={{ p: 2 }}>
+            {auth.user ? (
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => { navigate('/profile'); setMobileOpen(false); }}
+              >
+                My Profile
+              </Button>
+            ) : (
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() => { navigate('/login'); setMobileOpen(false); }}
+              >
+                Log In
+              </Button>
+            )}
+          </Box>
+        </Box>
+      </Drawer>
+
       <Toolbar /> {/* Spacer for AppBar */}
 
       {/* Main content area */}
       <Box sx={{ flexGrow: 1, p: 0 }}>
-        <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: 3, minHeight: '91vh' }}>
+        <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: { xs: 2, md: 3 }, minHeight: '91vh' }}>
           <Routes>
             <Route path={`${environment.basePath}/`} element={<Home />} />
             <Route path={`${environment.basePath}/reports`} element={<Reports />} />
@@ -221,8 +317,13 @@ export const MainWindow: FC = () => {
 
       {/* Footer */}
       {(location.pathname === 'home' || location.pathname === '/') && (
-        <Box sx={{ backgroundColor: 'background.paper', color: 'secondary.main', p: 4, mt: 'auto' }}>
-          <Stack direction="row" spacing={4} alignItems="flex-start" justifyContent="space-between">
+        <Box sx={{ backgroundColor: 'background.paper', color: 'secondary.main', p: { xs: 2.5, md: 4 }, mt: 'auto' }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={{ xs: 3, md: 4 }}
+            alignItems={{ xs: 'stretch', md: 'flex-start' }}
+            justifyContent="space-between"
+          >
             {/* Subscribe Section */}
             <Box sx={{ flex: 1 }}>
               <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
@@ -237,6 +338,8 @@ export const MainWindow: FC = () => {
                   borderBottom: `1px solid ${themeMode === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'}`,
                   pb: 1,
                   mb: 3,
+                  gap: 1,
+                  flexWrap: { xs: 'wrap', sm: 'nowrap' }
                 }}
               >
                 <TextField
@@ -261,12 +364,8 @@ export const MainWindow: FC = () => {
                     fontWeight: 'bold',
                     backgroundColor: 'transparent',
                     textTransform: 'none',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 216, 77, 0.1)',
-                    },
-                    '&:disabled': {
-                      color: 'rgba(255, 255, 255, 0.38)',
-                    }
+                    '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
+                    '&:disabled': { color: 'rgba(255, 255, 255, 0.38)' }
                   }}
                 >
                   {isSubscribing ? 'Subscribing...' : 'Subscribe'}
@@ -278,12 +377,8 @@ export const MainWindow: FC = () => {
             <Box sx={{
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              '& .MuiButtonBase-root': {
-                '&:hover': {
-                  color: '#2D4EFF',
-                }
-              }
+              alignItems: { xs: 'flex-start', md: 'center' },
+              '& .MuiButtonBase-root': { '&:hover': { color: '#2D4EFF' } }
             }}>
               <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
                 &nbsp;

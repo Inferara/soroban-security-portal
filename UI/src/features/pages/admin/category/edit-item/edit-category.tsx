@@ -1,5 +1,4 @@
-import { Button, Grid, Paper, TextField } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Button, Grid, Stack, TextField } from '@mui/material';
 import { FC, useEffect, useState } from 'react';
 import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
 import { showError } from '../../../../dialog-handler/dialog-handler';
@@ -7,14 +6,6 @@ import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts'
 import { useEditCategory } from './hooks';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: '0px',
-  textAlign: 'center',
-  border: '0px',
-  boxShadow: 'none',
-}));
 
 export const EditCategory: FC = () => {
   const navigate = useNavigate();
@@ -62,9 +53,6 @@ export const EditCategory: FC = () => {
   return (
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
-        <Grid size={12} sx={{textAlign: 'center'}}>
-          <h3>Edit Tag</h3>
-        </Grid>
         <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
@@ -105,13 +93,11 @@ export const EditCategory: FC = () => {
             }}
           />
         </Grid>
-        <Grid size={12}>
-          <Item>
-            <Button onClick={handleEditCategory}>Save</Button>
-            <Button onClick={() => history.back()}>Cancel</Button>
-          </Item>
-        </Grid>
       </Grid>
+      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+        <Button onClick={handleEditCategory}>Save</Button>
+        <Button onClick={() => history.back()}>Cancel</Button>
+      </Stack>
     </div>
   );
 };

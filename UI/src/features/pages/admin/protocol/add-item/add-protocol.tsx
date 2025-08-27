@@ -1,5 +1,4 @@
-import { Button, Grid, Paper, TextField, Autocomplete } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Button, Grid, TextField, Autocomplete, Stack } from '@mui/material';
 import { FC, useState } from 'react';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol.ts';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
@@ -8,14 +7,6 @@ import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts'
 import { useAddProtocol } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: '0px',
-  textAlign: 'center',
-  border: '0px',
-  boxShadow: 'none',
-}));
 
 export const AddProtocol: FC = () => {
   const navigate = useNavigate();
@@ -53,10 +44,7 @@ export const AddProtocol: FC = () => {
   return (
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
-        <Grid size={12} sx={{textAlign: 'center'}} >   
-          <h3>New Protocol</h3>
-        </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }} >
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -67,7 +55,7 @@ export const AddProtocol: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }} >
           <Autocomplete
             options={companyListData}
             value={company}
@@ -82,7 +70,7 @@ export const AddProtocol: FC = () => {
             )}
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >   
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }} >
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -93,13 +81,11 @@ export const AddProtocol: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12}>
-          <Item>
-            <Button onClick={handleCreateProtocol}>Create Protocol</Button>
-            <Button onClick={() => history.back()}>Cancel</Button>
-          </Item>
-        </Grid>
       </Grid>
+      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+        <Button onClick={handleCreateProtocol}>Create Protocol</Button>
+        <Button onClick={() => history.back()}>Cancel</Button>
+      </Stack>
     </div>
   );
 };
