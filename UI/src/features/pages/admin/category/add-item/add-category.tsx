@@ -1,5 +1,4 @@
-import { Button, Grid, Paper, Stack, TextField } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Button, Grid, Stack, TextField } from '@mui/material';
 import { FC, useState } from 'react';
 import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category.ts';
 import { showError } from '../../../../dialog-handler/dialog-handler.ts';
@@ -7,14 +6,6 @@ import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts'
 import { useAddCategory } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: '0px',
-  textAlign: 'center',
-  border: '0px',
-  boxShadow: 'none',
-}));
 
 export const AddCategory: FC = () => {
   const navigate = useNavigate();

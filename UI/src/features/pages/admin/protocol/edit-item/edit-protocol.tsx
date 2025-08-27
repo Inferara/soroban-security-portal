@@ -1,5 +1,4 @@
-import { Autocomplete, Button, Grid, Paper, Stack, TextField } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Autocomplete, Button, Grid, Stack, TextField } from '@mui/material';
 import { FC, useEffect, useState } from 'react';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol.ts';
 import { showError } from '../../../../dialog-handler/dialog-handler.ts';
@@ -8,14 +7,6 @@ import { useEditProtocol } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
-
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: '0px',
-  textAlign: 'center',
-  border: '0px',
-  boxShadow: 'none',
-}));
 
 export const EditProtocol: FC = () => {
   const navigate = useNavigate();

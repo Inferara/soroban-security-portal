@@ -1,5 +1,4 @@
-import { Button, Grid, Paper, TextField, Autocomplete, Stack } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Button, Grid, TextField, Autocomplete, Stack } from '@mui/material';
 import { FC, useState } from 'react';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol.ts';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
@@ -8,14 +7,6 @@ import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts'
 import { useAddProtocol } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: '0px',
-  textAlign: 'center',
-  border: '0px',
-  boxShadow: 'none',
-}));
 
 export const AddProtocol: FC = () => {
   const navigate = useNavigate();

@@ -1,5 +1,4 @@
-import { Button, Grid, Paper, Stack, TextField } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Button, Grid, Stack, TextField } from '@mui/material';
 import { FC, useEffect, useState } from 'react';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { showError } from '../../../../dialog-handler/dialog-handler';
@@ -7,14 +6,6 @@ import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts'
 import { useEditAuditor } from './hooks';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: '0px',
-  textAlign: 'center',
-  border: '0px',
-  boxShadow: 'none',
-}));
 
 export const EditAuditor: FC = () => {
   const navigate = useNavigate();
