@@ -7,7 +7,6 @@ import {
   Chip,
   TextField,
   Stack,
-  Link as MuiLink,
   Button,
   InputAdornment,
   IconButton,
@@ -22,7 +21,6 @@ import {
 import Grid from '@mui/material/Grid';
 import SearchIcon from '@mui/icons-material/Search';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
-import CloseIcon from '@mui/icons-material/Close';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -33,18 +31,10 @@ import { useVulnerabilities } from './hooks';
 import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from '../../../../api/soroban-security-portal/models/vulnerability';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useTheme } from '../../../../contexts/ThemeContext';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import remarkParse from 'remark-parse';
-import remarkRehype from 'remark-rehype';
-import rehypeRaw from 'rehype-raw';
-import rehypeKatex from 'rehype-katex';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { CategoryItem } from '../../../../api/soroban-security-portal/models/category';
 import { environment } from '../../../../environments/environment';
-import { CodeBlock } from '../../../../components/CodeBlock';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
 import 'katex/dist/katex.min.css';
