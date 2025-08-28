@@ -23,7 +23,6 @@ import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
-import { is } from 'date-fns/locale';
 
 export const ListProtocols: FC = () => {
   const auth = useAuth();
