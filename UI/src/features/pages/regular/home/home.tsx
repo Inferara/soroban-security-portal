@@ -178,7 +178,7 @@ export const Home: FC = () => {
         </Box>
       </Box>
 
-      <Box sx={{ p: 4}}>
+      <Box sx={{ pt: 10 }}>
         <StatisticsChanges />
       </Box>
       {/* Vulnerability Statistics Pie Chart */}
@@ -187,7 +187,7 @@ export const Home: FC = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          pt: 25,
+          pt: { xs: 10, md: 20 },
           pb: 20
         }}
       >

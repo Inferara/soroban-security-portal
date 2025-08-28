@@ -32,7 +32,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
-        [RoleAuthorize(Role.Admin, Role.Moderator)]
+        [RoleAuthorize(Role.Admin)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

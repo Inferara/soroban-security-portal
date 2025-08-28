@@ -35,9 +35,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
 import 'katex/dist/katex.min.css'; 
 import './katex.css';
+import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
 
 export const VulnerabilityManagement: FC = () => {
-
   const currentPageState: CurrentPageState = {
     pageName: 'Vulnerabilities',
     pageCode: 'vulnerabilities',
@@ -48,11 +49,14 @@ export const VulnerabilityManagement: FC = () => {
   const { vulnerabilityListData, vulnerabilityApprove, vulnerabilityRemove, vulnerabilityReject } = useListVulnerabilities({ currentPageState });
   const [vulnerabilityIdToRemove, setVulnerabilityIdToRemove] = useState(0);
   const [collapsedDescriptions, setCollapsedDescriptions] = useState<Set<string>>(new Set());
+  const auth = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     setCollapsedDescriptions(new Set(vulnerabilityListData.map(vuln => vuln.id.toString())));
   }, [vulnerabilityListData]);
+
+  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
 
   const removeVulnerabilityConfirmed = async () => {
     await vulnerabilityRemove(vulnerabilityIdToRemove);
@@ -97,11 +101,11 @@ export const VulnerabilityManagement: FC = () => {
       filterable: false,
       renderCell: (params: GridRenderCellParams<Vulnerability>) => (
         <div style={{ display: 'flex', gap: 4 }}>
-          <Tooltip title="Remove Vulnerability">
+          {isAdmin(auth) && (<Tooltip title="Remove Vulnerability">
             <IconButton onClick={() => setVulnerabilityIdToRemove(params.row.id)}>
               <ClearIcon sx={{ color: 'red' }} />
             </IconButton>
-          </Tooltip>
+          </Tooltip>)}
           <Tooltip title="Approve Vulnerability">
             <IconButton onClick={() => vulnerabilityApprove(params.row.id)}>
               <CheckCircleIcon sx={{ color: 'green' }} />

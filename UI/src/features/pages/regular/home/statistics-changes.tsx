@@ -16,7 +16,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
   return (
     <Grid
       container
-      spacing={{ xs: 10, md: 20, lg: 25 }}
+      spacing={{ xs: 5, md: 15 }}
       alignItems="center"
     >
       <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "center", md: "right" } }}>

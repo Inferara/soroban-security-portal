@@ -25,6 +25,8 @@ import { ConfirmDialog } from '../../admin-main-window/confirm-dialog';
 import { CustomToolbar } from '../../../../components/custom-toolbar';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings';
 import { environment } from '../../../../../environments/environment';
+import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { Role } from '../../../../../api/soroban-security-portal/models/role';
 
 export const ReportManagement: FC = () => {
 
@@ -38,7 +40,10 @@ export const ReportManagement: FC = () => {
   const { reportListData, reportApprove, reportRemove, reportReject, downloadReport } = useListReports({ currentPageState });
   const [reportIdToRemove, setReportIdToRemove] = useState(0);
   const [clickedImage, setClickedImage] = useState<string | null>(null);
+  const auth = useAuth();
   const navigate = useNavigate();
+
+  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
 
   const removeReportConfirmed = async () => {
     await reportRemove(reportIdToRemove);
@@ -62,11 +67,11 @@ export const ReportManagement: FC = () => {
       filterable: false,
       renderCell: (params: GridRenderCellParams<Report>) => (
         <div style={{ display: 'flex', gap: 4 }}>
-          <Tooltip title="Remove Report">
+          {isAdmin(auth) && (<Tooltip title="Remove Report">
             <IconButton onClick={() => setReportIdToRemove(params.row.id)}>
               <ClearIcon sx={{ color: 'red' }} />
             </IconButton>
-          </Tooltip>
+          </Tooltip>)}
           <Tooltip title="Approve Report">
             <IconButton onClick={() => reportApprove(params.row.id)}>
               <CheckCircleIcon sx={{ color: 'green' }} />

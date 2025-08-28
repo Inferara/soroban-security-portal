@@ -21,8 +21,11 @@ import { ConfirmDialog } from '../../admin-main-window/confirm-dialog.tsx';
 import { CustomToolbar } from '../../../../components/custom-toolbar.tsx';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
+import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
 
 export const ListAuditors: FC = () => {
+  const auth = useAuth();
   const navigate = useNavigate();
 
   const currentPageState: CurrentPageState = {
@@ -40,8 +43,11 @@ export const ListAuditors: FC = () => {
     setAuditorIdToRemove(0);
   };
 
-  const columnsData: GridColDef[] = [
-    {
+  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
+  
+  let columnsData: GridColDef[] = [];
+  if (isAdmin(auth)) {
+    columnsData.push({
       field: 'actions',
       headerName: 'Actions',
       width: 80,
@@ -54,7 +60,10 @@ export const ListAuditors: FC = () => {
           </IconButton>
         </Tooltip>
       ),
-    } as GridColDef,
+    } as GridColDef);
+  }
+
+  columnsData = columnsData.concat([
     {
       field: 'name',
       headerName: 'Auditor',
@@ -94,7 +103,7 @@ export const ListAuditors: FC = () => {
       headerName: 'Created By',
       width: 250,
     } as GridColDef,
-  ];
+  ]);
 
   return (
     <div style={defaultUiSettings.listAreaStyle}>
