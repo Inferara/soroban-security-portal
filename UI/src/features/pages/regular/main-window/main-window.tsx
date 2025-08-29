@@ -316,7 +316,7 @@ export const MainWindow: FC = () => {
       </Box>
 
       {/* Footer */}
-      {(location.pathname === 'home' || location.pathname === '/') && (
+      {(location.pathname.endsWith('home') || location.pathname === '/' || location.pathname.endsWith('about')) && (
         <Box sx={{ backgroundColor: 'background.paper', color: 'secondary.main', p: { xs: 2.5, md: 4 }, mt: 'auto' }}>
           <Stack
             direction={{ xs: 'column', md: 'row' }}
