@@ -1,6 +1,7 @@
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Box, Button, Paper, Stack, Typography } from "@mui/material";
 import { FC } from "react";
 import { useNavigate } from "react-router-dom";
+import { HomepageSubtitle } from "./homepage-subtitle";
 
 export interface RolesInfoProps {
     isCompact: boolean;
@@ -33,28 +34,85 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
     ];
 
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: 'column', gap: 5, pt: { xs: 5, md: 10 } }}>
-            <Box sx={{ display: 'flex', alignItems: 'right', flexDirection: { xs: 'column', md: 'row' }, gap: 5 }}>
-                <Box sx={{ width: '50%', textAlign: 'right' }}>
-                    <Typography variant="body1">Your contributions help improve the Portal and secure the Soroban ecosystem.</Typography>
-                    <Typography variant="body1">Claim your role by authorizing with your Discord account in <a href="https://discord.gg/UAnpE7pa" target="_blank" rel="noopener noreferrer">Stellar Developers Discord Server</a></Typography>
+        <Paper
+            elevation={3}
+            sx={{
+                p: isCompact ? 2 : 3,
+                borderRadius: 2,
+                backgroundColor: 'transparent',
+                backdropFilter: 'blur(10px)',
+                backgroundImage: 'none',
+                boxShadow: 'none',
+                overflow: 'hidden',
+            }}>
+            <HomepageSubtitle
+                title="How to contribute"
+                isCompact={isCompact}
+            />
+            <Box sx={{ width: '100%', px: { xs: 2, md: 5 }, py: { xs: 3, md: 5 }, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: { xs: 3, md: 5 } }}>
+                    <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'right' } }}>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                            Your contributions help improve the Portal and secure the Soroban ecosystem.
+                        </Typography>
+                        <Typography variant="body1">
+                            Claim your role by authorizing with your Discord account in{" "}
+                            <a href="https://discord.gg/UAnpE7pa" target="_blank" rel="noopener noreferrer">
+                                Stellar Developers Discord Server
+                            </a>
+                        </Typography>
+                    </Box>
+                    <Box sx={{
+                        flex: 1,
+                        display: 'flex',
+                        justifyContent: { xs: 'center', sm: 'center', md: 'flex-start' }
+                    }}>
+                        <Button variant="contained" size="large" onClick={() => navigate('/login')}
+                            sx={{ px: 3, py: 1 }}>
+                            Log In
+                        </Button>
+                    </Box>
                 </Box>
-                <Box sx={{ display: 'flex', width: '50%', alignItems: 'center', justifyContent: 'center' }}>
-                    <Button variant='contained' size='large' onClick={() => navigate('/login')}>Log In</Button>
-                </Box>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'right', flexDirection: { xs: 'column', md: 'row-reverse' }, gap: 5 }}>
-                <Box sx={{ width: '50%', textAlign: 'left' }}>
-                    <Typography variant="body1">Roles are automatically granted according to the Stellar community guidelines</Typography>
-                    <Typography variant="body1">Defined in the <a target="_blank" rel="noopener noreferrer" href="https://stellarcommunityfund.gitbook.io/scf-handbook/governance/verified-members/how-to-become-verified">Stellar Community Fund Handbook</a></Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Box component="img" src="/static/images/handbook-logo.avif" sx={{ width: { sm: '10%', md: '80%' } }} />
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', md: 'row-reverse' },
+                    alignItems: 'center',
+                    gap: { xs: 3, md: 5 }
+                }}>
+                    <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                            Roles are automatically granted according to the Stellar community guidelines.
+                        </Typography>
+                        <Typography variant="body1">
+                            Defined in the{" "}
+                            <a
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                href="https://stellarcommunityfund.gitbook.io/scf-handbook/governance/verified-members/how-to-become-verified"
+                            >
+                                Stellar Community Fund Handbook
+                            </a>
+                        </Typography>
+                    </Box>
+                    <Box sx={{
+                        flex: 1,
+                        display: 'flex',
+                        justifyContent: { xs: 'center', sm: 'center', md: 'flex-end' }
+                    }}>
+                        <Box
+                            component="img"
+                            src="/static/images/handbook-logo.avif"
+                            sx={{ width: { xs: '60%', sm: '40%', md: '10%' } }}
+                        />
+                    </Box>
                 </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: 'column', pt: { xs: 5, md: 10 } }}>
-                <Typography variant='h4' sx={{ color: "primary.contrastText", textTransform: "uppercase" }}>Roles breakdown</Typography>
-
+                <HomepageSubtitle
+                    title="Roles breakdown"
+                    isLeft={false}
+                    isCompact={isCompact}
+                />
                 {isCompact ? <Stack direction="column">
                     {rolesData.map(r => (
                         <Box key={r.name} sx={{ display: 'flex', justifyContent: 'space-between', p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -90,6 +148,6 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
                         </Box>
                     </Box>)}
             </Box>
-        </Box>
+        </Paper>
     );
 };

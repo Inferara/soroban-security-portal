@@ -222,7 +222,7 @@ export const MainWindow: FC = () => {
               color="primary"
               variant="contained"
               onClick={() => navigate('/login')}
-              sx={{ ml: 2, borderRadius: '6px', textTransform: 'uppercase', px: 3, py: 1,  display: { xs: 'none', md: 'inline-flex' } }}
+              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1,  display: { xs: 'none', md: 'inline-flex' } }}
             >
               Log In
             </Button>

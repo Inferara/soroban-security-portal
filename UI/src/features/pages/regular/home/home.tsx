@@ -182,11 +182,13 @@ export const Home: FC = () => {
       <Box sx={{ pt: 10 }}>
         <StatisticsChanges />
       </Box>
-      <Typography variant='h4' sx={{ color: "primary.contrastText", textAlign: 'center', textTransform: "uppercase", pt: { xs: 5, md: 10 } }}>How to contribute</Typography>
-      <RolesInfo isCompact={isOnSmallScreen} />
+      <Box sx={{ pt: 10 }}>
+        <RolesInfo isCompact={isOnSmallScreen} />
+      </Box>
       {/* Vulnerability Statistics Pie Chart */}
      {!isOnSmallScreen && (<Box
         sx={{
+          width: '100%',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -194,19 +196,15 @@ export const Home: FC = () => {
           pb: 20
         }}
       >
-        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
-          <div>
-            <VulnerabilityPieChart
-              height={350}
-              width={350}
-            />
-          </div>
-          {showTable && (
-            <div style={{ paddingTop: '100px', paddingBottom: '100px' }}>
-              <VulnerabilityTable />
-            </div>
-          )}
-        </div>
+        <VulnerabilityPieChart
+          height={350}
+          width={350}
+        />
+        {showTable && (
+          <Box sx={{ pt: 10, pb: 10 }}>
+            <VulnerabilityTable />
+          </Box>
+        )}
       </Box>)}
     </Box>
   );
