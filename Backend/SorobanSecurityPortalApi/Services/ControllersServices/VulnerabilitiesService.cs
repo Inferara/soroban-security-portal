@@ -1,7 +1,6 @@
 using AutoMapper;
 using Pgvector;
 using SorobanSecurityPortalApi.Common;
-using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.ViewModels;
@@ -118,10 +117,16 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _vulnerabilityProcessor.Approve(vulnerabilityId, loginName);
         }
 
-        public async Task Reject(int vulnerabilityId)
+        public async Task<Result<bool, string>> Reject(int vulnerabilityId)
         {
             var loginName = await _userContextAccessor.GetLoginNameAsync();
+            var vulnerabilityModel = await _vulnerabilityProcessor.Get(vulnerabilityId);
+            if (vulnerabilityModel == null)
+                return new Result<bool, string>.Err("Vulnerability not found.");
+            if (!await CanUpdateRejectVulnerability(vulnerabilityModel, loginName))
+                return new Result<bool, string>.Err("You cannot reject this vulnerability.");
             await _vulnerabilityProcessor.Reject(vulnerabilityId, loginName);
+            return new Result<bool, string>.Ok(true);
         }
 
         public async Task Remove(int vulnerabilityId)
@@ -135,23 +140,27 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<VulnerabilityViewModel>(vulnerability);
         }
 
-        public async Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
+        public async Task<Result<VulnerabilityViewModel, string>> Update(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
         {
             var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
             var loginName = await _userContextAccessor.GetLoginNameAsync();
+            if (! await CanUpdateRejectVulnerability(vulnerabilityModel, loginName))
+            {
+                return new Result<VulnerabilityViewModel, string>.Err("You cannot update this vulnerability.");
+            }
             foreach (var file in files)
             {
                 if (file.BinFile != null && file.BinFile.Length > 0)
                 {
                     var fileModel = _mapper.Map<Models.DbModels.FileModel>(file);
                     fileModel.Date = DateTime.UtcNow;
-                    fileModel.Author = loginName;
+                    fileModel.Author = loginName; //TODO better have id here if we want to let users change their logins (maybe not)
                     var addedFile = await _fileProcessor.Add(fileModel);
                     file.Id = addedFile.Id;
                 }
             }
             var updatedVulnerability = await _vulnerabilityProcessor.Update(loginName, vulnerabilityModel);
-            return _mapper.Map<VulnerabilityViewModel>(updatedVulnerability);
+            return new Result<VulnerabilityViewModel, string>.Ok(_mapper.Map<VulnerabilityViewModel>(updatedVulnerability));
         }
 
         public async Task<List<VulnerabilityViewModel>> GetList()
@@ -168,6 +177,22 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<VulnerabilityStatisticsChangesViewModel> GetStatisticsChange()
         {
             return await _vulnerabilityProcessor.GetStatisticsChanges();
+        }
+
+        private async Task<bool> CanUpdateRejectVulnerability(VulnerabilityModel vulnerabilityModel, string login)
+        {
+            if (vulnerabilityModel.Author == login || await _userContextAccessor.IsLoginAdmin(login))
+            {
+                return true;
+            }
+            else
+            {
+                if (await _userContextAccessor.IsLoginAdmin(vulnerabilityModel.Author))
+                {
+                    return false;
+                }
+                return true;
+            }
         }
     }
 
@@ -189,10 +214,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<int> SearchTotal(VulnerabilitySearchViewModel? vulnerabilitySearch);
         Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task Approve(int vulnerabilityId);
-        Task Reject(int vulnerabilityId);
+        Task<Result<bool, string>> Reject(int vulnerabilityId);
         Task Remove(int vulnerabilityId);
         Task<VulnerabilityViewModel> Get(int vulnerabilityId);
-        Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
+        Task<Result<VulnerabilityViewModel, string>> Update(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task<List<VulnerabilityViewModel>> GetList();
         Task<VulnerabilitiesStatisticsViewModel> GetStatistics();
         Task<VulnerabilityStatisticsChangesViewModel> GetStatisticsChange();

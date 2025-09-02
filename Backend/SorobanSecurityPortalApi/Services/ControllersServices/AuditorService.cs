@@ -42,17 +42,39 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _auditorProcessor.Delete(id);
         }
 
-        public async Task<AuditorViewModel> Update(AuditorViewModel auditorViewModel)
+        public async Task<Result<AuditorViewModel, string>> Update(AuditorViewModel auditorViewModel)
         {
             var auditorModel = _mapper.Map<AuditorModel>(auditorViewModel);
+            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            if (!await CanUpdateAuditor(auditorModel, loginName))
+            {
+                return new Result<AuditorViewModel, string>.Err("You cannot update this auditor.");
+            }
+
             auditorModel = await _auditorProcessor.Update(auditorModel);
-            return _mapper.Map<AuditorViewModel>(auditorModel);
+            return new Result<AuditorViewModel, string>.Ok(_mapper.Map<AuditorViewModel>(auditorModel));
         }
 
         public async Task<AuditorStatisticsChangesViewModel> GetStatisticsChanges()
         {
             var statsChange = await _auditorProcessor.GetStatisticsChanges();
             return _mapper.Map<AuditorStatisticsChangesViewModel>(statsChange);
+        }
+
+        private async Task<bool> CanUpdateAuditor(AuditorModel auditorModel, string login)
+        {
+            if (auditorModel.CreatedBy == login || await _userContextAccessor.IsLoginAdmin(login))
+            {
+                return true;
+            }
+            else
+            {
+                if (await _userContextAccessor.IsLoginAdmin(auditorModel.CreatedBy))
+                {
+                    return false;
+                }
+                return true;
+            }
         }
     }
 
@@ -61,7 +83,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<AuditorViewModel> Add(AuditorViewModel auditorViewModel);
         Task<List<AuditorViewModel>> List();
         Task Delete(int id);
-        Task<AuditorViewModel> Update(AuditorViewModel auditorViewModel);
+        Task<Result<AuditorViewModel, string>> Update(AuditorViewModel auditorViewModel);
         Task<AuditorStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

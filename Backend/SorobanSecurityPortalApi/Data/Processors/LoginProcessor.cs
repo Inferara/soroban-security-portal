@@ -38,6 +38,13 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return login;
         }
 
+        public async Task<LoginModel?> GetByLogin(string login)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Login.AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Login == login);
+        }
+
         public async Task<LoginModel?> GetByLogin(string login, LoginTypeEnum loginType)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -95,6 +102,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<LoginModel?> GetByCredentials(string login, string password);
         Task<List<LoginModel>> List();
         Task<LoginModel?> GetById(int id);
+        Task<LoginModel?> GetByLogin(string login);
         Task<LoginModel?> GetByLogin(string login, LoginTypeEnum loginType);
         Task<LoginModel?> GetByEmail(string email);
         Task Update(LoginModel login);

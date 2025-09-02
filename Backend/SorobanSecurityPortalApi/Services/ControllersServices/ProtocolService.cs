@@ -42,17 +42,38 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _protocolProcessor.Delete(id);
         }
 
-        public async Task<ProtocolViewModel> Update(ProtocolViewModel protocolViewModel)
+        public async Task<Result<ProtocolViewModel, string>> Update(ProtocolViewModel protocolViewModel)
         {
             var protocolModel = _mapper.Map<ProtocolModel>(protocolViewModel);
+            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            if (! await CanUpdateProtocol(protocolModel, loginName))
+            {
+                return new Result<ProtocolViewModel, string>.Err("You cannot update this protocol.");
+            }
             protocolModel = await _protocolProcessor.Update(protocolModel);
-            return _mapper.Map<ProtocolViewModel>(protocolModel);
+            return new Result<ProtocolViewModel, string>.Ok(_mapper.Map<ProtocolViewModel>(protocolModel));
         }
 
         public async Task<ProtocolStatisticsChangesViewModel> GetStatisticsChanges()
         {
             var statsChange = await _protocolProcessor.GetStatisticsChanges();
             return _mapper.Map<ProtocolStatisticsChangesViewModel>(statsChange);
+        }
+
+        private async Task<bool> CanUpdateProtocol(ProtocolModel protocolModel, string login)
+        {
+            if (protocolModel.CreatedBy == login || await _userContextAccessor.IsLoginAdmin(login))
+            {
+                return true;
+            }
+            else
+            {
+                if (await _userContextAccessor.IsLoginAdmin(protocolModel.CreatedBy))
+                {
+                    return false;
+                }
+                return true;
+            }
         }
     }
 
@@ -61,7 +82,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<ProtocolViewModel> Add(ProtocolViewModel protocolViewModel);
         Task<List<ProtocolViewModel>> List();
         Task Delete(int id);
-        Task<ProtocolViewModel> Update(ProtocolViewModel protocolViewModel);
+        Task<Result<ProtocolViewModel, string>> Update(ProtocolViewModel protocolViewModel);
         Task<ProtocolStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

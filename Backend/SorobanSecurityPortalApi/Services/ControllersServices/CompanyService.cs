@@ -42,11 +42,32 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _companyProcessor.Delete(id);
         }
 
-        public async Task<CompanyViewModel> Update(CompanyViewModel companyViewModel)
+        public async Task<Result<CompanyViewModel, string>> Update(CompanyViewModel companyViewModel)
         {
             var companyModel = _mapper.Map<CompanyModel>(companyViewModel);
+            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            if (!await CanUpdateCompany(companyModel, loginName))
+            {
+                return new Result<CompanyViewModel, string>.Err("You cannot update this company.");
+            }
             companyModel = await _companyProcessor.Update(companyModel);
-            return _mapper.Map<CompanyViewModel>(companyModel);
+            return new Result<CompanyViewModel, string>.Ok(_mapper.Map<CompanyViewModel>(companyModel));
+        }
+
+        private async Task<bool> CanUpdateCompany(CompanyModel companyModel, string login)
+        {
+            if (companyModel.CreatedBy == login || await _userContextAccessor.IsLoginAdmin(login))
+            {
+                return true;
+            }
+            else
+            {
+                if (await _userContextAccessor.IsLoginAdmin(companyModel.CreatedBy))
+                {
+                    return false;
+                }
+                return true;
+            }
         }
     }
 
@@ -55,6 +76,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<CompanyViewModel> Add(CompanyViewModel companyViewModel);
         Task<List<CompanyViewModel>> List();
         Task Delete(int id);
-        Task<CompanyViewModel> Update(CompanyViewModel companyViewModel);
+        Task<Result<CompanyViewModel, string>> Update(CompanyViewModel companyViewModel);
     }
 }

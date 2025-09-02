@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Authorization.Attributes;
+using SorobanSecurityPortalApi.Common;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -103,8 +104,13 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost("{vulnerabilityId}/reject")]
         public async Task<IActionResult> Reject(int vulnerabilityId)
         {
-            await _vulnerabilityService.Reject(vulnerabilityId);
-            return Ok();
+            var result = await _vulnerabilityService.Reject(vulnerabilityId);
+            if (result is Result<bool, string>.Ok)
+                return Ok();
+            else if (result is Result<bool, string>.Err err)
+                return BadRequest(err.Error);
+            else
+                throw new InvalidOperationException("Unexpected result type");
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
@@ -164,7 +170,12 @@ namespace SorobanSecurityPortalApi.Controllers
                 }
             }
             var result = await _vulnerabilityService.Update(vulnerabilityModel, files);
-            return Ok(result);
+            if (result is Result<VulnerabilityViewModel, string>.Ok ok)
+                return Ok(ok.Value);
+            else if (result is Result<VulnerabilityViewModel, string>.Err err)
+                return BadRequest(err.Error);
+            else
+                throw new InvalidOperationException("Unexpected result type");
         }
 
         [HttpGet]

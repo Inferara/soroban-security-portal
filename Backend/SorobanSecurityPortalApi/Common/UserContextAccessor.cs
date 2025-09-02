@@ -67,5 +67,13 @@ namespace SorobanSecurityPortalApi.Common
                 return;
             _loginId = userData.LoginId;
         }
+
+        public async Task<bool> IsLoginAdmin(string login)
+        {
+            var loginModel = await _loginProcessor.GetByLogin(login);
+            if (loginModel == null)
+                return false;
+            return loginModel.Role == RoleEnum.Admin;
+        }
     }
 }

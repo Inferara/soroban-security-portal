@@ -2,6 +2,7 @@ using SorobanSecurityPortalApi.Services.ControllersServices;
 using Microsoft.AspNetCore.Mvc;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Authorization.Attributes;
+using SorobanSecurityPortalApi.Common;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -29,7 +30,12 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> Update(ProtocolViewModel protocolViewModel)
         {
             var result = await _protocolService.Update(protocolViewModel);
-            return Ok(result);
+            if (result is Result<ProtocolViewModel, string>.Ok ok)
+                return Ok(ok.Value);
+            else if (result is Result<ProtocolViewModel, string>.Err err)
+                return BadRequest(err.Error);
+            else
+                throw new InvalidOperationException("Unexpected result type");
         }
 
         [RoleAuthorize(Role.Admin)]

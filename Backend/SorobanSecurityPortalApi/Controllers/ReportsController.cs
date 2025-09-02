@@ -137,8 +137,13 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost("{reportId}/reject")]
         public async Task<IActionResult> Reject(int reportId)
         {
-            await _reportService.Reject(reportId);
-            return Ok();
+            var result = await _reportService.Reject(reportId);
+            if (result is Result<bool, string>.Ok)
+                return Ok();
+            else if (result is Result<bool, string>.Err err)
+                return BadRequest(err.Error);
+            else
+                throw new InvalidOperationException("Unexpected result type");
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
@@ -163,7 +168,12 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> Update(int reportId, [FromBody] ReportViewModel report)
         {
             var result = await _reportService.Update(report);
-            return Ok(result);
+            if (result is Result<ReportViewModel, string>.Ok ok)
+                return Ok(ok.Value);
+            else if (result is Result<ReportViewModel, string>.Err err)
+                return BadRequest(err.Error);
+            else
+                throw new InvalidOperationException("Unexpected result type");
         }
 
         [HttpGet]

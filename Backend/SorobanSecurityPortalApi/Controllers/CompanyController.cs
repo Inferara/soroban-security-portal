@@ -1,7 +1,8 @@
-using SorobanSecurityPortalApi.Services.ControllersServices;
 using Microsoft.AspNetCore.Mvc;
-using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Authorization.Attributes;
+using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Models.ViewModels;
+using SorobanSecurityPortalApi.Services.ControllersServices;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -29,7 +30,12 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> Update(CompanyViewModel companyViewModel)
         {
             var result = await _companyService.Update(companyViewModel);
-            return Ok(result);
+            if (result is Result<CompanyViewModel, string>.Ok ok)
+                return Ok(ok.Value);
+            else if (result is Result<CompanyViewModel, string>.Err err)
+                return BadRequest(err.Error);
+            else
+                throw new InvalidOperationException("Unexpected result type");
         }
 
         [RoleAuthorize(Role.Admin)]
