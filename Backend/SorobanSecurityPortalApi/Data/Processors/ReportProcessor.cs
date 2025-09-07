@@ -153,25 +153,23 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return report;
         }
 
-        public async Task Approve(int reportId, string userName)
+        public async Task Approve(ReportModel reportModel, string userName)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var existing = await db.Report.FirstAsync(item => item.Id == reportId);
-            existing.Status = ReportModelStatus.Approved;
-            existing.LastActionBy = userName;
-            existing.LastActionAt = DateTime.UtcNow;
-            db.Report.Update(existing);
+            reportModel.Status = ReportModelStatus.Approved;
+            reportModel.LastActionBy = userName;
+            reportModel.LastActionAt = DateTime.UtcNow;
+            db.Report.Update(reportModel);
             await db.SaveChangesAsync();
         }
 
-        public async Task Reject(int reportId, string userName)
+        public async Task Reject(ReportModel reportModel, string userName)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var existing = await db.Report.FirstAsync(item => item.Id == reportId);
-            existing.Status = ReportModelStatus.Rejected;
-            existing.LastActionBy = userName;
-            existing.LastActionAt = DateTime.UtcNow;
-            db.Report.Update(existing);
+            reportModel.Status = ReportModelStatus.Rejected;
+            reportModel.LastActionBy = userName;
+            reportModel.LastActionAt = DateTime.UtcNow;
+            db.Report.Update(reportModel);
             await db.SaveChangesAsync();
         }
 
@@ -185,7 +183,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await db.SaveChangesAsync();
         }
 
-        public async Task<List<ReportModel>> GetList()
+        public async Task<List<ReportModel>> GetList(bool includeNotApproved = false)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             var query = db.Report
@@ -193,6 +191,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .Include(r => r.Protocol)
                 .ThenInclude(p => p.Company)
                 .AsNoTracking();
+            if (!includeNotApproved)
+            {
+                query = query.Where(r => r.Status == ReportModelStatus.Approved);
+            }
             query = query.Select(v => new ReportModel
             {
                 Id = v.Id,
@@ -275,10 +277,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<ReportModel> Add(ReportModel reportModel);
         Task<ReportModel> Edit(ReportModel reportModel, string userName);
         Task<ReportModel> Get(int reportId);
-        Task Approve(int reportId, string userName);
-        Task Reject(int reportId, string userName);
+        Task Approve(ReportModel reportModel, string userName);
+        Task Reject(ReportModel reportModel, string userName);
         Task Remove(int reportId);
-        Task<List<ReportModel>> GetList();
+        Task<List<ReportModel>> GetList(bool includeNotApproved = false);
         Task<List<ReportModel>> GetListForEmbedding();
         Task<List<ReportModel>> GetListForFix();
         Task UpdateEmbedding(int reportId, Vector embedding);

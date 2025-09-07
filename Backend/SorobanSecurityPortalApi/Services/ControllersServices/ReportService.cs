@@ -89,10 +89,16 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
         }
 
-        public async Task Approve(int reportId)
+        public async Task<Result<bool, string>> Approve(int reportId)
         {
+            var reportModel = await _reportProcessor.Get(reportId);
+            if (reportModel == null)
+                return new Result<bool, string>.Err("Report not found.");
             var loginName = await _userContextAccessor.GetLoginNameAsync();
-            await _reportProcessor.Approve(reportId, loginName);
+            if (!await CanApproveReport(reportModel, loginName))
+                return new Result<bool, string>.Err("You cannot approve this report.");
+            await _reportProcessor.Approve(reportModel, loginName);
+            return new Result<bool, string>.Ok(true);
         }
 
         public async Task<Result<bool, string>> Reject(int reportId)
@@ -103,7 +109,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 return new Result<bool, string>.Err("Report not found.");
             if (! await CanUpdateRejectReport(reportModel, loginName))
                 return new Result<bool, string>.Err("You cannot reject this report.");
-            await _reportProcessor.Reject(reportId, loginName);
+            await _reportProcessor.Reject(reportModel, loginName);
             return new Result<bool, string>.Ok(true);
         }
 
@@ -112,9 +118,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _reportProcessor.Remove(reportId);
         }
 
-        public async Task<List<ReportViewModel>> GetList()
+        public async Task<List<ReportViewModel>> GetList(bool includeNotApproved = false)
         {
-            var reports = await _reportProcessor.GetList();
+            var reports = await _reportProcessor.GetList(includeNotApproved);
             return _mapper.Map<List<ReportViewModel>>(reports);
         }
 
@@ -122,6 +128,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             var stats = await _reportProcessor.GetStatisticsChanges();
             return _mapper.Map<ReportStatisticsChangesViewModel>(stats);
+        }
+
+        private async Task<bool> CanApproveReport(ReportModel reportModel, string login)
+        {
+            return reportModel.Author != login || await _userContextAccessor.IsLoginAdmin(login);
         }
 
         private async Task<bool> CanUpdateRejectReport(ReportModel reportModel, string login)
@@ -147,10 +158,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<ReportViewModel> Get(int reportId);
         Task<ReportViewModel> Add(ReportViewModel report);
         Task<Result<ReportViewModel, string>> Update(ReportViewModel report);
-        Task Approve(int reportId);
+        Task<Result<bool, string>> Approve(int reportId);
         Task<Result<bool, string>> Reject(int vulnerabilityId);
         Task Remove(int reportId);
-        Task<List<ReportViewModel>> GetList();
+        Task<List<ReportViewModel>> GetList(bool includeNotApproved = false);
         Task<ReportStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }

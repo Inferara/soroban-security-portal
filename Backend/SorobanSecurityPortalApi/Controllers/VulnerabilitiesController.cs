@@ -96,8 +96,13 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost("{vulnerabilityId}/approve")]
         public async Task<IActionResult> Approve(int vulnerabilityId)
         {
-            await _vulnerabilityService.Approve(vulnerabilityId);
-            return Ok();
+            var result = await _vulnerabilityService.Approve(vulnerabilityId);
+            if (result is Result<bool, string>.Ok)
+                return Ok();
+            else if (result is Result<bool, string>.Err err)
+                return BadRequest(err.Error);
+            else
+                throw new InvalidOperationException("Unexpected result type");
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]

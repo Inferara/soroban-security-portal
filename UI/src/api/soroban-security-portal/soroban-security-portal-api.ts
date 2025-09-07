@@ -152,6 +152,11 @@ export const getReportListDataCall = async (): Promise<Report[]> => {
     const response = await client.request('api/v1/reports', 'GET');
     return response.data as Report[];
 };
+export const getAllReportListDataCall = async (): Promise<Report[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/reports/all', 'GET');
+    return response.data as Report[];
+};
 export const removeReportCall = async (reportId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/reports/${reportId}`, 'DELETE');

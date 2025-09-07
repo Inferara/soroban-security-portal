@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { 
-    getReportListDataCall, 
+    getAllReportListDataCall, 
     removeReportCall, 
     approveReportCall,
     rejectReportCall,
@@ -20,7 +20,7 @@ export const useListReports = (props: UseListReportsProps) => {
     const dispatch = useAppDispatch();
 
     const getReportListData = async (): Promise<void> => {
-        const reportListDataResponse = await getReportListDataCall();
+        const reportListDataResponse = await getAllReportListDataCall();
         setReportListData(reportListDataResponse);
     };
 
