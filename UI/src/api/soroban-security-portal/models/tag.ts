@@ -1,4 +1,4 @@
-export interface CategoryItem {
+export interface TagItem {
   id: number;
   name: string;
   bgColor: string;

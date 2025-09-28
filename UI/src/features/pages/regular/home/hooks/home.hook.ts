@@ -18,7 +18,7 @@ export interface PieChartData {
   color: string;
 }
 
-export type FilterType = 'severity' | 'category' | 'protocol' | 'source';
+export type FilterType = 'severity' | 'tag' | 'protocol' | 'source';
 
 export const useVulnerabilityStatistics = () => {
   const [vulnerabilities, setVulnerabilities] = useState<VulnerabilityStatistics>();
@@ -87,20 +87,20 @@ export const useVulnerabilityStatistics = () => {
     ].filter(item => item.value > 0); // Only show segments with data
   };
 
-  const generateCategoryPieChartData = (vulns: VulnerabilityStatistics): PieChartData[] => {
-    const categoryCounts = new Map<string, number>();
+  const generateTagPieChartData = (vulns: VulnerabilityStatistics): PieChartData[] => {
+    const tagCounts = new Map<string, number>();
 
     Object.entries(vulns.byTag).forEach(([tag, count]) => {
-      categoryCounts.set(tag, count);
+      tagCounts.set(tag, count);
     });
 
     const total = vulns.total || 1;
     const colors = ['#1976d2', '#42a5f5', '#90caf9', '#bbdefb', '#e3f2fd', '#2196f3', '#21cbf3', '#64b5f6'];
 
-    return Array.from(categoryCounts.entries()).map(([category, count], index) => ({
-      id: category,
+    return Array.from(tagCounts.entries()).map(([tag, count], index) => ({
+      id: tag,
       value: count,
-      label: `${Math.round((count / total) * 100)}% ${category}`,
+      label: `${Math.round((count / total) * 100)}% ${tag}`,
       color: colors[index % colors.length]
     }));
   };
@@ -128,8 +128,8 @@ export const useVulnerabilityStatistics = () => {
     switch (filterType) {
       case 'severity':
         return generateSeverityPieChartData(stats || mapStatistics(vulns));
-      case 'category':
-        return generateCategoryPieChartData(vulns);
+      case 'tag':
+        return generateTagPieChartData(vulns);
       // case 'protocol':
       //   return generateProtocolPieChartData(vulns);
       default:

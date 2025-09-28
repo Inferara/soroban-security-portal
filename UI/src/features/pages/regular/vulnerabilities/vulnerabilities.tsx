@@ -28,12 +28,12 @@ import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
-import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityCategories, VulnerabilityCategoryInfo } from '../../../../api/soroban-security-portal/models/vulnerability';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
-import { CategoryItem } from '../../../../api/soroban-security-portal/models/category';
+import { TagItem } from '../../../../api/soroban-security-portal/models/tag';
 import { environment } from '../../../../environments/environment';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
@@ -49,11 +49,12 @@ export const Vulnerabilities: FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [severities, setSeverities] = useState<VulnerabilitySeverity[]>([]);
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [tags, setTags] = useState<TagItem[]>([]);
   const [protocols, setProtocols] = useState<ProtocolItem[]>([]);
   const [companies, setCompanies] = useState<CompanyItem[]>([]);
   const [auditors, setAuditors] = useState<AuditorItem[]>([]);
   const [sources, setSources] = useState<VulnerabilitySource[]>([]);
+  const [categories, setCategories] = useState<VulnerabilityCategoryInfo[]>([VulnerabilityCategories[0]]);
   const [sortBy] = useState<'date' | 'severity'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
@@ -74,7 +75,7 @@ export const Vulnerabilities: FC = () => {
 
   const {
     severitiesList,
-    categoriesList,
+    tagsList,
     companiesList,
     protocolsList,
     auditorsList,
@@ -124,7 +125,7 @@ export const Vulnerabilities: FC = () => {
 
   const clearAllFilters = () => {
     setSeverities([]);
-    setCategories([]);
+    setTags([]);
     setCompanies([]);
     setProtocols([]);
     setAuditors([]);
@@ -133,6 +134,7 @@ export const Vulnerabilities: FC = () => {
     setStartDate(null);
     setEndDate(null);
     setCurrentPage(1);
+    setCategories([]);
   };
 
   const handlePageChange = (_: React.ChangeEvent<unknown>, page: number) => {
@@ -166,9 +168,9 @@ export const Vulnerabilities: FC = () => {
     }, 0);
   };
 
-  const getCategory = (categoryName: string) => {
-    const category = categoriesList.find(c => c.name === categoryName);
-    return category;
+  const getTag = (tagName: string) => {
+    const tag = tagsList.find(t => t.name === tagName);
+    return tag;
   };
 
   const handleCardClick = (vulnerability: any) => {
@@ -203,7 +205,7 @@ export const Vulnerabilities: FC = () => {
   const handleChipClick = (filterType: string, value: string) => {
     // Clear all filters
     setSeverities([]);
-    setCategories([]);
+    setTags([]);
     setCompanies([]);
     setProtocols([]);
     setAuditors([]);
@@ -212,6 +214,7 @@ export const Vulnerabilities: FC = () => {
     setStartDate(null);
     setEndDate(null);
     setCurrentPage(1); // Reset to first page when filters change
+    setCategories([]);
 
     // Set the appropriate filter based on the chip type
     switch (filterType) {
@@ -244,11 +247,12 @@ export const Vulnerabilities: FC = () => {
     setShowFilters(true);
     const vulnerabilitySearch: VulnerabilitySearch = {
       severities: filterType === 'severity' ? [value] : [],
-      categories: filterType === 'category' ? [value] : [],
+      tags: filterType === 'tag' ? [value] : [],
       companies: filterType === 'company' ? [value] : [],
       protocols: filterType === 'protocol' ? [value] : [],
       auditors: filterType === 'auditor' ? [value] : [],
       reports: filterType === 'source' ? [value] : [],
+      categories: filterType === 'category' ? [Number(value)] : [],
       searchText: '',
       from: '',
       to: '',
@@ -265,13 +269,14 @@ export const Vulnerabilities: FC = () => {
 
   // Apply filters from URL parameters
   useEffect(() => {
-    const categoryParam = searchParams.get('category');
+    const tagParam = searchParams.get('tag');
     const severityParam = searchParams.get('severity');
     const companyParam = searchParams.get('company');
     const protocolParam = searchParams.get('protocol');
     const sourceParam = searchParams.get('source');
     const pageParam = searchParams.get('page');
     const pageSizeParam = searchParams.get('pageSize');
+    const categoryParam = searchParams.get('category');
 
     let hasFilters = false;
 
@@ -293,12 +298,11 @@ export const Vulnerabilities: FC = () => {
       }
     }
 
-    if (categoryParam && categoriesList.length > 0) {
-      const category = categoriesList.find(c => c.name === categoryParam);
-      if (category) {
-        setCategories([category]);
+    if (tagParam && tagsList.length > 0) {
+      const tag = tagsList.find(t => t.name === tagParam);
+      if (tag) {
+        setTags([tag]);
         hasFilters = true;
-        console.log('Applied category filter from URL:', categoryParam);
       }
     }
 
@@ -307,7 +311,6 @@ export const Vulnerabilities: FC = () => {
       if (severity) {
         setSeverities([severity]);
         hasFilters = true;
-        console.log('Applied severity filter from URL:', severityParam);
       }
     }
 
@@ -316,7 +319,6 @@ export const Vulnerabilities: FC = () => {
       if (company) {
         setCompanies([company]);
         hasFilters = true;
-        console.log('Applied company filter from URL:', companyParam);
       }
     }
 
@@ -325,7 +327,6 @@ export const Vulnerabilities: FC = () => {
       if (protocol) {
         setProtocols([protocol]);
         hasFilters = true;
-        console.log('Applied protocol filter from URL:', protocolParam);
       }
     }
 
@@ -334,27 +335,25 @@ export const Vulnerabilities: FC = () => {
       if (source) {
         setSources([source]);
         hasFilters = true;
-        console.log('Applied source filter from URL:', sourceParam);
       }
+    }
+
+    if (categoryParam) {
+      setCategories(VulnerabilityCategories.filter(c => c.label === categoryParam));
+      hasFilters = true;
     }
 
     if (hasFilters) {
       setShowFilters(true);
       setCurrentPage(1); // Reset to first page when filters are applied from URL
     }
-  }, [searchParams, categoriesList, severitiesList, protocolsList, sourceList]);
+  }, [searchParams, tagsList, severitiesList, protocolsList, sourceList]);
 
   // Auto-search when filters are applied from URL
   useEffect(() => {
-    if (categoriesList.length > 0 && severitiesList.length > 0 && protocolsList.length > 0 && sourceList.length > 0) {
-      const hasUrlFilters = searchParams.get('category') || searchParams.get('severity') || searchParams.get('protocol') || searchParams.get('source');
+    if (tagsList.length > 0 && severitiesList.length > 0 && protocolsList.length > 0 && sourceList.length > 0) {
+      const hasUrlFilters = searchParams.get('tag') || searchParams.get('severity') || searchParams.get('protocol') || searchParams.get('source') || searchParams.get('company') || searchParams.get('category');
       if (hasUrlFilters) {
-        console.log('Auto-searching with URL filters:', {
-          category: searchParams.get('category'),
-          severity: searchParams.get('severity'),
-          protocol: searchParams.get('protocol'),
-          source: searchParams.get('source')
-        });
         // Small delay to ensure all filter lists are loaded
         const timer = setTimeout(() => {
           setCurrentPage(1); // Reset to first page before searching
@@ -363,7 +362,7 @@ export const Vulnerabilities: FC = () => {
         return () => clearTimeout(timer);
       }
     }
-  }, [categoriesList, severitiesList, protocolsList, sourceList, searchParams]);
+  }, [tagsList, severitiesList, protocolsList, sourceList, searchParams]);
 
   // Ensure current page is valid after filtering
   useEffect(() => {
@@ -423,11 +422,12 @@ export const Vulnerabilities: FC = () => {
 
   const callSearch = (overrides?: Partial<{
     severities: VulnerabilitySeverity[];
-    categories: CategoryItem[];
+    tags: TagItem[];
     companies: CompanyItem[];
     protocols: ProtocolItem[];
     auditors: AuditorItem[];
     sources: VulnerabilitySource[];
+    categories: VulnerabilityCategoryInfo[];
     searchText: string;
     from: string;
     to: string;
@@ -435,7 +435,7 @@ export const Vulnerabilities: FC = () => {
     setIsLoading(true);
     const vulnerabilitySearch: VulnerabilitySearch = {
       severities: (overrides?.severities ?? severities).map(s => s.name),
-      categories: (overrides?.categories ?? categories).map(c => c.name),
+      tags: (overrides?.tags ?? tags).map(t => t.name),
       companies: (overrides?.companies ?? companies).map(c => c.name),
       protocols: (overrides?.protocols ?? protocols).map(p => p.name),
       auditors: (overrides?.auditors ?? auditors).map(a => a.name),
@@ -447,6 +447,7 @@ export const Vulnerabilities: FC = () => {
       sortDirection: sortDir,
       page: currentPageRef.current,
       pageSize: pageSize,
+      categories: overrides?.categories?.map(c => c.id) ?? categories.map(c => c.id),
     };
     setIsLoading(true);
     if (selectedVulnerability !== null) {
@@ -570,7 +571,7 @@ export const Vulnerabilities: FC = () => {
               clearAllFilters();
               callSearch({
                 severities: [],
-                categories: [],
+                tags: [],
                 companies: [],
                 protocols: [],
                 auditors: [],
@@ -625,13 +626,12 @@ export const Vulnerabilities: FC = () => {
                 ))
               }
             />
-
             <Autocomplete
               multiple
-              options={categoriesList}
-              value={categories}
-              onChange={(_, newValue) => setCategories(newValue as CategoryItem[])}
-              getOptionLabel={(option) => (option as CategoryItem).name}
+              options={tagsList}
+              value={tags}
+              onChange={(_, newValue) => setTags(newValue as TagItem[])}
+              getOptionLabel={(option) => (option as TagItem).name}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -645,11 +645,11 @@ export const Vulnerabilities: FC = () => {
                   <Chip
                     {...getTagProps({ index })}
                     key={index}
-                    label={(option as CategoryItem).name}
+                    label={(option as TagItem).name}
                     size="small"
                     sx={{
-                      bgcolor: (option as CategoryItem).bgColor,
-                      color: (option as CategoryItem).textColor,
+                      bgcolor: (option as TagItem).bgColor,
+                      color: (option as TagItem).textColor,
                       fontWeight: 700,
                     }}
                   />
@@ -760,6 +760,36 @@ export const Vulnerabilities: FC = () => {
                 ))
               }
             />
+            <Autocomplete
+              multiple
+              options={VulnerabilityCategories}
+              value={categories}
+              onChange={(_, newValue) => setCategories(newValue as VulnerabilityCategoryInfo[])}
+              getOptionLabel={(option) => (option as VulnerabilityCategoryInfo).label}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Category"
+                  size="small"
+                  sx={{ minWidth: 200 }}
+                />
+              )}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    {...getTagProps({ index })}
+                    key={index}
+                    label={(option as VulnerabilityCategoryInfo).label}
+                    size="small"
+                    sx={{
+                      bgcolor: option.color,
+                      color: '#F2F2F2',
+                      fontWeight: 700,
+                    }}
+                  />
+                ))
+              }
+            />
           </Box>
         )}
       </Box>
@@ -775,117 +805,117 @@ export const Vulnerabilities: FC = () => {
       </Box>
       {/* Vulnerabilities List Section */}
       <Box sx={{ pl: 3, pr: 3, display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'row', height: '70vh'}}>
-        {/* Vulnerability cards */}
-        <Stack spacing={3} sx={{
-          width: selectedVulnerability ? ( isOnSmallScreen ? '100%' : '50%') : '100%',
-          overflow: 'auto',
-          borderColor: 'divider',
-          transition: 'width 0.3s ease-in-out',
-          '&::-webkit-scrollbar': {
-            width: '12px',
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(0, 0, 0, 0.3)',
-            borderRadius: '4px',
-            '&:hover': {
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        <Box sx={{ display: 'flex', flexDirection: 'row', height: '70vh' }}>
+          {/* Vulnerability cards */}
+          <Stack spacing={3} sx={{
+            width: selectedVulnerability ? (isOnSmallScreen ? '100%' : '50%') : '100%',
+            overflow: 'auto',
+            borderColor: 'divider',
+            transition: 'width 0.3s ease-in-out',
+            '&::-webkit-scrollbar': {
+              width: '12px',
             },
-          },
-          '&::-webkit-scrollbar-corner': {
-            backgroundColor: 'transparent',
-          },
-        }}>
-          {isLoading && (
-            <Grid size={12}>
-              <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
-                <Typography variant="h6" color="text.secondary">
-                  Loading vulnerabilities...
-                </Typography>
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              },
+            },
+            '&::-webkit-scrollbar-corner': {
+              backgroundColor: 'transparent',
+            },
+          }}>
+            {isLoading && (
+              <Grid size={12}>
+                <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
+                  <Typography variant="h6" color="text.secondary">
+                    Loading vulnerabilities...
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
+            {!isLoading && vulnerabilitiesList.length === 0 && (
+              <Grid size={12}>
+                <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                    {currentPage > 1 ? 'No more vulnerabilities on this page' : 'No vulnerabilities found'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {currentPage > 1
+                      ? 'Try going back to the first page or adjusting your search criteria.'
+                      : 'Try adjusting your search criteria or filters to find more results.'
+                    }
+                  </Typography>
+                  {currentPage > 1 && (
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => {
+                        setCurrentPage(1);
+                        setPage(1);
+                      }}
+                    >
+                      Go to First Page
+                    </Button>
+                  )}
+                </Box>
+              </Grid>
+            )}
+            {!isLoading && vulnerabilitiesList.map(vuln => (
+              <Box key={vuln.id}>
+                <Card
+                  sx={{
+                    mr: 1,
+                    borderRadius: '20px',
+                    border: '1px solid',
+                    backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
+                    borderLeft: `10px solid ${vuln.severity === 'Critical' ? '#c72e2b95' :
+                      vuln.severity === 'High' ? '#FF6B3D95' :
+                        vuln.severity === 'Medium' ? '#FFD84D95' :
+                          vuln.severity === 'Low' ? '#569E6795' :
+                            vuln.severity === 'Note' ? '#72F1FF95' :
+                              '#388e3c'}`,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease-in-out',
+                    ...(selectedVulnerability?.id === vuln.id && {
+                      backgroundColor: '#6a6a6a',
+                    })
+                  }}
+                  onClick={() => handleCardClick(vuln)}
+                >
+                  <CardContent sx={{ flexGrow: 1, paddingBottom: '8px !important' }}>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>
+                        {vuln.title}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
+                      {vuln.tags.map((tag, index) => (
+                        <Chip key={`${vuln.id}-tag-${index}`} label={tag} size="small" sx={{ bgcolor: getTag(tag)?.bgColor, color: getTag(tag)?.textColor }} />
+                      ))}
+                      <Chip label={vuln.protocolName} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
+                    </Stack>
+                  </CardContent>
+                </Card>
               </Box>
-            </Grid>
+            ))}
+          </Stack>
+          {/* Vulnerability Profile Section */}
+          {selectedVulnerability && (
+            <VulnerabilityCard
+              selectedVulnerability={selectedVulnerability}
+              reportsList={reportsList}
+              protocolsList={protocolsList}
+              handleCloseProfile={handleCloseProfile}
+              handleChipClick={handleChipClick}
+              handleDownloadReport={handleDownloadReport}
+              isModal={isOnSmallScreen} />
           )}
-          {!isLoading && vulnerabilitiesList.length === 0 && (
-            <Grid size={12}>
-              <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
-                <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-                  {currentPage > 1 ? 'No more vulnerabilities on this page' : 'No vulnerabilities found'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {currentPage > 1
-                    ? 'Try going back to the first page or adjusting your search criteria.'
-                    : 'Try adjusting your search criteria or filters to find more results.'
-                  }
-                </Typography>
-                {currentPage > 1 && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => {
-                      setCurrentPage(1);
-                      setPage(1);
-                    }}
-                  >
-                    Go to First Page
-                  </Button>
-                )}
-              </Box>
-            </Grid>
-          )}
-          {!isLoading && vulnerabilitiesList.map(vuln => (
-            <Box key={vuln.id}>
-              <Card
-                sx={{
-                  mr: 1,
-                  borderRadius: '20px',
-                  border: '1px solid',
-                  backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-                  borderLeft: `10px solid ${vuln.severity === 'Critical' ? '#c72e2b95' :
-                    vuln.severity === 'High' ? '#FF6B3D95' :
-                      vuln.severity === 'Medium' ? '#FFD84D95' :
-                        vuln.severity === 'Low' ? '#569E6795' :
-                          vuln.severity === 'Note' ? '#72F1FF95' :
-                            '#388e3c'}`,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  ...(selectedVulnerability?.id === vuln.id && {
-                    backgroundColor: '#6a6a6a',
-                  })
-                }}
-                onClick={() => handleCardClick(vuln)}
-              >
-                <CardContent sx={{ flexGrow: 1, paddingBottom: '8px !important' }}>
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>
-                      {vuln.title}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
-                    {vuln.categories.map((category, index) => (
-                      <Chip key={`${vuln.id}-category-${index}`} label={category} size="small" sx={{ bgcolor: getCategory(category)?.bgColor, color: getCategory(category)?.textColor }} />
-                    ))}
-                    <Chip label={vuln.protocolName} size="small" sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }} />
-                  </Stack>
-                </CardContent>
-              </Card>
-              </Box>
-          ))}
-        </Stack>
-        {/* Vulnerability Profile Section */}
-        {selectedVulnerability && (
-          <VulnerabilityCard
-            selectedVulnerability={selectedVulnerability}
-            reportsList={reportsList}
-            protocolsList={protocolsList}
-            handleCloseProfile={handleCloseProfile}
-            handleChipClick={handleChipClick}
-            handleDownloadReport={handleDownloadReport}
-            isModal={isOnSmallScreen} />
-        )}
         </Box>
 
         {/* Pagination Controls */}

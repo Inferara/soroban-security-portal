@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { 
   getSeveritiesCall, 
-  getCategoriesCall, 
+  getTagsCall, 
   getProtocolListDataCall, 
   getSourceCall, 
   addVulnerabilityCall, 
@@ -17,12 +17,12 @@ import {
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
-import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
+import { TagItem } from '../../../../../api/soroban-security-portal/models/tag';
 import { v4 } from 'uuid';
 
 export const useVulnerabilityAdd = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
-  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
+  const [tagsList, setTagsList] = useState<TagItem[]>([]);
   const [protocolsList, setProtocolsList] = useState<ProtocolItem[]>([]);
   const [companiesList, setCompaniesList] = useState<CompanyItem[]>([]);
   const [sourceList, setSourceList] = useState<VulnerabilitySource[]>([]);
@@ -36,9 +36,9 @@ export const useVulnerabilityAdd = () => {
     setSeveritiesList(response);
   };
 
-  const getCategories = async (): Promise<void> => {
-    const response = await getCategoriesCall();
-    setCategoriesList(response);
+  const getTags = async (): Promise<void> => {
+    const response = await getTagsCall();
+    setTagsList(response);
   };
 
   const getProtocols = async (): Promise<void> => {
@@ -85,7 +85,7 @@ export const useVulnerabilityAdd = () => {
   // Set the current page
   useEffect(() => {
     void getSeverities();
-    void getCategories();
+    void getTags();
     void getProtocols();
     void getCompanies();
     void getAuditors();
@@ -94,7 +94,7 @@ export const useVulnerabilityAdd = () => {
 
   return {
     severitiesList,
-    categoriesList,
+    tagsList,
     protocolsList,
     companiesList,
     auditorsList,

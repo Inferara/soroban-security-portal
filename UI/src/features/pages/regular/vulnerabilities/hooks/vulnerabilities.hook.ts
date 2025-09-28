@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { 
   getSeveritiesCall, 
-  getCategoriesCall, 
+  getTagsCall, 
   getProtocolListDataCall, 
   getAuditorListDataCall,
   getSourceCall, 
@@ -15,17 +15,17 @@ import {
   Vulnerability,
   VulnerabilitySearch, 
   VulnerabilitySeverity, 
-  VulnerabilitySource 
+  VulnerabilitySource,
 } from '../../../../../api/soroban-security-portal/models/vulnerability';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
-import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
+import { TagItem } from '../../../../../api/soroban-security-portal/models/tag';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
 
 export const useVulnerabilities = () => {
   const [severitiesList, setSeveritiesList] = useState<VulnerabilitySeverity[]>([]);
-  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
+  const [tagsList, setTagsList] = useState<TagItem[]>([]);
   const [protocolsList, setProtocolsList] = useState<ProtocolItem[]>([]);
   const [companiesList, setCompaniesList] = useState<CompanyItem[]>([]);
   const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
@@ -43,9 +43,9 @@ export const useVulnerabilities = () => {
     setSeveritiesList(response);
   };
 
-  const getCategories = async (): Promise<void> => {
-    const response = await getCategoriesCall();
-    setCategoriesList(response);
+  const getTags = async (): Promise<void> => {
+    const response = await getTagsCall();
+    setTagsList(response);
   };
 
   const getProtocols = async (): Promise<void> => {
@@ -72,7 +72,7 @@ export const useVulnerabilities = () => {
     if (!vulnerabilitySearch) {
       vulnerabilitySearch = {
         severities: [],
-        categories: [],
+        tags: [],
         protocols: [],
         reports: [],
         page: currentPage,
@@ -111,16 +111,17 @@ export const useVulnerabilities = () => {
   // Set the current page
   useEffect(() => {
     void getSeverities();
-    void getCategories();
+    void getTags();
     void getCompanies();
     void getProtocols();
     void getAuditors();
     void getSource();
     void getReports();
+
     // Initial search with pagination
     void searchVulnerabilities({
       severities: [],
-      categories: [],
+      tags: [],
       protocols: [],
       reports: [],
       page: 1,
@@ -130,7 +131,7 @@ export const useVulnerabilities = () => {
 
   return {
     severitiesList,
-    categoriesList,
+    tagsList,
     companiesList,
     protocolsList,
     auditorsList,

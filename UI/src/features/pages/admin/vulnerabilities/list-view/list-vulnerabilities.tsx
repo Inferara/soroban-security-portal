@@ -234,7 +234,7 @@ export const VulnerabilityManagement: FC = () => {
       width: 420,
       renderCell: (params: GridRenderCellParams<Vulnerability>) => (
         <div>
-          <div>Tags: <span style={{ color: 'gray' }}>{params.row.categories.join(', ')}</span></div>
+          <div>Tags: <span style={{ color: 'gray' }}>{params.row.tags.join(', ')}</span></div>
           <div>Source: <span style={{ color: 'gray' }}>{params.row.reportName}</span></div>
           <div>Company: <span style={{ color: 'gray' }}>{params.row.companyName}</span></div>
           <div>Protocol: <span style={{ color: 'gray' }}>{params.row.protocolName}</span></div>

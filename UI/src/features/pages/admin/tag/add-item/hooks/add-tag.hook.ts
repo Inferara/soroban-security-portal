@@ -1,19 +1,19 @@
 import { useEffect } from 'react';
-import { addCategoryCall } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { addTagCall } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppDispatch } from '../../../../../../app/hooks';
 import { CurrentPageState, setCurrentPage } from '../../../admin-main-window/current-page-slice';
-import { CategoryItem } from '../../../../../../api/soroban-security-portal/models/category';
+import { TagItem } from '../../../../../../api/soroban-security-portal/models/tag';
 
-type UseAddCategoryProps = {
+type UseAddTagProps = {
     currentPageState: CurrentPageState;
 };
 
-export const useAddCategory = (props: UseAddCategoryProps) => {
+export const useAddTag = (props: UseAddTagProps) => {
     const { currentPageState } = props;
     const dispatch = useAppDispatch();
 
-    const addCategory = async (categoryItem: CategoryItem): Promise<boolean> => {
-        const response = await addCategoryCall(categoryItem);
+    const addTag = async (TagItem: TagItem): Promise<boolean> => {
+        const response = await addTagCall(TagItem);
         return response;
     };
 
@@ -23,6 +23,6 @@ export const useAddCategory = (props: UseAddCategoryProps) => {
     }, [dispatch]);
 
     return {
-        addCategory
+        addTag
     };
 };
