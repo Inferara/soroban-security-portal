@@ -54,7 +54,7 @@ export const Vulnerabilities: FC = () => {
   const [companies, setCompanies] = useState<CompanyItem[]>([]);
   const [auditors, setAuditors] = useState<AuditorItem[]>([]);
   const [sources, setSources] = useState<VulnerabilitySource[]>([]);
-  const [categories, setCategories] = useState<VulnerabilityCategoryInfo[]>([VulnerabilityCategories[0]]);
+  const [categories, setCategories] = useState<VulnerabilityCategoryInfo[]>([VulnerabilityCategories[0], VulnerabilityCategories[VulnerabilityCategories.length - 1]]);
   const [sortBy] = useState<'date' | 'severity'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
@@ -269,14 +269,14 @@ export const Vulnerabilities: FC = () => {
 
   // Apply filters from URL parameters
   useEffect(() => {
-    const tagParam = searchParams.get('tag');
-    const severityParam = searchParams.get('severity');
-    const companyParam = searchParams.get('company');
-    const protocolParam = searchParams.get('protocol');
-    const sourceParam = searchParams.get('source');
-    const pageParam = searchParams.get('page');
-    const pageSizeParam = searchParams.get('pageSize');
-    const categoryParam = searchParams.get('category');
+    const tagParam = searchParams.get('tag') || searchParams.get('Tag');
+    const severityParam = searchParams.get('severity') || searchParams.get('Severity');
+    const companyParam = searchParams.get('company') || searchParams.get('Company');
+    const protocolParam = searchParams.get('protocol') || searchParams.get('Protocol');
+    const sourceParam = searchParams.get('source') || searchParams.get('Source');
+    const pageParam = searchParams.get('page') || searchParams.get('Page');
+    const pageSizeParam = searchParams.get('pageSize') || searchParams.get('PageSize');
+    const categoryParam = searchParams.get('category') || searchParams.get('Category');
 
     let hasFilters = false;
 

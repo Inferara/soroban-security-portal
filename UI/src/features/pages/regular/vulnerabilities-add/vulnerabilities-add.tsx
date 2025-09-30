@@ -176,7 +176,7 @@ export const AddVulnerability: FC = () => {
       picturesContainerGuid: picturesContainerGuid,
       date: new Date(),
       status: 'new',
-      category: category || VulnerabilityCategory.Valid,
+      category: category || VulnerabilityCategory.NA,
     };
     if (!vulnerability.title || 
       !vulnerability.description || 
@@ -343,8 +343,8 @@ export const AddVulnerability: FC = () => {
             </Grid>
             <Grid size={12}>
               <Autocomplete
-                options={Object.entries(VulnerabilityCategories).map(([key, value]) => ({ id: Number(key), name: value.label }))}
-                value={category !== null ? { id: category, name: VulnerabilityCategories[category].label } : null}
+                options={Object.entries(VulnerabilityCategories).map(([_, value]) => ({ id: value.id, name: value.label }))}
+                value={category !== null ? { id: category, name: VulnerabilityCategories.find(c => c.id === category)?.label || '' } : null}
                 onChange={(_, newValue) => setCategory(newValue ? (newValue as any).id : null)}
                 getOptionLabel={(option) => (option as any).name}
                 renderInput={(params) => (
