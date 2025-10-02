@@ -54,7 +54,11 @@ export const Vulnerabilities: FC = () => {
   const [companies, setCompanies] = useState<CompanyItem[]>([]);
   const [auditors, setAuditors] = useState<AuditorItem[]>([]);
   const [sources, setSources] = useState<VulnerabilitySource[]>([]);
-  const [categories, setCategories] = useState<VulnerabilityCategoryInfo[]>([VulnerabilityCategories[0], VulnerabilityCategories[VulnerabilityCategories.length - 1]]);
+  const [categories, setCategories] = useState<VulnerabilityCategoryInfo[]>([
+    VulnerabilityCategories[0],
+    VulnerabilityCategories[2],
+    VulnerabilityCategories[VulnerabilityCategories.length - 1]
+  ]);
   const [sortBy] = useState<'date' | 'severity'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
