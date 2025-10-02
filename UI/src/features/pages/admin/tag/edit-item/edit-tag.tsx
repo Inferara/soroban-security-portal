@@ -1,13 +1,13 @@
 import { Button, Grid, Stack, TextField } from '@mui/material';
 import { FC, useEffect, useState } from 'react';
-import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category';
-import { showError } from '../../../../dialog-handler/dialog-handler';
+import { TagItem } from '../../../../../api/soroban-security-portal/models/tag.ts';
+import { showError } from '../../../../dialog-handler/dialog-handler.ts';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useEditCategory } from './hooks';
+import { useEditTag } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 
-export const EditCategory: FC = () => {
+export const EditTag: FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [textColor, setTextColor] = useState('#000000');
@@ -15,36 +15,36 @@ export const EditCategory: FC = () => {
 
   const currentPageState: CurrentPageState = {
     pageName: 'Edit Tag',
-    pageCode: 'editCategory',
+    pageCode: 'editTag',
     pageUrl: window.location.pathname,
-    routePath: 'admin/categories/edit',
+    routePath: 'admin/tags/edit',
   };
-  const { editCategory, category } = useEditCategory({ currentPageState });
+  const { editTag, tag } = useEditTag({ currentPageState });
 
   useEffect(() => {
-      setName(category?.name ?? '');
-      setBgColor(category?.bgColor ?? '');
-      setTextColor(category?.textColor ?? '');
-  }, [category]);
+      setName(tag?.name ?? '');
+      setBgColor(tag?.bgColor ?? '');
+      setTextColor(tag?.textColor ?? '');
+  }, [tag]);
 
-  const handleEditCategory = async () => {
+  const handleEditTag = async () => {
     if (name === '') {
       showError('Name field is required.');
       return;
     }
 
-    const editCategoryItem = {
+    const editTagItem = {
       name: name,
       bgColor: bgColor,
       textColor: textColor,
-      id: category?.id ?? 0,
-      date: category?.date ?? new Date(),
-      createdBy: category?.createdBy ?? '',
-    } as CategoryItem;
-    const editCategorySuccess = await editCategory(editCategoryItem);
+      id: tag?.id ?? 0,
+      date: tag?.date ?? new Date(),
+      createdBy: tag?.createdBy ?? '',
+    } as TagItem;
+    const editTagSuccess = await editTag(editTagItem);
 
-    if (editCategorySuccess) {
-      navigate('/admin/categories');
+    if (editTagSuccess) {
+      navigate('/admin/tags');
     } else {
       showError('Tag updating failed.');
     }
@@ -95,7 +95,7 @@ export const EditCategory: FC = () => {
         </Grid>
       </Grid>
       <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
-        <Button onClick={handleEditCategory}>Save</Button>
+        <Button onClick={handleEditTag}>Save</Button>
         <Button onClick={() => history.back()}>Cancel</Button>
       </Stack>
     </div>

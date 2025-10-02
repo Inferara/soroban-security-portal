@@ -27,13 +27,6 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         [Column(TypeName = "vector(3072)")]
         public Vector? Embedding { get; set; }
         public List<VulnerabilityModel> Vulnerabilities { get; set; } = new();
-
-        //TODO delete
-        [Column("protocol")]
-        public string? ProtocolLegacy { get; set; } = null;
-        public string? Company { get; set; } = "";
-        [Column("auditor")]
-        public string? AuditorLegacy { get; set; } = null;
     }
 
     public class ReportModelStatus

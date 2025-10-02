@@ -6,12 +6,12 @@ using SorobanSecurityPortalApi.Authorization.Attributes;
 namespace SorobanSecurityPortalApi.Controllers
 {
     [ApiController]
-    [Route("api/v1/categories")]
-    public class CategoryController : ControllerBase
+    [Route("api/v1/tags")]
+    public class TagController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
 
-        public CategoryController(ICategoryService categoryService)
+        public TagController(ICategoryService categoryService)
         {
             _categoryService = categoryService;
         }

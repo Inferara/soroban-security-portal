@@ -40,9 +40,9 @@ import { EditProtocol } from '../protocol/edit-item/edit-protocol.tsx';
 import { ListCompanies } from '../company/list-view/list-companies.tsx';
 import { AddCompany } from '../company/add-item/add-company.tsx';
 import { EditCompany } from '../company/edit-item/edit-company.tsx';
-import { ListCategories } from '../category/list-view/list-categories.tsx';
-import { AddCategory } from '../category/add-item/add-category.tsx';
-import { EditCategory } from '../category/edit-item/edit-category.tsx';
+import { ListCategories } from '../tag/list-view/list-tags.tsx';
+import { AddTag } from '../tag/add-item/add-tag.tsx';
+import { EditTag } from '../tag/edit-item/edit-tag.tsx';
 
 const drawerWidth = 240;
 const drawerMarginLeft = 24;
@@ -246,8 +246,8 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/protocols/edit`} element={<EditProtocol />} />
 
           <Route path={`${environment.basePath}/admin/categories`} element={<ListCategories />} />
-          <Route path={`${environment.basePath}/admin/categories/add`} element={<AddCategory />} />
-          <Route path={`${environment.basePath}/admin/categories/edit`} element={<EditCategory />} />
+          <Route path={`${environment.basePath}/admin/categories/add`} element={<AddTag />} />
+          <Route path={`${environment.basePath}/admin/categories/edit`} element={<EditTag />} />
 
           <Route path={`${environment.basePath}/*`} element={<NoPage />} />
         </Routes>

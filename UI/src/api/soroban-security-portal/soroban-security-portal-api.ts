@@ -9,34 +9,34 @@ import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, Vulnerabilit
 import { AddReport, Report, ReportSearch } from './models/report';
 import { AuditorItem } from './models/auditor';
 import { ProtocolItem } from './models/protocol';
-import { CategoryItem } from './models/category';
+import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 
-// --- CATEGORIES ---
-export const getCategoriesCall = async (): Promise<CategoryItem[]> => {
+// --- TAGS ---
+export const getTagsCall = async (): Promise<TagItem[]> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/categories', 'GET');
-    return response.data as CategoryItem[];
+    const response = await client.request('api/v1/tags', 'GET');
+    return response.data as TagItem[];
 };
-export const removeCategoryCall = async (categoryId: number): Promise<boolean> => {
+export const removeTagCall = async (tagId: number): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/categories/${categoryId}`, 'DELETE');
+    const response = await client.request(`api/v1/tags/${tagId}`, 'DELETE');
     return response.data as boolean;
 };
-export const addCategoryCall = async (category: CategoryItem): Promise<boolean> => {
+export const addTagCall = async (tag: TagItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/categories', 'POST', category);
+    const response = await client.request('api/v1/tags', 'POST', tag);
     return response.data as boolean;
 };
-export const editCategoryCall = async (category: CategoryItem): Promise<boolean> => {
+export const editTagCall = async (tag: TagItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/categories`, 'PUT', category);
+    const response = await client.request(`api/v1/tags`, 'PUT', tag);
     return response.data as boolean;
 };
-export const getCategoryByIdCall = async (categoryId: number): Promise<CategoryItem> => {
+export const getTagByIdCall = async (tagId: number): Promise<TagItem> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/categories/${categoryId}`, 'GET');
-    return response.data as CategoryItem;
+    const response = await client.request(`api/v1/tags/${tagId}`, 'GET');
+    return response.data as TagItem;
 };
 // --- FILES ---
 export const getFilesCall = async (containerGuid: string): Promise<string[]> => {

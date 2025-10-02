@@ -1,13 +1,13 @@
 import { Button, Grid, Stack, TextField } from '@mui/material';
 import { FC, useState } from 'react';
-import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category.ts';
+import { TagItem } from '../../../../../api/soroban-security-portal/models/tag.ts';
 import { showError } from '../../../../dialog-handler/dialog-handler.ts';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useAddCategory } from './hooks/index.ts';
+import { useAddTag } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 
-export const AddCategory: FC = () => {
+export const AddTag: FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [textColor, setTextColor] = useState('#000000');
@@ -15,18 +15,18 @@ export const AddCategory: FC = () => {
 
   const currentPageState: CurrentPageState = {
     pageName: 'Add Tag',
-    pageCode: 'addCategory',
+    pageCode: 'addTag',
     pageUrl: window.location.pathname,
-    routePath: 'admin/categories/add',
+    routePath: 'admin/tags/add',
   };
-  const { addCategory } = useAddCategory({ currentPageState });
+  const { addTag } = useAddTag({ currentPageState });
 
-  const handleCreateCategory = async () => {
+  const handleCreateTag = async () => {
     if (name === '') {
       showError('Name field is required.');
       return;
     }
-    const createCategoryItem: CategoryItem = {
+    const createTagItem: TagItem = {
       id: 0,
       name: name,
       bgColor: bgColor,
@@ -34,9 +34,9 @@ export const AddCategory: FC = () => {
       date: new Date(),
       createdBy: '',
     };
-    const createCategorySuccess = await addCategory(createCategoryItem);
-    if (createCategorySuccess) {
-      navigate('/admin/categories');
+    const createTagSuccess = await addTag(createTagItem);
+    if (createTagSuccess) {
+      navigate('/admin/tags');
     } else {
       showError('Tag creation failed. Probably tag already exists.');
     }
@@ -86,7 +86,7 @@ export const AddCategory: FC = () => {
         </Grid>
       </Grid>
       <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
-        <Button onClick={handleCreateCategory}>Create Tag</Button>
+        <Button onClick={handleCreateTag}>Create Tag</Button>
         <Button onClick={() => history.back()}>Cancel</Button>
       </Stack>
     </div>

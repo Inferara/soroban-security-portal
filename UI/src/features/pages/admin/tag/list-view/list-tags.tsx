@@ -15,9 +15,9 @@ import {
 } from '@mui/x-data-grid';
 import { FC, useState } from 'react';
 
-import { CategoryItem } from '../../../../../api/soroban-security-portal/models/category.ts';
+import { TagItem } from '../../../../../api/soroban-security-portal/models/tag.ts';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useListCategories } from './hooks/index.ts';
+import { useListTags } from './hooks/index.ts';
 import { ConfirmDialog } from '../../admin-main-window/confirm-dialog.tsx';
 import { CustomToolbar } from '../../../../components/custom-toolbar.tsx';
 import { useNavigate } from 'react-router-dom';
@@ -33,12 +33,12 @@ export const ListCategories: FC = () => {
     routePath: 'admin/categories',
   };
 
-  const { categoryListData, categoryRemove } = useListCategories({ currentPageState });
-  const [categoryIdToRemove, setCategoryIdToRemove] = useState(0);
+  const { tagListData, tagRemove } = useListTags({ currentPageState });
+  const [tagIdToRemove, setTagIdToRemove] = useState(0);
 
-  const removeCategoryConfirmed = async () => {
-    await categoryRemove(categoryIdToRemove);
-    setCategoryIdToRemove(0);
+  const removeTagConfirmed = async () => {
+    await tagRemove(tagIdToRemove);
+    setTagIdToRemove(0);
   };
 
   const columnsData: GridColDef[] = [
@@ -48,9 +48,9 @@ export const ListCategories: FC = () => {
       width: 140,
       sortable: false,
       filterable: false,
-      renderCell: (params: GridRenderCellParams<CategoryItem>) => (
+      renderCell: (params: GridRenderCellParams<TagItem>) => (
         <Tooltip title="Remove Tag">
-          <IconButton onClick={() => setCategoryIdToRemove(params.row.id)}>
+          <IconButton onClick={() => setTagIdToRemove(params.row.id)}>
             <ClearIcon sx={{ color: 'red' }} />
           </IconButton>
         </Tooltip>
@@ -60,7 +60,7 @@ export const ListCategories: FC = () => {
       field: 'name',
       headerName: 'Tag',
       width: 250,
-      renderCell: (params: GridRenderCellParams<CategoryItem>) => (
+      renderCell: (params: GridRenderCellParams<TagItem>) => (
         <Link
           sx={{
             textAlign: 'left',
@@ -70,7 +70,7 @@ export const ListCategories: FC = () => {
           }}
           component="button"
           onClick={() =>
-            navigate(`/admin/categories/edit?categoryId=${params.row.id}`)
+            navigate(`/admin/tags/edit?tagId=${params.row.id}`)
           }
         >
           <Chip
@@ -90,7 +90,7 @@ export const ListCategories: FC = () => {
       field: 'date',
       headerName: 'Date',
       width: 250,
-      renderCell: (params: GridRenderCellParams<CategoryItem>) => (
+      renderCell: (params: GridRenderCellParams<TagItem>) => (
         <Typography>{params.row.date.toString().split('.')[0].replace('T', ' ')}</Typography>
       ),
     } as GridColDef,
@@ -113,7 +113,7 @@ export const ListCategories: FC = () => {
 
       <div style={{ height: 'calc(110vh - 64px)' }}>
         <DataGrid
-          getRowId={(row: CategoryItem) => row.id}
+          getRowId={(row: TagItem) => row.id}
           getRowHeight={() => 'auto'}
           sx={{
             backgroundColor: 'transparent',
@@ -124,7 +124,7 @@ export const ListCategories: FC = () => {
               minHeight: 50,
             },
           }}
-          rows={categoryListData}
+          rows={tagListData}
           columns={columnsData}
           showToolbar={true}
           slots={{
@@ -139,9 +139,9 @@ export const ListCategories: FC = () => {
         message="Are you sure you want to remove this Tag?"
         okButtonText="Yes"
         cancelButtonText="No"
-        onConfirm={removeCategoryConfirmed}
-        onCancel={() => setCategoryIdToRemove(0)}
-        show={categoryIdToRemove !== 0}
+        onConfirm={removeTagConfirmed}
+        onCancel={() => setTagIdToRemove(0)}
+        show={tagIdToRemove !== 0}
       />
     </div>
   );

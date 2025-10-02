@@ -25,6 +25,8 @@ import {
   Vulnerability,
   VulnerabilitySeverity,
   VulnerabilitySource,
+  VulnerabilityCategory,
+  VulnerabilityCategories,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -34,7 +36,7 @@ import { Editor } from '@monaco-editor/react';
 import { useTheme as useThemeContext } from '../../../../contexts/ThemeContext';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
-import { CategoryItem } from '../../../../api/soroban-security-portal/models/category';
+import { TagItem } from '../../../../api/soroban-security-portal/models/tag';
 import { showError } from '../../../dialog-handler/dialog-handler';
 import { environment } from '../../../../environments/environment';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
@@ -44,12 +46,13 @@ export const AddVulnerability: FC = () => {
   const [title, setTitle] = useState('');
   const [reportUrl, setReportUrl] = useState('');
   const [description, setDescription] = useState('');
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [tags, setTags] = useState<TagItem[]>([]);
   const [severity, setSeverity] = useState<VulnerabilitySeverity | null>(null);
   const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
   const [company, setCompany] = useState<CompanyItem | null>(null);
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
   const [source, setSource] = useState<VulnerabilitySource | null>(null);
+  const [category, setCategory] = useState<VulnerabilityCategory | null>(null);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imageError, setImageError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
@@ -57,7 +60,7 @@ export const AddVulnerability: FC = () => {
 
   const { 
     severitiesList, 
-    categoriesList, 
+    tagsList, 
     protocolsList, 
     companiesList, 
     auditorsList, 
@@ -160,7 +163,7 @@ export const AddVulnerability: FC = () => {
       title: title,
       description: description,
       severity: severity?.name || '',
-      categories: categories.map(c => c.name),
+      tags: tags.map(c => c.name),
       companyName: company?.name || '',
       companyId: company?.id || -1,
       protocolName: protocol?.name || '',
@@ -173,13 +176,15 @@ export const AddVulnerability: FC = () => {
       picturesContainerGuid: picturesContainerGuid,
       date: new Date(),
       status: 'new',
+      category: category || VulnerabilityCategory.NA,
     };
     if (!vulnerability.title || 
       !vulnerability.description || 
       !vulnerability.severity ||
       !vulnerability.companyName || 
       !vulnerability.protocolName || 
-      !vulnerability.auditorName) {
+      !vulnerability.auditorName ||
+      !vulnerability.category) {
       showError('Please fill all fields');
       return;
     }
@@ -275,10 +280,10 @@ export const AddVulnerability: FC = () => {
             <Grid size={12}>
               <Autocomplete
                 multiple
-                options={categoriesList}
-                value={categories}
-                onChange={(_, newValue) => setCategories(newValue as CategoryItem[])}
-                getOptionLabel={(option) => (option as CategoryItem).name}
+                options={tagsList}
+                value={tags}
+                onChange={(_, newValue) => setTags(newValue as TagItem[])}
+                getOptionLabel={(option) => (option as TagItem).name}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -292,11 +297,11 @@ export const AddVulnerability: FC = () => {
                     <Chip
                       {...getTagProps({ index })}
                       key={index}
-                      label={(option as CategoryItem).name}
+                      label={(option as TagItem).name}
                       size="small"
                       sx={{
-                        bgcolor: (option as CategoryItem).bgColor,
-                        color: (option as CategoryItem).textColor,
+                        bgcolor: (option as TagItem).bgColor,
+                        color: (option as TagItem).textColor,
                         fontWeight: 700,
                       }}
                     />
@@ -330,6 +335,22 @@ export const AddVulnerability: FC = () => {
                   <TextField
                     {...params}
                     label="Auditor *"
+                    size="small"
+                    sx={{ width: '100%' }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid size={12}>
+              <Autocomplete
+                options={Object.entries(VulnerabilityCategories).map(([_, value]) => ({ id: value.id, name: value.label }))}
+                value={category !== null ? { id: category, name: VulnerabilityCategories.find(c => c.id === category)?.label || '' } : null}
+                onChange={(_, newValue) => setCategory(newValue ? (newValue as any).id : null)}
+                getOptionLabel={(option) => (option as any).name}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Category *"
                     size="small"
                     sx={{ width: '100%' }}
                   />
