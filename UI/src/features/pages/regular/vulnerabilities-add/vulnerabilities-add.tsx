@@ -176,7 +176,7 @@ export const AddVulnerability: FC = () => {
       picturesContainerGuid: picturesContainerGuid,
       date: new Date(),
       status: 'new',
-      category: category || VulnerabilityCategory.NA,
+      category: category === null ? VulnerabilityCategory.NA : category,
     };
     if (!vulnerability.title || 
       !vulnerability.description || 
@@ -184,7 +184,7 @@ export const AddVulnerability: FC = () => {
       !vulnerability.companyName || 
       !vulnerability.protocolName || 
       !vulnerability.auditorName ||
-      !vulnerability.category) {
+      vulnerability.category === null) {
       showError('Please fill all fields');
       return;
     }
@@ -343,10 +343,10 @@ export const AddVulnerability: FC = () => {
             </Grid>
             <Grid size={12}>
               <Autocomplete
-                options={Object.entries(VulnerabilityCategories).map(([_, value]) => ({ id: value.id, name: value.label }))}
-                value={category !== null ? { id: category, name: VulnerabilityCategories.find(c => c.id === category)?.label || '' } : null}
-                onChange={(_, newValue) => setCategory(newValue ? (newValue as any).id : null)}
-                getOptionLabel={(option) => (option as any).name}
+                options={Object.entries(VulnerabilityCategories).map(([_, value]) => value)}
+                value={category !== null ? VulnerabilityCategories.find(c => c.id === category) || null : null}
+                onChange={(_, newValue) => setCategory(newValue ? newValue.id : null)}
+                getOptionLabel={(option) => (option as any).label}
                 renderInput={(params) => (
                   <TextField
                     {...params}
