@@ -173,12 +173,7 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> Update(int reportId, [FromBody] ReportViewModel report)
         {
             var result = await _reportService.Update(report);
-            if (result is Result<ReportViewModel, string>.Ok ok)
-                return Ok(ok.Value);
-            else if (result is Result<ReportViewModel, string>.Err err)
-                return BadRequest(err.Error);
-            else
-                throw new InvalidOperationException("Unexpected result type");
+            return Ok(result);
         }
 
         [HttpGet]

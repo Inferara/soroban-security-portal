@@ -62,12 +62,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ReportViewModel>(addedReport);
         }
 
-        public async Task<Result<ReportViewModel, string>> Update(ReportViewModel reportViewModel)
+        public async Task<ReportViewModel> Update(ReportViewModel reportViewModel)
         {
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
             var loginName = await _userContextAccessor.GetLoginNameAsync();
-            if (! await CanUpdateRejectReport(reportModel, loginName))
-                return new Result<ReportViewModel, string>.Err("You cannot update this report.");
             if (reportModel.BinFile != null && reportModel.BinFile.Length > 0)
             {
                 reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
@@ -75,8 +73,12 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
                 reportModel.Embedding = new Vector(embeddingArray);
             }
+            if (!await _userContextAccessor.IsLoginAdmin(loginName))
+            {
+                reportModel.Status = ReportModelStatus.New;
+            }
             var updatedReport = await _reportProcessor.Edit(reportModel, loginName);
-            return new Result<ReportViewModel, string>.Ok(_mapper.Map<ReportViewModel>(updatedReport));
+            return _mapper.Map<ReportViewModel>(updatedReport);
         }
 
         private static byte[] RenderFirstPageAsPng(byte[] file, int dpi = 150)
@@ -107,7 +109,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var reportModel = await _reportProcessor.Get(reportId);
             if (reportModel == null)
                 return new Result<bool, string>.Err("Report not found.");
-            if (! await CanUpdateRejectReport(reportModel, loginName))
+            if (! await CanRejectReport(reportModel, loginName))
                 return new Result<bool, string>.Err("You cannot reject this report.");
             await _reportProcessor.Reject(reportModel, loginName);
             return new Result<bool, string>.Ok(true);
@@ -135,20 +137,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return reportModel.Author != login || await _userContextAccessor.IsLoginAdmin(login);
         }
 
-        private async Task<bool> CanUpdateRejectReport(ReportModel reportModel, string login)
+        private async Task<bool> CanRejectReport(ReportModel reportModel, string login)
         {
-            if (reportModel.Author == login || await _userContextAccessor.IsLoginAdmin(login))
-            {
-                return true;
-            }
-            else
-            {
-                if (await _userContextAccessor.IsLoginAdmin(reportModel.Author))
-                {
-                    return false;
-                }
-                return true;
-            }
+            return await _userContextAccessor.IsLoginAdmin(login) || reportModel.Author == login;
         }
     }
 
@@ -157,7 +148,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearch);
         Task<ReportViewModel> Get(int reportId);
         Task<ReportViewModel> Add(ReportViewModel report);
-        Task<Result<ReportViewModel, string>> Update(ReportViewModel report);
+        Task<ReportViewModel> Update(ReportViewModel report);
         Task<Result<bool, string>> Approve(int reportId);
         Task<Result<bool, string>> Reject(int vulnerabilityId);
         Task Remove(int reportId);

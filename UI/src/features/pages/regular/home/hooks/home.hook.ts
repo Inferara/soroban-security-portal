@@ -18,7 +18,7 @@ export interface PieChartData {
   color: string;
 }
 
-export type FilterType = 'severity' | 'tag' | 'protocol' | 'source';
+export type FilterType = 'severity' | 'tag' | 'protocol' | 'category';
 
 export const useVulnerabilityStatistics = () => {
   const [vulnerabilities, setVulnerabilities] = useState<VulnerabilityStatistics>();
@@ -105,6 +105,22 @@ export const useVulnerabilityStatistics = () => {
     }));
   };
 
+  const generateCategoryPieChartData = (vulns: VulnerabilityStatistics): PieChartData[] => {
+    const categoryCounts = new Map<string, number>();
+    Object.entries(vulns.byCategory).forEach(([category, count]) => {
+      categoryCounts.set(category, count);
+    });
+
+    const total = vulns.total || 1;
+    const colors = ['#6a1b9a', '#9c27b0', '#ba68c8', '#ce93d8', '#e1bee7'];
+    return Array.from(categoryCounts.entries()).map(([category, count], index) => ({
+      id: category,
+      value: count,
+      label: `${Math.round((count / total) * 100)}% ${category}`,
+      color: colors[index % colors.length]
+    }));
+  }
+
   // const generateProtocolPieChartData = (vulns: VulnerabilityStatistics): PieChartData[] => {
   //   const protocolCounts = new Map<string, number>();
 
@@ -130,8 +146,8 @@ export const useVulnerabilityStatistics = () => {
         return generateSeverityPieChartData(stats || mapStatistics(vulns));
       case 'tag':
         return generateTagPieChartData(vulns);
-      // case 'protocol':
-      //   return generateProtocolPieChartData(vulns);
+      case 'category':
+        return generateCategoryPieChartData(vulns);
       default:
         return generateSeverityPieChartData(stats || mapStatistics(vulns));
     }
