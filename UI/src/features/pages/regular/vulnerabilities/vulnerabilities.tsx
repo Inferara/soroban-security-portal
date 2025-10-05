@@ -28,7 +28,7 @@ import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
-import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityCategories, VulnerabilityCategoryInfo } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityCategories, VulnerabilityCategoryInfo, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
@@ -770,6 +770,31 @@ export const Vulnerabilities: FC = () => {
               value={categories}
               onChange={(_, newValue) => setCategories(newValue as VulnerabilityCategoryInfo[])}
               getOptionLabel={(option) => (option as VulnerabilityCategoryInfo).label}
+              renderOption={(props, option) => {
+                const { key, ...optionProps } = props;
+                return (
+                  <Box
+                    key={key}
+                    component="li"
+                    sx={{ '& > img': { mr: 2, flexShrink: 0 } }}
+                    {...optionProps}
+                  >
+                    {option.id === VulnerabilityCategory.Valid && (
+                      <img loading="lazy" src="static/images/vulnerability_categories/valid-fixed.png" alt="Valid" width={24} height={24} />
+                    )}
+                    {option.id === VulnerabilityCategory.ValidNotFixed && (
+                      <img src="static/images/vulnerability_categories/valid-not-fixed.png" alt="Valid Not Fixed" width={24} height={24} />
+                    )}
+                    {option.id === VulnerabilityCategory.ValidPartiallyFixed && (
+                      <img loading="lazy" src="static/images/vulnerability_categories/valid-partially-fixed.png" alt="Valid Partially Fixed" width={24} height={24} />
+                    )}
+                    {option.id === VulnerabilityCategory.Invalid && (
+                      <img loading="lazy" src="static/images/vulnerability_categories/invalid.png" alt="Invalid" width={24} height={24} />
+                    )}
+                    {option.label}
+                  </Box>
+                );
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -897,6 +922,18 @@ export const Vulnerabilities: FC = () => {
                       <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>
                         {vuln.title}
                       </Typography>
+                      {vuln.category === VulnerabilityCategory.Valid && (
+                        <img loading="lazy" src="static/images/vulnerability_categories/valid-fixed.png" alt="Valid" width={24} height={24} />
+                      )}
+                      {vuln.category === VulnerabilityCategory.ValidNotFixed && (
+                        <img src="static/images/vulnerability_categories/valid-not-fixed.png" alt="Valid Not Fixed" width={24} height={24} />
+                      )}
+                      {vuln.category === VulnerabilityCategory.ValidPartiallyFixed && (
+                        <img loading="lazy" src="static/images/vulnerability_categories/valid-partially-fixed.png" alt="Valid Partially Fixed" width={24} height={24} />
+                      )}
+                      {vuln.category === VulnerabilityCategory.Invalid && (
+                        <img loading="lazy" src="static/images/vulnerability_categories/invalid.png" alt="Invalid" width={24} height={24} />
+                      )}
                     </Stack>
                     <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
                       {vuln.tags.map((tag, index) => (

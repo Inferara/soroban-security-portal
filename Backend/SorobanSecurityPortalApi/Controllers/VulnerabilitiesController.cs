@@ -175,12 +175,7 @@ namespace SorobanSecurityPortalApi.Controllers
                 }
             }
             var result = await _vulnerabilityService.Update(vulnerabilityModel, files);
-            if (result is Result<VulnerabilityViewModel, string>.Ok ok)
-                return Ok(ok.Value);
-            else if (result is Result<VulnerabilityViewModel, string>.Err err)
-                return BadRequest(err.Error);
-            else
-                throw new InvalidOperationException("Unexpected result type");
+            return Ok(result);
         }
 
         [HttpGet]

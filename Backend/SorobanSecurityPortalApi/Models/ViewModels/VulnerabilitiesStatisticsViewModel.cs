@@ -12,6 +12,7 @@
             { "note", 0 }
         };
         public Dictionary<string, int> ByTag { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, int> ByCategory { get; set; } = new Dictionary<string, int>();
     }
 
     public class VulnerabilityStatisticsChangesViewModel
