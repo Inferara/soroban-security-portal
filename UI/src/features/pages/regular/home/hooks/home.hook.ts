@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getVulnerabilitiesStatistics, getVulnerabilitiesStatisticsChanges, getReportStatisticsChanges, getProtocolStatisticsChanges, getAuditorStatisticsChanges } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { VulnerabilityStatistics, StatisticsChanges, getCategoryIdByLabel, VulnerabilityCategory } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { VulnerabilityStatistics, StatisticsChanges, getCategoryIdByLabel } from '../../../../../api/soroban-security-portal/models/vulnerability';
 
 export interface VulnerabilityStatisticsBySeverity {
   critical: number;
