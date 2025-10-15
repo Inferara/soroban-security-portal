@@ -54,7 +54,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 {
                     Id = report.Id,
                     Name = report.Name,
-                    Url = ""
+                    Url = "",
+                    ProtocolId = report.Protocol?.Id,
+                    AuditorId = report.Auditor?.Id
                 });
             }
             result.Add(new IdValueUrl
@@ -65,7 +67,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             });
             return result;
         }
-
 
         public async Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearchViewModel)
         {
@@ -204,6 +205,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public class IdValueUrl : IdValue
     {
         public string Url { get; set; }
+        public int? ProtocolId { get; set; }
+        public int? AuditorId { get; set; }
     }
 
     public interface IVulnerabilityService

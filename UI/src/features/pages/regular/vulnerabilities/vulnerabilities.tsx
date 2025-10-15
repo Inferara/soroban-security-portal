@@ -28,7 +28,7 @@ import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
-import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityCategories, VulnerabilityCategoryInfo, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, AvailableVulnerabilityCategories, VulnerabilityCategoryInfo, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
@@ -54,7 +54,7 @@ export const Vulnerabilities: FC = () => {
   const [companies, setCompanies] = useState<CompanyItem[]>([]);
   const [auditors, setAuditors] = useState<AuditorItem[]>([]);
   const [sources, setSources] = useState<VulnerabilitySource[]>([]);
-  const [categories, setCategories] = useState<VulnerabilityCategoryInfo[]>(VulnerabilityCategories.filter(c => c.id !== VulnerabilityCategory.Invalid));
+  const [categories, setCategories] = useState<VulnerabilityCategoryInfo[]>(AvailableVulnerabilityCategories.filter(c => c.id !== VulnerabilityCategory.NA));
   const [sortBy] = useState<'date' | 'severity'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
@@ -339,7 +339,7 @@ export const Vulnerabilities: FC = () => {
     }
 
     if (categoryParam) {
-      setCategories(VulnerabilityCategories.filter(c => c.label === categoryParam));
+      setCategories(AvailableVulnerabilityCategories.filter(c => c.label === categoryParam));
       hasFilters = true;
     }
 
@@ -762,7 +762,7 @@ export const Vulnerabilities: FC = () => {
             />
             <Autocomplete
               multiple
-              options={VulnerabilityCategories}
+              options={AvailableVulnerabilityCategories}
               value={categories}
               onChange={(_, newValue) => setCategories(newValue as VulnerabilityCategoryInfo[])}
               getOptionLabel={(option) => (option as VulnerabilityCategoryInfo).label}
@@ -783,9 +783,6 @@ export const Vulnerabilities: FC = () => {
                     )}
                     {option.id === VulnerabilityCategory.ValidPartiallyFixed && (
                       <img loading="lazy" src="static/images/vulnerability_categories/valid-partially-fixed.png" alt="Valid Partially Fixed" width={24} height={24} />
-                    )}
-                    {option.id === VulnerabilityCategory.Invalid && (
-                      <img loading="lazy" src="static/images/vulnerability_categories/invalid.png" alt="Invalid" width={24} height={24} />
                     )}
                     {option.label}
                   </Box>
@@ -926,9 +923,6 @@ export const Vulnerabilities: FC = () => {
                       )}
                       {vuln.category === VulnerabilityCategory.ValidPartiallyFixed && (
                         <img loading="lazy" src="static/images/vulnerability_categories/valid-partially-fixed.png" alt="Valid Partially Fixed" width={24} height={24} />
-                      )}
-                      {vuln.category === VulnerabilityCategory.Invalid && (
-                        <img loading="lazy" src="static/images/vulnerability_categories/invalid.png" alt="Invalid" width={24} height={24} />
                       )}
                     </Stack>
                     <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
