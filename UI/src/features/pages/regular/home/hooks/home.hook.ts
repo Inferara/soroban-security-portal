@@ -113,32 +113,6 @@ export const useVulnerabilityStatistics = () => {
 
     const total = vulns.total || 1;
     const colors = ['#6a1b9a', '#9c27b0', '#ba68c8', '#ce93d8'];
-    const res = [
-      {
-        id: VulnerabilityCategory.Valid,
-        value: 0,
-        label: '',
-        color: colors[0]
-      },
-      {
-        id: VulnerabilityCategory.ValidPartiallyFixed,
-        value: 0,
-        label: '',
-        color: colors[1]
-      },
-      {
-        id: VulnerabilityCategory.ValidNotFixed,
-        value: 0,
-        label: '',
-        color: colors[2]
-      },
-      {
-        id: VulnerabilityCategory.NA,
-        value: 0,
-        label: '',
-        color: colors[3]
-      }
-    ];
 
     return Array.from(categoryCounts.entries()).map(([category, count], index) => ({
       id: category,
