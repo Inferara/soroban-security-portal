@@ -89,6 +89,29 @@ export const AddVulnerability: FC = () => {
     } else {
       setCompany(null);
     }
+    if (source?.protocolId != newProtocol?.id) {
+      setSource(null);
+    }
+  };
+
+  const handleSetReport = (newSource: VulnerabilitySource | null) => {
+    setSource(newSource);
+    const auditor = auditorsList.find(a => a.id === newSource?.auditorId);
+    if (auditor) {
+      setAuditor(auditor);
+    } else {
+      setAuditor(null);
+    }
+    if (protocol?.id != newSource?.protocolId) {
+      setProtocol(protocolsList.find(p => p.id === newSource?.protocolId) || null);
+    }
+  };
+
+  const handleSetAuditor = (newAuditor: AuditorItem | null) => {
+    setAuditor(newAuditor);
+    if (source?.auditorId != newAuditor?.id) {
+      setSource(null);
+    }
   };
 
   const validateAndAddImage = (file: File) => {
@@ -156,6 +179,17 @@ export const AddVulnerability: FC = () => {
       console.error('Failed to copy to clipboard:', err);
     }
   };
+
+  const getReports = (): VulnerabilitySource[] => {
+    let res = sourceList;
+    if (protocol) {
+      res = res.filter(s => s.protocolId === protocol.id);
+    }
+    if (auditor) {
+      res = res.filter(s => s.auditorId === auditor.id);
+    }
+    return res;
+  }
 
   const addNewVulnerability = async () => {
     const vulnerability: Vulnerability = {
@@ -329,7 +363,7 @@ export const AddVulnerability: FC = () => {
               <Autocomplete
                 options={auditorsList}
                 value={auditor}
-                onChange={(_, newValue) => setAuditor(newValue)}
+                onChange={(_, newValue) => handleSetAuditor(newValue)}
                 getOptionLabel={(option) => (option as AuditorItem).name}
                 renderInput={(params) => (
                   <TextField
@@ -359,9 +393,9 @@ export const AddVulnerability: FC = () => {
             </Grid>
             <Grid size={12}>
               <Autocomplete
-                options={sourceList}
+                options={getReports()}
                 value={source}
-                onChange={(_, newValue) => setSource(newValue)}
+                onChange={(_, newValue) => handleSetReport(newValue)}
                 getOptionLabel={(option) => (option as VulnerabilitySource).name}
                 renderInput={(params) => (
                   <TextField

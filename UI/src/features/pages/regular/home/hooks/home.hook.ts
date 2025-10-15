@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getVulnerabilitiesStatistics, getVulnerabilitiesStatisticsChanges, getReportStatisticsChanges, getProtocolStatisticsChanges, getAuditorStatisticsChanges } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { VulnerabilityStatistics, StatisticsChanges } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { VulnerabilityStatistics, StatisticsChanges, getCategoryIdByLabel } from '../../../../../api/soroban-security-portal/models/vulnerability';
 
 export interface VulnerabilityStatisticsBySeverity {
   critical: number;
@@ -112,33 +112,19 @@ export const useVulnerabilityStatistics = () => {
     });
 
     const total = vulns.total || 1;
-    const colors = ['#6a1b9a', '#9c27b0', '#ba68c8', '#ce93d8', '#e1bee7'];
+    const colors = ['#6a1b9a', '#9c27b0', '#ba68c8', '#ce93d8'];
+
     return Array.from(categoryCounts.entries()).map(([category, count], index) => ({
       id: category,
       value: count,
       label: `${Math.round((count / total) * 100)}% ${category}`,
       color: colors[index % colors.length]
-    }));
+    })).sort((a, b) => {
+      const aId = getCategoryIdByLabel(a.id)!;
+      const bId = getCategoryIdByLabel(b.id)!;
+      return aId - bId;
+    });
   }
-
-  // const generateProtocolPieChartData = (vulns: VulnerabilityStatistics): PieChartData[] => {
-  //   const protocolCounts = new Map<string, number>();
-
-  //   vulns.forEach(vuln => {
-  //     const protocol = vuln.protocol || 'Unknown';
-  //     protocolCounts.set(protocol, (protocolCounts.get(protocol) || 0) + 1);
-  //   });
-
-  //   const total = vulns.length || 1;
-  //   const colors = ['#388e3c', '#4caf50', '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9', '#2e7d32', '#1b5e20'];
-
-  //   return Array.from(protocolCounts.entries()).map(([protocol, count], index) => ({
-  //     id: protocol,
-  //     value: count,
-  //     label: `${Math.round((count / total) * 100)}% ${protocol}`,
-  //     color: colors[index % colors.length]
-  //   }));
-  // };
 
   const generatePieChartData = (filterType: FilterType, vulns: VulnerabilityStatistics, stats?: VulnerabilityStatisticsBySeverity): PieChartData[] => {
     switch (filterType) {
