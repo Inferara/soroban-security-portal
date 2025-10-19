@@ -30,7 +30,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
 import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, AvailableVulnerabilityCategories, VulnerabilityCategoryInfo, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { SeverityColors, useTheme } from '../../../../contexts/ThemeContext';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { TagItem } from '../../../../api/soroban-security-portal/models/tag';
@@ -45,7 +45,7 @@ import { VulnerabilityCard } from './vulnerability-card';
 export const Vulnerabilities: FC = () => {
   // Filter/search state
   const [search, setSearch] = useState('');
-  const { themeMode } = useTheme();
+  const { theme, themeMode } = useTheme();
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [severities, setSeverities] = useState<VulnerabilitySeverity[]>([]);
@@ -610,14 +610,11 @@ export const Vulnerabilities: FC = () => {
                     size="small"
                     sx={{
                       bgcolor: (() => {
-                        switch ((option as VulnerabilitySeverity).name) {
-                          case 'Critical': return '#c72e2b95';
-                          case 'High': return '#FF6B3D95';
-                          case 'Medium': return '#FFD84D95';
-                          case 'Low': return '#569E6795';
-                          case 'Note': return '#72F1FF95';
-                          default: return '#e0e0e0';
+                        const vs = (option as VulnerabilitySeverity).name.toLocaleLowerCase();
+                        if (vs in SeverityColors) {
+                          return SeverityColors[vs];
                         }
+                        return theme.palette.grey[400];
                       })(),
                       color: '#F2F2F2',
                       fontWeight: 700,
@@ -896,12 +893,7 @@ export const Vulnerabilities: FC = () => {
                     borderRadius: '20px',
                     border: '1px solid',
                     backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-                    borderLeft: `10px solid ${vuln.severity === 'Critical' ? '#c72e2b95' :
-                      vuln.severity === 'High' ? '#FF6B3D95' :
-                        vuln.severity === 'Medium' ? '#FFD84D95' :
-                          vuln.severity === 'Low' ? '#569E6795' :
-                            vuln.severity === 'Note' ? '#72F1FF95' :
-                              '#388e3c'}`,
+                    borderLeft: `10px solid ${SeverityColors[vuln.severity.toLocaleLowerCase()] || '#388e3c'}`,
                     cursor: 'pointer',
                     transition: 'all 0.2s ease-in-out',
                     ...(selectedVulnerability?.id === vuln.id && {

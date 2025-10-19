@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getVulnerabilitiesStatistics, getVulnerabilitiesStatisticsChanges, getReportStatisticsChanges, getProtocolStatisticsChanges, getAuditorStatisticsChanges } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { VulnerabilityStatistics, StatisticsChanges, getCategoryIdByLabel } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { VulnerabilityStatistics, StatisticsChanges, getCategoryIdByLabel, VulnerabilityCategories } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { SeverityColors } from '../../../../../contexts/ThemeContext';
 
 export interface VulnerabilityStatisticsBySeverity {
   critical: number;
@@ -58,31 +59,31 @@ export const useVulnerabilityStatistics = () => {
         id: 'critical',
         value: stats.critical,
         label: `${Math.round((stats.critical / total) * 100)}% Critical Issues`,
-        color: '#c72e2b95' // Red
+        color: SeverityColors['critical']
       },
       {
         id: 'high',
         value: stats.high,
         label: `${Math.round((stats.high / total) * 100)}%  High Issues`,
-        color: '#FF6B3D95' // Orange
+        color: SeverityColors['high']
       },
       {
         id: 'medium',
         value: stats.medium,
         label: `${Math.round((stats.medium / total) * 100)}% Medium Issues`,
-        color: '#FFD84D95' // Yellow
+        color: SeverityColors['medium']
       },
       {
         id: 'low',
         value: stats.low,
         label: `${Math.round((stats.low / total) * 100)}% Low Issues`,
-        color: '#569E6795' // Green
+        color: SeverityColors['low']
       },
       {
         id: 'note',
         value: stats.note,
         label: `${Math.round((stats.note / total) * 100)}% Note Issues`,
-        color: '#72F1FF95' // Blue
+        color: SeverityColors['note']
       }
     ].filter(item => item.value > 0); // Only show segments with data
   };
@@ -112,7 +113,12 @@ export const useVulnerabilityStatistics = () => {
     });
 
     const total = vulns.total || 1;
-    const colors = ['#6a1b9a', '#9c27b0', '#ba68c8', '#ce93d8'];
+    const colors = [
+      VulnerabilityCategories[0].color,
+      VulnerabilityCategories[1].color,
+      VulnerabilityCategories[2].color,
+      VulnerabilityCategories[4].color
+    ];
 
     return Array.from(categoryCounts.entries()).map(([category, count], index) => ({
       id: category,

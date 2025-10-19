@@ -47,6 +47,8 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
+import { SeverityColors } from '../../../../contexts/ThemeContext';
+import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -66,6 +68,9 @@ export const ReportDetails: FC = () => {
   } = useReportDetails();
 
   const [tabValue, setTabValue] = useState(0);
+
+  const fixedValidVulns = statistics?.vulnerabilitiesByCategory![VulnerabilityCategory.Valid] || 0;
+  const notFixedValidVulns = Object.entries(statistics?.vulnerabilitiesByCategory || {}).filter(c => Number(c[0]) !== VulnerabilityCategory.Valid).reduce((sum, [, count]) => sum + count, 0);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -89,14 +94,11 @@ export const ReportDetails: FC = () => {
   };
 
   const getSeverityColor = (severity: string) => {
-    switch (severity?.toLowerCase()) {
-      case 'critical': return '#c72e2b';
-      case 'high': return '#FF6B3D';
-      case 'medium': return '#FFD84D';
-      case 'low': return '#569E67';
-      case 'note': return '#72F1FF';
-      default: return theme.palette.grey[400];
+    const s = severity?.toLowerCase();
+    if (s in SeverityColors) {
+      return SeverityColors[s];
     }
+    return theme.palette.grey[400];
   };
 
   const formatDate = (dateString: Date | string) => {
@@ -151,10 +153,12 @@ export const ReportDetails: FC = () => {
     color: getSeverityColor(severity)
   })) : [];
 
-  const fixStatusData = statistics ? [
-    { label: 'Fixed', value: statistics.fixedVulnerabilities, color: '#4CAF50' },
-    { label: 'Active', value: statistics.activeVulnerabilities, color: '#FF6B3D' }
-  ] : [];
+  const vulnCategoryData = statistics ? Object.entries(statistics.vulnerabilitiesByCategory || {}).map(([categoryId, count]) => ({
+    id: Number(categoryId),
+    value: count,
+    label: getCategoryLabel(Number(categoryId)),
+    color: getCategoryColor(Number(categoryId))
+  })) : [];
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: '1400px', mx: 'auto' }}>
@@ -248,21 +252,21 @@ export const ReportDetails: FC = () => {
           }}>
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <BugReport sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
+                <BugReport sx={{ fontSize: 40, color: SeverityColors['medium'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics?.totalVulnerabilities || 0}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Total Issues
+                  Total Vulnerabilities
                 </Typography>
               </CardContent>
             </Card>
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <CheckCircle sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+                <CheckCircle sx={{ fontSize: 40, color: SeverityColors["low"], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {statistics?.fixedVulnerabilities || 0}
+                  {statistics?.vulnerabilitiesByCategory![VulnerabilityCategory.Valid] || 0}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Fixed
@@ -272,22 +276,24 @@ export const ReportDetails: FC = () => {
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <ErrorIcon sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
+                <ErrorIcon sx={{ fontSize: 40, color: SeverityColors["critical"], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {statistics?.activeVulnerabilities || 0}
+                  {statistics ? Object.entries(statistics.vulnerabilitiesByCategory || {})
+                    .filter(c => Number(c[0]) !== VulnerabilityCategory.Valid)
+                    .reduce((sum, [, count]) => sum + count, 0) : 0}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Active
+                  Not Fixed
                 </Typography>
               </CardContent>
             </Card>
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <Assessment sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
+                <Assessment sx={{ fontSize: 40, color: SeverityColors["note"], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics && statistics.totalVulnerabilities > 0 
-                    ? Math.round((statistics.fixedVulnerabilities / statistics.totalVulnerabilities) * 100)
+                    ? Math.round((fixedValidVulns / (fixedValidVulns + notFixedValidVulns)) * 100)
                     : 0}%
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -335,11 +341,11 @@ export const ReportDetails: FC = () => {
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   Fix Status
                 </Typography>
-                {fixStatusData.length > 0 && fixStatusData.some(d => d.value > 0) ? (
+                {vulnCategoryData.length > 0 && vulnCategoryData.some(d => d.value > 0) ? (
                   <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
                     <PieChart
                       series={[{
-                        data: fixStatusData,
+                        data: vulnCategoryData,
                         highlightScope: { fade: 'global', highlight: 'item' },
                       }]}
                       width={isMobile ? 280 : 350}
@@ -360,7 +366,7 @@ export const ReportDetails: FC = () => {
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                 <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Vulnerabilities Found ({vulnerabilities.length})
+                Vulnerabilities ({vulnerabilities.length})
               </Typography>
               
               {vulnerabilities.length > 0 ? (
@@ -384,12 +390,30 @@ export const ReportDetails: FC = () => {
                         onClick={() => navigate(`/vulnerability/${vulnerability.id}`)}
                       >
                         <ListItemAvatar>
-                          <Avatar sx={{ 
-                            bgcolor: getSeverityColor(vulnerability.severity),
-                            color: '#fff'
+                          <Box sx={{ 
+                            // bgcolor: getSeverityColor(vulnerability.severity),
+                            // color: '#fff'
                           }}>
-                            <BugReport />
-                          </Avatar>
+                            {vulnerability.category === VulnerabilityCategory.Valid ? (
+                              <img
+                                loading="lazy"
+                                src="/static/images/vulnerability_categories/valid-fixed.png"
+                                alt="Valid" width={40} height={40}
+                                title="Valid (Fixed)"/>
+                            ) : vulnerability.category === VulnerabilityCategory.ValidNotFixed ? (
+                              <img 
+                                loading="lazy"
+                                src="/static/images/vulnerability_categories/valid-not-fixed.png"
+                                alt="Valid Not Fixed" width={40} height={40}
+                                title="Valid (Not Fixed)"/>
+                            ) : vulnerability.category === VulnerabilityCategory.ValidPartiallyFixed ? (
+                              <img
+                                loading="lazy"
+                                src="/static/images/vulnerability_categories/valid-partially-fixed.png"
+                                alt="Valid Partially Fixed" width={40} height={40}
+                                title="Valid (Partially Fixed)"/>
+                            ) : <BugReport />}
+                          </Box>
                         </ListItemAvatar>
                         <ListItemText
                           primary={
@@ -409,14 +433,6 @@ export const ReportDetails: FC = () => {
                                   fontWeight: 600
                                 }}
                               />
-                              {vulnerability.status && (
-                                <Chip 
-                                  label={vulnerability.status}
-                                  size="small"
-                                  color={vulnerability.status.toLowerCase() === 'fixed' ? 'success' : 'default'}
-                                  variant="outlined"
-                                />
-                              )}
                             </Box>
                           }
                           secondary={

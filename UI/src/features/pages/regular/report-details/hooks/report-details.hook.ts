@@ -16,8 +16,7 @@ import { Vulnerability, VulnerabilitySearch } from '../../../../../api/soroban-s
 interface ReportStatistics {
   totalVulnerabilities: number;
   severityBreakdown: { [key: string]: number };
-  fixedVulnerabilities: number;
-  activeVulnerabilities: number;
+  vulnerabilitiesByCategory?: { [key: number]: number };
 }
 
 export const useReportDetails = () => {
@@ -35,28 +34,21 @@ export const useReportDetails = () => {
 
   const calculateStatistics = (vulnerabilities: Vulnerability[]): ReportStatistics => {
     const severityBreakdown: { [key: string]: number } = {};
-    let fixedCount = 0;
-    let activeCount = 0;
+    const vulnerabilitiesByCategory: { [key: number]: number } = {};
 
     vulnerabilities.forEach(vuln => {
       // Count severity breakdown
       if (vuln.severity) {
         severityBreakdown[vuln.severity] = (severityBreakdown[vuln.severity] || 0) + 1;
       }
-      
-      // Count fixed vs active
-      if (vuln.status?.toLowerCase() === 'fixed') {
-        fixedCount++;
-      } else {
-        activeCount++;
-      }
+      // Count by category
+      vulnerabilitiesByCategory[vuln.category] = (vulnerabilitiesByCategory[vuln.category] || 0) + 1;
     });
 
     return {
       totalVulnerabilities: vulnerabilities.length,
       severityBreakdown,
-      fixedVulnerabilities: fixedCount,
-      activeVulnerabilities: activeCount
+      vulnerabilitiesByCategory,
     };
   };
 
