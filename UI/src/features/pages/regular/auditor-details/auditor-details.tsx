@@ -95,10 +95,10 @@ export const AuditorDetails: FC = () => {
       <Box sx={{ p: 3 }}>
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => navigate('/vulnerabilities')}
+          onClick={() => navigate(-1)}
           sx={{ mb: 2 }}
         >
-          Back to Vulnerabilities
+          Back
         </Button>
         <Alert severity="error">
           {error || 'Auditor not found'}
@@ -131,10 +131,10 @@ export const AuditorDetails: FC = () => {
       <Box sx={{ mb: 3 }}>
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => navigate('/vulnerabilities')}
+          onClick={() => navigate(-1)}
           sx={{ mb: 2 }}
         >
-          Back to Vulnerabilities
+          Back
         </Button>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>

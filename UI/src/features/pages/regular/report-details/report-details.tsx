@@ -37,15 +37,20 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import { useNavigate } from 'react-router-dom';
 import { useReportDetails } from './hooks/report-details.hook';
 import { environment } from '../../../../environments/environment';
+import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
+import { showMessage } from '../../../dialog-handler/dialog-handler';
+import ReactGA from 'react-ga4';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const auth = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const {
@@ -63,6 +68,23 @@ export const ReportDetails: FC = () => {
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const canDownloadReport = (auth: AuthContextProps) => isAuthorized(auth);
+
+  const handleReportDownload = (reportId: number) => {
+    if (!canDownloadReport(auth)) {
+      showMessage("Log in to download the report");
+      ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = `${environment.apiUrl}/api/v1/reports/${reportId}/download?token=${auth.user?.access_token}`;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
   };
 
   const getSeverityColor = (severity: string) => {
@@ -108,10 +130,10 @@ export const ReportDetails: FC = () => {
       <Box sx={{ p: 3 }}>
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => navigate('/reports')}
+          onClick={() => navigate(-1)}
           sx={{ mb: 2 }}
         >
-          Back to Reports
+          Back
         </Button>
         <Alert severity="error">
           {error || 'Report not found'}
@@ -138,13 +160,14 @@ export const ReportDetails: FC = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Button
+          variant="contained"
           startIcon={<ArrowBack />}
-          onClick={() => navigate('/reports')}
+          onClick={() => navigate(-1)}
           sx={{ mb: 2 }}
         >
-          Back to Reports
+          Back
         </Button>
-        
+
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Avatar sx={{ width: 60, height: 60, mr: 2, bgcolor: 'secondary.main' }}>
             <Assessment />
@@ -169,21 +192,12 @@ export const ReportDetails: FC = () => {
 
         <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<GetApp />}
-            href={`${environment.apiUrl}/api/v1/reports/${report.id}/download`}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={() => handleReportDownload(report.id)}
           >
             Download PDF
           </Button>
-          {report.status && (
-            <Chip
-              label={report.status}
-              color={report.status.toLowerCase() === 'approved' ? 'success' : 'default'}
-              variant="outlined"
-            />
-          )}
         </Stack>
       </Box>
 

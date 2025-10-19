@@ -4,7 +4,8 @@ import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, Input
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { GetApp, Search as SearchIcon } from '@mui/icons-material';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
 import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
@@ -344,15 +345,17 @@ export const Reports: FC = () => {
                     </MuiLink>
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
-                  <Button
-                    variant="contained"
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mt: 2 }}>
+                  <IconButton
+                    size='large'
+                    title="Details"
                     onClick={() => navigate(`/report/${report.id}`)}
                   >
-                    Details
-                  </Button>
+                    <FullscreenIcon fontSize="inherit"/>
+                  </IconButton>
                   <Button
                     variant="contained"
+                    startIcon={<GetApp />}
                     onClick={() => handleReportDownload(report.id)}
                     // sx={{
                     //   fontWeight: 600,
