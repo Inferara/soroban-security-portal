@@ -3,6 +3,6 @@ export interface ProtocolItem {
   name: string;
   url: string;
   date: Date;
-  companyId: number;
+  companyId?: number;
   createdBy: string;
 }

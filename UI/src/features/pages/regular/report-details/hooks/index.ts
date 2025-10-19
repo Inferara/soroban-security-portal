@@ -1,0 +1,1 @@
+export { useReportDetails } from './report-details.hook';

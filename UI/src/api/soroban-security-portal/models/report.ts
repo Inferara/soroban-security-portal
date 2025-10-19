@@ -13,6 +13,7 @@ export interface Report {
   author?: string;
   lastActionBy?: string;
   lastActionAt?: string;
+  mdFile?: string; // Markdown content
 } 
 
 export interface AddReport {

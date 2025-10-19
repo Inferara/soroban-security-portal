@@ -316,13 +316,55 @@ export const Reports: FC = () => {
                     Company: {report.companyName}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Protocol: {report.protocolName}
+                    Protocol: 
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() => {
+                        const protocol = protocolsList.find(p => p.name === report.protocolName);
+                        if (protocol) navigate(`/protocol/${protocol.id}`);
+                      }}
+                      sx={{ 
+                        textTransform: 'none', 
+                        minWidth: 'auto', 
+                        p: 0, 
+                        ml: 0.5,
+                        textDecoration: 'underline',
+                        '&:hover': { textDecoration: 'none' }
+                      }}
+                    >
+                      {report.protocolName}
+                    </Button>
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Auditor: {report.auditorName}
+                    Auditor: 
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() => {
+                        const auditor = auditorsList.find(a => a.name === report.auditorName);
+                        if (auditor) navigate(`/auditor/${auditor.id}`);
+                      }}
+                      sx={{ 
+                        textTransform: 'none', 
+                        minWidth: 'auto', 
+                        p: 0, 
+                        ml: 0.5,
+                        textDecoration: 'underline',
+                        '&:hover': { textDecoration: 'none' }
+                      }}
+                    >
+                      {report.auditorName}
+                    </Button>
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate(`/report/${report.id}`)}
+                  >
+                    View Details
+                  </Button>
                   <Button
                     variant="contained"
                     onClick={() => handleReportDownload(report.id)}

@@ -1,0 +1,141 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { 
+  getReportByIdCall,
+  getProtocolByIdCall,
+  getAuditorByIdCall,
+  getCompanyByIdCall,
+  getVulnerabilitiesCall
+} from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { Report } from '../../../../../api/soroban-security-portal/models/report';
+import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
+import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
+import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
+import { Vulnerability } from '../../../../../api/soroban-security-portal/models/vulnerability';
+
+interface ReportStatistics {
+  totalVulnerabilities: number;
+  severityBreakdown: { [key: string]: number };
+  fixedVulnerabilities: number;
+  activeVulnerabilities: number;
+}
+
+export const useReportDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const reportId = parseInt(id ?? '0');
+  
+  const [report, setReport] = useState<Report | null>(null);
+  const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
+  const [auditor, setAuditor] = useState<AuditorItem | null>(null);
+  const [company, setCompany] = useState<CompanyItem | null>(null);
+  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
+  const [statistics, setStatistics] = useState<ReportStatistics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const calculateStatistics = (vulnerabilities: Vulnerability[]): ReportStatistics => {
+    const severityBreakdown: { [key: string]: number } = {};
+    let fixedCount = 0;
+    let activeCount = 0;
+
+    vulnerabilities.forEach(vuln => {
+      // Count severity breakdown
+      if (vuln.severity) {
+        severityBreakdown[vuln.severity] = (severityBreakdown[vuln.severity] || 0) + 1;
+      }
+      
+      // Count fixed vs active
+      if (vuln.status?.toLowerCase() === 'fixed') {
+        fixedCount++;
+      } else {
+        activeCount++;
+      }
+    });
+
+    return {
+      totalVulnerabilities: vulnerabilities.length,
+      severityBreakdown,
+      fixedVulnerabilities: fixedCount,
+      activeVulnerabilities: activeCount
+    };
+  };
+
+  const fetchReportDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!reportId) {
+        setError('Invalid report ID');
+        return;
+      }
+
+      // Fetch report details
+      const reportData = await getReportByIdCall(reportId);
+      setReport(reportData);
+
+      // Fetch related entities in parallel
+      const promises = [];
+      
+      if (reportData.protocolId) {
+        promises.push(getProtocolByIdCall(reportData.protocolId));
+      } else {
+        promises.push(Promise.resolve(null));
+      }
+      
+      if (reportData.auditorId) {
+        promises.push(getAuditorByIdCall(reportData.auditorId));
+      } else {
+        promises.push(Promise.resolve(null));
+      }
+
+      if (reportData.companyId) {
+        promises.push(getCompanyByIdCall(reportData.companyId));
+      } else {
+        promises.push(Promise.resolve(null));
+      }
+
+      const [protocolData, auditorData, companyData] = await Promise.all(promises);
+      
+      setProtocol(protocolData as ProtocolItem | null);
+      setAuditor(auditorData as AuditorItem | null);
+      setCompany(companyData as CompanyItem | null);
+
+      // Fetch vulnerabilities for this report
+      const vulnerabilitiesData = await getVulnerabilitiesCall({
+        reports: [reportData.id.toString()],
+        page: 1,
+        pageSize: 1000 // Get all vulnerabilities for this report
+      });
+      setVulnerabilities(vulnerabilitiesData);
+
+      // Calculate statistics
+      const stats = calculateStatistics(vulnerabilitiesData);
+      setStatistics(stats);
+
+    } catch (err) {
+      console.error('Error fetching report details:', err);
+      setError('Failed to load report details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (reportId) {
+      void fetchReportDetails();
+    }
+  }, [reportId]);
+
+  return {
+    report,
+    protocol,
+    auditor,
+    company,
+    vulnerabilities,
+    statistics,
+    loading,
+    error,
+    reportId
+  };
+};
