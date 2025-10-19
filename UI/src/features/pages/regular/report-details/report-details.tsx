@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -40,11 +40,6 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import { environment } from '../../../../environments/environment';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { isAuthorized } from '../../../../api/soroban-security-portal/models/role';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
@@ -64,7 +59,13 @@ export const ReportDetails: FC = () => {
     vulnerabilities,
     statistics,
     loading,
-    error
+    error,
+    // PDF handling from hook
+    pdfBlobUrl,
+    pdfLoading,
+    pdfLoadError,
+    fetchPdfForViewing,
+    retryPdfLoad
   } = useReportDetails();
 
   const [tabValue, setTabValue] = useState(0);
@@ -92,6 +93,13 @@ export const ReportDetails: FC = () => {
     document.body.removeChild(link);
     ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
   };
+
+  // Fetch PDF when tab changes to Full Report or when report/auth changes
+  useEffect(() => {
+    if (tabValue === 1 && report && canDownloadReport(auth) && !pdfBlobUrl && !pdfLoading) {
+      fetchPdfForViewing();
+    }
+  }, [tabValue, report, auth.user?.access_token, pdfBlobUrl, pdfLoading]);
 
   const getSeverityColor = (severity: string) => {
     const s = severity?.toLowerCase();
@@ -228,7 +236,7 @@ export const ReportDetails: FC = () => {
           />
           <Tab 
             icon={<Description />} 
-            iconPosition="start" 
+            iconPosition="start"
             label="Full Report" 
           />
         </Tabs>
@@ -619,51 +627,107 @@ export const ReportDetails: FC = () => {
       {/* Second Tab - Full Report */}
       {tabValue === 1 && (
         <Box>
-          {report.mdFile ? (
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  Full Report Content
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between', 
+                p: 2, 
+                borderBottom: 1, 
+                borderColor: 'divider' 
+              }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Full Report (PDF)
                 </Typography>
-                <Box sx={{
-                  '& pre': { 
-                    backgroundColor: theme.palette.mode === 'dark' ? '#2d2d2d' : '#f5f5f5',
-                    padding: 2,
-                    borderRadius: 1,
-                    overflow: 'auto'
-                  },
-                  '& code': { 
-                    backgroundColor: theme.palette.mode === 'dark' ? '#2d2d2d' : '#f5f5f5',
-                    padding: '2px 4px',
-                    borderRadius: 1,
-                    fontSize: '0.875rem'
-                  },
-                  '& blockquote': {
-                    borderLeft: '4px solid',
-                    borderColor: 'primary.main',
-                    paddingLeft: 2,
-                    marginLeft: 0,
-                    fontStyle: 'italic'
-                  }
-                }}>
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeRaw, rehypeKatex]}
+                {canDownloadReport(auth) && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<GetApp />}
+                    onClick={() => handleReportDownload(report.id)}
                   >
-                    {report.mdFile}
-                  </ReactMarkdown>
+                    Download
+                  </Button>
+                )}
+              </Box>
+              
+              {canDownloadReport(auth) ? (
+                <Box sx={{ height: '80vh', width: '100%' }}>
+                  {pdfLoading ? (
+                    <Box sx={{ p: 4, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Box>
+                        <CircularProgress size={60} sx={{ mb: 2 }} />
+                        <Typography variant="h6" color="text.secondary">
+                          Loading PDF...
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ) : pdfLoadError ? (
+                    <Box sx={{ p: 4, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Box>
+                        <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                          Unable to Load PDF Preview
+                        </Typography>
+                        <Typography color="text.secondary" sx={{ mb: 3 }}>
+                          The PDF viewer encountered an authentication error. You can still download the report.
+                        </Typography>
+                        <Stack direction="row" spacing={2} justifyContent="center">
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={<GetApp />}
+                            onClick={() => handleReportDownload(report.id)}
+                          >
+                            Download Report
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            onClick={retryPdfLoad}
+                          >
+                            Retry
+                          </Button>
+                        </Stack>
+                      </Box>
+                    </Box>
+                  ) : pdfBlobUrl ? (
+                    <iframe
+                      src={`${pdfBlobUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                      width="100%"
+                      height="100%"
+                      style={{ 
+                        border: 'none',
+                        borderRadius: 0
+                      }}
+                      title="Report PDF Viewer"
+                    />
+                  ) : (
+                    <Box sx={{ p: 4, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Typography variant="h6" color="text.secondary">
+                        Click on the "Full Report (PDF)" tab to load the document
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent>
-                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                  No report content available
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                    Authentication Required
+                  </Typography>
+                  <Typography color="text.secondary" sx={{ mb: 3 }}>
+                    Please log in to view the full report
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => showMessage("Log in to view the full report")}
+                  >
+                    Log In
+                  </Button>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
         </Box>
       )}
     </Box>

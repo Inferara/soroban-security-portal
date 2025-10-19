@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from 'react-oidc-context';
+import { environment } from '../../../../../environments/environment';
 import { 
   getReportByIdCall,
   getProtocolByIdCall,
@@ -22,6 +24,7 @@ interface ReportStatistics {
 export const useReportDetails = () => {
   const { id } = useParams<{ id: string }>();
   const reportId = parseInt(id ?? '0');
+  const auth = useAuth();
   
   const [report, setReport] = useState<Report | null>(null);
   const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
@@ -31,6 +34,11 @@ export const useReportDetails = () => {
   const [statistics, setStatistics] = useState<ReportStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // PDF handling state
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfLoadError, setPdfLoadError] = useState(false);
 
   const calculateStatistics = (vulnerabilities: Vulnerability[]): ReportStatistics => {
     const severityBreakdown: { [key: string]: number } = {};
@@ -51,6 +59,52 @@ export const useReportDetails = () => {
       vulnerabilitiesByCategory,
     };
   };
+
+  const fetchPdfForViewing = async () => {
+    if (!reportId || !auth.user?.access_token) {
+      return;
+    }
+
+    setPdfLoading(true);
+    setPdfLoadError(false);
+
+    try {
+      const response = await fetch(`${environment.apiUrl}/api/v1/reports/${reportId}/download`, {
+        headers: {
+          'Authorization': `Bearer ${auth.user.access_token}`,
+          'Content-Type': 'application/pdf'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setPdfBlobUrl(url);
+    } catch (error) {
+      console.error('Error fetching PDF:', error);
+      setPdfLoadError(true);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const retryPdfLoad = () => {
+    setPdfLoadError(false);
+    setPdfBlobUrl(null);
+    fetchPdfForViewing();
+  };
+
+  // Cleanup blob URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [pdfBlobUrl]);
 
   const fetchReportDetails = async () => {
     try {
@@ -127,6 +181,12 @@ export const useReportDetails = () => {
     statistics,
     loading,
     error,
-    reportId
+    reportId,
+    // PDF handling
+    pdfBlobUrl,
+    pdfLoading,
+    pdfLoadError,
+    fetchPdfForViewing,
+    retryPdfLoad
   };
 };
