@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import React from 'react';
-import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress, Tooltip } from '@mui/material';
+import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress, Tooltip, Link as MuiLink } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -310,60 +310,46 @@ export const Reports: FC = () => {
                     </Typography>
                   </Tooltip>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Published: {new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    Published:&nbsp;{new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Company: {report.companyName}
+                    Company:&nbsp;{report.companyName}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Protocol: 
-                    <Button
-                      variant="text"
-                      size="small"
+                    Protocol:&nbsp;
+                    <MuiLink
+                      rel="noopener noreferrer"
+                      style={{ cursor: 'pointer'}}
+                      sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
                       onClick={() => {
                         const protocol = protocolsList.find(p => p.name === report.protocolName);
                         if (protocol) navigate(`/protocol/${protocol.id}`);
                       }}
-                      sx={{ 
-                        textTransform: 'none', 
-                        minWidth: 'auto', 
-                        p: 0, 
-                        ml: 0.5,
-                        textDecoration: 'underline',
-                        '&:hover': { textDecoration: 'none' }
-                      }}
                     >
                       {report.protocolName}
-                    </Button>
+                    </MuiLink>
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Auditor: 
-                    <Button
-                      variant="text"
-                      size="small"
+                    Auditor:&nbsp;
+                    <MuiLink
+                      rel="noopener noreferrer"
+                      style={{ cursor: 'pointer'}}
+                      sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
                       onClick={() => {
                         const auditor = auditorsList.find(a => a.name === report.auditorName);
                         if (auditor) navigate(`/auditor/${auditor.id}`);
                       }}
-                      sx={{ 
-                        textTransform: 'none', 
-                        minWidth: 'auto', 
-                        p: 0, 
-                        ml: 0.5,
-                        textDecoration: 'underline',
-                        '&:hover': { textDecoration: 'none' }
-                      }}
                     >
                       {report.auditorName}
-                    </Button>
+                    </MuiLink>
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     onClick={() => navigate(`/report/${report.id}`)}
                   >
-                    View Details
+                    Details
                   </Button>
                   <Button
                     variant="contained"
