@@ -11,7 +11,7 @@ import { Report } from '../../../../../api/soroban-security-portal/models/report
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
-import { Vulnerability } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { Vulnerability, VulnerabilitySearch } from '../../../../../api/soroban-security-portal/models/vulnerability';
 
 interface ReportStatistics {
   totalVulnerabilities: number;
@@ -102,11 +102,10 @@ export const useReportDetails = () => {
       setCompany(companyData as CompanyItem | null);
 
       // Fetch vulnerabilities for this report
-      const vulnerabilitiesData = await getVulnerabilitiesCall({
-        reports: [reportData.id.toString()],
-        page: 1,
-        pageSize: 1000 // Get all vulnerabilities for this report
-      });
+      const query: VulnerabilitySearch = {
+        reports: [reportData.name]
+      };
+      const vulnerabilitiesData = await getVulnerabilitiesCall(query);
       setVulnerabilities(vulnerabilitiesData);
 
       // Calculate statistics

@@ -36,9 +36,10 @@ import {
 import { PieChart } from '@mui/x-charts/PieChart';
 import { useNavigate } from 'react-router-dom';
 import { useReportDetails } from './hooks/report-details.hook';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import { environment } from '../../../../environments/environment';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
+import { isAuthorized } from '../../../../api/soroban-security-portal/models/role';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -478,40 +479,13 @@ export const ReportDetails: FC = () => {
                     {formatDate(report.date)}
                   </Typography>
                 </Box>
-
-                {report.status && (
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Status
-                    </Typography>
-                    <Chip
-                      label={report.status}
-                      size="small"
-                      color={report.status.toLowerCase() === 'approved' ? 'success' : 'default'}
-                      variant="outlined"
-                    />
-                  </Box>
-                )}
-
                 {report.author && (
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Author
+                      Added by
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {report.author}
-                    </Typography>
-                  </Box>
-                )}
-
-                {report.lastActionBy && (
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Last Updated
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      By {report.lastActionBy}
-                      {report.lastActionAt && ` on ${formatDate(report.lastActionAt)}`}
                     </Typography>
                   </Box>
                 )}
@@ -543,9 +517,9 @@ export const ReportDetails: FC = () => {
 
                 <Stack spacing={1}>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
-                    startIcon={<OpenInNew />}
+                    startIcon={<FullscreenIcon />}
                     onClick={() => navigate(`/auditor/${auditor.id}`)}
                     fullWidth
                   >
@@ -554,7 +528,7 @@ export const ReportDetails: FC = () => {
                   
                   {auditor.url && (
                     <Button
-                      variant="text"
+                      variant="contained"
                       size="small"
                       startIcon={<OpenInNew />}
                       href={auditor.url}
@@ -596,9 +570,9 @@ export const ReportDetails: FC = () => {
 
                 <Stack spacing={1}>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
-                    startIcon={<OpenInNew />}
+                    startIcon={<FullscreenIcon />}
                     onClick={() => navigate(`/protocol/${protocol.id}`)}
                     fullWidth
                   >
@@ -607,7 +581,7 @@ export const ReportDetails: FC = () => {
                   
                   {protocol.url && (
                     <Button
-                      variant="text"
+                      variant="contained"
                       size="small"
                       startIcon={<OpenInNew />}
                       href={protocol.url}
