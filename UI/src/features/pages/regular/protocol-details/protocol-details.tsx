@@ -497,15 +497,6 @@ export const ProtocolDetails: FC = () => {
                           primary={auditor.name}
                           secondary={`${reports.filter(r => r.auditorName === auditor.name).length} reports`}
                         />
-                        <Button
-                          variant="contained"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/auditor/${auditor.id}`);
-                          }}
-                        >
-                          View Profile
-                        </Button>
                       </ListItem>
                       {index < uniqueAuditors.length - 1 && <Divider />}
                     </React.Fragment>

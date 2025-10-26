@@ -588,7 +588,7 @@ export const ReportDetails: FC = () => {
                             textDecoration: 'underline',
                             '&:hover': { color: 'primary.dark' }
                           }}
-                          onClick={() => navigate(`/companies/${company.id}`)}
+                          onClick={() => navigate(`/company/${company.id}`)}
                         >
                           {company.name}
                         </Typography>

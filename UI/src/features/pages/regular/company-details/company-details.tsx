@@ -341,7 +341,7 @@ export const CompanyDetails: FC = () => {
                             '&:hover': { bgcolor: 'action.hover' },
                             borderRadius: 1
                           }}
-                          onClick={() => navigate(`/reports/${report.id}`)}
+                          onClick={() => navigate(`/report/${report.id}`)}
                         >
                           <ListItemAvatar>
                             <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: 'info.main' }}>
@@ -392,7 +392,7 @@ export const CompanyDetails: FC = () => {
                             '&:hover': { bgcolor: 'action.hover' },
                             borderRadius: 1
                           }}
-                          onClick={() => navigate(`/vulnerabilities/${vulnerability.id}`)}
+                          onClick={() => navigate(`/vulnerability/${vulnerability.id}`)}
                         >
                           <ListItemAvatar>
                             <Avatar sx={{ 
