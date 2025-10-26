@@ -314,9 +314,6 @@ export const Reports: FC = () => {
                     Published:&nbsp;{new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Company:&nbsp;{report.companyName}
-                  </Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                     Protocol:&nbsp;
                     <MuiLink
                       rel="noopener noreferrer"
