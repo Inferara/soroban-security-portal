@@ -83,7 +83,7 @@ namespace SorobanSecurityPortalApi.Controllers
                 Status = ReportModelStatus.New,
                 ProtocolId = addReportViewModel.ProtocolId,
                 AuditorId = addReportViewModel.AuditorId,
-                Author = userLoginName,
+                CreatedBy = userLoginName,
             };
             if (file != null && file.Length > 0)
             {

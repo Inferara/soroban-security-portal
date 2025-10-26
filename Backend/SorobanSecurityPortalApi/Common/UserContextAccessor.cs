@@ -21,13 +21,13 @@ namespace SorobanSecurityPortalApi.Common
             _loginProcessor = loginProcessor;
         }
 
-        public async Task<int?> GetLoginIdAsync()
+        public async Task<int> GetLoginIdAsync()
         {
             if (!_loginId.HasValue)
             {
                 await LoadUserData();
             }
-            return _loginId;
+            return _loginId!.Value;
         }
 
         public async Task<string> GetLoginNameAsync()
@@ -63,7 +63,7 @@ namespace SorobanSecurityPortalApi.Common
             if (login == null)
                 return;
             var userData = await _loginProcessor.GetByLogin(login, loginType);
-            if(userData == null)
+            if (userData == null)
                 return;
             _loginId = userData.LoginId;
         }
@@ -71,6 +71,14 @@ namespace SorobanSecurityPortalApi.Common
         public async Task<bool> IsLoginAdmin(string login)
         {
             var loginModel = await _loginProcessor.GetByLogin(login);
+            if (loginModel == null)
+                return false;
+            return loginModel.Role == RoleEnum.Admin;
+        }
+
+        public async Task<bool> IsLoginIdAdmin(int loginId)
+        {
+            var loginModel = await _loginProcessor.GetById(loginId);
             if (loginModel == null)
                 return false;
             return loginModel.Role == RoleEnum.Admin;

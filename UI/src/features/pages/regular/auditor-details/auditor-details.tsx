@@ -408,14 +408,14 @@ export const AuditorDetails: FC = () => {
                             </Typography>
                           }
                           secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">
+                            <>
+                              <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                                 {report.protocolName}
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                                 {formatDate(report.date)}
                               </Typography>
-                            </Box>
+                            </>
                           }
                         />
                       </ListItem>
@@ -511,17 +511,6 @@ export const AuditorDetails: FC = () => {
                     {formatDate(auditor.date)}
                   </Typography>
                 </Box>
-
-                {auditor.createdBy && (
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Added By
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {auditor.createdBy}
-                    </Typography>
-                  </Box>
-                )}
               </Stack>
             </CardContent>
           </Card>

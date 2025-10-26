@@ -78,7 +78,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     ContainerGuid = v.ContainerGuid,
                     Date = v.Date,
                     Type = v.Type,
-                    Author = v.Author,
+                    CreatedBy = v.CreatedBy,
                 })
                 .Where(v => v.ContainerGuid.ToLower() == containerGuid.ToLower())
                 .OrderByDescending(v => v.Id)

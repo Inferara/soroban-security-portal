@@ -14,7 +14,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string Description { get; set; } = "";
         public byte[]? Image { get; set; } = null;
         public DateTime Date { get; set; }
-        public string CreatedBy { get; set; } = "";
+        public int CreatedBy { get; set; }
         [Column(TypeName = "vector(3072)")]
         public Vector? Embedding { get; set; }
         public List<ProtocolModel> Protocols { get; set; } = new();

@@ -25,7 +25,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<CompanyViewModel> Add(CompanyViewModel companyViewModel)
         {
             var companyModel = _mapper.Map<CompanyModel>(companyViewModel);
-            companyModel.CreatedBy = await _userContextAccessor.GetLoginNameAsync();
+            companyModel.CreatedBy = await _userContextAccessor.GetLoginIdAsync();
             companyModel.Date = DateTime.UtcNow;
             companyModel = await _companyProcessor.Add(companyModel);
             return _mapper.Map<CompanyViewModel>(companyModel);
@@ -45,8 +45,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<Result<CompanyViewModel, string>> Update(CompanyViewModel companyViewModel)
         {
             var companyModel = _mapper.Map<CompanyModel>(companyViewModel);
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
-            if (!await CanUpdateCompany(companyModel, loginName))
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            if (!await CanUpdateCompany(companyModel, loginId))
             {
                 return new Result<CompanyViewModel, string>.Err("You cannot update this company.");
             }
@@ -54,15 +54,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return new Result<CompanyViewModel, string>.Ok(_mapper.Map<CompanyViewModel>(companyModel));
         }
 
-        private async Task<bool> CanUpdateCompany(CompanyModel companyModel, string login)
+        private async Task<bool> CanUpdateCompany(CompanyModel companyModel, int loginId)
         {
-            if (companyModel.CreatedBy == login || await _userContextAccessor.IsLoginAdmin(login))
+            if (companyModel.CreatedBy == loginId || await _userContextAccessor.IsLoginIdAdmin(loginId))
             {
                 return true;
             }
             else
             {
-                if (await _userContextAccessor.IsLoginAdmin(companyModel.CreatedBy))
+                if (await _userContextAccessor.IsLoginIdAdmin(companyModel.CreatedBy))
                 {
                     return false;
                 }

@@ -20,10 +20,23 @@ public class ReportModelProfile : Profile
                 dst => dst.AuditorName,
                 opt => opt.MapFrom(r => r.Auditor.Name))
             .ForMember(
+                dst => dst.AuditorId,
+                opt => opt.MapFrom(r => r.Auditor.Id)
+            )
+            .ForMember(
                 dst => dst.CompanyName,
                 opt => opt.MapFrom(r => r.Protocol.Company.Name))
             .ForMember(
+                dst => dst.CompanyId,
+                opt => opt.MapFrom(r => r.Protocol.Company.Id)
+            )
+            .ForMember(
                 dst => dst.ProtocolName,
-                opt => opt.MapFrom(r => r.Protocol.Name));
+                opt => opt.MapFrom(r => r.Protocol.Name)
+            )
+            .ForMember(
+                dst => dst.ProtocolId,
+                opt => opt.MapFrom(r => r.Protocol.Id)
+            );
     }
 }

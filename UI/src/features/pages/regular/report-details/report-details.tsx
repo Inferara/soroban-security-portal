@@ -504,16 +504,6 @@ export const ReportDetails: FC = () => {
                     {formatDate(report.date)}
                   </Typography>
                 </Box>
-                {report.author && (
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Added by
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {report.author}
-                    </Typography>
-                  </Box>
-                )}
               </Stack>
             </CardContent>
           </Card>

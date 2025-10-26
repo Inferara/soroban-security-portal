@@ -33,7 +33,7 @@ namespace SorobanSecurityPortalApi.Controllers
                 return Unauthorized();
             if (loginId == 0)
             {
-                loginId = await _userContextAccessor.GetLoginIdAsync() ?? 0;
+                loginId = await _userContextAccessor.GetLoginIdAsync();
             }
 
             var login = await _userService.GetLoginById(loginId);

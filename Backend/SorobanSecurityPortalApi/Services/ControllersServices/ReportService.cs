@@ -65,7 +65,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<ReportViewModel> Update(ReportViewModel reportViewModel)
         {
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
             if (reportModel.BinFile != null && reportModel.BinFile.Length > 0)
             {
                 reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
@@ -73,11 +73,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
                 reportModel.Embedding = new Vector(embeddingArray);
             }
-            if (!await _userContextAccessor.IsLoginAdmin(loginName))
+            if (!await _userContextAccessor.IsLoginIdAdmin(loginId))
             {
                 reportModel.Status = ReportModelStatus.New;
             }
-            var updatedReport = await _reportProcessor.Edit(reportModel, loginName);
+            var updatedReport = await _reportProcessor.Edit(reportModel, loginId);
             return _mapper.Map<ReportViewModel>(updatedReport);
         }
 
@@ -96,22 +96,22 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var reportModel = await _reportProcessor.Get(reportId);
             if (reportModel == null)
                 return new Result<bool, string>.Err("Report not found.");
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
-            if (!await CanApproveReport(reportModel, loginName))
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            if (!await CanApproveReport(reportModel, loginId))
                 return new Result<bool, string>.Err("You cannot approve this report.");
-            await _reportProcessor.Approve(reportModel, loginName);
+            await _reportProcessor.Approve(reportModel, loginId);
             return new Result<bool, string>.Ok(true);
         }
 
         public async Task<Result<bool, string>> Reject(int reportId)
         {
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
             var reportModel = await _reportProcessor.Get(reportId);
             if (reportModel == null)
                 return new Result<bool, string>.Err("Report not found.");
-            if (! await CanRejectReport(reportModel, loginName))
+            if (! await CanRejectReport(reportModel, loginId))
                 return new Result<bool, string>.Err("You cannot reject this report.");
-            await _reportProcessor.Reject(reportModel, loginName);
+            await _reportProcessor.Reject(reportModel, loginId);
             return new Result<bool, string>.Ok(true);
         }
 
@@ -132,14 +132,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ReportStatisticsChangesViewModel>(stats);
         }
 
-        private async Task<bool> CanApproveReport(ReportModel reportModel, string login)
+        private async Task<bool> CanApproveReport(ReportModel reportModel, int loginId)
         {
-            return reportModel.Author != login || await _userContextAccessor.IsLoginAdmin(login);
+            return reportModel.CreatedBy != loginId || await _userContextAccessor.IsLoginIdAdmin(loginId);
         }
 
-        private async Task<bool> CanRejectReport(ReportModel reportModel, string login)
+        private async Task<bool> CanRejectReport(ReportModel reportModel, int loginId)
         {
-            return await _userContextAccessor.IsLoginAdmin(login) || reportModel.Author == login;
+            return await _userContextAccessor.IsLoginIdAdmin(loginId) || reportModel.CreatedBy == loginId;
         }
     }
 

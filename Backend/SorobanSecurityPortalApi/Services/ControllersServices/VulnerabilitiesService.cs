@@ -94,20 +94,20 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
         {
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
             foreach (var file in files)
             {
                 if (file.BinFile != null && file.BinFile.Length > 0)
                 {
                     var fileModel = _mapper.Map<Models.DbModels.FileModel>(file);
                     fileModel.Date = DateTime.UtcNow;
-                    fileModel.Author = loginName;
+                    fileModel.CreatedBy = loginId;
                     var addedFile = await _fileProcessor.Add(fileModel);
                     file.Id = addedFile.Id;
                 }
             }
             var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
-            vulnerabilityModel.Author = loginName;
+            vulnerabilityModel.CreatedBy = loginId;
             var addedVulnerability = await _vulnerabilityProcessor.Add(vulnerabilityModel);
             return _mapper.Map<VulnerabilityViewModel>(addedVulnerability);
         }
@@ -117,10 +117,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var vulnerabilityModel = await _vulnerabilityProcessor.Get(vulnerabilityId);
             if (vulnerabilityModel == null)
                 return new Result<bool, string>.Err("Vulnerability not found.");
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
-            if (! await CanApproveVulnerability(vulnerabilityModel, loginName))
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            if (! await CanApproveVulnerability(vulnerabilityModel, loginId))
                 return new Result<bool, string>.Err("You cannot approve this vulnerability.");
-            await _vulnerabilityProcessor.Approve(vulnerabilityModel, loginName);
+            await _vulnerabilityProcessor.Approve(vulnerabilityModel, loginId);
             return new Result<bool, string>.Ok(true);
         }
 
@@ -129,10 +129,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var vulnerabilityModel = await _vulnerabilityProcessor.Get(vulnerabilityId);
             if (vulnerabilityModel == null)
                 return new Result<bool, string>.Err("Vulnerability not found.");
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
-            if (!await CanRejectVulnerability(vulnerabilityModel, loginName))
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            if (!await CanRejectVulnerability(vulnerabilityModel, loginId))
                 return new Result<bool, string>.Err("You cannot reject this vulnerability.");
-            await _vulnerabilityProcessor.Reject(vulnerabilityModel, loginName);
+            await _vulnerabilityProcessor.Reject(vulnerabilityModel, loginId);
             return new Result<bool, string>.Ok(true);
         }
 
@@ -150,23 +150,23 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
         {
             var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
             foreach (var file in files)
             {
                 if (file.BinFile != null && file.BinFile.Length > 0)
                 {
                     var fileModel = _mapper.Map<Models.DbModels.FileModel>(file);
                     fileModel.Date = DateTime.UtcNow;
-                    fileModel.Author = loginName; //TODO better have id here if we want to let users change their logins (maybe not)
+                    fileModel.CreatedBy = loginId; //TODO better have id here if we want to let users change their logins (maybe not)
                     var addedFile = await _fileProcessor.Add(fileModel);
                     file.Id = addedFile.Id;
                 }
             }
-            if (!await _userContextAccessor.IsLoginAdmin(loginName))
+            if (!await _userContextAccessor.IsLoginIdAdmin(loginId))
             {
                 vulnerabilityModel.Status = VulnerabilityModelStatus.New;
             }
-            var updatedVulnerability = await _vulnerabilityProcessor.Update(loginName, vulnerabilityModel);
+            var updatedVulnerability = await _vulnerabilityProcessor.Update(loginId, vulnerabilityModel);
             return _mapper.Map<VulnerabilityViewModel>(updatedVulnerability);
         }
 
@@ -186,14 +186,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return await _vulnerabilityProcessor.GetStatisticsChanges();
         }
 
-        private async Task<bool> CanApproveVulnerability(VulnerabilityModel vulnerabilityModel, string login)
+        private async Task<bool> CanApproveVulnerability(VulnerabilityModel vulnerabilityModel, int loginId)
         {
-            return vulnerabilityModel.Author != login || await _userContextAccessor.IsLoginAdmin(login);
+            return vulnerabilityModel.CreatedBy != loginId || await _userContextAccessor.IsLoginIdAdmin(loginId);
         }
 
-        private async Task<bool> CanRejectVulnerability(VulnerabilityModel vulnerabilityModel, string login)
+        private async Task<bool> CanRejectVulnerability(VulnerabilityModel vulnerabilityModel, int loginId)
         {
-            return await _userContextAccessor.IsLoginAdmin(login) || vulnerabilityModel.Author == login;
+            return await _userContextAccessor.IsLoginIdAdmin(loginId) || vulnerabilityModel.CreatedBy == loginId;
         }
     }
 

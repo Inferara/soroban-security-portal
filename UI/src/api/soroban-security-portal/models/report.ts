@@ -10,7 +10,7 @@ export interface Report {
   auditorId: number;
   auditorName: string;
   status?: string;
-  author?: string;
+  createdBy: number;
   lastActionBy?: string;
   lastActionAt?: string;
   mdFile?: string; // Markdown content

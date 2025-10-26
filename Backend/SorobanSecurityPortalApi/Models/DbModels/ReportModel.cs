@@ -15,8 +15,8 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string MdFile { get; set; } = "";
         public DateTime Date { get; set; }
         public string Status { get; set; } = "";
-        public string Author { get; set; } = "";
-        public string LastActionBy { get; set; } = "";
+        public int CreatedBy { get; set; }
+        public int LastActionBy { get; set; }
         public DateTime LastActionAt { get; set; }
         [ForeignKey("Protocol")]
         public int? ProtocolId { get; set; }

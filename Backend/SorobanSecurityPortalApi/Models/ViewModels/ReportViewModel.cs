@@ -9,7 +9,7 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string MdFile { get; set; } = "";
         public DateTime Date { get; set; }
         public string Status { get; set; } = "";
-        public string Author { get; set; } = "";
+        public string CreatedBy { get; set; } = "";
         public string LastActionBy { get; set; } = "";
         public DateTime LastActionAt { get; set; }
         public int ProtocolId { get; set; }
