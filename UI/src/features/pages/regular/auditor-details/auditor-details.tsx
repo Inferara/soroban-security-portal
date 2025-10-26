@@ -369,8 +369,90 @@ export const AuditorDetails: FC = () => {
 
         {/* Sidebar */}
         <Box sx={{ flex: { lg: 0.4 } }}>
-          {/* Recent Reports */}
+          {/* Auditor Information */}
           <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Auditor Information
+              </Typography>
+              
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Name
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {auditor.name}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    On Track Since
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatDate(auditor.date)}
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+          {/* Protocols Audited */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                <Business sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Protocols Audited ({auditedProtocols.length})
+              </Typography>
+              
+              {auditedProtocols.length > 0 ? (
+                <List sx={{ maxHeight: 300, overflow: 'auto' }}>
+                  {auditedProtocols.map((protocol, index) => (
+                    <Box key={protocol.id}>
+                      <ListItem 
+                        sx={{ 
+                          px: 0,
+                          cursor: 'pointer',
+                          '&:hover': { backgroundColor: 'action.hover' },
+                          borderRadius: 1
+                        }}
+                        onClick={() => navigate(`/protocol/${protocol.id}`)}
+                      >
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'primary.main' }}>
+                            <Business />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Typography 
+                              variant="subtitle2" 
+                              sx={{ fontWeight: 600, wordBreak: 'break-word' }}
+                            >
+                              {protocol.name}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography component="span" variant="body2" color="text.secondary">
+                              {reports.filter(r => r.protocolId === protocol.id).length} reports
+                            </Typography>
+                          }
+                        />
+                      </ListItem>
+                      {index < auditedProtocols.length - 1 && <Divider />}
+                    </Box>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                  No protocols audited
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+          {/* Recent Reports */}
+          <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                 <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -429,91 +511,7 @@ export const AuditorDetails: FC = () => {
                 </Typography>
               )}
             </CardContent>
-          </Card>
-
-          {/* Protocols Audited */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                <Business sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Protocols Audited ({auditedProtocols.length})
-              </Typography>
-              
-              {auditedProtocols.length > 0 ? (
-                <List sx={{ maxHeight: 300, overflow: 'auto' }}>
-                  {auditedProtocols.map((protocol, index) => (
-                    <Box key={protocol.id}>
-                      <ListItem 
-                        sx={{ 
-                          px: 0,
-                          cursor: 'pointer',
-                          '&:hover': { backgroundColor: 'action.hover' },
-                          borderRadius: 1
-                        }}
-                        onClick={() => navigate(`/protocol/${protocol.id}`)}
-                      >
-                        <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'primary.main' }}>
-                            <Business />
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={
-                            <Typography 
-                              variant="subtitle2" 
-                              sx={{ fontWeight: 600, wordBreak: 'break-word' }}
-                            >
-                              {protocol.name}
-                            </Typography>
-                          }
-                          secondary={
-                            <Typography variant="body2" color="text.secondary">
-                              {reports.filter(r => r.protocolId === protocol.id).length} reports
-                            </Typography>
-                          }
-                        />
-                      </ListItem>
-                      {index < auditedProtocols.length - 1 && <Divider />}
-                    </Box>
-                  ))}
-                </List>
-              ) : (
-                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                  No protocols audited
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Auditor Information */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Auditor Information
-              </Typography>
-              
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Name
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {auditor.name}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Since
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatDate(auditor.date)}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
+          </Card>    
         </Box>
       </Box>
       )}
@@ -557,7 +555,7 @@ export const AuditorDetails: FC = () => {
                             </Typography>
                           }
                           secondary={
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography component="span" variant="body2" color="text.secondary">
                               Published: {formatDate(report.date)}
                             </Typography>
                           }

@@ -15,6 +15,7 @@ interface ProtocolStatistics {
   totalReports: number;
   totalVulnerabilities: number;
   severityBreakdown: { [key: string]: number };
+  vulnerabilitiesByCategory?: { [key: number]: number };
   fixedVulnerabilities: number;
   activeVulnerabilities: number;
 }
@@ -33,6 +34,7 @@ export const useProtocolDetails = () => {
 
   const calculateStatistics = (reports: Report[], vulnerabilities: Vulnerability[]): ProtocolStatistics => {
     const severityBreakdown: { [key: string]: number } = {};
+    const vulnerabilitiesByCategory: { [key: number]: number } = {};
     let fixedCount = 0;
     let activeCount = 0;
 
@@ -41,6 +43,9 @@ export const useProtocolDetails = () => {
       if (vuln.severity) {
         severityBreakdown[vuln.severity] = (severityBreakdown[vuln.severity] || 0) + 1;
       }
+      
+      // Count vulnerability categories
+      vulnerabilitiesByCategory[vuln.category] = (vulnerabilitiesByCategory[vuln.category] || 0) + 1;
       
       // Count fixed vs active
       if (vuln.status?.toLowerCase() === 'fixed') {
@@ -54,6 +59,7 @@ export const useProtocolDetails = () => {
       totalReports: reports.length,
       totalVulnerabilities: vulnerabilities.length,
       severityBreakdown,
+      vulnerabilitiesByCategory,
       fixedVulnerabilities: fixedCount,
       activeVulnerabilities: activeCount
     };

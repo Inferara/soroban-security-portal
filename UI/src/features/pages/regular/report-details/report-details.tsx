@@ -446,6 +446,7 @@ export const ReportDetails: FC = () => {
                           }
                           secondary={
                             <Typography 
+                              component="span"
                               variant="body2" 
                               color="text.secondary"
                               sx={{ 

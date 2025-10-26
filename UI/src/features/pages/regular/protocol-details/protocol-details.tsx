@@ -16,19 +16,29 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
-  Divider} from '@mui/material';
+  Link as MuiLink,
+  Divider,
+  Tabs,
+  Tab
+} from '@mui/material';
 import { 
   ArrowBack, 
   OpenInNew, 
   Business, 
   Assessment, 
   BugReport,
-  CheckCircle,
-  Error as ErrorIcon} from '@mui/icons-material';
+  TaskAlt,
+  Dashboard,
+  Timeline as TimelineIcon,
+  Grading
+} from '@mui/icons-material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useProtocolDetails } from './hooks/protocol-details.hook';
+import { SeverityColors } from '../../../../contexts/ThemeContext';
+import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
+
 
 
 export const ProtocolDetails: FC = () => {
@@ -52,14 +62,11 @@ export const ProtocolDetails: FC = () => {
   };
 
   const getSeverityColor = (severity: string) => {
-    switch (severity?.toLowerCase()) {
-      case 'critical': return '#c72e2b';
-      case 'high': return '#FF6B3D';
-      case 'medium': return '#FFD84D';
-      case 'low': return '#569E67';
-      case 'note': return '#72F1FF';
-      default: return theme.palette.grey[400];
+    const s = severity?.toLowerCase();
+    if (s in SeverityColors) {
+      return SeverityColors[s];
     }
+    return theme.palette.grey[400];
   };
 
   const formatDate = (dateString: Date | string) => {
@@ -114,10 +121,12 @@ export const ProtocolDetails: FC = () => {
     color: getSeverityColor(severity)
   })) : [];
 
-  const fixStatusData = statistics ? [
-    { label: 'Fixed', value: statistics.fixedVulnerabilities, color: '#4CAF50' },
-    { label: 'Active', value: statistics.activeVulnerabilities, color: '#FF6B3D' }
-  ] : [];
+  const vulnCategoryData = statistics ? Object.entries(statistics.vulnerabilitiesByCategory || {}).map(([categoryId, count]) => ({
+    id: Number(categoryId),
+    value: count,
+    label: getCategoryLabel(Number(categoryId)),
+    color: getCategoryColor(Number(categoryId))
+  })) : [];
 
   // Prepare audit timeline data
   const auditTimelineData = reports.length > 0 ? (() => {
@@ -161,6 +170,7 @@ export const ProtocolDetails: FC = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Button
+          variant="contained"
           startIcon={<ArrowBack />}
           onClick={() => navigate(-1)}
           sx={{ mb: 2 }}
@@ -175,22 +185,22 @@ export const ProtocolDetails: FC = () => {
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
               variant={isMobile ? "h5" : "h4"} 
-              sx={{ fontWeight: 600, mb: 0.5 }}
+              sx={{ fontWeight: 600, mb: 0.5, wordBreak: 'break-word' }}
             >
               {protocol.name}
             </Typography>
             {company && (
-              <Typography variant="h6" color="text.secondary">
+              <Typography variant="body1" color="text.secondary">
                 by {company.name}
               </Typography>
             )}
           </Box>
         </Box>
 
-        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
           {protocol.url && (
             <Button
-              variant="outlined"
+              variant="contained"
               startIcon={<OpenInNew />}
               href={protocol.url}
               target="_blank"
@@ -201,7 +211,7 @@ export const ProtocolDetails: FC = () => {
           )}
           {company?.url && (
             <Button
-              variant="text"
+              variant="contained"
               startIcon={<OpenInNew />}
               href={company.url}
               target="_blank"
@@ -213,6 +223,36 @@ export const ProtocolDetails: FC = () => {
         </Stack>
       </Box>
 
+      {/* Tabs */}
+      <Box sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange}
+          variant={isMobile ? "fullWidth" : "standard"}
+          sx={{
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontSize: '1rem',
+              fontWeight: 600,
+              minHeight: 64
+            }
+          }}
+        >
+          <Tab 
+            icon={<Dashboard />} 
+            iconPosition="start" 
+            label="Overview" 
+          />
+          <Tab 
+            icon={<TimelineIcon />} 
+            iconPosition="start" 
+            label="Audit History" 
+          />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      {tabValue === 0 && (
       <Box sx={{ 
         display: 'flex', 
         flexDirection: { xs: 'column', lg: 'row' },
@@ -229,7 +269,7 @@ export const ProtocolDetails: FC = () => {
           }}>
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <Assessment sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
+                <Assessment sx={{ fontSize: 40, color: SeverityColors['note'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics?.totalReports || 0}
                 </Typography>
@@ -241,7 +281,7 @@ export const ProtocolDetails: FC = () => {
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <BugReport sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
+                <BugReport sx={{ fontSize: 40, color: SeverityColors['medium'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics?.totalVulnerabilities || 0}
                 </Typography>
@@ -253,7 +293,7 @@ export const ProtocolDetails: FC = () => {
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <CheckCircle sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+                <TaskAlt sx={{ fontSize: 40, color: SeverityColors['low'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics?.fixedVulnerabilities || 0}
                 </Typography>
@@ -265,17 +305,18 @@ export const ProtocolDetails: FC = () => {
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <ErrorIcon sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
+                <Grading sx={{ fontSize: 40, color: SeverityColors['note'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {statistics?.activeVulnerabilities || 0}
+                  {statistics && statistics.totalVulnerabilities > 0 
+                    ? Math.round((statistics.fixedVulnerabilities / statistics.totalVulnerabilities) * 100)
+                    : 0}%
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Active
+                  Fix Rate
                 </Typography>
               </CardContent>
             </Card>
           </Box>
-
           {/* Charts */}
           <Box sx={{ 
             display: 'grid',
@@ -308,20 +349,20 @@ export const ProtocolDetails: FC = () => {
               </CardContent>
             </Card>
 
-            {/* Fix Status Chart */}
+            {/* Vulnerability Categories Chart */}
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  Fix Status
+                  Vulnerabilities by Category
                 </Typography>
-                {fixStatusData.length > 0 && fixStatusData.some(d => d.value > 0) ? (
+                {vulnCategoryData.length > 0 ? (
                   <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
                     <PieChart
                       series={[{
-                        data: fixStatusData,
+                        data: vulnCategoryData,
                         highlightScope: { fade: 'global', highlight: 'item' },
                       }]}
-                      width={isMobile ? 280 : 350}
+                      // width={isMobile ? 280 : 350}
                       height={300}
                     />
                   </Box>
@@ -342,21 +383,16 @@ export const ProtocolDetails: FC = () => {
                 {auditTimelineData.length > 0 ? (
                   <Box sx={{ height: 300, width: '100%' }}>
                     <LineChart
-                      xAxis={[{
-                        scaleType: 'point',
-                        data: auditTimelineData.map(item => item.month),
-                        label: 'Month'
+                      series={[{
+                        data: auditTimelineData.map(item => item.audits),
+                        label: 'Audit Reports',
+                        color: theme.palette.primary.main
                       }]}
-                      series={[
-                        {
-                          data: auditTimelineData.map(item => item.audits),
-                          label: 'Audit Reports',
-                          color: '#1976d2'
-                        }
-                      ]}
-                      width={isMobile ? 280 : 350}
+                      xAxis={[{
+                        data: auditTimelineData.map(item => item.month),
+                        scaleType: 'point',
+                      }]}
                       height={300}
-                      margin={{ left: 50, right: 20, top: 20, bottom: 60 }}
                     />
                   </Box>
                 ) : (
@@ -371,6 +407,46 @@ export const ProtocolDetails: FC = () => {
 
         {/* Reports and Timeline */}
         <Box sx={{ flex: { lg: 0.4 } }}>
+          {/* Protocol Information */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                <Business sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Protocol Information
+              </Typography>
+              
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Protocol Name
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {protocol.name}
+                  </Typography>
+                </Box>
+
+                {company && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      Company
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {company.name}
+                    </Typography>
+                  </Box>
+                )}
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    On Tack Since
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatDate(protocol.date)}
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
           {/* Auditors Overview */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
@@ -400,8 +476,7 @@ export const ProtocolDetails: FC = () => {
                           secondary={`${reports.filter(r => r.auditorName === auditor.name).length} reports`}
                         />
                         <Button
-                          size="small"
-                          variant="outlined"
+                          variant="contained"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/auditor/${auditor.id}`);
@@ -419,9 +494,8 @@ export const ProtocolDetails: FC = () => {
               )}
             </CardContent>
           </Card>
-
           {/* Audit Reports */}
-          <Card sx={{ mb: 3 }}>
+          <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                 <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -458,31 +532,23 @@ export const ProtocolDetails: FC = () => {
                             </Typography>
                           }
                           secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">
-                                by{' '}
-                                <Button
-                                  variant="text"
-                                  size="small"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                            <React.Fragment>
+                              <Typography component="span" variant="body2" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                by&nbsp;
+                                <MuiLink
+                                  rel="noopener noreferrer"
+                                  sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+                                  onClick={() => {
                                     navigate(`/auditor/${report.auditorId}`);
-                                  }}
-                                  sx={{ 
-                                    textTransform: 'none', 
-                                    minWidth: 'auto', 
-                                    p: 0,
-                                    textDecoration: 'underline',
-                                    '&:hover': { textDecoration: 'none' }
                                   }}
                                 >
                                   {report.auditorName}
-                                </Button>
+                                </MuiLink>
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography component="span" variant="body2" color="text.secondary" sx={{ display: 'block' }}>
                                 {formatDate(report.date)}
                               </Typography>
-                            </Box>
+                            </React.Fragment>
                           }
                         />
                       </ListItem>
@@ -496,61 +562,67 @@ export const ProtocolDetails: FC = () => {
                 </Typography>
               )}
             </CardContent>
-          </Card>
-
-          {/* Protocol Information */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                <Business sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Protocol Information
-              </Typography>
-              
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Protocol Name
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {protocol.name}
-                  </Typography>
-                </Box>
-
-                {company && (
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Company
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {company.name}
-                    </Typography>
-                  </Box>
-                )}
-
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Added Date
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatDate(protocol.date)}
-                  </Typography>
-                </Box>
-
-                {protocol.createdBy && (
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Added By
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {protocol.createdBy}
-                    </Typography>
-                  </Box>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
+          </Card>          
         </Box>
       </Box>
+      )}
+
+      {/* Second Tab - Audit History */}
+      {tabValue === 1 && (
+        <Box>
+          {reports && reports.length > 0 ? (
+            <List sx={{ width: '100%' }}>
+              {reports.map((report) => (
+                <React.Fragment key={report.id}>
+                  <ListItem 
+                    sx={{ 
+                      px: 0,
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        borderRadius: 1
+                      },
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => navigate(`/report/${report.id}`)}
+                  >
+                    <ListItemAvatar>
+                      <Avatar sx={{ 
+                        bgcolor: theme.palette.primary.main,
+                        width: 48,
+                        height: 48
+                      }}>
+                        <BugReport />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          Report #{report.id}
+                        </Typography>
+                      }
+                      secondary={
+                        <React.Fragment>
+                          <Typography component="span" sx={{ display: 'block', mb: 0.5, color: 'text.secondary' }}>
+                            Created: {formatDate(report.date)}
+                          </Typography>
+                          <Typography component="span" sx={{ display: 'block', color: 'text.secondary' }}>
+                            Status: {report.status}
+                          </Typography>
+                        </React.Fragment>
+                      }
+                    />
+                  </ListItem>
+                  <Divider />
+                </React.Fragment>
+              ))}
+            </List>
+          ) : (
+            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 8 }}>
+              No audit reports available for this protocol
+            </Typography>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };
