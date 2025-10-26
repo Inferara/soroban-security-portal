@@ -1,4 +1,4 @@
-import { FC, useState, useRef } from 'react';
+import { FC, useState, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -19,7 +19,7 @@ import {
 import Grid from '@mui/material/Grid';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilityAdd } from './hooks';
 import {
   Vulnerability,
@@ -73,6 +73,7 @@ export const AddVulnerability: FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
+  const [searchParams] = useSearchParams();
   
   const canAddVulnerability = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
@@ -113,6 +114,36 @@ export const AddVulnerability: FC = () => {
       setSource(null);
     }
   };
+
+  // Handle URL parameters for pre-filling form
+  useEffect(() => {
+    if (protocolsList.length > 0 && auditorsList.length > 0 && sourceList.length > 0) {
+      const protocolParam = searchParams.get('protocol');
+      const auditorParam = searchParams.get('auditor');  
+      const reportParam = searchParams.get('report');
+
+      if (protocolParam) {
+        const protocolToSet = protocolsList.find(p => p.name === protocolParam || p.id.toString() === protocolParam);
+        if (protocolToSet) {
+          handleSetProtocol(protocolToSet);
+        }
+      }
+
+      if (auditorParam) {
+        const auditorToSet = auditorsList.find(a => a.name === auditorParam || a.id.toString() === auditorParam);
+        if (auditorToSet) {
+          handleSetAuditor(auditorToSet);
+        }
+      }
+
+      if (reportParam) {
+        const reportToSet = sourceList.find(s => s.name === reportParam || s.id.toString() === reportParam);
+        if (reportToSet) {
+          handleSetReport(reportToSet);
+        }
+      }
+    }
+  }, [searchParams, protocolsList, auditorsList, sourceList]);
 
   const validateAndAddImage = (file: File) => {
     // Check if file is an image

@@ -38,6 +38,8 @@ import { useNavigate } from 'react-router-dom';
 import { useProtocolDetails } from './hooks/protocol-details.hook';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { Role } from '../../../../api/soroban-security-portal/models/role';
 
 
 
@@ -45,6 +47,7 @@ export const ProtocolDetails: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const auth = useAuth();
   
   const {
     protocol,
@@ -80,6 +83,9 @@ export const ProtocolDetails: FC = () => {
       return 'Unknown date';
     }
   };
+
+  const canAddReport = (auth: AuthContextProps) => 
+    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
   if (loading) {
     return (
@@ -231,6 +237,16 @@ export const ProtocolDetails: FC = () => {
               rel="noopener noreferrer"
             >
               Company Website
+            </Button>
+          )}
+          {canAddReport(auth) && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<Assessment />}
+              onClick={() => navigate(`/reports/add?protocol=${encodeURIComponent(protocol.name)}&company=${company ? encodeURIComponent(company.name) : ''}`)}
+            >
+              Add Report
             </Button>
           )}
         </Stack>

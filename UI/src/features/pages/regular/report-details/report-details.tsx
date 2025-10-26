@@ -40,7 +40,7 @@ import { useReportDetails } from './hooks/report-details.hook';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import { environment } from '../../../../environments/environment';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { isAuthorized } from '../../../../api/soroban-security-portal/models/role';
+import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
@@ -79,6 +79,9 @@ export const ReportDetails: FC = () => {
   };
 
   const canDownloadReport = (auth: AuthContextProps) => isAuthorized(auth);
+  
+  const canAddVulnerability = (auth: AuthContextProps) => 
+    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
   const handleReportDownload = (reportId: number) => {
     if (!canDownloadReport(auth)) {
@@ -124,7 +127,7 @@ export const ReportDetails: FC = () => {
 
   if (loading) {
     return (
-      <Box 
+      <Box
         sx={{ 
           display: 'flex', 
           justifyContent: 'center', 
@@ -212,6 +215,15 @@ export const ReportDetails: FC = () => {
           >
             Download PDF
           </Button>
+          {canAddVulnerability(auth) && (
+            <Button
+              variant="contained"
+              startIcon={<BugReport />}
+              onClick={() => navigate(`/vulnerabilities/add?report=${encodeURIComponent(report.name)}&protocol=${protocol ? encodeURIComponent(protocol.name) : ''}&auditor=${auditor ? encodeURIComponent(auditor.name) : ''}`)}
+            >
+              Add Vulnerability
+            </Button>
+          )}
         </Stack>
       </Box>
 

@@ -35,12 +35,15 @@ import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useAuditorDetails } from './hooks/auditor-details.hook';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
+import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const auth = useAuth();
   
   const {
     auditor,
@@ -50,6 +53,12 @@ export const AuditorDetails: FC = () => {
     loading,
     error
   } = useAuditorDetails();
+
+  const canAddReport = (auth: AuthContextProps) => {
+    if (!auth.isAuthenticated || !auth.user?.profile?.role) return false;
+    const userRole = auth.user.profile.role as string;
+    return [Role.Admin, Role.Contributor, Role.Moderator].includes(userRole as Role);
+  };
 
   const [tabValue, setTabValue] = useState(0);
 
@@ -181,6 +190,16 @@ export const AuditorDetails: FC = () => {
               rel="noopener noreferrer"
             >
               Visit Website
+            </Button>
+          )}
+          {canAddReport(auth) && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<Assessment />}
+              onClick={() => navigate(`/reports/add?auditor=${encodeURIComponent(auditor.name)}`)}
+            >
+              Add Report
             </Button>
           )}
         </Stack>
