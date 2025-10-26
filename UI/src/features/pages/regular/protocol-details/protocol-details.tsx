@@ -191,7 +191,20 @@ export const ProtocolDetails: FC = () => {
             </Typography>
             {company && (
               <Typography variant="body1" color="text.secondary">
-                by {company.name}
+                by{' '}
+                <Typography
+                  component="span"
+                  variant="body1"
+                  sx={{
+                    color: 'primary.main',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    '&:hover': { color: 'primary.dark' }
+                  }}
+                  onClick={() => navigate(`/company/${company.id}`)}
+                >
+                  {company.name}
+                </Typography>
               </Typography>
             )}
           </Box>
@@ -430,7 +443,16 @@ export const ProtocolDetails: FC = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                       Company
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography 
+                      variant="body2" 
+                      sx={{
+                        color: 'primary.main',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        '&:hover': { color: 'primary.dark' }
+                      }}
+                      onClick={() => navigate(`/company/${company.id}`)}
+                    >
                       {company.name}
                     </Typography>
                   </Box>

@@ -578,7 +578,20 @@ export const ReportDetails: FC = () => {
                     </Typography>
                     {company && (
                       <Typography variant="body2" color="text.secondary">
-                        by {company.name}
+                        by{' '}
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          sx={{
+                            color: 'primary.main',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                            '&:hover': { color: 'primary.dark' }
+                          }}
+                          onClick={() => navigate(`/companies/${company.id}`)}
+                        >
+                          {company.name}
+                        </Typography>
                       </Typography>
                     )}
                   </Box>

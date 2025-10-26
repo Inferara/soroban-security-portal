@@ -26,6 +26,7 @@ import { VulnerabilityDetails } from '../vulnerability-details/vulnerability-det
 import { ProtocolDetails } from '../protocol-details/protocol-details';
 import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
+import { CompanyDetails } from '../company-details/company-details';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -319,6 +320,7 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/protocol/:id`} element={<ProtocolDetails />} />
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
             <Route path={`${environment.basePath}/auditor/:id`} element={<AuditorDetails />} />
+            <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
           </Routes>
         </Box>
       </Box>
