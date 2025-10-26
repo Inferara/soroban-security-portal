@@ -215,7 +215,6 @@ export const AddVulnerability: FC = () => {
     if (!vulnerability.title || 
       !vulnerability.description || 
       !vulnerability.severity ||
-      !vulnerability.companyName || 
       !vulnerability.protocolName || 
       !vulnerability.auditorName ||
       vulnerability.category === null) {

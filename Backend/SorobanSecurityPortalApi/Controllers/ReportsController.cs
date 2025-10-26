@@ -73,7 +73,7 @@ namespace SorobanSecurityPortalApi.Controllers
 
             if (addReportViewModel == null)
                 return BadRequest("Parsed report is null.");
-            var userLoginName = await _userContextAccessor.GetLoginNameAsync();
+            var userLoginId = await _userContextAccessor.GetLoginIdAsync();
 
             var parsedReport = new ReportViewModel
             {
@@ -83,7 +83,7 @@ namespace SorobanSecurityPortalApi.Controllers
                 Status = ReportModelStatus.New,
                 ProtocolId = addReportViewModel.ProtocolId,
                 AuditorId = addReportViewModel.AuditorId,
-                CreatedBy = userLoginName,
+                CreatedBy = userLoginId,
             };
             if (file != null && file.Length > 0)
             {

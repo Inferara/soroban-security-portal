@@ -9,8 +9,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string MdFile { get; set; } = "";
         public DateTime Date { get; set; }
         public string Status { get; set; } = "";
-        public string CreatedBy { get; set; } = "";
-        public string LastActionBy { get; set; } = "";
+        public int CreatedBy { get; set; }
+        public int LastActionBy { get; set; }
         public DateTime LastActionAt { get; set; }
         public int ProtocolId { get; set; }
         public string ProtocolName { get; set; } = "";
@@ -28,6 +28,5 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public DateTime Date { get; set; }
         public int ProtocolId { get; set; }
         public int AuditorId { get; set; }
-
     }
 }
