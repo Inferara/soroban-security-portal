@@ -42,13 +42,17 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     var to = DateTime.SpecifyKind(reportSearch.To.Value, DateTimeKind.Utc);
                     q = q.Where(v => v.Date <= to);
                 }
-                if (!string.IsNullOrWhiteSpace(reportSearch.CompanyName))
+                if (reportSearch.CompanyId is not null)
+                    q = q.Where(x => x.Protocol.Company.Id == reportSearch.CompanyId);
+                else if (!string.IsNullOrWhiteSpace(reportSearch.CompanyName))
                     q = q.Where(x => x.Protocol.Company.Name == reportSearch.CompanyName);
-
-                if (!string.IsNullOrWhiteSpace(reportSearch.ProtocolName))
+                if (reportSearch.ProtocolId is not null)
+                    q = q.Where(x => x.Protocol.Id == reportSearch.ProtocolId);
+                else if (!string.IsNullOrWhiteSpace(reportSearch.ProtocolName))
                     q = q.Where(x => x.Protocol.Name == reportSearch.ProtocolName);
-
-                if (!string.IsNullOrWhiteSpace(reportSearch.AuditorName))
+                if (reportSearch.AuditorId is not null)
+                    q = q.Where(x => x.Auditor.Id == reportSearch.AuditorId);
+                else if (!string.IsNullOrWhiteSpace(reportSearch.AuditorName))
                     q = q.Where(x => x.Auditor.Name == reportSearch.AuditorName);
 
                 // Build a single scoring expression

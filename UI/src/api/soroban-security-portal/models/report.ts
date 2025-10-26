@@ -29,9 +29,12 @@ export interface ReportSearch {
   searchText?: string;
   from?: string;
   to?: string;
+  protocolId?: number;
   protocolName?: string;
+  companyId?: number;
   companyName?: string;
-  auditorName?: string; //TODO change to id?
+  auditorId?: number;
+  auditorName?: string;
   sortBy?: 'date' | 'name';
   sortDirection?: 'asc' | 'desc';
 }

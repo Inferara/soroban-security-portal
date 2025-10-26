@@ -149,7 +149,8 @@ export const useReportDetails = () => {
 
       // Fetch vulnerabilities for this report
       const query: VulnerabilitySearch = {
-        reports: [reportData.name]
+        reports: [reportData.name],
+        pageSize: -1
       };
       const vulnerabilitiesData = await getVulnerabilitiesCall(query);
       setVulnerabilities(vulnerabilitiesData);

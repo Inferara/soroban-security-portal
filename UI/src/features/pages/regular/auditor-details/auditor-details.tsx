@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import {
   Box,
   Card,
@@ -15,22 +15,27 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
-  Divider
+  Divider,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { 
   ArrowBack, 
   OpenInNew, 
-  Business, 
-  Assessment, 
+  Business,
   BugReport,
-  CheckCircle,
+  Assessment,
+  Grading,
   Person,
-  Timeline as TimelineIcon
+  Timeline as TimelineIcon,
+  Dashboard,
 } from '@mui/icons-material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useAuditorDetails } from './hooks/auditor-details.hook';
+import { SeverityColors } from '../../../../contexts/ThemeContext';
+import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
@@ -46,15 +51,21 @@ export const AuditorDetails: FC = () => {
     error
   } = useAuditorDetails();
 
+  const [tabValue, setTabValue] = useState(0);
+
+  const fixedValidVulns = statistics?.vulnerabilitiesByCategory![VulnerabilityCategory.Valid] || 0;
+  const notFixedValidVulns = Object.entries(statistics?.vulnerabilitiesByCategory || {}).filter(c => Number(c[0]) !== VulnerabilityCategory.Valid).reduce((sum, [, count]) => sum + count, 0);
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
   const getSeverityColor = (severity: string) => {
-    switch (severity?.toLowerCase()) {
-      case 'critical': return '#c72e2b';
-      case 'high': return '#FF6B3D';
-      case 'medium': return '#FFD84D';
-      case 'low': return '#569E67';
-      case 'note': return '#72F1FF';
-      default: return theme.palette.grey[400];
+    const s = severity?.toLowerCase();
+    if (s in SeverityColors) {
+      return SeverityColors[s];
     }
+    return theme.palette.grey[400];
   };
 
   const formatDate = (dateString: Date | string) => {
@@ -108,17 +119,19 @@ export const AuditorDetails: FC = () => {
   }
 
   // Prepare chart data
-  const severityChartData = statistics ? Object.entries(statistics.severityBreakdown).map(([severity, count]) => ({
-    id: severity,
-    value: count,
-    label: severity.charAt(0).toUpperCase() + severity.slice(1),
-    color: getSeverityColor(severity)
-  })) : [];
-
-  const fixStatusData = statistics ? [
-    { label: 'Fixed', value: statistics.fixedVulnerabilities, color: '#4CAF50' },
-    { label: 'Active', value: statistics.activeVulnerabilities, color: '#FF6B3D' }
-  ] : [];
+    const severityChartData = statistics ? Object.entries(statistics.severityBreakdown).map(([severity, count]) => ({
+      id: severity,
+      value: count,
+      label: severity.charAt(0).toUpperCase() + severity.slice(1),
+      color: getSeverityColor(severity)
+    })) : [];
+  
+    const vulnCategoryData = statistics ? Object.entries(statistics.vulnerabilitiesByCategory || {}).map(([categoryId, count]) => ({
+      id: Number(categoryId),
+      value: count,
+      label: getCategoryLabel(Number(categoryId)),
+      color: getCategoryColor(Number(categoryId))
+    })) : [];
 
   // Get unique protocols audited by this auditor
   const auditedProtocols = protocols.filter(protocol => 
@@ -130,6 +143,7 @@ export const AuditorDetails: FC = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Button
+          variant="contained"
           startIcon={<ArrowBack />}
           onClick={() => navigate(-1)}
           sx={{ mb: 2 }}
@@ -144,11 +158,11 @@ export const AuditorDetails: FC = () => {
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
               variant={isMobile ? "h5" : "h4"} 
-              sx={{ fontWeight: 600, mb: 0.5 }}
+              sx={{ fontWeight: 600, mb: 0.5, wordBreak: 'break-word' }}
             >
               {auditor.name}
             </Typography>
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant="body1" color="text.secondary">
               Security Auditor
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -157,10 +171,10 @@ export const AuditorDetails: FC = () => {
           </Box>
         </Box>
 
-        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
           {auditor.url && (
             <Button
-              variant="outlined"
+              variant="contained"
               startIcon={<OpenInNew />}
               href={auditor.url}
               target="_blank"
@@ -171,6 +185,37 @@ export const AuditorDetails: FC = () => {
           )}
         </Stack>
       </Box>
+
+      {/* Tabs */}
+      <Box sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange}
+          variant={isMobile ? "fullWidth" : "standard"}
+          sx={{
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontSize: '1rem',
+              fontWeight: 600,
+              minHeight: 64
+            }
+          }}
+        >
+          <Tab 
+            icon={<Dashboard />} 
+            iconPosition="start" 
+            label="Overview" 
+          />
+          <Tab 
+            icon={<TimelineIcon />} 
+            iconPosition="start" 
+            label="Activity" 
+          />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      {tabValue === 0 && (
 
       <Box sx={{ 
         display: 'flex', 
@@ -188,7 +233,7 @@ export const AuditorDetails: FC = () => {
           }}>
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <Assessment sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
+                <Assessment sx={{ fontSize: 40, color: SeverityColors['note'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics?.totalReports || 0}
                 </Typography>
@@ -200,7 +245,7 @@ export const AuditorDetails: FC = () => {
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <Business sx={{ fontSize: 40, color: 'secondary.main', mb: 1 }} />
+                <Business sx={{ fontSize: 40, color: SeverityColors['note'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics?.protocolsAudited || 0}
                 </Typography>
@@ -212,22 +257,22 @@ export const AuditorDetails: FC = () => {
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <BugReport sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
+                <BugReport sx={{ fontSize: 40, color: SeverityColors['medium'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics?.totalVulnerabilities || 0}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Vulnerabilities Found
+                  Vulnerabilities Reported
                 </Typography>
               </CardContent>
             </Card>
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <CheckCircle sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+                <Grading sx={{ fontSize: 40, color: SeverityColors['note'], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics && statistics.totalVulnerabilities > 0 
-                    ? Math.round((statistics.fixedVulnerabilities / statistics.totalVulnerabilities) * 100)
+                    ? Math.round((fixedValidVulns / (fixedValidVulns + notFixedValidVulns)) * 100)
                     : 0}%
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -275,11 +320,11 @@ export const AuditorDetails: FC = () => {
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   Fix Status
                 </Typography>
-                {fixStatusData.length > 0 && fixStatusData.some(d => d.value > 0) ? (
+                {vulnCategoryData.length > 0 && vulnCategoryData.some(d => d.value > 0) ? (
                   <Box sx={{ height: 300, display: 'flex', justifyContent: 'center' }}>
                     <PieChart
                       series={[{
-                        data: fixStatusData,
+                        data: vulnCategoryData,
                         highlightScope: { fade: 'global', highlight: 'item' },
                       }]}
                       width={isMobile ? 280 : 350}
@@ -301,7 +346,7 @@ export const AuditorDetails: FC = () => {
               <CardContent>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   <TimelineIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Reports Timeline (Last 12 Months)
+                  Reports Timeline
                 </Typography>
                 <Box sx={{ height: 300, width: '100%' }}>
                   <LineChart
@@ -482,6 +527,66 @@ export const AuditorDetails: FC = () => {
           </Card>
         </Box>
       </Box>
+      )}
+
+      {/* Second Tab - Activity Timeline */}
+      {tabValue === 1 && (
+        <Box>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                <TimelineIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Audit Activity Timeline
+              </Typography>
+              {reports.length > 0 ? (
+                <List sx={{ maxHeight: 600, overflow: 'auto' }}>
+                  {reports
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((report, index) => (
+                    <Box key={report.id}>
+                      <ListItem 
+                        sx={{ 
+                          px: 0,
+                          cursor: 'pointer',
+                          '&:hover': { backgroundColor: 'action.hover' },
+                          borderRadius: 1
+                        }}
+                        onClick={() => navigate(`/report/${report.id}`)}
+                      >
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'primary.main' }}>
+                            <Assessment />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Typography 
+                              variant="subtitle2" 
+                              sx={{ fontWeight: 600, wordBreak: 'break-word' }}
+                            >
+                              {report.name}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography variant="body2" color="text.secondary">
+                              Published: {formatDate(report.date)}
+                            </Typography>
+                          }
+                        />
+                      </ListItem>
+                      {index < reports.length - 1 && <Divider />}
+                    </Box>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                  No audit reports found
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Box>
+      )}
     </Box>
   );
 };

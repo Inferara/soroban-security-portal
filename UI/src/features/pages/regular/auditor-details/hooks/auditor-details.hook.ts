@@ -8,7 +8,7 @@ import {
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
-import { Vulnerability } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { Vulnerability, VulnerabilitySearch } from '../../../../../api/soroban-security-portal/models/vulnerability';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 
 interface AuditorStatistics {
@@ -16,8 +16,7 @@ interface AuditorStatistics {
   totalVulnerabilities: number;
   protocolsAudited: number;
   severityBreakdown: { [key: string]: number };
-  fixedVulnerabilities: number;
-  activeVulnerabilities: number;
+  vulnerabilitiesByCategory?: { [key: number]: number };
   reportsTimeline: { month: string; count: number; }[];
 }
 
@@ -39,21 +38,14 @@ export const useAuditorDetails = () => {
     protocols: ProtocolItem[]
   ): AuditorStatistics => {
     const severityBreakdown: { [key: string]: number } = {};
-    let fixedCount = 0;
-    let activeCount = 0;
+    const vulnerabilitiesByCategory: { [key: number]: number } = {};
 
     vulnerabilities.forEach(vuln => {
       // Count severity breakdown
       if (vuln.severity) {
         severityBreakdown[vuln.severity] = (severityBreakdown[vuln.severity] || 0) + 1;
       }
-      
-      // Count fixed vs active
-      if (vuln.status?.toLowerCase() === 'fixed') {
-        fixedCount++;
-      } else {
-        activeCount++;
-      }
+      vulnerabilitiesByCategory[vuln.category] = (vulnerabilitiesByCategory[vuln.category] || 0) + 1;
     });
 
     // Create timeline of reports by month
@@ -71,7 +63,7 @@ export const useAuditorDetails = () => {
         count
       }))
       .sort((a, b) => a.month.localeCompare(b.month))
-      .slice(-12); // Last 12 months
+      // .slice(-12); // Last 12 months
 
     // Get unique protocols from reports
     const auditedProtocolIds = new Set(reports.map(r => r.protocolId));
@@ -82,8 +74,7 @@ export const useAuditorDetails = () => {
       totalVulnerabilities: vulnerabilities.length,
       protocolsAudited: auditedProtocols.length,
       severityBreakdown,
-      fixedVulnerabilities: fixedCount,
-      activeVulnerabilities: activeCount,
+      vulnerabilitiesByCategory,
       reportsTimeline
     };
   };
@@ -93,36 +84,28 @@ export const useAuditorDetails = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Auditor ID from URL:', id);
-      console.log('Parsed Auditor ID:', auditorId);
-
       if (!auditorId || auditorId === 0) {
         console.error('Invalid auditor ID:', auditorId);
         setError('Invalid auditor ID');
         return;
       }
-
-      console.log('Fetching auditor details for ID:', auditorId);
-      // Fetch auditor details
+      
       const auditorData = await getAuditorByIdCall(auditorId);
-      console.log('Auditor data received:', auditorData);
       setAuditor(auditorData);
 
       // Fetch reports by this auditor
       const reportsData = await getReportsCall({
-        auditorName: auditorData.name
+        auditorId: auditorData.id
       });
       setReports(reportsData);
 
-      // Fetch vulnerabilities found by this auditor
-      const vulnerabilitiesData = await getVulnerabilitiesCall({
-        auditors: [auditorData.name],
-        page: 1,
-        pageSize: 1000 // Get all vulnerabilities for statistics
-      });
+      const query: VulnerabilitySearch = {
+        auditorIds: [auditorData.id],
+        pageSize: -1
+      };
+      const vulnerabilitiesData = await getVulnerabilitiesCall(query);
       setVulnerabilities(vulnerabilitiesData);
 
-      // Fetch all protocols to determine which ones this auditor has worked on
       const protocolsData = await getProtocolListDataCall();
       setProtocols(protocolsData);
 
@@ -140,11 +123,9 @@ export const useAuditorDetails = () => {
   };
 
   useEffect(() => {
-    console.log('useEffect triggered, auditorId:', auditorId);
     if (auditorId && auditorId > 0) {
       void fetchAuditorDetails();
     } else {
-      console.log('Invalid auditorId, not fetching:', auditorId);
       setLoading(false);
       if (auditorId === 0) {
         setError('Invalid auditor ID from URL');

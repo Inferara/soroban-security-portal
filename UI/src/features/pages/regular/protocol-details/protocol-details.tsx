@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import React from 'react';
 import {
   Box,
@@ -16,8 +16,7 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
-  Divider
-} from '@mui/material';
+  Divider} from '@mui/material';
 import { 
   ArrowBack, 
   OpenInNew, 
@@ -25,8 +24,7 @@ import {
   Assessment, 
   BugReport,
   CheckCircle,
-  Error as ErrorIcon
-} from '@mui/icons-material';
+  Error as ErrorIcon} from '@mui/icons-material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
@@ -46,6 +44,12 @@ export const ProtocolDetails: FC = () => {
     loading,
     error
   } = useProtocolDetails();
+
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity?.toLowerCase()) {

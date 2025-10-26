@@ -23,8 +23,9 @@ import {
 import { 
   ArrowBack, 
   OpenInNew, 
-  Business, 
-  Assessment, 
+  Business,
+  Assessment,
+  Grading, 
   BugReport,
   CheckCircle,
   Error as ErrorIcon,
@@ -298,7 +299,7 @@ export const ReportDetails: FC = () => {
 
             <Card sx={{ textAlign: 'center' }}>
               <CardContent>
-                <Assessment sx={{ fontSize: 40, color: SeverityColors["note"], mb: 1 }} />
+                <Grading sx={{ fontSize: 40, color: SeverityColors["note"], mb: 1 }} />
                 <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
                   {statistics && statistics.totalVulnerabilities > 0 
                     ? Math.round((fixedValidVulns / (fixedValidVulns + notFixedValidVulns)) * 100)
