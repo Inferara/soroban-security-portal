@@ -476,7 +476,7 @@ export const ProtocolDetails: FC = () => {
 
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    On Tack Since
+                    On Track Since
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {formatDate(protocol.date)}
