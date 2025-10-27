@@ -101,7 +101,7 @@ export const ReportManagement: FC = () => {
       width: 750,
       renderCell: (params: GridRenderCellParams<Report>) => (
         <>
-          <div>Author: <span style={{ color: 'gray' }}>{params.row.author}</span></div>
+          <div>Created by: <span style={{ color: 'gray' }}>{params.row.createdBy}</span></div>
           <div>Company: <span style={{ color: 'gray' }}>{params.row.companyName}</span></div>
           <div>Protocol: <span style={{ color: 'gray' }}>{params.row.protocolName}</span></div>
           <div>Auditor: <span style={{ color: 'gray' }}>{params.row.auditorName}</span></div>

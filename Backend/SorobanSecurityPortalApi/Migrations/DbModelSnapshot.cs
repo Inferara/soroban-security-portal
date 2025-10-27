@@ -35,9 +35,8 @@ namespace SorobanSecurityPortalApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer")
                         .HasColumnName("created_by");
 
                     b.Property<DateTime>("Date")
@@ -159,9 +158,8 @@ namespace SorobanSecurityPortalApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer")
                         .HasColumnName("created_by");
 
                     b.Property<DateTime>("Date")
@@ -206,11 +204,6 @@ namespace SorobanSecurityPortalApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Author")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("author");
-
                     b.Property<byte[]>("BinFile")
                         .HasColumnType("bytea")
                         .HasColumnName("bin_file");
@@ -219,6 +212,10 @@ namespace SorobanSecurityPortalApi.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("container_guid");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone")
@@ -365,7 +362,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2025, 9, 28, 1, 35, 57, 456, DateTimeKind.Utc).AddTicks(6086),
+                            Created = new DateTime(2025, 10, 26, 4, 6, 7, 986, DateTimeKind.Utc).AddTicks(2366),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -391,9 +388,8 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("company_id");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer")
                         .HasColumnName("created_by");
 
                     b.Property<DateTime>("Date")
@@ -445,14 +441,13 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("auditor_id");
 
-                    b.Property<string>("Author")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("author");
-
                     b.Property<byte[]>("BinFile")
                         .HasColumnType("bytea")
                         .HasColumnName("bin_file");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone")
@@ -470,9 +465,8 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_action_at");
 
-                    b.Property<string>("LastActionBy")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<int>("LastActionBy")
+                        .HasColumnType("integer")
                         .HasColumnName("last_action_by");
 
                     b.Property<string>("MdFile")
@@ -567,14 +561,13 @@ namespace SorobanSecurityPortalApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Author")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("author");
-
                     b.Property<int>("Category")
                         .HasColumnType("integer")
                         .HasColumnName("category");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone")
@@ -593,9 +586,8 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_action_at");
 
-                    b.Property<string>("LastActionBy")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<int>("LastActionBy")
+                        .HasColumnType("integer")
                         .HasColumnName("last_action_by");
 
                     b.Property<string>("PicturesContainerGuid")

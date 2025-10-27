@@ -208,6 +208,14 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   );
 };
 
+export const SeverityColors: { [key: string]: string } = {
+  "critical": "#c72e2b95",
+  "high": "#FF6B3D95",
+  "medium": "#FFD84D95",
+  "low": "#569E6795",
+  "note": "#72F1FF95"
+};
+
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
   if (context === undefined) {

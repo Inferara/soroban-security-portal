@@ -25,7 +25,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<ProtocolViewModel> Add(ProtocolViewModel protocolViewModel)
         {
             var protocolModel = _mapper.Map<ProtocolModel>(protocolViewModel);
-            protocolModel.CreatedBy = await _userContextAccessor.GetLoginNameAsync();
+            protocolModel.CreatedBy = await _userContextAccessor.GetLoginIdAsync();
             protocolModel.Date = DateTime.UtcNow;
             protocolModel = await _protocolProcessor.Add(protocolModel);
             return _mapper.Map<ProtocolViewModel>(protocolModel);
@@ -45,8 +45,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<Result<ProtocolViewModel, string>> Update(ProtocolViewModel protocolViewModel)
         {
             var protocolModel = _mapper.Map<ProtocolModel>(protocolViewModel);
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
-            if (! await CanUpdateProtocol(protocolModel, loginName))
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            if (! await CanUpdateProtocol(protocolModel, loginId))
             {
                 return new Result<ProtocolViewModel, string>.Err("You cannot update this protocol.");
             }
@@ -60,15 +60,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ProtocolStatisticsChangesViewModel>(statsChange);
         }
 
-        private async Task<bool> CanUpdateProtocol(ProtocolModel protocolModel, string login)
+        private async Task<bool> CanUpdateProtocol(ProtocolModel protocolModel, int loginId)
         {
-            if (protocolModel.CreatedBy == login || await _userContextAccessor.IsLoginAdmin(login))
+            if (protocolModel.CreatedBy == loginId || await _userContextAccessor.IsLoginIdAdmin(loginId))
             {
                 return true;
             }
             else
             {
-                if (await _userContextAccessor.IsLoginAdmin(protocolModel.CreatedBy))
+                if (await _userContextAccessor.IsLoginIdAdmin(protocolModel.CreatedBy))
                 {
                     return false;
                 }

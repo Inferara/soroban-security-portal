@@ -10,9 +10,10 @@ export interface Report {
   auditorId: number;
   auditorName: string;
   status?: string;
-  author?: string;
+  createdBy: number;
   lastActionBy?: string;
   lastActionAt?: string;
+  mdFile?: string; // Markdown content
 } 
 
 export interface AddReport {
@@ -28,9 +29,12 @@ export interface ReportSearch {
   searchText?: string;
   from?: string;
   to?: string;
+  protocolId?: number;
   protocolName?: string;
+  companyId?: number;
   companyName?: string;
-  auditorName?: string; //TODO change to id?
+  auditorId?: number;
+  auditorName?: string;
   sortBy?: 'date' | 'name';
   sortDirection?: 'asc' | 'desc';
 }

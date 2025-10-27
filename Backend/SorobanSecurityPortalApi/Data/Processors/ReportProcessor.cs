@@ -42,13 +42,17 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     var to = DateTime.SpecifyKind(reportSearch.To.Value, DateTimeKind.Utc);
                     q = q.Where(v => v.Date <= to);
                 }
-                if (!string.IsNullOrWhiteSpace(reportSearch.CompanyName))
+                if (reportSearch.CompanyId is not null)
+                    q = q.Where(x => x.Protocol.Company.Id == reportSearch.CompanyId);
+                else if (!string.IsNullOrWhiteSpace(reportSearch.CompanyName))
                     q = q.Where(x => x.Protocol.Company.Name == reportSearch.CompanyName);
-
-                if (!string.IsNullOrWhiteSpace(reportSearch.ProtocolName))
+                if (reportSearch.ProtocolId is not null)
+                    q = q.Where(x => x.Protocol.Id == reportSearch.ProtocolId);
+                else if (!string.IsNullOrWhiteSpace(reportSearch.ProtocolName))
                     q = q.Where(x => x.Protocol.Name == reportSearch.ProtocolName);
-
-                if (!string.IsNullOrWhiteSpace(reportSearch.AuditorName))
+                if (reportSearch.AuditorId is not null)
+                    q = q.Where(x => x.Auditor.Id == reportSearch.AuditorId);
+                else if (!string.IsNullOrWhiteSpace(reportSearch.AuditorName))
                     q = q.Where(x => x.Auditor.Name == reportSearch.AuditorName);
 
                 // Build a single scoring expression
@@ -88,7 +92,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             else
             {
                 q = q.OrderByDescending(v => v.Id);
-            }
+            }            
             return await q
                 .Select(v => new ReportModel
                 {
@@ -96,7 +100,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     Name = v.Name,
                     Date = v.Date,
                     Status = v.Status,
-                    Author = v.Author,
+                    CreatedBy = v.CreatedBy,
                     LastActionBy = v.LastActionBy,
                     LastActionAt = v.LastActionAt,
                     Auditor = v.Auditor,
@@ -117,7 +121,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return reportModel;
         }
 
-        public async Task<ReportModel> Edit(ReportModel reportModel, string userName)
+        public async Task<ReportModel> Edit(ReportModel reportModel, int userId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             if (reportModel.Id == 0) throw new ArgumentException("Identifier mustn't be zero");
@@ -128,7 +132,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             existing.Name = reportModel.Name;
             existing.ProtocolId = reportModel.ProtocolId;
             existing.AuditorId = reportModel.AuditorId;
-            existing.LastActionBy = userName;
+            existing.LastActionBy = userId;
             existing.LastActionAt = DateTime.UtcNow;
             if(reportModel.BinFile is { Length: > 0 })
             {
@@ -145,7 +149,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<ReportModel> Get(int reportId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var report = await db.Report.AsNoTracking().FirstOrDefaultAsync(item => item.Id == reportId);
+            var report = await db.Report
+                .Include(r => r.Auditor)
+                .Include(r => r.Protocol)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == reportId);
             if (report == null)
                 throw new SorobanSecurityPortalUiException($"Report with ID {reportId} not found.");
             if (report.BinFile == null)
@@ -153,21 +161,21 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return report;
         }
 
-        public async Task Approve(ReportModel reportModel, string userName)
+        public async Task Approve(ReportModel reportModel, int userId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             reportModel.Status = ReportModelStatus.Approved;
-            reportModel.LastActionBy = userName;
+            reportModel.LastActionBy = userId;
             reportModel.LastActionAt = DateTime.UtcNow;
             db.Report.Update(reportModel);
             await db.SaveChangesAsync();
         }
 
-        public async Task Reject(ReportModel reportModel, string userName)
+        public async Task Reject(ReportModel reportModel, int userId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             reportModel.Status = ReportModelStatus.Rejected;
-            reportModel.LastActionBy = userName;
+            reportModel.LastActionBy = userId;
             reportModel.LastActionAt = DateTime.UtcNow;
             db.Report.Update(reportModel);
             await db.SaveChangesAsync();
@@ -201,7 +209,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 Name = v.Name,
                 Date = v.Date,
                 Status = v.Status,
-                Author = v.Author,
+                CreatedBy = v.CreatedBy,
                 LastActionBy = v.LastActionBy,
                 LastActionAt = v.LastActionAt,
                 Auditor = v.Auditor,
@@ -275,10 +283,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
     {
         Task<List<ReportModel>> Search(ReportSearchModel reportSearch);
         Task<ReportModel> Add(ReportModel reportModel);
-        Task<ReportModel> Edit(ReportModel reportModel, string userName);
+        Task<ReportModel> Edit(ReportModel reportModel, int userId);
         Task<ReportModel> Get(int reportId);
-        Task Approve(ReportModel reportModel, string userName);
-        Task Reject(ReportModel reportModel, string userName);
+        Task Approve(ReportModel reportModel, int userId);
+        Task Reject(ReportModel reportModel, int userId);
         Task Remove(int reportId);
         Task<List<ReportModel>> GetList(bool includeNotApproved = false);
         Task<List<ReportModel>> GetListForEmbedding();

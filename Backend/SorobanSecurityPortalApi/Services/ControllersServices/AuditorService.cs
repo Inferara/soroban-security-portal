@@ -25,7 +25,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<AuditorViewModel> Add(AuditorViewModel auditorViewModel)
         {
             var auditorModel = _mapper.Map<AuditorModel>(auditorViewModel);
-            auditorModel.CreatedBy = await _userContextAccessor.GetLoginNameAsync();
+            auditorModel.CreatedBy = await _userContextAccessor.GetLoginIdAsync();
             auditorModel.Date = DateTime.UtcNow;
             auditorModel = await _auditorProcessor.Add(auditorModel);
             return _mapper.Map<AuditorViewModel>(auditorModel);
@@ -45,8 +45,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<Result<AuditorViewModel, string>> Update(AuditorViewModel auditorViewModel)
         {
             var auditorModel = _mapper.Map<AuditorModel>(auditorViewModel);
-            var loginName = await _userContextAccessor.GetLoginNameAsync();
-            if (!await CanUpdateAuditor(auditorModel, loginName))
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            if (!await CanUpdateAuditor(auditorModel, loginId))
             {
                 return new Result<AuditorViewModel, string>.Err("You cannot update this auditor.");
             }
@@ -61,15 +61,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<AuditorStatisticsChangesViewModel>(statsChange);
         }
 
-        private async Task<bool> CanUpdateAuditor(AuditorModel auditorModel, string login)
+        private async Task<bool> CanUpdateAuditor(AuditorModel auditorModel, int loginId)
         {
-            if (auditorModel.CreatedBy == login || await _userContextAccessor.IsLoginAdmin(login))
+            if (auditorModel.CreatedBy == loginId || await _userContextAccessor.IsLoginIdAdmin(loginId))
             {
                 return true;
             }
             else
             {
-                if (await _userContextAccessor.IsLoginAdmin(auditorModel.CreatedBy))
+                if (await _userContextAccessor.IsLoginIdAdmin(auditorModel.CreatedBy))
                 {
                     return false;
                 }

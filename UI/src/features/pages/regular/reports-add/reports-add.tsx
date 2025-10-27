@@ -1,4 +1,4 @@
-import { FC, useState, useRef } from 'react';
+import { FC, useState, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -18,7 +18,7 @@ import {
 import Grid from '@mui/material/Grid';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useReportAdd } from './hooks';
 import ReportIcon from '@mui/icons-material/Report';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -48,6 +48,7 @@ export const AddReport: FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
+  const [searchParams] = useSearchParams();
   
   const canAddReport = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
@@ -75,6 +76,36 @@ export const AddReport: FC = () => {
     const protocols = protocolsList.filter(p => p.companyId === newCompany?.id);
     setProtocol(protocols.length > 0 ? protocols[0] : null);
   };
+
+  // Handle URL parameters for pre-filling form
+  useEffect(() => {
+    if (protocolsList.length > 0 && auditorsList.length > 0 && companiesList.length > 0) {
+      const protocolParam = searchParams.get('protocol');
+      const auditorParam = searchParams.get('auditor');
+      const companyParam = searchParams.get('company');
+
+      if (protocolParam) {
+        const protocolToSet = protocolsList.find(p => p.name === protocolParam || p.id.toString() === protocolParam);
+        if (protocolToSet) {
+          handleSetProtocol(protocolToSet);
+        }
+      }
+
+      if (auditorParam) {
+        const auditorToSet = auditorsList.find(a => a.name === auditorParam || a.id.toString() === auditorParam);
+        if (auditorToSet) {
+          setAuditor(auditorToSet);
+        }
+      }
+
+      if (companyParam) {
+        const companyToSet = companiesList.find(c => c.name === companyParam || c.id.toString() === companyParam);
+        if (companyToSet) {
+          handleSetCompany(companyToSet);
+        }
+      }
+    }
+  }, [searchParams, protocolsList, auditorsList, companiesList]);
 
   const validateAndSetFile = (file: File) => {
     // Check if file is PDF

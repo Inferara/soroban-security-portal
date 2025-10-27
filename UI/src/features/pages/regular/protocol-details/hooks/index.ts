@@ -1,0 +1,1 @@
+export { useProtocolDetails } from './protocol-details.hook';

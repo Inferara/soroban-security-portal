@@ -1,0 +1,1 @@
+export { useAuditorDetails } from './auditor-details.hook';

@@ -13,6 +13,6 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string Type { get; set; } = "";
         public byte[]? BinFile { get; set; } = null;
         public DateTime Date { get; set; }
-        public string Author { get; set; } = "";
+        public int CreatedBy { get; set; }
     }
 }

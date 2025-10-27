@@ -1,10 +1,11 @@
 import { FC, useEffect, useState } from 'react';
 import React from 'react';
-import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress, Tooltip } from '@mui/material';
+import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress, Tooltip, Link as MuiLink } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { GetApp, Search as SearchIcon } from '@mui/icons-material';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
 import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
@@ -310,21 +311,48 @@ export const Reports: FC = () => {
                     </Typography>
                   </Tooltip>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Published: {new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    Published:&nbsp;{new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Company: {report.companyName}
+                    Protocol:&nbsp;
+                    <MuiLink
+                      rel="noopener noreferrer"
+                      style={{ cursor: 'pointer'}}
+                      sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+                      onClick={() => {
+                        const protocol = protocolsList.find(p => p.name === report.protocolName);
+                        if (protocol) navigate(`/protocol/${protocol.id}`);
+                      }}
+                    >
+                      {report.protocolName}
+                    </MuiLink>
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Protocol: {report.protocolName}
-                  </Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Auditor: {report.auditorName}
+                    Auditor:&nbsp;
+                    <MuiLink
+                      rel="noopener noreferrer"
+                      style={{ cursor: 'pointer'}}
+                      sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+                      onClick={() => {
+                        const auditor = auditorsList.find(a => a.name === report.auditorName);
+                        if (auditor) navigate(`/auditor/${auditor.id}`);
+                      }}
+                    >
+                      {report.auditorName}
+                    </MuiLink>
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mt: 2 }}>
+                  <IconButton
+                    size='large'
+                    title="Details"
+                    onClick={() => navigate(`/report/${report.id}`)}
+                  >
+                    <FullscreenIcon fontSize="inherit"/>
+                  </IconButton>
                   <Button
                     variant="contained"
+                    startIcon={<GetApp />}
                     onClick={() => handleReportDownload(report.id)}
                     // sx={{
                     //   fontWeight: 600,
