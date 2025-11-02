@@ -33,7 +33,7 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
         
-        [RoleAuthorize(Role.Admin, Role.Moderator)]
+        [RoleAuthorize(Role.Admin)]
         [HttpDelete("api/v1/file/{containerGuid}/{fileName}")]
         public async Task<IActionResult> Remove(string containerGuid, string fileName)
         {

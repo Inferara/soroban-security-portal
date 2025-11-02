@@ -22,10 +22,15 @@ import { ConfirmDialog } from '../../admin-main-window/confirm-dialog.tsx';
 import { CustomToolbar } from '../../../../components/custom-toolbar.tsx';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
+import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
 
 export const ListCategories: FC = () => {
+  const auth = useAuth();
   const navigate = useNavigate();
-
+  
+  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
+  
   const currentPageState: CurrentPageState = {
     pageName: 'Tags',
     pageCode: 'categories',
@@ -41,21 +46,27 @@ export const ListCategories: FC = () => {
     setTagIdToRemove(0);
   };
 
-  const columnsData: GridColDef[] = [
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 140,
-      sortable: false,
-      filterable: false,
-      renderCell: (params: GridRenderCellParams<TagItem>) => (
-        <Tooltip title="Remove Tag">
-          <IconButton onClick={() => setTagIdToRemove(params.row.id)}>
-            <ClearIcon sx={{ color: 'red' }} />
-          </IconButton>
-        </Tooltip>
-      ),
-    } as GridColDef,
+  let columnsData: GridColDef[] = [];
+  if (isAdmin(auth)) {
+      columnsData.push(
+        {
+        field: 'actions',
+        headerName: 'Actions',
+        width: 140,
+        sortable: false,
+        filterable: false,
+        renderCell: (params: GridRenderCellParams<TagItem>) => (
+          (<Tooltip title="Remove Tag">
+            <IconButton onClick={() => setTagIdToRemove(params.row.id)}>
+              <ClearIcon sx={{ color: 'red' }} />
+            </IconButton>
+          </Tooltip>)
+        ),
+      } as GridColDef
+    )
+  }
+
+  columnsData.push(
     {
       field: 'name',
       headerName: 'Tag',
@@ -99,7 +110,7 @@ export const ListCategories: FC = () => {
       headerName: 'Created By',
       width: 250,
     } as GridColDef,
-  ];
+  );
 
   return (
     <div style={defaultUiSettings.listAreaStyle}>

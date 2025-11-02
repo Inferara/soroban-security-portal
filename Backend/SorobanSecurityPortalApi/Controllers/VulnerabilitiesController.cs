@@ -118,7 +118,7 @@ namespace SorobanSecurityPortalApi.Controllers
                 throw new InvalidOperationException("Unexpected result type");
         }
 
-        [RoleAuthorize(Role.Admin, Role.Moderator)]
+        [RoleAuthorize(Role.Admin)]
         [HttpDelete("{vulnerabilityId}")]
         public async Task<IActionResult> Remove(int vulnerabilityId)
         {

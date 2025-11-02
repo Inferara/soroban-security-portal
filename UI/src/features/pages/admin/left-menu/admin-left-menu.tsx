@@ -83,7 +83,7 @@ export const AdminLeftMenu: FC = () => {
       label: 'Tags',
       icon: <FormatListBulletedIcon />,
       path: 'admin/categories',
-      visible: isAdmin(auth),
+      visible: isAdminOrModerator(auth),
     },
   ];
 
