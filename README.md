@@ -11,6 +11,9 @@ https://sorobansecurity.com
 
 1. The largest database of known Stellar Soroban smart contracts security vulnerabilities ever found
 2. Vulenrabilities and security audit reports are organized and easy to access through filtered views
+3. Consolidated and observable information about companies, protocols, auditors, audit reports, and vulnerabilities
+
+🗄️ Portal on [Tansu](https://app.tansu.dev/project/?name=securityportal)
 
 ## 📦 Container Images
 
