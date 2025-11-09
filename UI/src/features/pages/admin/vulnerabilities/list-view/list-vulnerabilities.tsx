@@ -156,6 +156,11 @@ export const VulnerabilityManagement: FC = () => {
           <>
           <MarkdownView 
             content={collapsedDescriptions.has(params.row.id.toString()) ? getTruncatedDescription(params.row.description) : params.row.description}
+            background={{ p: 2 }}
+            sx={{ 
+              maxHeight: collapsedDescriptions.has(params.row.id.toString()) ? '150px' : '400px',
+              overflowY: 'auto'
+            }}
           />
           {shouldShowCollapse(params.row.description) && (
             <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
