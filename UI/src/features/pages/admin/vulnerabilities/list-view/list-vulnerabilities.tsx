@@ -21,20 +21,11 @@ import { useListVulnerabilities } from './hooks/index.ts';
 import { ConfirmDialog } from '../../admin-main-window/confirm-dialog.tsx';
 import { CustomToolbar } from '../../../../components/custom-toolbar.tsx';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import remarkParse from 'remark-parse';
-import remarkRehype from 'remark-rehype';
-import rehypeRaw from 'rehype-raw';
-import rehypeKatex from 'rehype-katex';
-import { CodeBlock } from '../../../../../components/CodeBlock.tsx';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
-import 'katex/dist/katex.min.css'; 
-import './katex.css';
+import { MarkdownView } from '../../../../../components/MarkdownView.tsx';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
 
@@ -163,55 +154,14 @@ export const VulnerabilityManagement: FC = () => {
       renderCell: (params: GridRenderCellParams<Vulnerability>) => {
         return (
           <>
-          <ReactMarkdown
-            skipHtml={false}
-            remarkPlugins={[remarkParse, remarkGfm, remarkMath, remarkRehype]}
-            rehypePlugins={[rehypeRaw, rehypeKatex]}
-            components={{
-              code: (props) => {
-                const { node, className, children, ...rest } = props;
-                const inline = (props as any).inline;
-                const match = /language-(\w+)/.exec(className || '');
-                if (!inline && match) {
-                  return (
-                    <CodeBlock className={className} {...rest}>
-                      {String(children).replace(/\n$/, '')}
-                    </CodeBlock>
-                  );
-                } else {
-                  return (
-                    <CodeBlock className={className} inline={true} {...rest}>
-                      {String(children).replace(/\n$/, '')}
-                    </CodeBlock>
-                  );
-                }
-              },
-              // Handle inline math
-              span: ({ className, children, ...props }) => {
-                if (className && className.includes('math')) {
-                  return (
-                    <span className={className} {...props}>
-                      {children}
-                    </span>
-                  );
-                }
-                return <span className={className} {...props}>{children}</span>;
-              },
-              // Handle block math
-              div: ({ className, children, ...props }) => {
-                if (className && className.includes('math')) {
-                  return (
-                    <div className={className} {...props}>
-                      {children}
-                    </div>
-                  );
-                }
-                return <div className={className} {...props}>{children}</div>;
-              }
+          <MarkdownView 
+            content={collapsedDescriptions.has(params.row.id.toString()) ? getTruncatedDescription(params.row.description) : params.row.description}
+            background={{ p: 2 }}
+            sx={{ 
+              maxHeight: collapsedDescriptions.has(params.row.id.toString()) ? '150px' : '400px',
+              overflowY: 'auto'
             }}
-          >
-            {collapsedDescriptions.has(params.row.id.toString()) ? getTruncatedDescription(params.row.description) : params.row.description}
-          </ReactMarkdown>
+          />
           {shouldShowCollapse(params.row.description) && (
             <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
               <IconButton

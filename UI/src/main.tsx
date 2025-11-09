@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AuthContextProps, AuthProvider, useAuth } from 'react-oidc-context';
+import { WebStorageStateStore } from 'oidc-client-ts';
 import { Provider, useDispatch } from 'react-redux';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { store } from './app/store';
@@ -29,6 +30,7 @@ const oidcConfig = {
   scope: 'openid offline_access',
   automaticSilentRenew: true,
   post_logout_redirect_uri: `${window.location.origin}${environment.basePath}`,
+  userStore: new WebStorageStateStore({ store: window.localStorage }),
 };
 
 export function AppWrapper() {
@@ -62,6 +64,25 @@ export function AppWrapper() {
   useEffect(() => {
     document.title = "Soroban Security Portal";
   }, []);
+
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      const oidcUserKey = `oidc.user:${(window as any).env.API_URL!}/api/v1/connect:${environment.clientId}`;
+      if (e.key === oidcUserKey && e.newValue === null && auth.isAuthenticated) {
+        auth.removeUser().then(() => {
+          if (window.location.pathname.startsWith(`${environment.basePath}/admin`)) {
+            navigate('/');
+          }
+        });
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [auth, navigate]);
 
   if (window.location.pathname.startsWith(`${environment.basePath}/login`)) {
     if (auth.isAuthenticated) {

@@ -382,7 +382,7 @@ const getRestClient = async (): Promise<RestApi> => {
 };
 
 const getAccessToken = () => {
-    const oidcStorage = sessionStorage.getItem(`oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`)
+    const oidcStorage = localStorage.getItem(`oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`)
     if (!oidcStorage) {
         return null;
     }

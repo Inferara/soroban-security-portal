@@ -40,7 +40,7 @@ import { EditProtocol } from '../protocol/edit-item/edit-protocol.tsx';
 import { ListCompanies } from '../company/list-view/list-companies.tsx';
 import { AddCompany } from '../company/add-item/add-company.tsx';
 import { EditCompany } from '../company/edit-item/edit-company.tsx';
-import { ListCategories } from '../tag/list-view/list-tags.tsx';
+import { ListTags } from '../tag/list-view/list-tags.tsx';
 import { AddTag } from '../tag/add-item/add-tag.tsx';
 import { EditTag } from '../tag/edit-item/edit-tag.tsx';
 
@@ -118,9 +118,17 @@ export const AdminMainWindow: FC = () => {
 
   const handleUserMenuClose = () => setAnchorEl(null);
 
-  const handleUserMenuItemLogoutClick = () => {
+  const handleUserMenuItemLogoutClick = async () => {
     setAnchorEl(null);
-    auth.signoutRedirect();
+    // Clear localStorage to trigger storage event in other tabs
+    const oidcUserKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
+    localStorage.removeItem(oidcUserKey);
+    
+    // Remove the user from auth context without redirect
+    await auth.removeUser();
+    
+    // Redirect to main page (not admin)
+    navigate('/');
   };
 
   const getUserInitials = (name: string) => {
@@ -231,7 +239,6 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/reports/edit`} element={<EditReport />} />
 
           <Route path={`${environment.basePath}/admin/subscriptions`} element={<Subscriptions />} />
-
           
           <Route path={`${environment.basePath}/admin/auditors`} element={<ListAuditors />} />
           <Route path={`${environment.basePath}/admin/auditors/add`} element={<AddAuditor />} />
@@ -245,9 +252,9 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/protocols/add`} element={<AddProtocol />} />
           <Route path={`${environment.basePath}/admin/protocols/edit`} element={<EditProtocol />} />
 
-          <Route path={`${environment.basePath}/admin/categories`} element={<ListCategories />} />
-          <Route path={`${environment.basePath}/admin/categories/add`} element={<AddTag />} />
-          <Route path={`${environment.basePath}/admin/categories/edit`} element={<EditTag />} />
+          <Route path={`${environment.basePath}/admin/tags`} element={<ListTags />} />
+          <Route path={`${environment.basePath}/admin/tags/add`} element={<AddTag />} />
+          <Route path={`${environment.basePath}/admin/tags/edit`} element={<EditTag />} />
 
           <Route path={`${environment.basePath}/*`} element={<NoPage />} />
         </Routes>

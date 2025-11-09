@@ -25,7 +25,7 @@ import { defaultUiSettings } from '../../../../../api/soroban-security-portal/mo
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
 
-export const ListCategories: FC = () => {
+export const ListTags: FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
   
@@ -33,9 +33,9 @@ export const ListCategories: FC = () => {
   
   const currentPageState: CurrentPageState = {
     pageName: 'Tags',
-    pageCode: 'categories',
+    pageCode: 'tags',
     pageUrl: window.location.pathname,
-    routePath: 'admin/categories',
+    routePath: 'admin/tags',
   };
 
   const { tagListData, tagRemove } = useListTags({ currentPageState });
@@ -116,7 +116,7 @@ export const ListCategories: FC = () => {
     <div style={defaultUiSettings.listAreaStyle}>
       <Stack direction="row" spacing={2}>
         <Tooltip title="Add Tag">
-          <IconButton onClick={() => navigate('/admin/categories/add')}>
+          <IconButton onClick={() => navigate('/admin/tags/add')}>
             <PersonAddIcon sx={{ color: 'green' }} />
           </IconButton>
         </Tooltip>

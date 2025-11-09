@@ -12,6 +12,6 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string BgColor { get; set; } = "";
         public string TextColor { get; set; } = "";
         public DateTime Date { get; set; }
-        public string CreatedBy { get; set; } = "";
+        public int CreatedBy { get; set; }
     }
 }
