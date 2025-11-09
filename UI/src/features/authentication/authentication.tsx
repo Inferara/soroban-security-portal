@@ -37,8 +37,7 @@ export const Authentication: FC<Props> = (props: Props) => {
   };
 
   const handleLogin = async () => {
-    // clear the session storage to force the user to re-authenticate
-    sessionStorage.removeItem(`oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`);
+    localStorage.removeItem(`oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`);
     const signinRedirectArgs = {
       acr_values: `${username}:${password}`,
     };

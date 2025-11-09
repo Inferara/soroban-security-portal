@@ -118,9 +118,17 @@ export const AdminMainWindow: FC = () => {
 
   const handleUserMenuClose = () => setAnchorEl(null);
 
-  const handleUserMenuItemLogoutClick = () => {
+  const handleUserMenuItemLogoutClick = async () => {
     setAnchorEl(null);
-    auth.signoutRedirect();
+    // Clear localStorage to trigger storage event in other tabs
+    const oidcUserKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
+    localStorage.removeItem(oidcUserKey);
+    
+    // Remove the user from auth context without redirect
+    await auth.removeUser();
+    
+    // Redirect to main page (not admin)
+    navigate('/');
   };
 
   const getUserInitials = (name: string) => {

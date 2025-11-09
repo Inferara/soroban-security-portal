@@ -69,9 +69,11 @@ export const MainWindow: FC = () => {
 
   const handleUserMenuClose = () => setAnchorEl(null);
 
-  const handleUserMenuItemLogoutClick = () => {
+  const handleUserMenuItemLogoutClick = async () => {
     setAnchorEl(null);
-    auth.signoutRedirect();
+    const oidcUserKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
+    localStorage.removeItem(oidcUserKey);
+    await auth.removeUser();
   };
 
   const isActiveRoute = (path: string) => {
