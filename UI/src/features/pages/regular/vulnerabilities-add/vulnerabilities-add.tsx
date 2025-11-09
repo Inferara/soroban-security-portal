@@ -32,17 +32,15 @@ import BugReportIcon from '@mui/icons-material/BugReport';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { Editor } from '@monaco-editor/react';
-import { useTheme as useThemeContext } from '../../../../contexts/ThemeContext';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { TagItem } from '../../../../api/soroban-security-portal/models/tag';
 import { showError } from '../../../dialog-handler/dialog-handler';
 import { environment } from '../../../../environments/environment';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
+import { MarkdownEditor } from '../../../../components/MarkdownEditor';
 
 export const AddVulnerability: FC = () => {
-  const { themeMode } = useThemeContext();
   const [title, setTitle] = useState('');
   const [reportUrl, setReportUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -305,15 +303,11 @@ export const AddVulnerability: FC = () => {
               />
             </Grid>
             <Grid size={12}>
-              <span style={{ fontWeight: 600, color: theme.palette.text.primary }}>
-                Description
-              </span>
-              <Editor              
-                height="40vh"
-                language="markdown"          
+              <MarkdownEditor
                 value={description}
-                theme={themeMode === 'light' ? 'vs' : 'vs-dark'} 
-                onChange={(value) => setDescription(value ?? '')}
+                onChange={setDescription}
+                label="Description"
+                required
               />
             </Grid>
 

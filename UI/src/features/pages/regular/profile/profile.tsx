@@ -5,7 +5,7 @@ import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
 import LockIcon from '@mui/icons-material/Lock';
 import EditIcon from '@mui/icons-material/Edit';
-import ReactMarkdown from 'react-markdown';
+import { MarkdownView } from '../../../../components/MarkdownView';
 import { useNavigate } from 'react-router-dom';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
@@ -208,7 +208,7 @@ export const Profile: React.FC = () => {
           </SectionTitle>
           {user?.personalInfo ? (
             <MarkdownContainer>
-              <ReactMarkdown>{user.personalInfo}</ReactMarkdown>
+              <MarkdownView content={user.personalInfo} sx={{ p: 0 }} />
             </MarkdownContainer>
           ) : (
             <PlaceholderText>
