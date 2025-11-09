@@ -4,5 +4,5 @@ export interface TagItem {
   bgColor: string;
   textColor: string;
   date: Date;
-  createdBy: string;
+  createdBy: number;
 }

@@ -25,7 +25,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<CategoryViewModel> Add(CategoryViewModel categoryViewModel)
         {
             var categoryModel = _mapper.Map<CategoryModel>(categoryViewModel);
-            categoryModel.CreatedBy = await _userContextAccessor.GetLoginNameAsync();
+            categoryModel.CreatedBy = await _userContextAccessor.GetLoginIdAsync();
             categoryModel.Date = DateTime.UtcNow;
             categoryModel = await _categoryProcessor.Add(categoryModel);
             return _mapper.Map<CategoryViewModel>(categoryModel);

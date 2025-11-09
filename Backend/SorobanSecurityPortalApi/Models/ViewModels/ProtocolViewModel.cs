@@ -7,6 +7,6 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public int? CompanyId { get; set; }
         public string Url { get; set; } = "";
         public DateTime Date { get; set; }
-        public string CreatedBy { get; set; } = "";
+        public int CreatedBy { get; set; }
     }
 }

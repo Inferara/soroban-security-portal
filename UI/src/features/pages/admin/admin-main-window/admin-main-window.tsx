@@ -11,7 +11,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { FC, MouseEvent, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
-import { Route, Routes, useNavigate } from 'react-router-dom';
+import { Route, Routes, useNavigate, Navigate } from 'react-router-dom';
 import { useAppSelector } from '../../../../app/hooks.ts';
 import { AdminLeftMenu } from '../left-menu/admin-left-menu.tsx';
 import { NoPage } from '../no-page/no-page.tsx';
@@ -40,7 +40,7 @@ import { EditProtocol } from '../protocol/edit-item/edit-protocol.tsx';
 import { ListCompanies } from '../company/list-view/list-companies.tsx';
 import { AddCompany } from '../company/add-item/add-company.tsx';
 import { EditCompany } from '../company/edit-item/edit-company.tsx';
-import { ListCategories } from '../tag/list-view/list-tags.tsx';
+import { ListTags } from '../tag/list-view/list-tags.tsx';
 import { AddTag } from '../tag/add-item/add-tag.tsx';
 import { EditTag } from '../tag/edit-item/edit-tag.tsx';
 
@@ -239,7 +239,6 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/reports/edit`} element={<EditReport />} />
 
           <Route path={`${environment.basePath}/admin/subscriptions`} element={<Subscriptions />} />
-
           
           <Route path={`${environment.basePath}/admin/auditors`} element={<ListAuditors />} />
           <Route path={`${environment.basePath}/admin/auditors/add`} element={<AddAuditor />} />
@@ -253,9 +252,14 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/protocols/add`} element={<AddProtocol />} />
           <Route path={`${environment.basePath}/admin/protocols/edit`} element={<EditProtocol />} />
 
-          <Route path={`${environment.basePath}/admin/categories`} element={<ListCategories />} />
-          <Route path={`${environment.basePath}/admin/categories/add`} element={<AddTag />} />
-          <Route path={`${environment.basePath}/admin/categories/edit`} element={<EditTag />} />
+          <Route path={`${environment.basePath}/admin/tags`} element={<ListTags />} />
+          <Route path={`${environment.basePath}/admin/tags/add`} element={<AddTag />} />
+          <Route path={`${environment.basePath}/admin/tags/edit`} element={<EditTag />} />
+
+          {/* Redirect old /admin/categories route to /admin/tags */}
+          <Route path={`${environment.basePath}/admin/categories`} element={<Navigate to={`${environment.basePath}/admin/tags`} replace />} />
+          <Route path={`${environment.basePath}/admin/categories/add`} element={<Navigate to={`${environment.basePath}/admin/tags/add`} replace />} />
+          <Route path={`${environment.basePath}/admin/categories/edit`} element={<Navigate to={`${environment.basePath}/admin/tags/edit`} replace />} />
 
           <Route path={`${environment.basePath}/*`} element={<NoPage />} />
         </Routes>

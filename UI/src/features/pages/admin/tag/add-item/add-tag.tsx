@@ -6,9 +6,11 @@ import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts'
 import { useAddTag } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
+import { useAuth } from 'react-oidc-context';
 
 export const AddTag: FC = () => {
   const navigate = useNavigate();
+  const auth = useAuth();
   const [name, setName] = useState('');
   const [textColor, setTextColor] = useState('#000000');
   const [bgColor, setBgColor] = useState('#FFFFFF');
@@ -32,7 +34,7 @@ export const AddTag: FC = () => {
       bgColor: bgColor,
       textColor: textColor,
       date: new Date(),
-      createdBy: '',
+      createdBy: Number(auth.user?.profile.id || 0)
     };
     const createTagSuccess = await addTag(createTagItem);
     if (createTagSuccess) {
