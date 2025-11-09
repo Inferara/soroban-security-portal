@@ -11,7 +11,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { FC, MouseEvent, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
-import { Route, Routes, useNavigate, Navigate } from 'react-router-dom';
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../../../app/hooks.ts';
 import { AdminLeftMenu } from '../left-menu/admin-left-menu.tsx';
 import { NoPage } from '../no-page/no-page.tsx';
@@ -255,11 +255,6 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/tags`} element={<ListTags />} />
           <Route path={`${environment.basePath}/admin/tags/add`} element={<AddTag />} />
           <Route path={`${environment.basePath}/admin/tags/edit`} element={<EditTag />} />
-
-          {/* Redirect old /admin/categories route to /admin/tags */}
-          <Route path={`${environment.basePath}/admin/categories`} element={<Navigate to={`${environment.basePath}/admin/tags`} replace />} />
-          <Route path={`${environment.basePath}/admin/categories/add`} element={<Navigate to={`${environment.basePath}/admin/tags/add`} replace />} />
-          <Route path={`${environment.basePath}/admin/categories/edit`} element={<Navigate to={`${environment.basePath}/admin/tags/edit`} replace />} />
 
           <Route path={`${environment.basePath}/*`} element={<NoPage />} />
         </Routes>
