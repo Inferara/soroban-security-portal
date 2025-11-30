@@ -15,6 +15,7 @@ import "@fontsource/roboto";
 import { Role } from './api/soroban-security-portal/models/role';
 import { MainWindow } from './features/pages/regular/main-window/main-window';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { BookmarkProvider } from './contexts/BookmarkContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import ReactGA from 'react-ga4';
 
@@ -41,25 +42,56 @@ export function AppWrapper() {
   const isAdminOrModerator = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
 
+  // Validate session on mount and when user changes
+  useEffect(() => {
+    if (!auth.user || auth.isLoading) return;
+    
+    const expiresAt = auth.user.expires_at;
+    if (expiresAt && expiresAt < Date.now() / 1000) {
+      // Token has expired, remove user immediately
+      console.warn('Session expired on load, removing user');
+      auth.removeUser();
+    }
+  }, []); // Only run once on mount
+
   useEffect(() => {
     ReactGA.send({ hitType: "pageview", page: "/main", title: "Main Page" });
   }, [])
 
   useEffect(() => {
     const sessionInfo = store.getState().sessionInfo;
-    if (!sessionInfo.isAuthenticated) {
+    
+    // Only update if state actually changed
+    if (auth.isAuthenticated && auth.user) {
+      if (!sessionInfo.isAuthenticated || sessionInfo.loginName !== auth.user.profile.sub) {
+        dispatch(
+          setSessionInfo({
+            isAuthenticated: true,
+            fullName: auth.user?.profile.name ?? '',
+            loginName: auth.user?.profile.sub ?? '',
+          }),
+        );
+      }
+    } else if (sessionInfo.isAuthenticated) {
+      // Only clear if it was previously authenticated
       dispatch(
         setSessionInfo({
-          isAuthenticated: true,
-          fullName: auth.user?.profile.name ?? '',
-          loginName: auth.user?.profile.sub ?? '',
+          isAuthenticated: false,
+          fullName: '',
+          loginName: '',
         }),
       );
     }
-    return auth.events.addAccessTokenExpiring(() => {
+  }, [auth.isAuthenticated, auth.user?.profile?.sub, dispatch]);
+
+  // Set up token expiration handler once
+  useEffect(() => {
+    const unsubscribe = auth.events.addAccessTokenExpiring(() => {
       auth.signinSilent();
     });
-  }, [auth.events, auth.signinSilent, auth]);
+    
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     document.title = "Soroban Security Portal";
@@ -82,15 +114,44 @@ export function AppWrapper() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [auth, navigate]);
+  }, [auth.isAuthenticated, navigate]);
+
+  // Handle navigation based on auth state and route
+  useEffect(() => {
+    if (auth.isLoading) return; // Don't navigate while auth is loading
+    
+    const path = window.location.pathname;
+    
+    if (path.startsWith(`${environment.basePath}/login`)) {
+      if (auth.isAuthenticated) {
+        const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
+        if (isAdmin) {
+          navigate(`${environment.basePath}/admin`);
+        } else {
+          navigate('/');
+        }
+      }
+    } else if (path.startsWith(`${environment.basePath}/admin`)) {
+      const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
+      if (auth.isAuthenticated && !isAdmin) {
+        navigate('/');
+      } else if (!auth.isAuthenticated) {
+        navigate('/login');
+      }
+    } else if (path.startsWith(`${environment.basePath}/callback`)) {
+      if (auth.isAuthenticated) {
+        const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
+        if (isAdmin) {
+          navigate(`${environment.basePath}/admin`);
+        } else {
+          navigate('/');
+        }
+      }
+    }
+  }, [auth.isAuthenticated, auth.user?.profile?.role, navigate]);
 
   if (window.location.pathname.startsWith(`${environment.basePath}/login`)) {
     if (auth.isAuthenticated) {
-      if (isAdminOrModerator(auth)) {
-        navigate(`${environment.basePath}/admin`);
-      } else {
-        navigate('/');
-      }
       return <></>;
     }
     return (
@@ -101,7 +162,6 @@ export function AppWrapper() {
   }
   else if (window.location.pathname.startsWith(`${environment.basePath}/admin`)) {
     if (auth.isAuthenticated && !isAdminOrModerator(auth)) {
-      navigate('/');
       return <></>;
     }
     if (auth.isAuthenticated){
@@ -112,15 +172,15 @@ export function AppWrapper() {
         );
     }
     else {
-      navigate('/login');
       return <></>;
     }
   } else if (window.location.pathname.startsWith(`${environment.basePath}/callback`)) {
-      if(isAdminOrModerator(auth))
-        navigate(`${environment.basePath}/admin`);
-      else
-        navigate('/');
-      return <></>;
+      // Show loading while callback is being processed
+      return (
+        <MuiThemeProvider theme={theme}>
+          <Authentication errorText="" isLoading={true} />
+        </MuiThemeProvider>
+      );
   } else {
     return (
       <MuiThemeProvider theme={theme}>
@@ -137,7 +197,9 @@ root.render(
     <BrowserRouter>
       <Provider store={store}>
         <ThemeProvider>
-          <AppWrapper />
+          <BookmarkProvider>
+            <AppWrapper />
+          </BookmarkProvider>
         </ThemeProvider>
       </Provider>
     </BrowserRouter>

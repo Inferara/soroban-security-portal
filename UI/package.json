@@ -12,7 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@fontsource/roboto": "^5.2.8",
+    "@fontsource/roboto": "^5.2.9",
     "@fontsource/rubik": "^5.2.8",
     "@monaco-editor/react": "^4.7.0",
     "@mui/base": "7.0.0-beta.4",

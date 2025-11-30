@@ -36,8 +36,10 @@ import TelegramIcon from '@mui/icons-material/Telegram';
 import TwitterIcon from '@mui/icons-material/X';
 import ChatIcon from '@mui/icons-material/Chat';
 import { useMainWindow } from './hooks';
+import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
+import { BookmarkMenu } from './components/BookmarkMenu';
 
 const StyledAvatar = styled(Avatar)(() => ({
   width: 40,
@@ -63,6 +65,7 @@ export const MainWindow: FC = () => {
   const toggleMobile  = () => setMobileOpen(prev => !prev);
 
   const { email, setEmail, isSubscribing, handleSubscribe } = useMainWindow();
+  const { bookmarks } = useBookmarks();
 
   const handleUserMenuClick = (event: MouseEvent<HTMLButtonElement>) =>
     setAnchorEl(anchorEl == null ? event.currentTarget : null);
@@ -95,7 +98,7 @@ export const MainWindow: FC = () => {
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
     { label: 'About', path: '/about' },
   ];
-  if (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator) {
+  if (auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator)) {
     navigationItems.push({ label: 'Admin', path: '/admin' });
   }
 
@@ -193,7 +196,7 @@ export const MainWindow: FC = () => {
           </IconButton>
 
           {/* Right: Profile/Login */}
-          {auth.user ? (
+          {auth.isAuthenticated && auth.user ? (
             <>
               <Typography noWrap component="div" sx={{ display: { xs: 'block', sm: 'block' }, mr: 2, fontSize: '1.2rem' }}>
                 {auth.user?.profile.name}
@@ -223,6 +226,7 @@ export const MainWindow: FC = () => {
                 <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
                 <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
               </Menu>
+              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks}/> }
             </>
           ) : (
             <Button

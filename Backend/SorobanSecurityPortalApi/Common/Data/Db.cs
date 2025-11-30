@@ -2,7 +2,6 @@ using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Pgvector;
 
 namespace SorobanSecurityPortalApi.Common.Data
 {
@@ -20,6 +19,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<CategoryModel> Category { get; set; }
         public DbSet<FileModel> File { get; set; }
         public DbSet<CompanyModel> Company { get; set; }
+        public DbSet<BookmarkModel> Bookmark { get; set; }
 
 
         private readonly IDbQuery _dbQuery;
