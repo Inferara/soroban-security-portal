@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, Button, Grid, Paper, Typography, Box, Avatar, Tabs, Tab, IconButton, List, ListItem, ListItemText, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
+import { TextField, Button, Grid, Paper, Typography, Box, Avatar, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
 import { useProfile } from './hooks';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
@@ -363,22 +363,40 @@ export const Profile: React.FC = () => {
                     <ListItemIcon sx={{ color: 'primary.main' }}>
                       {getBookmarkIcon(bookmark.bookmarkType)}
                     </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                            {bookmark.title}
-                          </Typography>
-                        </Box>
-                      }
-                      secondary={
-                        bookmark.description && (
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                            {bookmark.description}
-                          </Typography>
-                        )
-                      }
-                    />
+                    <Box sx={{ flexGrow: 1, minWidth: 0, pr: 8 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        {bookmark.title}
+                      </Typography>
+                      {bookmark.description && (
+                        <MarkdownView 
+                          content={bookmark.description.length > 200 
+                            ? bookmark.description.substring(0, 200) + '...' 
+                            : bookmark.description
+                          } 
+                          sx={{
+                            p: 0,
+                            '& .markdown-content': {
+                              fontSize: '0.875rem',
+                              color: 'text.secondary',
+                              '& p': { margin: 0 },
+                              '& h1, & h2, & h3, & h4, & h5, & h6': { 
+                                fontSize: '0.875rem',
+                                fontWeight: 'normal',
+                                margin: 0
+                              },
+                              '& ul, & ol': { 
+                                margin: 0,
+                                paddingLeft: 16
+                              },
+                              '& li': { margin: 0 },
+                              '& code': {
+                                fontSize: '0.8125rem'
+                              }
+                            }
+                          }}
+                        />
+                      )}
+                    </Box>
                     <ListItemSecondaryAction>
                       <IconButton
                         edge="end"
