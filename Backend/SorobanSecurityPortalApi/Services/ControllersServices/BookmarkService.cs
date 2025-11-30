@@ -3,7 +3,6 @@ using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.ViewModels;
-using UglyToad.PdfPig.Outline;
 
 namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
@@ -39,7 +38,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var bookmarkModel = await _bookmarkProcessor.Get(id);
             if (userId != bookmarkModel.LoginId)
             {
-                throw new UnauthorizedAccessException("You do not have permission to add a bookmark for this user.");
+                throw new UnauthorizedAccessException("You do not have permission to delete a bookmark for this user.");
             }
             await _bookmarkProcessor.Delete(id);
         }

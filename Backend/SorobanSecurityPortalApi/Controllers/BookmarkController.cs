@@ -48,12 +48,12 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> Get(int id)
         {
             var bookmarks = await _bookmarkService.List();
-            var auditor = bookmarks.FirstOrDefault(a => a.Id == id);
-            if (auditor == null)
+            var bookmark = bookmarks.FirstOrDefault(a => a.Id == id);
+            if (bookmark == null)
             {
                 return NotFound($"Bookmark with ID {id} not found.");
             }
-            return Ok(auditor);
+            return Ok(bookmark);
         }
     }
 }
