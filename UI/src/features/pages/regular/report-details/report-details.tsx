@@ -45,6 +45,9 @@ import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { BookmarkButton } from '../../../../components/BookmarkButton';
+import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
+import { useBookmarks } from '../../../../contexts/BookmarkContext';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -70,6 +73,7 @@ export const ReportDetails: FC = () => {
   } = useReportDetails();
 
   const [tabValue, setTabValue] = useState(0);
+  const { isBookmarked, toggleBookmark } = useBookmarks();
 
   const fixedValidVulns = statistics?.vulnerabilitiesByCategory![VulnerabilityCategory.Valid] || 0;
   const notFixedValidVulns = Object.entries(statistics?.vulnerabilitiesByCategory || {}).filter(c => Number(c[0]) !== VulnerabilityCategory.Valid).reduce((sum, [, count]) => sum + count, 0);
@@ -205,6 +209,12 @@ export const ReportDetails: FC = () => {
               </Typography>
             )}
           </Box>
+          <BookmarkButton
+            itemId={report.id ?? 0}
+            bookmarkType={BookmarkType.Report}
+            isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
+            onToggle={toggleBookmark}
+          />
         </Box>
 
         <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>

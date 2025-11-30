@@ -11,6 +11,7 @@ import { AuditorItem } from './models/auditor';
 import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
+import { Bookmark, CreateBookmark } from './models/bookmark';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -374,17 +375,53 @@ export const getSubscriptionsListCall = async (): Promise<Subscription[]> => {
     return response.data as Subscription[];
 };
 
+// --- BOOKMARKS ---
+export const getBookmarksCall = async (): Promise<Bookmark[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/bookmarks', 'GET');
+    return response.data as Bookmark[];
+};
+
+export const addBookmarkCall = async (bookmark: CreateBookmark): Promise<Bookmark> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/bookmarks', 'POST', bookmark);
+    return response.data as Bookmark;
+};
+
+export const removeBookmarkCall = async (bookmarkId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/bookmarks/${bookmarkId}`, 'DELETE');
+};
+
+export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/bookmarks/${bookmarkId}`, 'GET');
+    return response.data as Bookmark;
+};
+
 // Rest client
 const getRestClient = async (): Promise<RestApi> => {
-    const accessToken = getAccessToken()
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+        throw new Error('Authentication required. Please log in again.');
+    }
     const restClient = new RestApi(environment.apiUrl, `Bearer ${accessToken}`);
     return restClient;
 };
 
-const getAccessToken = () => {
-    const oidcStorage = localStorage.getItem(`oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`)
-    if (!oidcStorage) {
+const getAccessToken = (): string | null => {
+    try {
+        const oidcStorageKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
+        const oidcStorage = localStorage.getItem(oidcStorageKey);
+        
+        if (!oidcStorage) {
+            return null;
+        }
+        
+        const user = User.fromStorageString(oidcStorage);
+        return user.access_token || null;
+    } catch (error) {
+        console.error('Error retrieving access token:', error);
         return null;
     }
-    return User.fromStorageString(oidcStorage).access_token;
 }

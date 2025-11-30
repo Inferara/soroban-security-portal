@@ -159,6 +159,7 @@ public class Startup
             context.Request.EnableBuffering();
             return next();
         });
+        app.UseCors("CorsPolicy");
         app.UseRouting();
         app.UseSwagger(options =>
         {
@@ -170,7 +171,6 @@ public class Startup
         });
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseCors("CorsPolicy");
 
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 

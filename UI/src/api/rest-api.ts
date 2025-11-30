@@ -42,14 +42,28 @@ class RestApi {
     const response = await axios
       .request(config)
       .catch((reason: AxiosError) => {
+        const status = reason.response?.status;
         const errorText = (reason.response?.data as { message?: string })?.message 
           ?? (reason.response?.data as string)
           ?? `Error: ${reason.message}`;
+        
         if (ignoreError) {
           return {} as AxiosResponse<unknown, unknown>;
         }
-        showError(errorText);
-        throw new Error(`Failed to make RestApi call`);        
+
+        // Handle authentication errors specifically
+        if (status === 401) {
+          const authError = 'Authentication failed. Please log in again.';
+          showError(authError);
+          throw new Error(authError);
+        } else if (status === 403) {
+          const forbiddenError = 'Access denied. You do not have permission for this action.';
+          showError(forbiddenError);
+          throw new Error(forbiddenError);
+        } else {
+          showError(errorText);
+          throw new Error(`API call failed: ${errorText} (Status: ${status || 'Network Error'})`);
+        }        
       })
     return response;
   }
