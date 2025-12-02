@@ -402,9 +402,6 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
 // Rest client
 const getRestClient = async (): Promise<RestApi> => {
     const accessToken = getAccessToken();
-    if (!accessToken) {
-        throw new Error('Authentication required. Please log in again.');
-    }
     const restClient = new RestApi(environment.apiUrl, `Bearer ${accessToken}`);
     return restClient;
 };

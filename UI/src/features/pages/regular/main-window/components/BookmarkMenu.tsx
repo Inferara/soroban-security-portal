@@ -96,6 +96,7 @@ export const BookmarkMenu: FC<BookmarkMenuProps> = ({ bookmarks }) => {
                         sx: {
                             maxHeight: 400,
                             width: 320,
+                            overflowY: 'auto',
                             zIndex: 1200, // Below app bar but above content
                             boxShadow: 3,
                             mt: 0.5, // Small margin below the anchor
@@ -109,11 +110,7 @@ export const BookmarkMenu: FC<BookmarkMenuProps> = ({ bookmarks }) => {
                         }
                     }
                 }}
-                sx={{
-                    '& .MuiMenu-paper': {
-                        overflow: 'visible',
-                    }
-                }}
+
             >
                 <Box sx={{ px: 2, py: 1 }}>
                     <Typography variant="h6" fontWeight={600}>
@@ -121,38 +118,59 @@ export const BookmarkMenu: FC<BookmarkMenuProps> = ({ bookmarks }) => {
                     </Typography>
                 </Box>
                 <Divider />
-                {bookmarks.length === 0 ? (
-                    <MenuItem disabled>
-                        <ListItemText
-                            primary="No bookmarks yet"
-                            secondary="Bookmark reports and vulnerabilities"
-                        />
-                    </MenuItem>
-                ) : (
-                    bookmarks.map((bookmark) => (
-                        <MenuItem
-                            key={bookmark.id}
-                            onClick={() => handleBookmarkClick(bookmark)}
-                        >
-                            <ListItemIcon>
-                                {getBookmarkIcon(bookmark.bookmarkType)}
-                            </ListItemIcon>
+                <Box 
+                    sx={{ 
+                        maxHeight: 320, 
+                        overflowY: 'auto',
+                        '&::-webkit-scrollbar': {
+                            width: '6px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            backgroundColor: 'rgba(0,0,0,0.1)',
+                            borderRadius: '3px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: 'rgba(0,0,0,0.3)',
+                            borderRadius: '3px',
+                            '&:hover': {
+                                backgroundColor: 'rgba(0,0,0,0.5)',
+                            },
+                        },
+                    }}
+                >
+                    {bookmarks.length === 0 ? (
+                        <MenuItem disabled>
                             <ListItemText
-                                primary={bookmark.title}
-                                secondary={getBookmarkTypeLabel(bookmark.bookmarkType)}
-                                slotProps={{
-                                    primary: {
-                                        noWrap: true,
-                                        sx: { fontWeight: 500 }
-                                    },
-                                    secondary: {
-                                        sx: { fontSize: '0.75rem' }
-                                    }
-                                }}
+                                primary="No bookmarks yet"
+                                secondary="Bookmark reports and vulnerabilities"
                             />
                         </MenuItem>
-                    ))
-                )}
+                    ) : (
+                        bookmarks.map((bookmark) => (
+                            <MenuItem
+                                key={bookmark.id}
+                                onClick={() => handleBookmarkClick(bookmark)}
+                            >
+                                <ListItemIcon>
+                                    {getBookmarkIcon(bookmark.bookmarkType)}
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary={bookmark.title}
+                                    secondary={getBookmarkTypeLabel(bookmark.bookmarkType)}
+                                    slotProps={{
+                                        primary: {
+                                            noWrap: true,
+                                            sx: { fontWeight: 500 }
+                                        },
+                                        secondary: {
+                                            sx: { fontSize: '0.75rem' }
+                                        }
+                                    }}
+                                />
+                            </MenuItem>
+                        ))
+                    )}
+                </Box>
             </Menu>
         </>
     );

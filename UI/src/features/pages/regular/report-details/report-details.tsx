@@ -209,12 +209,14 @@ export const ReportDetails: FC = () => {
               </Typography>
             )}
           </Box>
-          <BookmarkButton
-            itemId={report.id ?? 0}
-            bookmarkType={BookmarkType.Report}
-            isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
-            onToggle={toggleBookmark}
-          />
+          {auth.isAuthenticated && (
+            <BookmarkButton
+              itemId={report.id ?? 0}
+              bookmarkType={BookmarkType.Report}
+              isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
+              onToggle={toggleBookmark}
+            />
+          )}
         </Box>
 
         <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
