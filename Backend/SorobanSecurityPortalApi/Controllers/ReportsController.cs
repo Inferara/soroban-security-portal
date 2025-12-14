@@ -89,7 +89,7 @@ namespace SorobanSecurityPortalApi.Controllers
             {
                 if (!await _userContextAccessor.IsLoginIdAdmin(userLoginId) && file.Length > 10 * 1024 * 1024)
                 {
-                    return BadRequest("Report file size cannot exceed 10Mb");
+                    return BadRequest("Report file size cannot exceed 10MB");
                 }
                 using var memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
