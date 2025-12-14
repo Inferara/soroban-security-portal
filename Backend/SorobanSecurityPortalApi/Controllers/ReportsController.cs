@@ -55,7 +55,7 @@ namespace SorobanSecurityPortalApi.Controllers
 
         [RoleAuthorize(Role.Admin, Role.Moderator, Role.Contributor)]
         [HttpPost("add")]
-        [RequestSizeLimit(10_000_000)]
+        [RequestSizeLimit(60_000_000)]
         public async Task<IActionResult> Add([FromForm] string report, [FromForm] IFormFile? file = null)
         {
             if (string.IsNullOrWhiteSpace(report))
@@ -87,6 +87,10 @@ namespace SorobanSecurityPortalApi.Controllers
             };
             if (file != null && file.Length > 0)
             {
+                if (!await _userContextAccessor.IsLoginIdAdmin(userLoginId) && file.Length > 10 * 1024 * 1024)
+                {
+                    return BadRequest("Report file size cannot exceed 10MB");
+                }
                 using var memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
                 parsedReport.BinFile = memoryStream.ToArray();

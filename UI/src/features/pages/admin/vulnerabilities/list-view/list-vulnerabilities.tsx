@@ -7,6 +7,7 @@ import {
   Link,
   Tooltip,
   Typography,
+  Stack,
 } from '@mui/material';
 import {
   DataGrid,
@@ -28,6 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { MarkdownView } from '../../../../../components/MarkdownView.tsx';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
+import PostAdd from '@mui/icons-material/PostAdd';
 
 export const VulnerabilityManagement: FC = () => {
   const currentPageState: CurrentPageState = {
@@ -199,6 +201,14 @@ export const VulnerabilityManagement: FC = () => {
 
   return (
     <div style={defaultUiSettings.listAreaStyle}>
+      <Stack direction="row" spacing={2}>
+        <Tooltip title="Add Vulnerability">
+          <IconButton onClick={() => navigate('/vulnerabilities/add')}>
+            <PostAdd sx={{ color: 'green' }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
       <div style={{ height: 'calc(110vh - 64px)' }}>
         <DataGrid
           getRowId={(row: Vulnerability) => row.id}

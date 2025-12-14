@@ -22,8 +22,7 @@ export const useReportAdd = () => {
       formData.append('report', JSON.stringify(report));
       
       // Call API with file upload
-      const response = await addReportCall(formData);
-      console.log('Report added with file:', response);
+      await addReportCall(formData);
     } catch (error) {
       console.error('Error adding report:', error);
       throw error;

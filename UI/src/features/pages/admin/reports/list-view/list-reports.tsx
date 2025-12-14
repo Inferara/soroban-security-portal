@@ -9,6 +9,7 @@ import {
   Tooltip,
   Modal,
   Box,
+  Stack,
 } from '@mui/material';
 import {
   DataGrid,
@@ -27,6 +28,7 @@ import { defaultUiSettings } from '../../../../../api/soroban-security-portal/mo
 import { environment } from '../../../../../environments/environment';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role';
+import AssignmentAddIcon from '@mui/icons-material/AssignmentAdd';
 
 export const ReportManagement: FC = () => {
 
@@ -169,6 +171,14 @@ export const ReportManagement: FC = () => {
 
   return (
     <div style={defaultUiSettings.listAreaStyle}>
+      <Stack direction="row" spacing={2}>
+        <Tooltip title="Add Report">
+          <IconButton onClick={() => navigate('/reports/add')}>
+            <AssignmentAddIcon sx={{ color: 'green' }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
       <div style={{ height: 'calc(110vh - 64px)' }}>
         <DataGrid
           getRowId={(row: Report) => row.id}
