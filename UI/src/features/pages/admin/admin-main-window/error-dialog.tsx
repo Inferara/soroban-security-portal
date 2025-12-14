@@ -64,8 +64,13 @@ export default function ErrorDialog() {
         >
         <DialogTitle color={getDialogColor()}>{getDialogTitle()}</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-slide-description">
-            {currentError.errorText}
+          <DialogContentText id="alert-dialog-slide-description" component="div">
+            {currentError.errorText.split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < currentError.errorText.split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </DialogContentText>
         </DialogContent>
         <DialogActions>

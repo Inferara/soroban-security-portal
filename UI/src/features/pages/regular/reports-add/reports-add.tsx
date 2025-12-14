@@ -38,7 +38,7 @@ export const AddReport: FC = () => {
   const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
   const [company, setCompany] = useState<CompanyItem | null>(null);
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
-  const [date, setDate] = useState<Date | null>(null);
+  const [date, setDate] = useState<Date | null>(new Date());
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
@@ -50,6 +50,10 @@ export const AddReport: FC = () => {
   const theme = useTheme();
   const [searchParams] = useSearchParams();
   
+  const isAdmin = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin);
+  const isModerator = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Moderator);
+  const isContributor = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Contributor);
+
   const canAddReport = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
@@ -116,7 +120,7 @@ export const AddReport: FC = () => {
     }
     
     // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
+    if (!isAdmin && file.size > 10 * 1024 * 1024) {
       setFileError('File size must be less than 10MB');
       setSelectedFile(null);
       return;
@@ -163,13 +167,25 @@ export const AddReport: FC = () => {
   };
 
   const addNewReport = async () => {
+    let validationErrors: string[] = [];
     if (!title) {
-      showError('Please fill all required fields');
-      return;
+      validationErrors.push('Please fill in the title');
+    }
+    if (!company) {
+      validationErrors.push('Please select a company');
+    }
+    if (!protocol) {
+      validationErrors.push('Please select a protocol');
+    }
+    if (!auditor) {
+      validationErrors.push('Please select an auditor');
+    }
+    if (!selectedFile && !url) {
+      validationErrors.push('Please provide either a PDF file or a URL');
     }
 
-    if (!selectedFile && !url) {
-      showError('Please provide either a PDF file or a URL');
+    if (validationErrors.length > 0) {
+      showError(validationErrors.map(e => e + '.').join('\n'));
       return;
     }
 
@@ -247,6 +263,7 @@ export const AddReport: FC = () => {
                       label="Company"
                       size="small"
                       sx={{ minWidth: 290 }}
+                      required
                     />
                   )}
                   renderTags={(value, getTagProps) =>
@@ -261,6 +278,11 @@ export const AddReport: FC = () => {
                     ))
                   }
                 />
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {isContributor ? "A company is missed? Please contact a moderator or admin." : (
+                    (isModerator || isAdmin) ? <span>A company is missed? <a href="/admin/companies/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
+                  )}
+                </Typography>
               </Grid> 
               <Grid size={12}>
                 <Autocomplete
@@ -274,6 +296,7 @@ export const AddReport: FC = () => {
                       label="Protocol"
                       size="small"
                       sx={{ minWidth: 290 }}
+                      required
                     />
                   )}
                   renderTags={(value, getTagProps) =>
@@ -288,6 +311,11 @@ export const AddReport: FC = () => {
                     ))
                   }
                 />
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {isContributor ? "A protocol is missed? Please contact a moderator or admin." : (
+                    (isModerator || isAdmin) ? <span>A protocol is missed? <a href="/admin/protocols/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
+                  )}
+                </Typography>
               </Grid>
               <Grid size={12}>
                 <Autocomplete
@@ -301,6 +329,7 @@ export const AddReport: FC = () => {
                       label="Auditor"
                       size="small"
                       sx={{ minWidth: 290 }}
+                      required
                     />
                   )}
                   renderTags={(value, getTagProps) =>
@@ -314,17 +343,25 @@ export const AddReport: FC = () => {
                       />
                     ))
                   }
-                />  
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {isContributor ? "An auditor is missed? Please contact a moderator or admin." : (
+                    (isModerator || isAdmin) ? <span>An auditor is missed? <a href="/admin/auditors/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
+                  )}
+                </Typography>  
               </Grid>
               <Grid size={12}>
                 <DatePicker
-                  label="Report Date"
+                  label="Report Date *"
                   value={date}
                   onChange={(newValue) => setDate(newValue)}
                   slotProps={{
                     textField: {
                       size: 'small',
-                      sx: { width: '100%' }
+                      sx: { width: '100%' },
+                      onClick: (e) => {
+                        e.currentTarget.querySelector('button')?.click();
+                      }
                     }
                   }}
                 />

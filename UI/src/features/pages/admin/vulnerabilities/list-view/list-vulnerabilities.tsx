@@ -1,3 +1,4 @@
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ClearIcon from '@mui/icons-material/Clear';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -7,6 +8,7 @@ import {
   Link,
   Tooltip,
   Typography,
+  Stack,
 } from '@mui/material';
 import {
   DataGrid,
@@ -199,6 +201,14 @@ export const VulnerabilityManagement: FC = () => {
 
   return (
     <div style={defaultUiSettings.listAreaStyle}>
+      <Stack direction="row" spacing={2}>
+        <Tooltip title="Add Vulnerability">
+          <IconButton onClick={() => navigate('/vulnerabilities/add')}>
+            <PersonAddIcon sx={{ color: 'green' }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
       <div style={{ height: 'calc(110vh - 64px)' }}>
         <DataGrid
           getRowId={(row: Vulnerability) => row.id}

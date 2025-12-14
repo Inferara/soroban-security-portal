@@ -1,3 +1,4 @@
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ClearIcon from '@mui/icons-material/Clear';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -9,6 +10,7 @@ import {
   Tooltip,
   Modal,
   Box,
+  Stack,
 } from '@mui/material';
 import {
   DataGrid,
@@ -169,6 +171,14 @@ export const ReportManagement: FC = () => {
 
   return (
     <div style={defaultUiSettings.listAreaStyle}>
+      <Stack direction="row" spacing={2}>
+        <Tooltip title="Add Report">
+          <IconButton onClick={() => navigate('/reports/add')}>
+            <PersonAddIcon sx={{ color: 'green' }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
       <div style={{ height: 'calc(110vh - 64px)' }}>
         <DataGrid
           getRowId={(row: Report) => row.id}
