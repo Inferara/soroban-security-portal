@@ -1,4 +1,3 @@
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ClearIcon from '@mui/icons-material/Clear';
 import {
   IconButton,
@@ -23,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
+import AddToQueueIcon from '@mui/icons-material/AddToQueue';
 
 export const ListProtocols: FC = () => {
   const auth = useAuth();
@@ -118,7 +118,7 @@ export const ListProtocols: FC = () => {
       <Stack direction="row" spacing={2}>
         <Tooltip title="Add Protocol">
           <IconButton onClick={() => navigate('/admin/protocols/add')}>
-            <PersonAddIcon sx={{ color: 'green' }} />
+            <AddToQueueIcon sx={{ color: 'green' }} />
           </IconButton>
         </Tooltip>
       </Stack>

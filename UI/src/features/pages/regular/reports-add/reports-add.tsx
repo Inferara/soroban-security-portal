@@ -279,8 +279,8 @@ export const AddReport: FC = () => {
                   }
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  {isContributor ? "A company is missed? Please contact a moderator or admin." : (
-                    (isModerator || isAdmin) ? <span>A company is missed? <a href="/admin/companies/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
+                  {isContributor ? "Company missed? Please contact a moderator or admin." : (
+                    (isModerator || isAdmin) ? <span>Company missed? <a href="/admin/companies/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
                   )}
                 </Typography>
               </Grid> 
@@ -312,8 +312,8 @@ export const AddReport: FC = () => {
                   }
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  {isContributor ? "A protocol is missed? Please contact a moderator or admin." : (
-                    (isModerator || isAdmin) ? <span>A protocol is missed? <a href="/admin/protocols/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
+                  {isContributor ? "Protocol missed? Please contact a moderator or admin." : (
+                    (isModerator || isAdmin) ? <span>Protocol missed? <a href="/admin/protocols/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
                   )}
                 </Typography>
               </Grid>
@@ -345,8 +345,8 @@ export const AddReport: FC = () => {
                   }
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  {isContributor ? "An auditor is missed? Please contact a moderator or admin." : (
-                    (isModerator || isAdmin) ? <span>An auditor is missed? <a href="/admin/auditors/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
+                  {isContributor ? "Auditor missed? Please contact a moderator or admin." : (
+                    (isModerator || isAdmin) ? <span>Auditor missed? <a href="/admin/auditors/add" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>Add it here</a></span> : ""
                   )}
                 </Typography>  
               </Grid>

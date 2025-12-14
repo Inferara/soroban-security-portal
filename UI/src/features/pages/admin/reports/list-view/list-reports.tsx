@@ -1,4 +1,3 @@
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ClearIcon from '@mui/icons-material/Clear';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -29,6 +28,7 @@ import { defaultUiSettings } from '../../../../../api/soroban-security-portal/mo
 import { environment } from '../../../../../environments/environment';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role';
+import AssignmentAddIcon from '@mui/icons-material/AssignmentAdd';
 
 export const ReportManagement: FC = () => {
 
@@ -174,7 +174,7 @@ export const ReportManagement: FC = () => {
       <Stack direction="row" spacing={2}>
         <Tooltip title="Add Report">
           <IconButton onClick={() => navigate('/reports/add')}>
-            <PersonAddIcon sx={{ color: 'green' }} />
+            <AssignmentAddIcon sx={{ color: 'green' }} />
           </IconButton>
         </Tooltip>
       </Stack>

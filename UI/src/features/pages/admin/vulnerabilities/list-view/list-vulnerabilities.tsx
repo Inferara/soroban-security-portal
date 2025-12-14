@@ -1,4 +1,3 @@
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ClearIcon from '@mui/icons-material/Clear';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -30,6 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { MarkdownView } from '../../../../../components/MarkdownView.tsx';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
+import PostAdd from '@mui/icons-material/PostAdd';
 
 export const VulnerabilityManagement: FC = () => {
   const currentPageState: CurrentPageState = {
@@ -204,7 +204,7 @@ export const VulnerabilityManagement: FC = () => {
       <Stack direction="row" spacing={2}>
         <Tooltip title="Add Vulnerability">
           <IconButton onClick={() => navigate('/vulnerabilities/add')}>
-            <PersonAddIcon sx={{ color: 'green' }} />
+            <PostAdd sx={{ color: 'green' }} />
           </IconButton>
         </Tooltip>
       </Stack>

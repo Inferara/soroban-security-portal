@@ -1,4 +1,3 @@
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ClearIcon from '@mui/icons-material/Clear';
 import {
   IconButton,
@@ -23,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
+import AddBusinessIcon from '@mui/icons-material/AddBusiness';
 
 export const ListCompanies: FC = () => {
   const auth = useAuth();
@@ -110,7 +110,7 @@ export const ListCompanies: FC = () => {
       <Stack direction="row" spacing={2}>
         <Tooltip title="Add Company">
           <IconButton onClick={() => navigate('/admin/companies/add')}>
-            <PersonAddIcon sx={{ color: 'green' }} />
+            <AddBusinessIcon sx={{ color: 'green' }} />
           </IconButton>
         </Tooltip>
       </Stack>
