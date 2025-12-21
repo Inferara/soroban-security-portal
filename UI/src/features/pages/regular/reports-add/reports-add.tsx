@@ -32,6 +32,8 @@ import { CompanyItem } from '../../../../api/soroban-security-portal/models/comp
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { canEdit } from '../../../authentication/authPermissions';
 
+const STORAGE_KEY = 'addReportFormData';
+
 export const AddReport: FC = () => {
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
@@ -43,6 +45,7 @@ export const AddReport: FC = () => {
   const [fileError, setFileError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isFormLoaded, setIsFormLoaded] = useState(false);
   //TODO when set protocol or auditor or a company, filter what we have, not choose the first one
   const { addReport, isUploading, protocolsList, auditorsList, companiesList } = useReportAdd();
   const { auth, isAdmin, isModerator, isContributor } = useAppAuth();
@@ -50,12 +53,13 @@ export const AddReport: FC = () => {
   const theme = useTheme();
   const [searchParams] = useSearchParams();
 
-  // Redirect unauthorized users in useEffect to avoid side-effects during render
+  // Redirect unauthorized users only after everything is loaded
   useEffect(() => {
-    if (!canEdit(auth)) {
+    const isDataLoaded = protocolsList.length > 0 && auditorsList.length > 0 && companiesList.length > 0;
+    if (!auth.isLoading && isDataLoaded && !canEdit(auth)) {
       navigate('/reports');
     }
-  }, [auth.isAuthenticated, auth.user, navigate]);
+  }, [auth.isLoading, auth.isAuthenticated, auth.user, protocolsList, auditorsList, companiesList, navigate]);
   
   const handleSetProtocol = (newProtocol: ProtocolItem | null) => {
     setProtocol(newProtocol);
@@ -77,35 +81,96 @@ export const AddReport: FC = () => {
     setProtocol(protocols.length > 0 ? protocols[0] : null);
   };
 
-  // Handle URL parameters for pre-filling form
+  // Load form data - URL parameters take priority over sessionStorage
   useEffect(() => {
     if (protocolsList.length > 0 && auditorsList.length > 0 && companiesList.length > 0) {
+      // Check URL parameters first
       const protocolParam = searchParams.get('protocol');
       const auditorParam = searchParams.get('auditor');
       const companyParam = searchParams.get('company');
 
+      // Track which fields are set by URL params
+      let protocolFromUrl: ProtocolItem | null = null;
+      let auditorFromUrl: AuditorItem | null = null;
+      let companyFromUrl: CompanyItem | null = null;
+
       if (protocolParam) {
-        const protocolToSet = protocolsList.find(p => p.name === protocolParam || p.id.toString() === protocolParam);
-        if (protocolToSet) {
-          handleSetProtocol(protocolToSet);
-        }
+        protocolFromUrl = protocolsList.find(p => p.name === protocolParam || p.id.toString() === protocolParam) || null;
       }
 
       if (auditorParam) {
-        const auditorToSet = auditorsList.find(a => a.name === auditorParam || a.id.toString() === auditorParam);
-        if (auditorToSet) {
-          setAuditor(auditorToSet);
-        }
+        auditorFromUrl = auditorsList.find(a => a.name === auditorParam || a.id.toString() === auditorParam) || null;
       }
 
       if (companyParam) {
-        const companyToSet = companiesList.find(c => c.name === companyParam || c.id.toString() === companyParam);
-        if (companyToSet) {
-          handleSetCompany(companyToSet);
+        companyFromUrl = companiesList.find(c => c.name === companyParam || c.id.toString() === companyParam) || null;
+      }
+
+      // Load saved data from sessionStorage
+      const savedData = sessionStorage.getItem(STORAGE_KEY);
+      let parsedData: any = null;
+      if (savedData) {
+        try {
+          parsedData = JSON.parse(savedData);
+        } catch (error) {
+          console.error('Error loading saved form data:', error);
         }
       }
+
+      // Apply data: URL params override sessionStorage
+      if (parsedData) {
+        setTitle(parsedData.title || '');
+        setUrl(parsedData.url || '');
+        if (parsedData.date) {
+          setDate(new Date(parsedData.date));
+        }
+      }
+
+      // Protocol: URL param takes priority
+      if (protocolFromUrl) {
+        handleSetProtocol(protocolFromUrl);
+      } else if (parsedData?.protocolId) {
+        const foundProtocol = protocolsList.find(p => p.id === parsedData.protocolId);
+        if (foundProtocol) {
+          handleSetProtocol(foundProtocol);
+        }
+      }
+
+      // Company: URL param takes priority
+      if (companyFromUrl) {
+        handleSetCompany(companyFromUrl);
+      } else if (!protocolFromUrl && parsedData?.companyId) {
+        // Only set saved company if protocol wasn't set from URL (to avoid conflicts)
+        const foundCompany = companiesList.find(c => c.id === parsedData.companyId);
+        if (foundCompany) setCompany(foundCompany);
+      }
+
+      // Auditor: URL param takes priority
+      if (auditorFromUrl) {
+        setAuditor(auditorFromUrl);
+      } else if (parsedData?.auditorId) {
+        const foundAuditor = auditorsList.find(a => a.id === parsedData.auditorId);
+        if (foundAuditor) setAuditor(foundAuditor);
+      }
+
+      setIsFormLoaded(true);
     }
   }, [searchParams, protocolsList, auditorsList, companiesList]);
+
+  // Save form data to sessionStorage whenever it changes
+  useEffect(() => {
+    if (isFormLoaded) {
+      const formData = {
+        title,
+        url,
+        date: date?.toISOString(),
+        protocolId: protocol?.id,
+        companyId: company?.id,
+        auditorId: auditor?.id,
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [title, url, date, protocol, company, auditor, isFormLoaded]);
 
   const validateAndSetFile = (file: File) => {
     // Check if file is PDF
@@ -196,6 +261,7 @@ export const AddReport: FC = () => {
 
     try {
       await addReport(report, selectedFile);
+      sessionStorage.removeItem(STORAGE_KEY);
       navigate('/reports');
     } catch (error) {
       console.error('Error adding report:', error);

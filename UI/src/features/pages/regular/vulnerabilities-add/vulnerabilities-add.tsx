@@ -40,6 +40,8 @@ import { MarkdownEditor } from '../../../../components/MarkdownEditor';
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { canEdit } from '../../../authentication/authPermissions';
 
+const STORAGE_KEY = 'addVulnerabilityFormData';
+
 export const AddVulnerability: FC = () => {
   const [title, setTitle] = useState('');
   const [reportUrl, setReportUrl] = useState('');
@@ -55,6 +57,7 @@ export const AddVulnerability: FC = () => {
   const [imageError, setImageError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [isFormLoaded, setIsFormLoaded] = useState(false);
 
   const { 
     severitiesList, 
@@ -73,12 +76,15 @@ export const AddVulnerability: FC = () => {
   const theme = useTheme();
   const [searchParams] = useSearchParams();
   
-  // Redirect unauthorized users in useEffect to avoid side-effects during render
+  // Redirect unauthorized users only after everything is loaded
   useEffect(() => {
-    if (!canEdit(auth)) {
+    const isDataLoaded = severitiesList.length > 0 && tagsList.length > 0 && protocolsList.length > 0 && 
+                          companiesList.length > 0 && auditorsList.length > 0 && sourceList.length > 0;
+    if (!auth.isLoading && isDataLoaded && !canEdit(auth)) {
       navigate('/vulnerabilities');
     }
-  }, [auth.isAuthenticated, auth.user, navigate]);
+  }, [auth.isLoading, auth.isAuthenticated, auth.user, severitiesList, tagsList, protocolsList, 
+      companiesList, auditorsList, sourceList, navigate]);
 
   const handleSetProtocol = (newProtocol: ProtocolItem | null) => {
     setProtocol(newProtocol);
@@ -113,35 +119,111 @@ export const AddVulnerability: FC = () => {
     }
   };
 
-  // Handle URL parameters for pre-filling form
+  // Load form data - URL parameters take priority over sessionStorage
   useEffect(() => {
-    if (protocolsList.length > 0 && auditorsList.length > 0 && sourceList.length > 0) {
+    if (severitiesList.length > 0 && tagsList.length > 0 && protocolsList.length > 0 && companiesList.length > 0 && auditorsList.length > 0 && sourceList.length > 0) {
+      // Check URL parameters first
       const protocolParam = searchParams.get('protocol');
       const auditorParam = searchParams.get('auditor');  
       const reportParam = searchParams.get('report');
 
+      // Track which fields are set by URL params
+      let protocolFromUrl: ProtocolItem | null = null;
+      let auditorFromUrl: AuditorItem | null = null;
+      let reportFromUrl: VulnerabilitySource | null = null;
+
       if (protocolParam) {
-        const protocolToSet = protocolsList.find(p => p.name === protocolParam || p.id.toString() === protocolParam);
-        if (protocolToSet) {
-          handleSetProtocol(protocolToSet);
-        }
+        protocolFromUrl = protocolsList.find(p => p.name === protocolParam || p.id.toString() === protocolParam) || null;
       }
 
       if (auditorParam) {
-        const auditorToSet = auditorsList.find(a => a.name === auditorParam || a.id.toString() === auditorParam);
-        if (auditorToSet) {
-          handleSetAuditor(auditorToSet);
-        }
+        auditorFromUrl = auditorsList.find(a => a.name === auditorParam || a.id.toString() === auditorParam) || null;
       }
 
       if (reportParam) {
-        const reportToSet = sourceList.find(s => s.name === reportParam || s.id.toString() === reportParam);
-        if (reportToSet) {
-          handleSetReport(reportToSet);
+        reportFromUrl = sourceList.find(s => s.name === reportParam || s.id.toString() === reportParam) || null;
+      }
+
+      // Load saved data from sessionStorage
+      const savedData = sessionStorage.getItem(STORAGE_KEY);
+      let parsedData: any = null;
+      if (savedData) {
+        try {
+          parsedData = JSON.parse(savedData);
+        } catch (error) {
+          console.error('Error loading saved form data:', error);
         }
       }
+
+      // Apply data: URL params override sessionStorage
+      if (parsedData) {
+        setTitle(parsedData.title || '');
+        setReportUrl(parsedData.reportUrl || '');
+        setDescription(parsedData.description || '');
+        if (parsedData.category !== undefined && parsedData.category !== null) {
+          setCategory(parsedData.category);
+        }
+        
+        // Restore severity
+        if (parsedData.severityName) {
+          const foundSeverity = severitiesList.find(s => s.name === parsedData.severityName);
+          if (foundSeverity) setSeverity(foundSeverity);
+        }
+        
+        // Restore tags
+        if (parsedData.tagNames && Array.isArray(parsedData.tagNames)) {
+          const foundTags = tagsList.filter(t => parsedData.tagNames.includes(t.name));
+          setTags(foundTags);
+        }
+      }
+
+      // Protocol: URL param takes priority
+      if (protocolFromUrl) {
+        handleSetProtocol(protocolFromUrl);
+      } else if (parsedData?.protocolId) {
+        const foundProtocol = protocolsList.find(p => p.id === parsedData.protocolId);
+        if (foundProtocol) {
+          handleSetProtocol(foundProtocol);
+        }
+      }
+
+      // Auditor: URL param takes priority
+      if (auditorFromUrl) {
+        setAuditor(auditorFromUrl);
+      } else if (parsedData?.auditorId) {
+        const foundAuditor = auditorsList.find(a => a.id === parsedData.auditorId);
+        if (foundAuditor) setAuditor(foundAuditor);
+      }
+
+      // Report/Source: URL param takes priority
+      if (reportFromUrl) {
+        handleSetReport(reportFromUrl);
+      } else if (parsedData?.sourceId) {
+        const foundSource = sourceList.find(s => s.id === parsedData.sourceId);
+        if (foundSource) setSource(foundSource);
+      }
+
+      setIsFormLoaded(true);
     }
-  }, [searchParams, protocolsList, auditorsList, sourceList]);
+  }, [searchParams, severitiesList, tagsList, protocolsList, companiesList, auditorsList, sourceList]);
+
+  // Save form data to sessionStorage whenever it changes
+  useEffect(() => {
+    if (isFormLoaded) {
+      const formData = {
+        title,
+        reportUrl,
+        description,
+        category,
+        severityName: severity?.name,
+        tagNames: tags.map(t => t.name),
+        protocolId: protocol?.id,
+        auditorId: auditor?.id,
+        sourceId: source?.id,
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [title, reportUrl, description, category, severity, tags, protocol, auditor, source, isFormLoaded]);
 
   const validateAndAddImage = (file: File) => {
     // Check if file is an image
@@ -252,6 +334,7 @@ export const AddVulnerability: FC = () => {
     }
     try {
       await addVulnerability(vulnerability, selectedImages.length > 0 ? selectedImages : undefined);
+      sessionStorage.removeItem(STORAGE_KEY);
       navigate('/vulnerabilities');
     } catch (error) {
       console.error('Error adding vulnerability:', error);
