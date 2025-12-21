@@ -17,10 +17,12 @@ import {
   FormControl,
   InputLabel,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import SearchIcon from '@mui/icons-material/Search';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -784,7 +786,69 @@ export const Vulnerabilities: FC = () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Category"
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      Category
+                      <Tooltip
+                        title={
+                          <Box sx={{ p: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                              Vulnerability Categories
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                  Valid (Fixed)
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Confirmed vulnerability that has been successfully fixed or resolved
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                  Valid Not Fixed
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Confirmed vulnerability that remains unresolved and requires attention
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                  Valid Partially Fixed
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Confirmed vulnerability that has been partially addressed but still requires additional work
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        }
+                        arrow
+                        placement="right"
+                        componentsProps={{
+                          tooltip: {
+                            sx: {
+                              maxWidth: 400,
+                              bgcolor: 'background.paper',
+                              color: 'text.primary',
+                              border: 1,
+                              borderColor: 'divider',
+                              boxShadow: 3,
+                              '& .MuiTooltip-arrow': {
+                                color: 'background.paper',
+                                '&::before': {
+                                  border: 1,
+                                  borderColor: 'divider',
+                                },
+                              },
+                            },
+                          },
+                        }}
+                      >
+                        <InfoOutlinedIcon sx={{ fontSize: 16, cursor: 'help', ml: 0.5 }} />
+                      </Tooltip>
+                    </Box>
+                  }
                   size="small"
                   sx={{ minWidth: 200 }}
                 />
