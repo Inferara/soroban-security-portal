@@ -7,11 +7,17 @@ class RestApi {
 
   constructor(baseUrl: string, authToken: string) {
     this.baseUrl = baseUrl;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Only add Authorization header if token is provided
+    if (authToken) {
+      headers['Authorization'] = authToken;
+    }
+    
     this.requestConfig = {
-      headers: {
-       'Content-Type': 'application/json',
-       'Authorization': authToken,
-      },
+      headers,
     };
   }
 
@@ -66,6 +72,41 @@ class RestApi {
         }        
       })
     return response;
+  }
+
+  public async downloadBlob(endpoint: string): Promise<Blob> {
+    const url = `${this.baseUrl}/${endpoint}`;
+    
+    const config: AxiosRequestConfig = {
+      ...this.requestConfig,
+      url,
+      method: 'GET',
+      responseType: 'blob',
+      headers: { ...(this.requestConfig?.headers || {}) },
+    };
+
+    const response = await axios
+      .request<Blob>(config)
+      .catch((reason: AxiosError) => {
+        const status = reason.response?.status;
+        
+        // Handle authentication errors specifically
+        if (status === 401) {
+          const authError = 'Authentication failed. Please log in again.';
+          showError(authError);
+          throw new Error(authError);
+        } else if (status === 403) {
+          const forbiddenError = 'Access denied. You do not have permission for this action.';
+          showError(forbiddenError);
+          throw new Error(forbiddenError);
+        } else {
+          const errorText = `Download failed: ${reason.message}`;
+          showError(errorText);
+          throw new Error(errorText);
+        }
+      });
+    
+    return response.data;
   }
 
 }

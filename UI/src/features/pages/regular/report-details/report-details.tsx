@@ -38,9 +38,6 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import { useNavigate } from 'react-router-dom';
 import { useReportDetails } from './hooks/report-details.hook';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
-import { environment } from '../../../../environments/environment';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
@@ -48,11 +45,14 @@ import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../..
 import { BookmarkButton } from '../../../../components/BookmarkButton';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
+import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { useAppAuth } from '../../../authentication/useAppAuth';
+import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const auth = useAuth();
+  const { auth } = useAppAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const {
@@ -82,29 +82,24 @@ export const ReportDetails: FC = () => {
     setTabValue(newValue);
   };
 
-  const canDownloadReport = (auth: AuthContextProps) => isAuthorized(auth);
-  
-  const canAddVulnerability = (auth: AuthContextProps) => 
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
-
-  const handleReportDownload = (reportId: number) => {
-    if (!canDownloadReport(auth)) {
+  const handleReportDownload = async (reportName: string, reportId: number) => {
+    if (!isAuthorized(auth)) {
       showMessage("Log in to download the report");
       ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
       return;
     }
-    const link = document.createElement('a');
-    link.href = `${environment.apiUrl}/api/v1/reports/${reportId}/download?token=${auth.user?.access_token}`;
-    link.setAttribute('download', '');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
+    try {
+      await downloadReportPDF(reportName, reportId);
+      ReactGA.event({ category: "Report", action: "download", label: `Downloaded report ${reportId}` });
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "Failed to download report");
+      ReactGA.event({ category: "Report", action: "download_error", label: `Failed to download report ${reportId}` });
+    }
   };
 
   // Fetch PDF when tab changes to Full Report or when report/auth changes
   useEffect(() => {
-    if (tabValue === 1 && report && canDownloadReport(auth) && !pdfBlobUrl && !pdfLoading) {
+    if (tabValue === 1 && report && isAuthorized(auth) && !pdfBlobUrl && !pdfLoading) {
       fetchPdfForViewing();
     }
   }, [tabValue, report, auth.user?.access_token, pdfBlobUrl, pdfLoading]);
@@ -223,11 +218,11 @@ export const ReportDetails: FC = () => {
           <Button
             variant="contained"
             startIcon={<GetApp />}
-            onClick={() => handleReportDownload(report.id)}
+            onClick={() => handleReportDownload(report.name, report.id)}
           >
             Download PDF
           </Button>
-          {canAddVulnerability(auth) && (
+          {canEdit(auth) && (
             <Button
               variant="contained"
               startIcon={<BugReport />}
@@ -669,19 +664,19 @@ export const ReportDetails: FC = () => {
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   Full Report (PDF)
                 </Typography>
-                {canDownloadReport(auth) && (
+                {isAuthorized(auth) && (
                   <Button
                     variant="outlined"
                     size="small"
                     startIcon={<GetApp />}
-                    onClick={() => handleReportDownload(report.id)}
+                    onClick={() => handleReportDownload(report.name,report.id)}
                   >
                     Download
                   </Button>
                 )}
               </Box>
               
-              {canDownloadReport(auth) ? (
+              {isAuthorized(auth) ? (
                 <Box sx={{ height: '80vh', width: '100%' }}>
                   {pdfLoading ? (
                     <Box sx={{ p: 4, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -706,7 +701,7 @@ export const ReportDetails: FC = () => {
                             variant="contained"
                             color="primary"
                             startIcon={<GetApp />}
-                            onClick={() => handleReportDownload(report.id)}
+                            onClick={() => handleReportDownload(report.name, report.id)}
                           >
                             Download Report
                           </Button>

@@ -16,8 +16,6 @@ import {
   Chip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useReportAdd } from './hooks';
 import ReportIcon from '@mui/icons-material/Report';
@@ -31,6 +29,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { showError } from '../../../../features/dialog-handler/dialog-handler';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
+import { useAppAuth } from '../../../authentication/useAppAuth';
+import { canEdit } from '../../../authentication/authPermissions';
 
 export const AddReport: FC = () => {
   const [title, setTitle] = useState('');
@@ -45,21 +45,17 @@ export const AddReport: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   //TODO when set protocol or auditor or a company, filter what we have, not choose the first one
   const { addReport, isUploading, protocolsList, auditorsList, companiesList } = useReportAdd();
-  const auth = useAuth();
+  const { auth, isAdmin, isModerator, isContributor } = useAppAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   const [searchParams] = useSearchParams();
-  
-  const isAdmin = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin);
-  const isModerator = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Moderator);
-  const isContributor = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Contributor);
 
-  const canAddReport = (auth: AuthContextProps) => 
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
-
-  if (!canAddReport(auth)) {
-    navigate('/reports');
-  }
+  // Redirect unauthorized users in useEffect to avoid side-effects during render
+  useEffect(() => {
+    if (!canEdit(auth)) {
+      navigate('/reports');
+    }
+  }, [auth.isAuthenticated, auth.user, navigate]);
   
   const handleSetProtocol = (newProtocol: ProtocolItem | null) => {
     setProtocol(newProtocol);

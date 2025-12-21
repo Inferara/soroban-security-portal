@@ -2,13 +2,12 @@ import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AuthContextProps, AuthProvider, useAuth } from 'react-oidc-context';
 import { WebStorageStateStore } from 'oidc-client-ts';
-import { Provider, useDispatch } from 'react-redux';
+import { Provider } from 'react-redux';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { store } from './app/store';
 import { environment } from './environments/environment';
 import './index.css';
 import { Authentication } from './features/authentication/authentication';
-import { setSessionInfo } from './features/authentication/session-info-slice';
 import { AdminMainWindow } from './features/pages/admin/admin-main-window/admin-main-window';
 import "@fontsource/rubik";
 import "@fontsource/roboto";
@@ -37,7 +36,6 @@ const oidcConfig = {
 export function AppWrapper() {
   const navigate = useNavigate();
   const auth = useAuth();
-  const dispatch = useDispatch();
   const { theme } = useTheme();
   const isAdminOrModerator = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
@@ -57,32 +55,6 @@ export function AppWrapper() {
   useEffect(() => {
     ReactGA.send({ hitType: "pageview", page: "/main", title: "Main Page" });
   }, [])
-
-  useEffect(() => {
-    const sessionInfo = store.getState().sessionInfo;
-    
-    // Only update if state actually changed
-    if (auth.isAuthenticated && auth.user) {
-      if (!sessionInfo.isAuthenticated || sessionInfo.loginName !== auth.user.profile.sub) {
-        dispatch(
-          setSessionInfo({
-            isAuthenticated: true,
-            fullName: auth.user?.profile.name ?? '',
-            loginName: auth.user?.profile.sub ?? '',
-          }),
-        );
-      }
-    } else if (sessionInfo.isAuthenticated) {
-      // Only clear if it was previously authenticated
-      dispatch(
-        setSessionInfo({
-          isAuthenticated: false,
-          fullName: '',
-          loginName: '',
-        }),
-      );
-    }
-  }, [auth.isAuthenticated, auth.user?.profile?.sub, dispatch]);
 
   // Set up token expiration handler once
   useEffect(() => {
@@ -151,19 +123,48 @@ export function AppWrapper() {
   }, [auth.isAuthenticated, auth.user?.profile?.role, navigate]);
 
   if (window.location.pathname.startsWith(`${environment.basePath}/login`)) {
+    // Show loading state while auth is initializing
+    if (auth.isLoading) {
+      return (
+        <MuiThemeProvider theme={theme}>
+          <Authentication errorText="" isLoading={true} />
+        </MuiThemeProvider>
+      );
+    }
+    // Already authenticated users will be redirected by useEffect above
     if (auth.isAuthenticated) {
-      return <></>;
+      return (
+        <MuiThemeProvider theme={theme}>
+          <Authentication errorText="" isLoading={true} />
+        </MuiThemeProvider>
+      );
     }
     return (
       <MuiThemeProvider theme={theme}>
-        <Authentication errorText={auth.error ? 'Login failed' : ''} isLoading={auth.isLoading} />
+        <Authentication errorText={auth.error ? 'Login failed' : ''} isLoading={false} />
       </MuiThemeProvider>
     );
   }
   else if (window.location.pathname.startsWith(`${environment.basePath}/admin`)) {
-    if (auth.isAuthenticated && !isAdminOrModerator(auth)) {
-      return <></>;
+    // Show loading state while auth is initializing
+    if (auth.isLoading) {
+      return (
+        <MuiThemeProvider theme={theme}>
+          <Authentication errorText="" isLoading={true} />
+        </MuiThemeProvider>
+      );
     }
+    
+    // Check authorization after loading is complete
+    if (auth.isAuthenticated && !isAdminOrModerator(auth)) {
+      // Non-admin authenticated user - will be redirected by useEffect
+      return (
+        <MuiThemeProvider theme={theme}>
+          <Authentication errorText="" isLoading={true} />
+        </MuiThemeProvider>
+      );
+    }
+    
     if (auth.isAuthenticated){
       return (
           <MuiThemeProvider theme={theme}>
@@ -172,7 +173,12 @@ export function AppWrapper() {
         );
     }
     else {
-      return <></>;
+      // Unauthenticated user - will be redirected to login by useEffect
+      return (
+        <MuiThemeProvider theme={theme}>
+          <Authentication errorText="" isLoading={true} />
+        </MuiThemeProvider>
+      );
     }
   } else if (window.location.pathname.startsWith(`${environment.basePath}/callback`)) {
       // Show loading while callback is being processed

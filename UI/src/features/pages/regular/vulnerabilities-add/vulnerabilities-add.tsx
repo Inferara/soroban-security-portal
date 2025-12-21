@@ -17,8 +17,6 @@ import {
   Tooltip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilityAdd } from './hooks';
 import {
@@ -39,6 +37,8 @@ import { showError } from '../../../dialog-handler/dialog-handler';
 import { environment } from '../../../../environments/environment';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
 import { MarkdownEditor } from '../../../../components/MarkdownEditor';
+import { useAppAuth } from '../../../authentication/useAppAuth';
+import { canEdit } from '../../../authentication/authPermissions';
 
 export const AddVulnerability: FC = () => {
   const [title, setTitle] = useState('');
@@ -68,17 +68,17 @@ export const AddVulnerability: FC = () => {
     picturesContainerGuid 
   } = useVulnerabilityAdd();
 
-  const auth = useAuth();
+  const { auth } = useAppAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   const [searchParams] = useSearchParams();
   
-  const canAddVulnerability = (auth: AuthContextProps) => 
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
-
-  if (!canAddVulnerability(auth)) {
-    navigate('/vulnerabilities');
-  }
+  // Redirect unauthorized users in useEffect to avoid side-effects during render
+  useEffect(() => {
+    if (!canEdit(auth)) {
+      navigate('/vulnerabilities');
+    }
+  }, [auth.isAuthenticated, auth.user, navigate]);
 
   const handleSetProtocol = (newProtocol: ProtocolItem | null) => {
     setProtocol(newProtocol);
