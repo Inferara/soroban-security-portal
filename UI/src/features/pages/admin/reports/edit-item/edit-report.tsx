@@ -34,6 +34,9 @@ export const EditReport: FC = () => {
   const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
   const [date, setDate] = useState<Date | null>(null);
+  const [isFormLoaded, setIsFormLoaded] = useState(false);
+
+  const storageKey = `editReportFormData_${window.location.pathname.split('/').pop()}`;
 
   const currentPageState: CurrentPageState = {
     pageName: 'Edit Report',
@@ -74,27 +77,85 @@ export const EditReport: FC = () => {
 
   // Populate form when report data is loaded
   useEffect(() => {
-    if (report) {
-      setName(report.name);
-      
-      // Find and set company
-      const foundCompany = companiesList.find((c: CompanyItem) => c.id === report.companyId);
-      setCompany(foundCompany || null);
-
-      // Find and set protocol
-      const foundProtocol = protocolsList.find((p: ProtocolItem) => p.id === report.protocolId);
-      setProtocol(foundProtocol || null);
-      
-      // Find and set auditor
-      const foundAuditor = auditorsList.find((a: AuditorItem) => a.id === report.auditorId);
-      setAuditor(foundAuditor || null);
-      
-      // Set date
-      if (report.date) {
-        setDate(new Date(report.date));
+    if (report && protocolsList.length > 0 && companiesList.length > 0 && auditorsList.length > 0) {
+      // Try to load from sessionStorage first
+      const savedData = sessionStorage.getItem(storageKey);
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          setName(parsedData.name || report.name);
+          if (parsedData.date) {
+            setDate(new Date(parsedData.date));
+          } else if (report.date) {
+            setDate(new Date(report.date));
+          }
+          
+          // Restore protocol and company
+          if (parsedData.protocolId) {
+            const foundProtocol = protocolsList.find(p => p.id === parsedData.protocolId);
+            if (foundProtocol) {
+              setProtocol(foundProtocol);
+              const foundCompany = companiesList.find(c => c.id === foundProtocol.companyId);
+              if (foundCompany) setCompany(foundCompany);
+            }
+          } else {
+            const foundCompany = companiesList.find((c: CompanyItem) => c.id === report.companyId);
+            setCompany(foundCompany || null);
+            const foundProtocol = protocolsList.find((p: ProtocolItem) => p.id === report.protocolId);
+            setProtocol(foundProtocol || null);
+          }
+          
+          // Restore auditor
+          if (parsedData.auditorId) {
+            const foundAuditor = auditorsList.find(a => a.id === parsedData.auditorId);
+            setAuditor(foundAuditor || null);
+          } else {
+            const foundAuditor = auditorsList.find((a: AuditorItem) => a.id === report.auditorId);
+            setAuditor(foundAuditor || null);
+          }
+        } catch (error) {
+          console.error('Error loading saved form data:', error);
+          // Fall back to original report data
+          setName(report.name);
+          const foundCompany = companiesList.find((c: CompanyItem) => c.id === report.companyId);
+          setCompany(foundCompany || null);
+          const foundProtocol = protocolsList.find((p: ProtocolItem) => p.id === report.protocolId);
+          setProtocol(foundProtocol || null);
+          const foundAuditor = auditorsList.find((a: AuditorItem) => a.id === report.auditorId);
+          setAuditor(foundAuditor || null);
+          if (report.date) {
+            setDate(new Date(report.date));
+          }
+        }
+      } else {
+        // No saved data, use report data
+        setName(report.name);
+        const foundCompany = companiesList.find((c: CompanyItem) => c.id === report.companyId);
+        setCompany(foundCompany || null);
+        const foundProtocol = protocolsList.find((p: ProtocolItem) => p.id === report.protocolId);
+        setProtocol(foundProtocol || null);
+        const foundAuditor = auditorsList.find((a: AuditorItem) => a.id === report.auditorId);
+        setAuditor(foundAuditor || null);
+        if (report.date) {
+          setDate(new Date(report.date));
+        }
       }
+      setIsFormLoaded(true);
     }
-  }, [report, protocolsList, companiesList, auditorsList]);
+  }, [report, protocolsList, companiesList, auditorsList, storageKey]);
+
+  // Save form data to sessionStorage whenever it changes
+  useEffect(() => {
+    if (isFormLoaded && report) {
+      const formData = {
+        name,
+        date: date?.toISOString(),
+        protocolId: protocol?.id,
+        auditorId: auditor?.id,
+      };
+      sessionStorage.setItem(storageKey, JSON.stringify(formData));
+    }
+  }, [name, date, protocol, auditor, isFormLoaded, report, storageKey]);
 
   const handleEditReport = async () => {
     if (!report) return;
@@ -122,6 +183,7 @@ export const EditReport: FC = () => {
 
     const success = await editReport(updatedReport);
     if (success) {
+      sessionStorage.removeItem(storageKey);
       navigate('/admin/reports');
     } else {
       showError('Failed to update report');

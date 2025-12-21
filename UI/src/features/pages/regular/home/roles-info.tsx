@@ -2,6 +2,7 @@ import { Box, Button, Paper, Stack, Typography } from "@mui/material";
 import { FC } from "react";
 import { useNavigate } from "react-router-dom";
 import { HomepageSubtitle } from "./homepage-subtitle";
+import { useAppAuth } from "../../../authentication/useAppAuth";
 
 export interface RolesInfoProps {
     isCompact: boolean;
@@ -9,6 +10,7 @@ export interface RolesInfoProps {
 
 export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
     const navigate = useNavigate();
+    const { isAuthenticated, userName, isAdmin, isModerator, isContributor } = useAppAuth();
 
     const rolesData = [
         {
@@ -33,6 +35,23 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
         }
     ];
 
+    const getUserPermissions = () => {
+        if (isAdmin || isModerator) {
+            return ["read", "download", "create", "approve"];
+        } else if (isContributor) {
+            return ["read", "download", "create"];
+        } else {
+            return ["read", "download"];
+        }
+    };
+
+    const getUserRoleName = () => {
+        if (isAdmin) return "Admin";
+        if (isModerator) return "Moderator";
+        if (isContributor) return "Contributor";
+        return "User (logged in)";
+    };
+
     return (
         <Paper
             elevation={3}
@@ -46,33 +65,93 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
                 overflow: 'hidden',
             }}>
             <HomepageSubtitle
-                title="How to contribute"
+                title={ isAuthenticated ? `Welcome, ${userName}!` : "How to contribute"}
                 isCompact={isCompact}
             />
             <Box sx={{ width: '100%', px: { xs: 2, md: 5 }, py: { xs: 3, md: 5 }, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: { xs: 3, md: 5 } }}>
-                    <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'right' } }}>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            Your contributions help improve the Portal and secure the Soroban ecosystem.
-                        </Typography>
-                        <Typography variant="body1">
-                            Claim your role by authorizing with your Discord account in{" "}
-                            <a href="https://discord.gg/UAnpE7pa" target="_blank" rel="noopener noreferrer">
-                                Stellar Developers Discord Server
-                            </a>
-                        </Typography>
+                {isAuthenticated ? (
+                    <>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                            <Box sx={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                alignItems: 'center', 
+                                gap: 2,
+                                p: 3,
+                                borderRadius: 2,
+                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                width: '100%',
+                                maxWidth: '600px'
+                            }}>
+                                <Typography variant="h6" color="primary">
+                                    Your Role: {getUserRoleName()}
+                                </Typography>
+                                <Typography variant="body1" sx={{ textAlign: 'center' }}>
+                                    Your Permissions: {getUserPermissions().join(", ")}
+                                </Typography>
+                                <Typography variant="body1" sx={{ textAlign: 'center' }}>
+                                    See roles and permissions breakdown below.
+                                </Typography>
+                                {
+                                    (isAdmin || isModerator || isContributor) && (
+                                        <Typography variant="body2" sx={{ textAlign: 'center', mt: 1 }}>
+                                            Thank you for contributing to the Soroban Security Portal!
+                                        </Typography>
+                                    )
+                                }
+                            </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: { xs: 3, md: 5 } }}>
+                            <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'right' } }}>
+                                <Typography variant="body1" sx={{ mb: 2 }}>
+                                    Your contributions help improve the Portal and secure the Soroban ecosystem.
+                                </Typography>
+                                <Typography variant="body1">
+                                    Continue engaging in{" "}
+                                    <a href="https://discord.gg/vFHctE64fv" target="_blank" rel="noopener noreferrer">
+                                        Stellar Developers Discord Server
+                                    </a>
+                                    {" "}to maintain your role.
+                                </Typography>
+                            </Box>
+                            <Box sx={{
+                                flex: 1,
+                                display: 'flex',
+                                justifyContent: { xs: 'center', sm: 'center', md: 'flex-start' }
+                            }}>
+                                <Button variant="outlined" size="large" onClick={() => navigate('/profile')}
+                                    sx={{ px: 3, py: 1 }}>
+                                    My Profile
+                                </Button>
+                            </Box>
+                        </Box>
+                    </>
+                ) : (
+                    // Non-authenticated User View
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: { xs: 3, md: 5 } }}>
+                        <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'right' } }}>
+                            <Typography variant="body1" sx={{ mb: 2 }}>
+                                Your contributions help improve the Portal and secure the Soroban ecosystem.
+                            </Typography>
+                            <Typography variant="body1">
+                                Claim your role by authorizing with your Discord account in{" "}
+                                <a href="https://discord.gg/UAnpE7pa" target="_blank" rel="noopener noreferrer">
+                                    Stellar Developers Discord Server
+                                </a>
+                            </Typography>
+                        </Box>
+                        <Box sx={{
+                            flex: 1,
+                            display: 'flex',
+                            justifyContent: { xs: 'center', sm: 'center', md: 'flex-start' }
+                        }}>
+                            <Button variant="contained" size="large" onClick={() => navigate('/login')}
+                                sx={{ px: 3, py: 1 }}>
+                                Log In
+                            </Button>
+                        </Box>
                     </Box>
-                    <Box sx={{
-                        flex: 1,
-                        display: 'flex',
-                        justifyContent: { xs: 'center', sm: 'center', md: 'flex-start' }
-                    }}>
-                        <Button variant="contained" size="large" onClick={() => navigate('/login')}
-                            sx={{ px: 3, py: 1 }}>
-                            Log In
-                        </Button>
-                    </Box>
-                </Box>
+                )}
                 <Box sx={{
                     display: 'flex',
                     flexDirection: { xs: 'column', md: 'row-reverse' },

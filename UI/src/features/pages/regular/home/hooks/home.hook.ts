@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from 'react-oidc-context';
 import { getVulnerabilitiesStatistics, getVulnerabilitiesStatisticsChanges, getReportStatisticsChanges, getProtocolStatisticsChanges, getAuditorStatisticsChanges } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { VulnerabilityStatistics, StatisticsChanges, getCategoryIdByLabel, VulnerabilityCategories } from '../../../../../api/soroban-security-portal/models/vulnerability';
 import { SeverityColors } from '../../../../../contexts/ThemeContext';
@@ -22,6 +23,8 @@ export interface PieChartData {
 export type FilterType = 'severity' | 'tag' | 'protocol' | 'category';
 
 export const useVulnerabilityStatistics = () => {
+  const auth = useAuth();
+
   const [vulnerabilities, setVulnerabilities] = useState<VulnerabilityStatistics>();
   const [statistics, setStatistics] = useState<VulnerabilityStatisticsBySeverity>({
     critical: 0,
@@ -39,7 +42,17 @@ export const useVulnerabilityStatistics = () => {
   const [protocolsStatisticsChange, setProtocolsStatisticsChange] = useState<StatisticsChanges>();
   const [auditorsStatisticsChange, setAuditorsStatisticsChange] = useState<StatisticsChanges>();
 
-  const mapStatistics = (vulns: VulnerabilityStatistics): VulnerabilityStatisticsBySeverity => {
+  const mapStatistics = (vulns?: VulnerabilityStatistics): VulnerabilityStatisticsBySeverity => {
+    if (!vulns) {
+      return {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        note: 0,
+        total: 0
+      };
+    }
     const stats = {
       critical: vulns.bySeverity['critical'] || 0,
       high: vulns.bySeverity['high'] || 0,
@@ -132,22 +145,22 @@ export const useVulnerabilityStatistics = () => {
     });
   }
 
-  const generatePieChartData = (filterType: FilterType, vulns: VulnerabilityStatistics, stats?: VulnerabilityStatisticsBySeverity): PieChartData[] => {
+  const generatePieChartData = (filterType: FilterType, vulns?: VulnerabilityStatistics, stats?: VulnerabilityStatisticsBySeverity): PieChartData[] => {
     switch (filterType) {
       case 'severity':
         return generateSeverityPieChartData(stats || mapStatistics(vulns));
       case 'tag':
-        return generateTagPieChartData(vulns);
+        return vulns ? generateTagPieChartData(vulns) : [];
       case 'category':
-        return generateCategoryPieChartData(vulns);
+        return vulns ? generateCategoryPieChartData(vulns) : [];
       default:
         return generateSeverityPieChartData(stats || mapStatistics(vulns));
     }
   };
 
   const updatePieChartData = (filterType: FilterType) => {
-    const stats = mapStatistics(vulnerabilities!);
-    const pieData = generatePieChartData(filterType, vulnerabilities!, stats);
+    const stats = mapStatistics(vulnerabilities);
+    const pieData = generatePieChartData(filterType, vulnerabilities, stats);
     setPieChartData(pieData);
   };
 
@@ -155,6 +168,18 @@ export const useVulnerabilityStatistics = () => {
     try {
       setLoading(true);
       setError(null);
+      // If user is not authenticated, skip calling protected statistics endpoints
+      if (!auth.isAuthenticated) {
+        const emptyStats = mapStatistics(undefined);
+        setVulnerabilities(undefined);
+        setStatistics(emptyStats);
+        setVulnerabilitiesStatisticsChange(undefined);
+        setReportsStatisticsChange(undefined);
+        setProtocolsStatisticsChange(undefined);
+        setAuditorsStatisticsChange(undefined);
+        setPieChartData([]);
+        return;
+      }
 
       const vulns = await getVulnerabilitiesStatistics();
       setVulnerabilities(vulns);
@@ -174,8 +199,21 @@ export const useVulnerabilityStatistics = () => {
       const pieData = generatePieChartData('severity', vulns, stats);
       setPieChartData(pieData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load vulnerabilities');
-      console.error('Error loading vulnerabilities:', err);
+      const message = err instanceof Error ? err.message : 'Failed to load vulnerabilities';
+      // For unauthenticated users, silently fall back to empty data instead of surfacing auth errors
+      if (!auth.isAuthenticated && message.toLowerCase().includes('authentication required')) {
+        const emptyStats = mapStatistics(undefined);
+        setVulnerabilities(undefined);
+        setStatistics(emptyStats);
+        setVulnerabilitiesStatisticsChange(undefined);
+        setReportsStatisticsChange(undefined);
+        setProtocolsStatisticsChange(undefined);
+        setAuditorsStatisticsChange(undefined);
+        setPieChartData([]);
+      } else {
+        setError(message);
+        console.error('Error loading vulnerabilities:', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -183,7 +221,8 @@ export const useVulnerabilityStatistics = () => {
 
   useEffect(() => {
     loadStatistics();
-  }, []);
+    // Rerun when authentication state changes (login or logout)
+  }, [auth.isAuthenticated]);
 
   return {
     vulnerabilities,

@@ -6,9 +6,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { GetApp, Search as SearchIcon } from '@mui/icons-material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
-import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { useReports } from './hooks';
 import { environment } from '../../../../environments/environment';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
@@ -16,13 +14,16 @@ import { useTheme } from '../../../../contexts/ThemeContext';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
+import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
+import { useAppAuth } from '../../../authentication/useAppAuth';
+import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
 
 export const Reports: FC = () => {
   const { themeMode } = useTheme();
   const { reportsList, searchReports, auditorsList, protocolsList, companiesList } = useReports();
-  const auth = useAuth();
+  const { auth } = useAppAuth();
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
@@ -32,11 +33,6 @@ export const Reports: FC = () => {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
-
-  const canAddReport = (auth: AuthContextProps) =>
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
-
-  const canDownloadReport = (auth: AuthContextProps) => isAuthorized(auth);
 
   useEffect(() => {
     ReactGA.send({ hitType: "pageview", page: "/reports", title: "Reports Page" });
@@ -58,19 +54,19 @@ export const Reports: FC = () => {
     setLoadingImages(prev => ({ ...prev, [reportId]: true }));
   };
 
-  const handleReportDownload = (reportId: number) => {
-    if (!canDownloadReport(auth)) {
+  const handleReportDownload = async (reportName: string, reportId: number) => {
+    if (!isAuthorized(auth)) {
       showMessage("Log in to download the report");
       ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
       return;
     }
-    const link = document.createElement('a');
-    link.href = `${environment.apiUrl}/api/v1/reports/${reportId}/download?token=${auth.user?.access_token}`;
-    link.setAttribute('download', '');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
+    try {
+      await downloadReportPDF(reportName, reportId);
+      ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "Failed to download report");
+      ReactGA.event({ category: "Report", action: "download_error", label: `Failed to download report ${reportId}` });
+    }
   };
 
   // Initialize loading state for all reports
@@ -89,7 +85,7 @@ export const Reports: FC = () => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ padding: '24px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          {canAddReport(auth) && (
+          {canEdit(auth) && (
             <Button
               variant="contained"
               onClick={() => navigate('/reports/add')}
@@ -353,7 +349,7 @@ export const Reports: FC = () => {
                   <Button
                     variant="contained"
                     startIcon={<GetApp />}
-                    onClick={() => handleReportDownload(report.id)}
+                    onClick={() => handleReportDownload(report.name, report.id)}
                     // sx={{
                     //   fontWeight: 600,
                     //   borderRadius: 2,

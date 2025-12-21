@@ -193,7 +193,28 @@ export const getReportStatisticsChanges = async (): Promise<StatisticsChanges> =
     const response = await client.request('api/v1/reports/statistics/changes', 'GET');
     return response.data as StatisticsChanges;
 };
+export const downloadReportPDFCall = async (reportId: number): Promise<Blob> => {
+    const client = await getRestClient();
+    return await client.downloadBlob(`api/v1/reports/${reportId}/download`);
+};
 
+export const downloadReportPDF = async (reportName: string, reportId: number): Promise<void> => {
+    const blob = await downloadReportPDFCall(reportId);
+    
+    // Create blob URL and trigger download
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `${reportName}.pdf`;
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up blob URL
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
+};
 // --- VULNERABILITIES ---
 export const getSeveritiesCall = async (): Promise<VulnerabilitySeverity[]> => {
     const client = await getRestClient();
@@ -402,7 +423,8 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
 // Rest client
 const getRestClient = async (): Promise<RestApi> => {
     const accessToken = getAccessToken();
-    const restClient = new RestApi(environment.apiUrl, `Bearer ${accessToken}`);
+    const authHeader = accessToken ? `Bearer ${accessToken}` : '';
+    const restClient = new RestApi(environment.apiUrl, authHeader);
     return restClient;
 };
 

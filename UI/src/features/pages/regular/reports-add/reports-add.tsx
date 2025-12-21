@@ -16,8 +16,6 @@ import {
   Chip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useReportAdd } from './hooks';
 import ReportIcon from '@mui/icons-material/Report';
@@ -31,6 +29,10 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { showError } from '../../../../features/dialog-handler/dialog-handler';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
+import { useAppAuth } from '../../../authentication/useAppAuth';
+import { canEdit } from '../../../authentication/authPermissions';
+
+const STORAGE_KEY = 'addReportFormData';
 
 export const AddReport: FC = () => {
   const [title, setTitle] = useState('');
@@ -43,23 +45,21 @@ export const AddReport: FC = () => {
   const [fileError, setFileError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isFormLoaded, setIsFormLoaded] = useState(false);
   //TODO when set protocol or auditor or a company, filter what we have, not choose the first one
   const { addReport, isUploading, protocolsList, auditorsList, companiesList } = useReportAdd();
-  const auth = useAuth();
+  const { auth, isAdmin, isModerator, isContributor } = useAppAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   const [searchParams] = useSearchParams();
-  
-  const isAdmin = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin);
-  const isModerator = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Moderator);
-  const isContributor = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Contributor);
 
-  const canAddReport = (auth: AuthContextProps) => 
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
-
-  if (!canAddReport(auth)) {
-    navigate('/reports');
-  }
+  // Redirect unauthorized users only after everything is loaded
+  useEffect(() => {
+    const isDataLoaded = protocolsList.length > 0 && auditorsList.length > 0 && companiesList.length > 0;
+    if (!auth.isLoading && isDataLoaded && !canEdit(auth)) {
+      navigate('/reports');
+    }
+  }, [auth.isLoading, auth.isAuthenticated, auth.user, protocolsList, auditorsList, companiesList, navigate]);
   
   const handleSetProtocol = (newProtocol: ProtocolItem | null) => {
     setProtocol(newProtocol);
@@ -81,35 +81,97 @@ export const AddReport: FC = () => {
     setProtocol(protocols.length > 0 ? protocols[0] : null);
   };
 
-  // Handle URL parameters for pre-filling form
+  // Load form data - URL parameters take priority over sessionStorage
   useEffect(() => {
     if (protocolsList.length > 0 && auditorsList.length > 0 && companiesList.length > 0) {
+      // Check URL parameters first
       const protocolParam = searchParams.get('protocol');
       const auditorParam = searchParams.get('auditor');
       const companyParam = searchParams.get('company');
 
+      // Track which fields are set by URL params
+      let protocolFromUrl: ProtocolItem | null = null;
+      let auditorFromUrl: AuditorItem | null = null;
+      let companyFromUrl: CompanyItem | null = null;
+
       if (protocolParam) {
-        const protocolToSet = protocolsList.find(p => p.name === protocolParam || p.id.toString() === protocolParam);
-        if (protocolToSet) {
-          handleSetProtocol(protocolToSet);
-        }
+        protocolFromUrl = protocolsList.find(p => p.name === protocolParam || p.id.toString() === protocolParam) || null;
       }
 
       if (auditorParam) {
-        const auditorToSet = auditorsList.find(a => a.name === auditorParam || a.id.toString() === auditorParam);
-        if (auditorToSet) {
-          setAuditor(auditorToSet);
-        }
+        auditorFromUrl = auditorsList.find(a => a.name === auditorParam || a.id.toString() === auditorParam) || null;
       }
 
       if (companyParam) {
-        const companyToSet = companiesList.find(c => c.name === companyParam || c.id.toString() === companyParam);
-        if (companyToSet) {
-          handleSetCompany(companyToSet);
+        companyFromUrl = companiesList.find(c => c.name === companyParam || c.id.toString() === companyParam) || null;
+      }
+
+      // Load saved data from sessionStorage
+      const savedData = sessionStorage.getItem(STORAGE_KEY);
+      let parsedData: any = null;
+      if (savedData) {
+        try {
+          parsedData = JSON.parse(savedData);
+        } catch (error) {
+          console.error('Error loading saved form data:', error);
         }
       }
+
+      // Apply data: URL params override sessionStorage
+      if (parsedData) {
+        setTitle(parsedData.title || '');
+        setUrl(parsedData.url || '');
+        if (parsedData.date) {
+          setDate(new Date(parsedData.date));
+        }
+      }
+
+      // Protocol: URL param takes priority
+      if (protocolFromUrl) {
+        handleSetProtocol(protocolFromUrl);
+      } else if (parsedData?.protocolId) {
+        const foundProtocol = protocolsList.find(p => p.id === parsedData.protocolId);
+        if (foundProtocol) {
+          handleSetProtocol(foundProtocol);
+        }
+      }
+
+      // Company: URL param takes priority
+      if (companyFromUrl) {
+        handleSetCompany(companyFromUrl);
+      } else if (!protocolFromUrl && parsedData?.companyId) {
+        // Only restore saved company when protocol is not provided via URL;
+        // a URL-provided protocol will determine the company, and we avoid overriding it.
+        const foundCompany = companiesList.find(c => c.id === parsedData.companyId);
+        if (foundCompany) setCompany(foundCompany);
+      }
+
+      // Auditor: URL param takes priority
+      if (auditorFromUrl) {
+        setAuditor(auditorFromUrl);
+      } else if (parsedData?.auditorId) {
+        const foundAuditor = auditorsList.find(a => a.id === parsedData.auditorId);
+        if (foundAuditor) setAuditor(foundAuditor);
+      }
+
+      setIsFormLoaded(true);
     }
   }, [searchParams, protocolsList, auditorsList, companiesList]);
+
+  // Save form data to sessionStorage whenever it changes
+  useEffect(() => {
+    if (isFormLoaded) {
+      const formData = {
+        title,
+        url,
+        date: date?.toISOString(),
+        protocolId: protocol?.id,
+        companyId: company?.id,
+        auditorId: auditor?.id,
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [title, url, date, protocol, company, auditor, isFormLoaded]);
 
   const validateAndSetFile = (file: File) => {
     // Check if file is PDF
@@ -200,6 +262,7 @@ export const AddReport: FC = () => {
 
     try {
       await addReport(report, selectedFile);
+      sessionStorage.removeItem(STORAGE_KEY);
       navigate('/reports');
     } catch (error) {
       console.error('Error adding report:', error);

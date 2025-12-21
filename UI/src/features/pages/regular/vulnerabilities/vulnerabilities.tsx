@@ -17,15 +17,15 @@ import {
   FormControl,
   InputLabel,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import SearchIcon from '@mui/icons-material/Search';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { isAuthorized, Role } from '../../../../api/soroban-security-portal/models/role';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
 import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, AvailableVulnerabilityCategories, VulnerabilityCategoryInfo, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
@@ -34,13 +34,15 @@ import { SeverityColors, useTheme } from '../../../../contexts/ThemeContext';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../api/soroban-security-portal/models/auditor';
 import { TagItem } from '../../../../api/soroban-security-portal/models/tag';
-import { environment } from '../../../../environments/environment';
 import { CompanyItem } from '../../../../api/soroban-security-portal/models/company';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
 import 'katex/dist/katex.min.css';
 import './katex.css';
 import ReactGA from 'react-ga4';
 import { VulnerabilityCard } from './vulnerability-card';
+import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { useAppAuth } from '../../../authentication/useAppAuth';
+import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -93,11 +95,9 @@ export const Vulnerabilities: FC = () => {
     setIsLoading(isLoadingInitial);
   }, [isLoadingInitial]);
 
-  const auth = useAuth();
+  const { auth } = useAppAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const canAddVulnerability = (auth: AuthContextProps) =>
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Contributor || auth.user?.profile.role === Role.Moderator;
 
   const [isOnSmallScreen, setIsOnSmallScreen] = useState(window.innerWidth < 650);
 
@@ -111,8 +111,6 @@ export const Vulnerabilities: FC = () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
-  const canDownloadReport = (auth: AuthContextProps) => isAuthorized(auth);
 
   const toggleSortDirection = () => {
     setSortDir(prev => prev === 'desc' ? 'asc' : 'desc');
@@ -187,19 +185,19 @@ export const Vulnerabilities: FC = () => {
     setSelectedVulnerability(null);
   };
 
-  const handleDownloadReport = (reportId: number) => {
-    if (!canDownloadReport(auth)) {
+  const handleDownloadReport = async (reportName: string, reportId: number) => {
+    if (!isAuthorized(auth)) {
       showMessage("Log in to download the report");
       ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
       return;
     }
-    const link = document.createElement('a');
-    link.href = `${environment.apiUrl}/api/v1/reports/${reportId}/download?token=${auth.user?.access_token}`;
-    link.setAttribute('download', '');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
+    try {
+      await downloadReportPDF(reportName, reportId);
+      ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "Failed to download report");
+      ReactGA.event({ category: "Report", action: "download_error", label: `Failed to download report ${reportId}` });
+    }
   };
 
   const handleChipClick = (filterType: string, value: string) => {
@@ -462,7 +460,7 @@ export const Vulnerabilities: FC = () => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ padding: '24px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          {canAddVulnerability(auth) && (
+          {canEdit(auth) && (
             <Button
               variant="contained"
               onClick={() => navigate('/vulnerabilities/add')}
@@ -788,7 +786,69 @@ export const Vulnerabilities: FC = () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Category"
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      Category
+                      <Tooltip
+                        title={
+                          <Box sx={{ p: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                              Vulnerability Categories
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                  Valid (Fixed)
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Confirmed vulnerability that has been successfully fixed or resolved
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                  Valid Not Fixed
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Confirmed vulnerability that remains unresolved and requires attention
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                  Valid Partially Fixed
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                  Confirmed vulnerability that has been partially addressed but still requires additional work
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        }
+                        arrow
+                        placement="right"
+                        componentsProps={{
+                          tooltip: {
+                            sx: {
+                              maxWidth: 400,
+                              bgcolor: 'background.paper',
+                              color: 'text.primary',
+                              border: 1,
+                              borderColor: 'divider',
+                              boxShadow: 3,
+                              '& .MuiTooltip-arrow': {
+                                color: 'background.paper',
+                                '&::before': {
+                                  border: 1,
+                                  borderColor: 'divider',
+                                },
+                              },
+                            },
+                          },
+                        }}
+                      >
+                        <InfoOutlinedIcon sx={{ fontSize: 16, cursor: 'help', ml: 0.5 }} />
+                      </Tooltip>
+                    </Box>
+                  }
                   size="small"
                   sx={{ minWidth: 200 }}
                 />
