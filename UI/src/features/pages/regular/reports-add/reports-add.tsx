@@ -140,7 +140,8 @@ export const AddReport: FC = () => {
       if (companyFromUrl) {
         handleSetCompany(companyFromUrl);
       } else if (!protocolFromUrl && parsedData?.companyId) {
-        // Only set saved company if protocol wasn't set from URL (to avoid conflicts)
+        // Only restore saved company when protocol is not provided via URL;
+        // a URL-provided protocol will determine the company, and we avoid overriding it.
         const foundCompany = companiesList.find(c => c.id === parsedData.companyId);
         if (foundCompany) setCompany(foundCompany);
       }
