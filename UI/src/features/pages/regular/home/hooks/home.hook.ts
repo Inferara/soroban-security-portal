@@ -221,7 +221,7 @@ export const useVulnerabilityStatistics = () => {
 
   useEffect(() => {
     loadStatistics();
-    // We only want to rerun when auth authentication state changes from unauthenticated to authenticated
+    // Rerun when authentication state changes (login or logout)
   }, [auth.isAuthenticated]);
 
   return {
