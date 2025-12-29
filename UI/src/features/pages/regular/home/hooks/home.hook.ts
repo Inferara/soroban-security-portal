@@ -168,18 +168,6 @@ export const useVulnerabilityStatistics = () => {
     try {
       setLoading(true);
       setError(null);
-      // If user is not authenticated, skip calling protected statistics endpoints
-      if (!auth.isAuthenticated) {
-        const emptyStats = mapStatistics(undefined);
-        setVulnerabilities(undefined);
-        setStatistics(emptyStats);
-        setVulnerabilitiesStatisticsChange(undefined);
-        setReportsStatisticsChange(undefined);
-        setProtocolsStatisticsChange(undefined);
-        setAuditorsStatisticsChange(undefined);
-        setPieChartData([]);
-        return;
-      }
 
       const vulns = await getVulnerabilitiesStatistics();
       setVulnerabilities(vulns);
