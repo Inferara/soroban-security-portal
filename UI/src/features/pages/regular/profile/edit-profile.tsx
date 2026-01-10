@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { TextField, Button, Grid, Paper, Typography, Box, Avatar, IconButton, Tooltip, CircularProgress } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { TextField, Button, Grid, Paper, Typography, Box } from '@mui/material';
 import { useEditProfile } from './hooks/edit-profile.hook';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
@@ -10,8 +10,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import XIcon from '@mui/icons-material/X';
 import ChatIcon from '@mui/icons-material/Chat';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { AvatarUpload } from '../../../../components/AvarUpload';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -25,39 +24,6 @@ const ProfileHeader = styled(Box)(({ theme }) => ({
   justifyContent: 'space-between',
   marginBottom: theme.spacing(4),
   padding: theme.spacing(3, 0),
-}));
-
-const AvatarContainer = styled(Box)(() => ({
-  display: 'flex',
-  alignItems: 'center',
-}));
-
-const StyledAvatar = styled(Avatar)(({ theme }) => ({
-  width: 80,
-  height: 80,
-  marginRight: theme.spacing(3),
-  backgroundColor: '#9386b6', // Purple background
-  border: '3px solid #FCD34D', // Yellow-gold border
-  fontSize: '24px',
-  fontWeight: 'bold',
-}));
-
-const UserInfo = styled(Box)(() => ({
-  display: 'flex',
-  flexDirection: 'column',
-}));
-
-const UserName = styled(Typography)(({ theme }) => ({
-  fontSize: '28px',
-  fontWeight: 'bold',
-  color: '#ffffff',
-  marginBottom: theme.spacing(1),
-}));
-
-const UserDetails = styled(Typography)(() => ({
-  fontSize: '14px',
-  color: '#ffffff',
-  marginBottom: '4px',
 }));
 
 const ContentSection = styled(Paper)(({ theme }) => ({
@@ -105,43 +71,6 @@ const AccountName = styled(Typography)(() => ({
   fontWeight: 500,
 }));
 
-const AvatarControls = styled(Box)(() => ({
-  position: 'relative',
-  display: 'inline-block',
-}));
-
-const ImageControlButton = styled(IconButton)(() => ({
-  position: 'absolute',
-  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  color: '#ffffff',
-  width: 32,
-  height: 32,
-  border: '2px solid rgba(255, 255, 255, 0.3)',
-  transition: 'all 0.2s ease-in-out',
-  '&:hover': {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    border: '2px solid rgba(255, 255, 255, 0.5)',
-    transform: 'scale(1.1)',
-  },
-  '&:disabled': {
-    opacity: 0.5,
-  },
-}));
-
-const UploadButton = styled(ImageControlButton)(() => ({
-  bottom: 0,
-  right: 0,
-}));
-
-const RemoveButton = styled(ImageControlButton)(() => ({
-  top: 0,
-  right: 0,
-}));
-
-const HiddenFileInput = styled('input')(() => ({
-  display: 'none',
-}));
-
 export const EditProfile: React.FC = () => {
   const navigate = useNavigate();
   const { themeMode } = useThemeContext();
@@ -149,8 +78,6 @@ export const EditProfile: React.FC = () => {
   const [username, setUsername] = useState('');
   const [aboutYou, setAboutYou] = useState('');
   const [image, setImage] = useState<string | null>(null);
-  const [isImageUploading, setIsImageUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     user,
@@ -163,7 +90,6 @@ export const EditProfile: React.FC = () => {
       setName(user.fullName || '');
       setUsername(user.login || '');
       setAboutYou(user.personalInfo || '');
-      setImage(user.image || null);
     }
   }, [user]);
 
@@ -177,25 +103,25 @@ export const EditProfile: React.FC = () => {
     if (!avatarImage) {
       const avatarElement = document.querySelector('.MuiAvatar-root') as HTMLElement;
       if (avatarElement) {
-      const canvas = document.createElement('canvas');
-      const scaleFactor = 2; // Increase PPI by scaling the canvas
-      canvas.width = avatarElement.offsetWidth * scaleFactor;
-      canvas.height = avatarElement.offsetHeight * scaleFactor;
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.scale(scaleFactor, scaleFactor); // Scale the drawing context
-        context.fillStyle = 'rgb(147, 134, 182)';
-        context.fillRect(0, 0, canvas.width / scaleFactor, canvas.height / scaleFactor);
-        context.font = '400 25px Roboto, Rubik, Helvetica, Arial, sans-serif';
-        context.fillStyle = 'rgb(30, 30, 30)';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText(
-          getUserInitials(name || 'User Name'),
-          canvas.width / (2 * scaleFactor),
-          canvas.height / (2 * scaleFactor) + 1 // Move text 1 pixel down
-        );
-      }
+        const canvas = document.createElement('canvas');
+        const scaleFactor = 2; // Increase PPI by scaling the canvas
+        canvas.width = avatarElement.offsetWidth * scaleFactor;
+        canvas.height = avatarElement.offsetHeight * scaleFactor;
+        const context = canvas.getContext('2d');
+        if (context) {
+          context.scale(scaleFactor, scaleFactor); // Scale the drawing context
+          context.fillStyle = 'rgb(147, 134, 182)';
+          context.fillRect(0, 0, canvas.width / scaleFactor, canvas.height / scaleFactor);
+          context.font = '400 25px Roboto, Rubik, Helvetica, Arial, sans-serif';
+          context.fillStyle = 'rgb(30, 30, 30)';
+          context.textAlign = 'center';
+          context.textBaseline = 'middle';
+          context.fillText(
+            getUserInitials(name || 'User Name'),
+            canvas.width / (2 * scaleFactor),
+            canvas.height / (2 * scaleFactor) + 1 // Move text 1 pixel down
+          );
+        }
         avatarImage = canvas.toDataURL('image/png').split(',')[1]; // Convert to base64
       }
     }
@@ -212,66 +138,6 @@ export const EditProfile: React.FC = () => {
       navigate('/profile');
     } else {
       showError('Failed to update profile');
-    }
-  };
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        showError('Please select an image file');
-        return;
-      }
-
-      // Validate file size (max 100KB)
-      if (file.size > 100 * 1024) {
-        showError('Image size must be less than 100KB');
-        return;
-      }
-
-      setIsImageUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        try {
-          const result = reader.result as string;
-          // Convert data URL to base64 string (remove the data:image/...;base64, prefix)
-          const base64String = result.split(',')[1];
-          setImage(base64String);
-          showSuccess('Image uploaded successfully');
-        } catch (error) {
-          showError('Failed to process image');
-        } finally {
-          setIsImageUploading(false);
-        }
-      };
-      reader.onerror = () => {
-        showError('Failed to read image file');
-        setIsImageUploading(false);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''; // Clear file input value
-    }
-  };
-
-  // Helper function to determine image type from base64 string
-  const getImageSrc = (base64String: string) => {
-    // Try to detect image type from the first few characters
-    if (base64String.startsWith('/9j/') || base64String.startsWith('/9j/')) {
-      return `data:image/jpeg;base64,${base64String}`;
-    } else if (base64String.startsWith('iVBORw0KGgo')) {
-      return `data:image/png;base64,${base64String}`;
-    } else if (base64String.startsWith('R0lGODlh')) {
-      return `data:image/gif;base64,${base64String}`;
-    } else {
-      // Default to JPEG if we can't determine the type
-      return `data:image/jpeg;base64,${base64String}`;
     }
   };
 
@@ -297,54 +163,7 @@ export const EditProfile: React.FC = () => {
       <Box sx={{ margin: '0 auto' }}>
         {/* Profile Header */}
         <ProfileHeader>
-          <AvatarContainer>
-            <AvatarControls>
-              <StyledAvatar>
-                {image ? (
-                  <img 
-                    src={getImageSrc(image)} 
-                    alt="User avatar"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  getUserInitials(user?.fullName || 'User Name')
-                )}
-              </StyledAvatar>
-              <Tooltip title="Upload new avatar" sx={{mr:1}}>
-                <UploadButton
-                  onClick={() => fileInputRef.current?.click()}
-                  size="small"
-                  disabled={isImageUploading}
-                >
-                  {isImageUploading ? <CircularProgress size={20} color="inherit" /> : <PhotoCameraIcon fontSize="small" />}
-                </UploadButton>
-              </Tooltip>
-              {image && (
-                <Tooltip title="Remove avatar" sx={{mr:1}}>
-                  <RemoveButton
-                    onClick={handleRemoveImage}
-                    size="small"
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </RemoveButton>
-                </Tooltip>
-              )}
-              <HiddenFileInput
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-            </AvatarControls>
-            <UserInfo sx={{ ml: 2}}>
-              <UserName >
-                {user?.fullName}
-              </UserName>
-              <UserDetails>
-                Joined {user?.created ? new Date(user.created).toLocaleDateString() : ''}
-              </UserDetails>
-            </UserInfo>
-          </AvatarContainer>
+
           <Button
             variant="contained"
             onClick={handleSaveProfile}
@@ -353,6 +172,19 @@ export const EditProfile: React.FC = () => {
             Save Profile
           </Button>
         </ProfileHeader>
+        <AvatarUpload
+          placeholder={getUserInitials(user?.fullName || 'User Name')}
+          setImageCallback={setImage}
+          initialImage={user?.image || null}
+        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', ml: 2 }}>
+          <Typography sx={{ fontSize: '28px', fontWeight: 600, color: 'text.primary', mb: '4px' }}>
+            {user?.fullName}
+          </Typography>
+          <Typography sx={{ fontSize: '14px', color: 'text.primary', mb: '4px' }}>
+            Joined {user?.created ? new Date(user.created).toLocaleDateString() : ''}
+          </Typography>
+        </Box>
 
         {/* Personal Information Section */}
         <ContentSection>
@@ -396,7 +228,6 @@ export const EditProfile: React.FC = () => {
             </Grid>
           </Grid>
         </ContentSection>
-
         {/* Connected Accounts Section */}
         <ContentSection>
           <SectionTitle>
@@ -413,16 +244,16 @@ export const EditProfile: React.FC = () => {
                 </AccountName>
               </AccountInfo>
               <Button disabled={false} variant="contained" sx={{
-                  color: 'background.default',
+                color: 'background.default',
+                borderColor: 'primary.main',
+                backgroundColor: 'primary.main',
+                textTransform: 'none',
+                '&:hover': {
+                  backgroundColor: 'rgba(250, 250, 250, 0.1)',
                   borderColor: 'primary.main',
-                  backgroundColor: 'primary.main',
-                  textTransform: 'none',
-                  '&:hover': {
-                    backgroundColor: 'rgba(250, 250, 250, 0.1)',
-                    borderColor: 'primary.main',
-                    color: 'primary.main',
-                  },
-                }}>
+                  color: 'primary.main',
+                },
+              }}>
                 Connect
               </Button>
             </AccountItem>

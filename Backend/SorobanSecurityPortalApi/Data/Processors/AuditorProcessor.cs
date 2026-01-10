@@ -15,6 +15,12 @@ namespace SorobanSecurityPortalApi.Data.Processors
             _dbFactory = dbFactory;
         }
 
+        public async Task<AuditorModel?> GetById(int id)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Auditor.FindAsync(id);
+        }
+
         public async Task<AuditorModel> Add(AuditorModel auditorModel)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -85,6 +91,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
     public interface IAuditorProcessor
     {
+        Task<AuditorModel?> GetById(int id);
         Task<AuditorModel> Add(AuditorModel auditorModel);
         Task<AuditorModel> Update(AuditorModel auditorModel);
         Task Delete(int auditorModelId);

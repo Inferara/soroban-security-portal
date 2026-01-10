@@ -13,6 +13,12 @@ namespace SorobanSecurityPortalApi.Data.Processors
             _dbFactory = dbFactory;
         }
 
+        public async Task<CompanyModel?> GetById(int id)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Company.FindAsync(id);
+        }
+
         public async Task<CompanyModel> Add(CompanyModel companyModel)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -66,6 +72,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
     public interface ICompanyProcessor
     {
+        Task<CompanyModel?> GetById(int id);
         Task<CompanyModel> Add(CompanyModel companyModel);
         Task<CompanyModel> Update(CompanyModel companyModel);
         Task Delete(int companyModelId);

@@ -37,6 +37,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<List<AuditorViewModel>>(auditors);
         }
 
+        public async Task<AuditorModel?> GetById(int id)
+        {
+            return await _auditorProcessor.GetById(id);
+        }
+
         public async Task Delete(int id)
         {
             await _auditorProcessor.Delete(id);
@@ -82,6 +87,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     {
         Task<AuditorViewModel> Add(AuditorViewModel auditorViewModel);
         Task<List<AuditorViewModel>> List();
+        Task<AuditorModel?> GetById(int id);
         Task Delete(int id);
         Task<Result<AuditorViewModel, string>> Update(AuditorViewModel auditorViewModel);
         Task<AuditorStatisticsChangesViewModel> GetStatisticsChanges();

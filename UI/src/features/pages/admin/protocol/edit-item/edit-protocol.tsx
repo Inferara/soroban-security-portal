@@ -7,12 +7,15 @@ import { useEditProtocol } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
+import { AvatarUpload } from '../../../../../components/AvarUpload.tsx';
 
 export const EditProtocol: FC = () => {
   const navigate = useNavigate();
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState<CompanyItem | null>(null);
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState<string | null>(null);
 
   const currentPageState: CurrentPageState = {
     pageName: 'Edit Protocol',
@@ -26,6 +29,8 @@ export const EditProtocol: FC = () => {
     setName(protocol?.name ?? '');
     setUrl(protocol?.url ?? '');
     setCompany(companyListData.find(company => company.id === protocol?.companyId) ?? null);
+    setDescription(protocol?.description ?? '');
+    setImage(protocol?.image ?? null);
   }, [protocol]);
 
   const handleEditProtocol = async () => {
@@ -41,6 +46,8 @@ export const EditProtocol: FC = () => {
       id: protocol?.id ?? 0,
       date: protocol?.date ?? new Date(),
       createdBy: protocol?.createdBy ?? '',
+      description: protocol?.description,
+      image: protocol?.image,
     } as ProtocolItem;
     const editProtocolSuccess = await editProtocol(editProtocolItem);
 
@@ -54,7 +61,14 @@ export const EditProtocol: FC = () => {
   return (
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
+        <Grid size={12} sx={{ display: 'flex', justifyContent: 'center' }}>
+          <AvatarUpload
+            placeholder={protocol?.name ?? ''}
+            setImageCallback={setImage}
+            initialImage={image}
+          />
+        </Grid>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -65,7 +79,7 @@ export const EditProtocol: FC = () => {
             type="text"
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
           <Autocomplete
             options={companyListData}
             value={company}
@@ -80,7 +94,7 @@ export const EditProtocol: FC = () => {
             )}
           />
         </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
             required={true}
@@ -89,6 +103,18 @@ export const EditProtocol: FC = () => {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             type="text"
+          />
+        </Grid>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
+          <TextField
+            sx={{ width: defaultUiSettings.editControlSize }}
+            id="description"
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            type="text"
+            multiline
+            rows={4}
           />
         </Grid>
       </Grid>

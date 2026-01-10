@@ -8,7 +8,9 @@ public class CompanyModelProfile : Profile
 {
     public CompanyModelProfile()
     {
-        CreateMap<CompanyViewModel, CompanyModel>();
-        CreateMap<CompanyModel, CompanyViewModel>();
+        CreateMap<CompanyViewModel, CompanyModel>()
+            .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.ImageData));
+        CreateMap<CompanyModel, CompanyViewModel>()
+            .ForMember(dest => dest.ImageData, opt => opt.MapFrom(src => src.Image));
     }
 }

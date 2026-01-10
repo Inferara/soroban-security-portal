@@ -19,16 +19,42 @@ namespace SorobanSecurityPortalApi.Controllers
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPost]
-        public async Task<IActionResult> Add(AuditorViewModel auditorViewModel)
+        public async Task<IActionResult> Add([FromForm] string auditorData, [FromForm] IFormFile? image = null)
         {
+            var auditorViewModel = System.Text.Json.JsonSerializer.Deserialize<AuditorViewModel>(auditorData);
+            if (auditorViewModel == null)
+            {
+                return BadRequest("Invalid auditor data.");
+            }
+
+            if (image != null && image.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await image.CopyToAsync(memoryStream);
+                auditorViewModel.ImageData = memoryStream.ToArray();
+            }
+
             var result = await _auditorService.Add(auditorViewModel);
             return Ok(result);
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPut]
-        public async Task<IActionResult> Update(AuditorViewModel auditorViewModel)
+        public async Task<IActionResult> Update([FromForm] string auditorData, [FromForm] IFormFile? image = null)
         {
+            var auditorViewModel = System.Text.Json.JsonSerializer.Deserialize<AuditorViewModel>(auditorData);
+            if (auditorViewModel == null)
+            {
+                return BadRequest("Invalid auditor data.");
+            }
+
+            if (image != null && image.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await image.CopyToAsync(memoryStream);
+                auditorViewModel.ImageData = memoryStream.ToArray();
+            }
+
             var result = await _auditorService.Update(auditorViewModel);
             if (result is Result<AuditorViewModel, string>.Ok ok)
                 return Ok(ok.Value);
@@ -64,6 +90,17 @@ namespace SorobanSecurityPortalApi.Controllers
                 return NotFound($"Auditor with ID {id} not found.");
             }
             return Ok(auditor);
+        }
+
+        [HttpGet("{id}/image.png")]
+        public async Task<IActionResult> GetAuditorImage(int id)
+        {
+            var auditor = await _auditorService.GetById(id);
+            if (auditor == null || auditor.Image == null || auditor.Image.Length == 0)
+            {
+                return NotFound("Image not found.");
+            }
+            return File(auditor.Image, "image/png", "image.png");
         }
 
         [HttpGet("statistics/changes")]

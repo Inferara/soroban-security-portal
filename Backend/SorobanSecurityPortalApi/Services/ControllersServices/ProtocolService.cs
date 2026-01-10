@@ -37,6 +37,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<List<ProtocolViewModel>>(protocols);
         }
 
+        public async Task<ProtocolModel?> GetById(int id)
+        {
+            return await _protocolProcessor.GetById(id);
+        }
+
         public async Task Delete(int id)
         {
             await _protocolProcessor.Delete(id);
@@ -81,6 +86,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     {
         Task<ProtocolViewModel> Add(ProtocolViewModel protocolViewModel);
         Task<List<ProtocolViewModel>> List();
+        Task<ProtocolModel?> GetById(int id);
         Task Delete(int id);
         Task<Result<ProtocolViewModel, string>> Update(ProtocolViewModel protocolViewModel);
         Task<ProtocolStatisticsChangesViewModel> GetStatisticsChanges();

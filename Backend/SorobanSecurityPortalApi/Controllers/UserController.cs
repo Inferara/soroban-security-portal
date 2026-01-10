@@ -95,7 +95,7 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
-
+            //TODO: remove loginId, already in LoginViewModel
             var saved = await _userService.Update(loginId, editLoginViewModel);
 
             return Ok(saved);
