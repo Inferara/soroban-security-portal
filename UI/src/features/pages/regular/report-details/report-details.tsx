@@ -10,7 +10,6 @@ import {
   Stack,
   useMediaQuery,
   useTheme,
-  Avatar,
   List,
   ListItem,
   ListItemText,
@@ -48,6 +47,7 @@ import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
+import { EntityAvatar } from '../../../../components/EntityAvatar';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -185,12 +185,16 @@ export const ReportDetails: FC = () => {
         </Button>
 
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ width: 60, height: 60, mr: 2, bgcolor: 'secondary.main' }}>
-            <Assessment />
-          </Avatar>
+          <EntityAvatar
+            entityType="report"
+            entityId={report.id}
+            size="large"
+            fallbackText={report.name}
+            sx={{ mr: 2 }}
+          />
           <Box sx={{ flexGrow: 1 }}>
-            <Typography 
-              variant={isMobile ? "h5" : "h4"} 
+            <Typography
+              variant={isMobile ? "h5" : "h4"}
               sx={{ fontWeight: 600, mb: 0.5, wordBreak: 'break-word' }}
             >
               {report.name}
@@ -537,9 +541,13 @@ export const ReportDetails: FC = () => {
                 </Typography>
                 
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Avatar sx={{ width: 40, height: 40, mr: 2, bgcolor: 'info.main' }}>
-                    <Person />
-                  </Avatar>
+                  <EntityAvatar
+                    entityType="auditor"
+                    entityId={auditor.id}
+                    size="medium"
+                    fallbackText={auditor.name}
+                    sx={{ mr: 2 }}
+                  />
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       {auditor.name}
@@ -549,6 +557,25 @@ export const ReportDetails: FC = () => {
                     </Typography>
                   </Box>
                 </Box>
+
+                {auditor.description && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{
+                      mb: 2,
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.6,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {auditor.description}
+                  </Typography>
+                )}
 
                 <Stack spacing={1}>
                   <Button
@@ -588,9 +615,13 @@ export const ReportDetails: FC = () => {
                 </Typography>
                 
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Avatar sx={{ width: 40, height: 40, mr: 2, bgcolor: 'primary.main' }}>
-                    <Business />
-                  </Avatar>
+                  <EntityAvatar
+                    entityType="protocol"
+                    entityId={protocol.id}
+                    size="medium"
+                    fallbackText={protocol.name}
+                    sx={{ mr: 2 }}
+                  />
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       {protocol.name}
@@ -616,6 +647,25 @@ export const ReportDetails: FC = () => {
                   </Box>
                 </Box>
 
+                {protocol.description && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{
+                      mb: 2,
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.6,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {protocol.description}
+                  </Typography>
+                )}
+
                 <Stack spacing={1}>
                   <Button
                     variant="contained"
@@ -626,7 +676,7 @@ export const ReportDetails: FC = () => {
                   >
                     View Protocol Details
                   </Button>
-                  
+
                   {protocol.url && (
                     <Button
                       variant="contained"

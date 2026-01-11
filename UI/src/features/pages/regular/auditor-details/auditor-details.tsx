@@ -10,7 +10,6 @@ import {
   Stack,
   useMediaQuery,
   useTheme,
-  Avatar,
   List,
   ListItem,
   ListItemText,
@@ -19,9 +18,9 @@ import {
   Tabs,
   Tab
 } from '@mui/material';
-import { 
-  ArrowBack, 
-  OpenInNew, 
+import {
+  ArrowBack,
+  OpenInNew,
   Business,
   BugReport,
   Assessment,
@@ -38,6 +37,7 @@ import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { EntityAvatar } from '../../../../components/EntityAvatar';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
@@ -161,9 +161,13 @@ export const AuditorDetails: FC = () => {
         </Button>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ width: 60, height: 60, mr: 2, bgcolor: 'info.main' }}>
-            <Person />
-          </Avatar>
+          <EntityAvatar
+            entityType="auditor"
+            entityId={auditor.id}
+            size="large"
+            fallbackText={auditor.name}
+            sx={{ mr: 2 }}
+          />
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
               variant={isMobile ? "h5" : "h4"} 
@@ -414,6 +418,21 @@ export const AuditorDetails: FC = () => {
                     {formatDate(auditor.date)}
                   </Typography>
                 </Box>
+
+                {auditor.description && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      About
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
+                    >
+                      {auditor.description}
+                    </Typography>
+                  </Box>
+                )}
               </Stack>
             </CardContent>
           </Card>
@@ -439,14 +458,17 @@ export const AuditorDetails: FC = () => {
                         onClick={() => navigate(`/protocol/${protocol.id}`)}
                       >
                         <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'primary.main' }}>
-                            <Business />
-                          </Avatar>
+                          <EntityAvatar
+                            entityType="protocol"
+                            entityId={protocol.id}
+                            size="small"
+                            fallbackText={protocol.name}
+                          />
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Typography 
-                              variant="subtitle2" 
+                            <Typography
+                              variant="subtitle2"
                               sx={{ fontWeight: 600, wordBreak: 'break-word' }}
                             >
                               {protocol.name}
@@ -495,14 +517,17 @@ export const AuditorDetails: FC = () => {
                         onClick={() => navigate(`/report/${report.id}`)}
                       >
                         <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                            <Assessment />
-                          </Avatar>
+                          <EntityAvatar
+                            entityType="report"
+                            entityId={report.id}
+                            size="small"
+                            fallbackText={report.name}
+                          />
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Typography 
-                              variant="subtitle2" 
+                            <Typography
+                              variant="subtitle2"
                               sx={{ fontWeight: 600, wordBreak: 'break-word' }}
                             >
                               {report.name}
@@ -560,14 +585,17 @@ export const AuditorDetails: FC = () => {
                         onClick={() => navigate(`/report/${report.id}`)}
                       >
                         <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'primary.main' }}>
-                            <Assessment />
-                          </Avatar>
+                          <EntityAvatar
+                            entityType="report"
+                            entityId={report.id}
+                            size="small"
+                            fallbackText={report.name}
+                          />
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Typography 
-                              variant="subtitle2" 
+                            <Typography
+                              variant="subtitle2"
                               sx={{ fontWeight: 600, wordBreak: 'break-word' }}
                             >
                               {report.name}

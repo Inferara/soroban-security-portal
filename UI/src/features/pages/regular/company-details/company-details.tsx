@@ -35,6 +35,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCompanyDetails } from './hooks/company-details.hook';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { EntityAvatar } from '../../../../components/EntityAvatar';
 
 export const CompanyDetails: FC = () => {
   const navigate = useNavigate();
@@ -131,9 +132,13 @@ export const CompanyDetails: FC = () => {
         </Button>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ width: 60, height: 60, mr: 2, bgcolor: 'primary.main' }}>
-            <Business />
-          </Avatar>
+          <EntityAvatar
+            entityType="company"
+            entityId={company.id}
+            size="large"
+            fallbackText={company.name}
+            sx={{ mr: 2 }}
+          />
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
               variant={isMobile ? "h5" : "h4"} 
@@ -264,11 +269,17 @@ export const CompanyDetails: FC = () => {
                 </Typography>
                 
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7 }}>
-                    <strong>{company.name}</strong> is a blockchain company with {statistics?.totalProtocols || 0} protocols 
-                    under security audit. They have completed {statistics?.totalReports || 0} audit reports and identified{' '}
-                    {statistics?.totalVulnerabilities || 0} vulnerabilities across their ecosystem.
-                  </Typography>
+                  {company.description ? (
+                    <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                      {company.description}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7 }}>
+                      <strong>{company.name}</strong> is a blockchain company with {statistics?.totalProtocols || 0} protocols
+                      under security audit. They have completed {statistics?.totalReports || 0} audit reports and identified{' '}
+                      {statistics?.totalVulnerabilities || 0} vulnerabilities across their ecosystem.
+                    </Typography>
+                  )}
                 </Box>
               </CardContent>
             </Card>
@@ -295,9 +306,13 @@ export const CompanyDetails: FC = () => {
                           onClick={() => navigate(`/protocol/${protocol.id}`)}
                         >
                           <ListItemAvatar>
-                            <Avatar sx={{ width: 40, height: 40, mr: 2, bgcolor: 'primary.main' }}>
-                              <Business />
-                            </Avatar>
+                            <EntityAvatar
+                              entityType="protocol"
+                              entityId={protocol.id}
+                              size="medium"
+                              fallbackText={protocol.name}
+                              sx={{ mr: 2 }}
+                            />
                           </ListItemAvatar>
                           <ListItemText
                             primary={
@@ -344,9 +359,13 @@ export const CompanyDetails: FC = () => {
                           onClick={() => navigate(`/report/${report.id}`)}
                         >
                           <ListItemAvatar>
-                            <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: 'info.main' }}>
-                              <Assessment fontSize="small" />
-                            </Avatar>
+                            <EntityAvatar
+                              entityType="report"
+                              entityId={report.id}
+                              size="small"
+                              fallbackText={report.name}
+                              sx={{ mr: 1 }}
+                            />
                           </ListItemAvatar>
                           <ListItemText
                             primary={

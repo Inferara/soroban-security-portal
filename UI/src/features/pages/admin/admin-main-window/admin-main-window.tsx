@@ -1,6 +1,6 @@
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Avatar, Grid, Menu, MenuItem } from '@mui/material';
+import { Avatar, CircularProgress, Grid, Menu, MenuItem } from '@mui/material';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -26,6 +26,8 @@ import { environment } from '../../../../environments/environment.ts';
 import { VulnerabilityManagement } from '../vulnerabilities/list-view/list-vulnerabilities.tsx';
 import { EditVulnerability } from '../vulnerabilities/edit-item/edit-vulnerability.tsx';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
+import { getUserInitials } from '../../../../utils/user-utils';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ReportManagement } from '../reports/list-view/list-reports.tsx';
@@ -113,6 +115,9 @@ export const AdminMainWindow: FC = () => {
   const open = Boolean(anchorEl);
   const currentPage = useAppSelector(selectCurrentPage);
 
+  // avatar state from shared hook
+  const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
+
   const handleUserMenuClick = (event: MouseEvent<HTMLButtonElement>) =>
     setAnchorEl(anchorEl == null ? event.currentTarget : null);
 
@@ -123,21 +128,12 @@ export const AdminMainWindow: FC = () => {
     // Clear localStorage to trigger storage event in other tabs
     const oidcUserKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
     localStorage.removeItem(oidcUserKey);
-    
+
     // Remove the user from auth context without redirect
     await auth.removeUser();
-    
+
     // Redirect to main page (not admin)
     navigate('/');
-  };
-
-  const getUserInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   return (
@@ -161,30 +157,54 @@ export const AdminMainWindow: FC = () => {
               </Typography>
             </Grid>
           </Grid>
-          {/* Theme Toggle Button */}
+          {/* Theme Toggle Button not yet supported */}
+          {false && (
           <IconButton 
             color="inherit" 
             onClick={toggleTheme}
             sx={{ mr: 1 }}
           >
             {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+          </IconButton>)}
           <Typography noWrap component="div" sx={{ overflow: 'unset', marginRight: '20px' }}>
             {auth.user?.profile.name}
           </Typography>
           <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleUserMenuClick}>
-            {auth.user?.profile.picture ? (
-              <Box
-                component="img"                
-                src={`${environment.apiUrl}${auth.user.profile.picture}`}
-                alt="Profile"
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '50%',
-                  objectFit: 'cover'
-                }}
-              />
+            {avatarUrl && !avatarError ? (
+              <Box sx={{ position: 'relative', width: 34, height: 34 }}>
+                {avatarLoading && (
+                  <CircularProgress
+                    size={24}
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      marginTop: '-12px',
+                      marginLeft: '-12px',
+                      color: '#FCD34D',
+                    }}
+                  />
+                )}
+                <Box
+                  component="img"
+                  src={avatarUrl}
+                  alt="Profile"
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    opacity: avatarLoading ? 0 : 1,
+                    transition: 'opacity 0.2s ease-in-out',
+                  }}
+                  onLoad={handleAvatarLoad}
+                  onError={handleAvatarError}
+                />
+              </Box>
+            ) : avatarLoading ? (
+              <StyledAvatar>
+                <CircularProgress size={20} sx={{ color: '#FCD34D' }} />
+              </StyledAvatar>
             ) : (
               <StyledAvatar>
                 {getUserInitials(auth.user?.profile.name || 'User Name')}

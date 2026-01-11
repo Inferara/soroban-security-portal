@@ -37,6 +37,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<List<CompanyViewModel>>(companies);
         }
 
+        public async Task<CompanyModel?> GetById(int id)
+        {
+            return await _companyProcessor.GetById(id);
+        }
+
         public async Task Delete(int id)
         {
             await _companyProcessor.Delete(id);
@@ -75,6 +80,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     {
         Task<CompanyViewModel> Add(CompanyViewModel companyViewModel);
         Task<List<CompanyViewModel>> List();
+        Task<CompanyModel?> GetById(int id);
         Task Delete(int id);
         Task<Result<CompanyViewModel, string>> Update(CompanyViewModel companyViewModel);
     }

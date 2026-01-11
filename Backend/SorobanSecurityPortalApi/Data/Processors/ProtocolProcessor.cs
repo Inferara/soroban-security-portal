@@ -14,6 +14,13 @@ namespace SorobanSecurityPortalApi.Data.Processors
             _dbFactory = dbFactory;
         }
 
+        public async Task<ProtocolModel?> GetById(int id)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Protocol
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id);
+        }
         public async Task<ProtocolModel> Add(ProtocolModel protocolModel)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -42,6 +49,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
             existingProtocol.Name = protocolModel.Name;
             existingProtocol.CompanyId = protocolModel.CompanyId;
             existingProtocol.Url = protocolModel.Url;
+            existingProtocol.Description = protocolModel.Description;
+            if (protocolModel.Image != null)
+            {
+                existingProtocol.Image = protocolModel.Image;
+            }
             await db.SaveChangesAsync();
             return existingProtocol;
         }
@@ -87,6 +99,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
     public interface IProtocolProcessor
     {
+        Task<ProtocolModel?> GetById(int id);
         Task<ProtocolModel> Add(ProtocolModel protocolModel);
         Task<ProtocolModel> Update(ProtocolModel protocolModel);
         Task Delete(int protocolModelId);

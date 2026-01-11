@@ -18,6 +18,11 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string CreatedBy { get; set; } = string.Empty;
         public string? PersonalInfo { get; set; } = string.Empty;
         public byte[]? Image { get; set; }
+        /// <summary>
+        /// When true, SSO login will NOT sync the avatar from the social account.
+        /// This is set to true when user manually uploads or removes their avatar.
+        /// </summary>
+        public bool IsAvatarManuallySet { get; set; }
         [Column(TypeName = "jsonb")]
         public List<ConnectedAccountModel>? ConnectedAccounts { get; set; } = [];
     }

@@ -10,7 +10,7 @@ import { useAuth } from 'react-oidc-context';
 import IconButton from '@mui/material/IconButton';
 import {
   Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink, styled, Avatar,
-  Drawer, List, ListItemButton, ListItemText, Divider
+  Drawer, List, ListItemButton, ListItemText, Divider, CircularProgress
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { environment } from '../../../../environments/environment';
@@ -28,6 +28,8 @@ import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
 import { CompanyDetails } from '../company-details/company-details';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
+import { getUserInitials } from '../../../../utils/user-utils';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
@@ -64,6 +66,9 @@ export const MainWindow: FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleMobile  = () => setMobileOpen(prev => !prev);
 
+  // avatar state from shared hook
+  const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
+
   const { email, setEmail, isSubscribing, handleSubscribe } = useMainWindow();
   const { bookmarks } = useBookmarks();
 
@@ -81,15 +86,6 @@ export const MainWindow: FC = () => {
 
   const isActiveRoute = (path: string) => {
     return location.pathname === `${environment.basePath}${path}`;
-  };
-
-  const getUserInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   let navigationItems = [
@@ -202,13 +198,41 @@ export const MainWindow: FC = () => {
                 {auth.user?.profile.name}
               </Typography>
               <IconButton color="inherit" aria-label="open user menu" edge="end" onClick={handleUserMenuClick}>
-                {auth.user?.profile.picture ? (
-                  <Box
-                    component="img"
-                    src={`${environment.apiUrl}${auth.user.profile.picture}`}
-                    alt="Profile"
-                    sx={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
-                  />
+                {avatarUrl && !avatarError ? (
+                  <Box sx={{ position: 'relative', width: 44, height: 44 }}>
+                    {avatarLoading && (
+                      <CircularProgress
+                        size={30}
+                        sx={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          marginTop: '-15px',
+                          marginLeft: '-15px',
+                          color: '#FCD34D',
+                        }}
+                      />
+                    )}
+                    <Box
+                      component="img"
+                      src={avatarUrl}
+                      alt="Profile"
+                      sx={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        opacity: avatarLoading ? 0 : 1,
+                        transition: 'opacity 0.2s ease-in-out',
+                      }}
+                      onLoad={handleAvatarLoad}
+                      onError={handleAvatarError}
+                    />
+                  </Box>
+                ) : avatarLoading ? (
+                  <StyledAvatar>
+                    <CircularProgress size={24} sx={{ color: '#FCD34D' }} />
+                  </StyledAvatar>
                 ) : (
                   <StyledAvatar>
                     {getUserInitials(auth.user?.profile.name || 'User Name')}

@@ -1,4 +1,4 @@
-import { Button, Grid, TextField, Autocomplete, Stack } from '@mui/material';
+import { Button, Grid, TextField, Autocomplete, Stack, FormHelperText } from '@mui/material';
 import { FC, useState } from 'react';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol.ts';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
@@ -7,12 +7,15 @@ import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts'
 import { useAddProtocol } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
+import { AvatarUpload } from '../../../../../components/AvatarUpload.tsx';
 
 export const AddProtocol: FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [company, setCompany] = useState<CompanyItem | null>(null);
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState<string | null>(null);
 
   const currentPageState: CurrentPageState = {
     pageName: 'Add Protocol',
@@ -24,7 +27,7 @@ export const AddProtocol: FC = () => {
 
   const handleCreateProtocol = async () => {
     if (name === '' || url === '') {
-      showError('All fields are required.');
+      showError('Name and URL are required.');
       return;
     }
     const createProtocolItem = {
@@ -32,6 +35,8 @@ export const AddProtocol: FC = () => {
       name: name,
       url: url,
       companyId: company?.id,
+      description: description,
+      image: image ?? undefined,
     } as ProtocolItem;
     const createProtocolSuccess = await addProtocol(createProtocolItem);
     if (createProtocolSuccess) {
@@ -44,6 +49,16 @@ export const AddProtocol: FC = () => {
   return (
     <div style={defaultUiSettings.editAreaStyle}>
       <Grid container spacing={2}>
+        <Grid size={12} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <AvatarUpload
+            placeholder={name.charAt(0).toUpperCase() || 'P'}
+            setImageCallback={setImage}
+            initialImage={null}
+          />
+          <FormHelperText sx={{ mt: 1, textAlign: 'center' }}>
+            PNG, JPG, or GIF. Max 100KB.
+          </FormHelperText>
+        </Grid>
         <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }} >
           <TextField
             sx={{ width: defaultUiSettings.editControlSize }}
@@ -79,6 +94,19 @@ export const AddProtocol: FC = () => {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             type="text"
+          />
+        </Grid>
+        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }} >
+          <TextField
+            sx={{ width: defaultUiSettings.editControlSize }}
+            id="description"
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            type="text"
+            multiline
+            minRows={4}
+            maxRows={10}
           />
         </Grid>
       </Grid>

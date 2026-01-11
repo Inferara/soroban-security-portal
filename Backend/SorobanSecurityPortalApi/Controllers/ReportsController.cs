@@ -2,6 +2,7 @@ using System.Text.Json;
 using SorobanSecurityPortalApi.Services.ControllersServices;
 using Microsoft.AspNetCore.Mvc;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Security;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Common.Extensions;
@@ -15,12 +16,22 @@ namespace SorobanSecurityPortalApi.Controllers
     {
         private readonly IReportService _reportService;
         private readonly UserContextAccessor _userContextAccessor;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ReportsController> _logger;
 
-        public ReportsController(IReportService reportService,
-            UserContextAccessor userContextAccessor)
+        // Maximum PDF size for URL downloads (50MB)
+        private const int MaxPdfSizeBytes = 50 * 1024 * 1024;
+
+        public ReportsController(
+            IReportService reportService,
+            UserContextAccessor userContextAccessor,
+            IHttpClientFactory httpClientFactory,
+            ILogger<ReportsController> logger)
         {
             _reportService = reportService;
             _userContextAccessor = userContextAccessor;
+            _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -97,28 +108,73 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             else if (!string.IsNullOrWhiteSpace(addReportViewModel.Url))
             {
-                // Download the file from the URL
-                using var httpClient = new HttpClient();
+                // Validate URL for SSRF protection
+                if (!UrlValidator.IsUrlSafeForFetch(addReportViewModel.Url, out var urlError))
+                {
+                    _logger.LogWarning("Report URL validation failed: {Error}, URL: {Url}", urlError, addReportViewModel.Url);
+                    return BadRequest(urlError);
+                }
+
+                // Download the file from the URL using configured HttpClient
+                var httpClient = _httpClientFactory.CreateClient(HttpClients.ReportFetchClient);
                 try
                 {
-                    var response = await httpClient.GetAsync(addReportViewModel.Url);
-                    if (response.IsSuccessStatusCode)
+                    using var response = await httpClient.GetAsync(addReportViewModel.Url, HttpCompletionOption.ResponseHeadersRead);
+
+                    if (!response.IsSuccessStatusCode)
                     {
-                        parsedReport.BinFile = await response.Content.ReadAsByteArrayAsync();
-                        // Implement check if the file is a PDF
-                        if (!parsedReport.BinFile.IsPdf())
-                        {
-                            return BadRequest("The file downloaded from the URL is not a valid PDF.");
-                        }
-                    }
-                    else
-                    {
+                        _logger.LogWarning("Failed to download report from URL: {StatusCode}", response.StatusCode);
                         return BadRequest("Failed to download file from the specified URL.");
                     }
+
+                    // Check Content-Length before downloading
+                    var contentLength = response.Content.Headers.ContentLength;
+                    if (contentLength.HasValue && contentLength.Value > MaxPdfSizeBytes)
+                    {
+                        _logger.LogWarning("Report URL content too large: {Size} bytes", contentLength.Value);
+                        return BadRequest("File size exceeds maximum allowed size (50MB).");
+                    }
+
+                    // Read with streaming and size limit protection
+                    await using var stream = await response.Content.ReadAsStreamAsync();
+                    using var memoryStream = new MemoryStream();
+                    var buffer = new byte[8192];
+                    int bytesRead;
+                    long totalBytesRead = 0;
+
+                    while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+                    {
+                        totalBytesRead += bytesRead;
+                        if (totalBytesRead > MaxPdfSizeBytes)
+                        {
+                            _logger.LogWarning("Report download exceeded size limit during transfer");
+                            return BadRequest("File size exceeds maximum allowed size (50MB).");
+                        }
+                        await memoryStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                    }
+
+                    parsedReport.BinFile = memoryStream.ToArray();
+
+                    // Validate that the downloaded content is actually a PDF
+                    if (!parsedReport.BinFile.IsPdf())
+                    {
+                        return BadRequest("The file downloaded from the URL is not a valid PDF.");
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    _logger.LogWarning("Report download timed out: {Url}", addReportViewModel.Url);
+                    return BadRequest("Request timed out while downloading file.");
+                }
+                catch (HttpRequestException ex)
+                {
+                    _logger.LogWarning(ex, "HTTP error downloading report from URL: {Url}", addReportViewModel.Url);
+                    return BadRequest("Error downloading file from URL.");
                 }
                 catch (Exception ex)
                 {
-                    return BadRequest("Error downloading file from URL: " + ex.Message);
+                    _logger.LogError(ex, "Unexpected error downloading report from URL: {Url}", addReportViewModel.Url);
+                    return BadRequest("Error downloading file from URL.");
                 }
             }
             else

@@ -8,7 +8,9 @@ public class ProtocolModelProfile : Profile
 {
     public ProtocolModelProfile()
     {
-        CreateMap<ProtocolViewModel, ProtocolModel>();
-        CreateMap<ProtocolModel, ProtocolViewModel>();
+        CreateMap<ProtocolViewModel, ProtocolModel>()
+            .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.ImageData));
+        CreateMap<ProtocolModel, ProtocolViewModel>()
+            .ForMember(dest => dest.ImageData, opt => opt.MapFrom(src => src.Image));
     }
 }

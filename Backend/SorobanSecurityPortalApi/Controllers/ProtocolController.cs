@@ -19,16 +19,44 @@ namespace SorobanSecurityPortalApi.Controllers
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPost]
-        public async Task<IActionResult> Add(ProtocolViewModel protocolViewModel)
+        public async Task<IActionResult> Add([FromForm] string protocolData, [FromForm] IFormFile? image = null)
         {
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var protocolViewModel = System.Text.Json.JsonSerializer.Deserialize<ProtocolViewModel>(protocolData, jsonOptions);
+            if (protocolViewModel == null)
+            {
+                return BadRequest("Invalid protocol data.");
+            }
+
+            if (image != null && image.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await image.CopyToAsync(memoryStream);
+                protocolViewModel.ImageData = memoryStream.ToArray();
+            }
+
             var result = await _protocolService.Add(protocolViewModel);
             return Ok(result);
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPut]
-        public async Task<IActionResult> Update(ProtocolViewModel protocolViewModel)
+        public async Task<IActionResult> Update([FromForm] string protocolData, [FromForm] IFormFile? image = null)
         {
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var protocolViewModel = System.Text.Json.JsonSerializer.Deserialize<ProtocolViewModel>(protocolData, jsonOptions);
+            if (protocolViewModel == null)
+            {
+                return BadRequest("Invalid protocol data.");
+            }
+
+            if (image != null && image.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await image.CopyToAsync(memoryStream);
+                protocolViewModel.ImageData = memoryStream.ToArray();
+            }
+
             var result = await _protocolService.Update(protocolViewModel);
             if (result is Result<ProtocolViewModel, string>.Ok ok)
                 return Ok(ok.Value);
@@ -64,6 +92,17 @@ namespace SorobanSecurityPortalApi.Controllers
                 return NotFound($"Protocol with ID {id} not found.");
             }
             return Ok(protocol);
+        }
+
+        [HttpGet("{id}/image.png")]
+        public async Task<IActionResult> GetProtocolImage(int id)
+        {
+            var protocol = await _protocolService.GetById(id);
+            if (protocol == null || protocol.Image == null || protocol.Image.Length == 0)
+            {
+                return NotFound("Image not found.");
+            }
+            return File(protocol.Image, "image/png", "image.png");
         }
 
         [HttpGet("statistics/changes")]

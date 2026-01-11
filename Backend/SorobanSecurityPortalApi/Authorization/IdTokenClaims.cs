@@ -11,4 +11,5 @@ public class IdTokenClaims
     public const string LoginType = "loginType";
     public const string AtHash = "at_hash";
     public const string Picture = "picture";
+    public const string Id = "id";
 }

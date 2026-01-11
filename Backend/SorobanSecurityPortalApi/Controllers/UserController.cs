@@ -45,11 +45,11 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> GetUserAvatar(int loginId)
         {
             var login = await _userService.GetLoginById(loginId);
-            if (login.Image == null || login.Image.Length == 0)
+            if (login?.Image == null || login.Image.Length == 0)
             {
-                return BadRequest("Avatar is not found.");
+                return NotFound("Avatar not found.");
             }
-            return File(login.Image, "image/png", $"avatar.png");
+            return File(login.Image, "image/png", "avatar.png");
         }
 
         [RoleAuthorize(Role.Admin)]
@@ -95,7 +95,7 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
-
+            //TODO: remove loginId, already in LoginViewModel
             var saved = await _userService.Update(loginId, editLoginViewModel);
 
             return Ok(saved);
@@ -107,14 +107,25 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
+
+            // Get the authenticated user's actual ID from the token/context
+            var currentUserId = await _userContextAccessor.GetLoginIdAsync();
+
+            // Verify the user is only updating their own profile
+            if (currentUserId != loginId)
+            {
+                return Forbid();
+            }
+
             var user = await _userService.GetLoginById(loginId);
-            if (user.IsEnabled == false)
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (!user.IsEnabled)
             {
                 return BadRequest("User is disabled.");
-            }
-            if (user.LoginId != loginId)
-            {
-                return BadRequest("You can only update your own profile.");
             }
 
             var saved = await _userService.SelfUpdate(loginId, userUpdateSelfViewModel);
