@@ -22,7 +22,6 @@ export const useEditProfile = () => {
     login: string;
     personalInfo: string;
     image?: string;
-    isAvatarManuallySet?: boolean;
   }): Promise<boolean> => {
     if (!user) return false;
 
@@ -33,7 +32,6 @@ export const useEditProfile = () => {
         image: profileData.image || '',
         personalInfo: profileData.personalInfo,
         connectedAccounts: user.connectedAccounts,
-        isAvatarManuallySet: profileData.isAvatarManuallySet,
       };
 
       const response = await selfEditUserCall(user.loginId, selfEditUserItem);

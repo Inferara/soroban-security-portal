@@ -17,15 +17,38 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly ILoginProcessor _loginProcessor;
         private readonly ILoginHistoryProcessor _loginHistoryProcessor;
         private readonly ExtendedConfig _config;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ConnectService> _logger;
+
+        // Maximum image size (5MB)
+        private const int MaxImageSizeBytes = 5 * 1024 * 1024;
+
+        // Allowed content types for images
+        private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg", "image/png", "image/gif", "image/webp"
+        };
+
+        // Allowed hosts for SSO avatar images (SSRF protection)
+        private static readonly HashSet<string> AllowedImageHosts = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "cdn.discordapp.com",
+            "lh3.googleusercontent.com",
+            "googleusercontent.com"
+        };
 
         public ConnectService(
             ILoginProcessor loginProcessor,
             ILoginHistoryProcessor loginHistoryProcessor,
-            ExtendedConfig config)
+            ExtendedConfig config,
+            IHttpClientFactory httpClientFactory,
+            ILogger<ConnectService> logger)
         {
             _loginProcessor = loginProcessor;
             _loginHistoryProcessor = loginHistoryProcessor;
             _config = config;
+            _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         public async Task<string?> GetCodeByCredentials(string loginName, string password, bool isOfflineMode, string codeChallenge, bool isPermanentToken)
@@ -238,13 +261,85 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         private async Task<byte[]> GetImageByUrl(string imageUrl)
         {
-            using var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync(imageUrl);
-            if (response.IsSuccessStatusCode)
+            // Validate URL format
+            if (!Uri.TryCreate(imageUrl, UriKind.Absolute, out var uri))
             {
-                return await response.Content.ReadAsByteArrayAsync();
+                _logger.LogWarning("Invalid image URL format: {Url}", imageUrl);
+                return Array.Empty<byte>();
             }
-            return Array.Empty<byte>();
+
+            // Enforce HTTPS only
+            if (uri.Scheme != Uri.UriSchemeHttps)
+            {
+                _logger.LogWarning("Non-HTTPS image URL rejected: {Url}", imageUrl);
+                return Array.Empty<byte>();
+            }
+
+            // Validate against allowlist of known SSO image hosts (SSRF protection)
+            if (!AllowedImageHosts.Any(host => uri.Host.EndsWith(host, StringComparison.OrdinalIgnoreCase)))
+            {
+                _logger.LogWarning("Image URL from untrusted host rejected: {Host}", uri.Host);
+                return Array.Empty<byte>();
+            }
+
+            try
+            {
+                var httpClient = _httpClientFactory.CreateClient(HttpClients.AvatarFetchClient);
+                using var response = await httpClient.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Failed to fetch image, status: {StatusCode}", response.StatusCode);
+                    return Array.Empty<byte>();
+                }
+
+                // Validate Content-Type
+                var contentType = response.Content.Headers.ContentType?.MediaType;
+                if (string.IsNullOrEmpty(contentType) || !AllowedContentTypes.Contains(contentType))
+                {
+                    _logger.LogWarning("Invalid content type for image: {ContentType}", contentType);
+                    return Array.Empty<byte>();
+                }
+
+                // Check Content-Length header if available
+                var contentLength = response.Content.Headers.ContentLength;
+                if (contentLength.HasValue && contentLength.Value > MaxImageSizeBytes)
+                {
+                    _logger.LogWarning("Image too large: {Size} bytes", contentLength.Value);
+                    return Array.Empty<byte>();
+                }
+
+                // Read with size limit
+                await using var stream = await response.Content.ReadAsStreamAsync();
+                using var memoryStream = new MemoryStream();
+
+                var buffer = new byte[8192];
+                int bytesRead;
+                long totalBytesRead = 0;
+
+                while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+                {
+                    totalBytesRead += bytesRead;
+                    if (totalBytesRead > MaxImageSizeBytes)
+                    {
+                        _logger.LogWarning("Image exceeded size limit during download");
+                        return Array.Empty<byte>();
+                    }
+                    await memoryStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                }
+
+                return memoryStream.ToArray();
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogWarning("Image fetch timed out: {Url}", imageUrl);
+                return Array.Empty<byte>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch image: {Url}", imageUrl);
+                return Array.Empty<byte>();
+            }
         }
 
         private async Task<TokenModel> GetTokenModel(LoginHistoryModel loginHistory)

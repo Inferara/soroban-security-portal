@@ -75,18 +75,27 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var loginModel = _mapper.Map<LoginModel>(userUpdateSelfViewModel);
             login.FullName = loginModel.FullName;
             login.PersonalInfo = loginModel.PersonalInfo;
-            login.Image = loginModel.Image;
             login.ConnectedAccounts = loginModel.ConnectedAccounts;
 
-            // If IsAvatarManuallySet is explicitly provided, update the flag
-            // This prevents SSO from overwriting user's manual avatar choice
-            if (userUpdateSelfViewModel.IsAvatarManuallySet.HasValue)
+            // Detect if user is changing their avatar (either uploading new or removing)
+            // Set IsAvatarManuallySet=true to prevent SSO from overwriting
+            bool imageChanged = !AreImagesEqual(login.Image, loginModel.Image);
+            if (imageChanged)
             {
-                login.IsAvatarManuallySet = userUpdateSelfViewModel.IsAvatarManuallySet.Value;
+                login.Image = loginModel.Image;
+                login.IsAvatarManuallySet = true;
             }
 
             await _loginProcessor.Update(login);
             return true;
+        }
+
+        private static bool AreImagesEqual(byte[]? a, byte[]? b)
+        {
+            if (a == null && b == null) return true;
+            if (a == null || b == null) return false;
+            if (a.Length != b.Length) return false;
+            return a.AsSpan().SequenceEqual(b.AsSpan());
         }
 
         public async Task<bool?> Delete(int loginId)

@@ -214,12 +214,15 @@ test.describe('Avatar SSO Sync Rules', () => {
    *
    * Rule 1: SSO users get picture from social account (Google/Discord)
    * Rule 2: Avatar is refreshed on every login (unless manually set)
-   * Rule 3: Manual upload sets isAvatarManuallySet = true, preventing SSO sync
-   * Rule 4: Removing picture also sets isAvatarManuallySet = true
+   * Rule 3: Manual upload automatically sets IsAvatarManuallySet = true on server (no client flag needed)
+   * Rule 4: Removing picture also sets the flag on server (no client flag needed)
+   *
+   * Note: IsAvatarManuallySet is handled entirely server-side by detecting image changes.
+   * The client does not need to send or track this flag.
    */
 
   test.describe.skip('Manual Avatar Override', () => {
-    test('uploading avatar should set isAvatarManuallySet flag', async ({ page, request }) => {
+    test('uploading avatar should automatically set server-side flag', async ({ page, request }) => {
       // Login as test user
       await page.goto('/profile/edit');
 
@@ -235,11 +238,11 @@ test.describe('Avatar SSO Sync Rules', () => {
       const saveButton = page.getByRole('button', { name: /save profile/i });
       await saveButton.click();
 
-      // Verify the API received isAvatarManuallySet: true
-      // This would require intercepting the API call
+      // Server automatically detects image change and sets IsAvatarManuallySet = true
+      // This prevents SSO from overwriting the avatar on next login
     });
 
-    test('removing avatar should set isAvatarManuallySet flag', async ({ page }) => {
+    test('removing avatar should automatically set server-side flag', async ({ page }) => {
       await page.goto('/profile/edit');
 
       // Remove existing avatar
@@ -250,7 +253,7 @@ test.describe('Avatar SSO Sync Rules', () => {
       const saveButton = page.getByRole('button', { name: /save profile/i });
       await saveButton.click();
 
-      // Verify the flag is set
+      // Server automatically detects image change and sets IsAvatarManuallySet = true
       // This prevents SSO from adding the social account picture back
     });
   });

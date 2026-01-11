@@ -9,7 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import { styled } from '@mui/material/styles';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import { FC, MouseEvent, useState, useEffect } from 'react';
+import { FC, MouseEvent, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../../../app/hooks.ts';
@@ -26,6 +26,8 @@ import { environment } from '../../../../environments/environment.ts';
 import { VulnerabilityManagement } from '../vulnerabilities/list-view/list-vulnerabilities.tsx';
 import { EditVulnerability } from '../vulnerabilities/edit-item/edit-vulnerability.tsx';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
+import { getUserInitials } from '../../../../utils/user-utils';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ReportManagement } from '../reports/list-view/list-reports.tsx';
@@ -43,7 +45,6 @@ import { EditCompany } from '../company/edit-item/edit-company.tsx';
 import { ListTags } from '../tag/list-view/list-tags.tsx';
 import { AddTag } from '../tag/add-item/add-tag.tsx';
 import { EditTag } from '../tag/edit-item/edit-tag.tsx';
-import { getUserByIdCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 
 const drawerWidth = 240;
 const drawerMarginLeft = 24;
@@ -114,45 +115,8 @@ export const AdminMainWindow: FC = () => {
   const open = Boolean(anchorEl);
   const currentPage = useAppSelector(selectCurrentPage);
 
-  // avatar state - fetch user data from API to get loginId
-  const [avatarLoading, setAvatarLoading] = useState(true);
-  const [avatarError, setAvatarError] = useState(false);
-  const [avatarKey, setAvatarKey] = useState(Date.now());
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const avatarUrl = auth.isAuthenticated && currentUserId ? `${environment.apiUrl}/api/v1/user/${currentUserId}/avatar.png?t=${avatarKey}` : null;
-
-  // Fetch current user data when authenticated to get loginId for avatar URL
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      if (auth.isAuthenticated && auth.user) {
-        try {
-          // Call API with loginId=0 to get current user's data
-          const userData = await getUserByIdCall(0);
-          if (userData?.loginId) {
-            setCurrentUserId(userData.loginId);
-            setAvatarLoading(true);
-            setAvatarError(false);
-            setAvatarKey(Date.now());
-          }
-        } catch (error) {
-          console.error('Failed to fetch current user:', error);
-          setCurrentUserId(null);
-        }
-      } else {
-        setCurrentUserId(null);
-      }
-    };
-    fetchCurrentUser();
-  }, [auth.isAuthenticated, auth.user?.profile?.sub]);
-
-  const handleAvatarLoad = () => {
-    setAvatarLoading(false);
-  };
-
-  const handleAvatarError = () => {
-    setAvatarLoading(false);
-    setAvatarError(true);
-  };
+  // avatar state from shared hook
+  const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
 
   const handleUserMenuClick = (event: MouseEvent<HTMLButtonElement>) =>
     setAnchorEl(anchorEl == null ? event.currentTarget : null);
@@ -164,21 +128,12 @@ export const AdminMainWindow: FC = () => {
     // Clear localStorage to trigger storage event in other tabs
     const oidcUserKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
     localStorage.removeItem(oidcUserKey);
-    
+
     // Remove the user from auth context without redirect
     await auth.removeUser();
-    
+
     // Redirect to main page (not admin)
     navigate('/');
-  };
-
-  const getUserInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   return (
@@ -202,14 +157,15 @@ export const AdminMainWindow: FC = () => {
               </Typography>
             </Grid>
           </Grid>
-          {/* Theme Toggle Button */}
+          {/* Theme Toggle Button not yet supported */}
+          {false && (
           <IconButton 
             color="inherit" 
             onClick={toggleTheme}
             sx={{ mr: 1 }}
           >
             {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+          </IconButton>)}
           <Typography noWrap component="div" sx={{ overflow: 'unset', marginRight: '20px' }}>
             {auth.user?.profile.name}
           </Typography>
@@ -245,6 +201,10 @@ export const AdminMainWindow: FC = () => {
                   onError={handleAvatarError}
                 />
               </Box>
+            ) : avatarLoading ? (
+              <StyledAvatar>
+                <CircularProgress size={20} sx={{ color: '#FCD34D' }} />
+              </StyledAvatar>
             ) : (
               <StyledAvatar>
                 {getUserInitials(auth.user?.profile.name || 'User Name')}

@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box';
-import { FC, MouseEvent, useState, useEffect } from 'react';
+import { FC, MouseEvent, useState } from 'react';
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 import './main-window.css';
 import AppBar from '@mui/material/AppBar';
@@ -28,7 +28,8 @@ import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
 import { CompanyDetails } from '../company-details/company-details';
 import { useTheme } from '../../../../contexts/ThemeContext';
-import { getUserByIdCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
+import { getUserInitials } from '../../../../utils/user-utils';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
@@ -65,45 +66,8 @@ export const MainWindow: FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleMobile  = () => setMobileOpen(prev => !prev);
 
-  // avatar state - fetch user data from API to get loginId
-  const [avatarLoading, setAvatarLoading] = useState(true);
-  const [avatarError, setAvatarError] = useState(false);
-  const [avatarKey, setAvatarKey] = useState(Date.now());
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const avatarUrl = auth.isAuthenticated && currentUserId ? `${environment.apiUrl}/api/v1/user/${currentUserId}/avatar.png?t=${avatarKey}` : null;
-
-  // Fetch current user data when authenticated to get loginId for avatar URL
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      if (auth.isAuthenticated && auth.user) {
-        try {
-          // Call API with loginId=0 to get current user's data
-          const userData = await getUserByIdCall(0);
-          if (userData?.loginId) {
-            setCurrentUserId(userData.loginId);
-            setAvatarLoading(true);
-            setAvatarError(false);
-            setAvatarKey(Date.now());
-          }
-        } catch (error) {
-          console.error('Failed to fetch current user:', error);
-          setCurrentUserId(null);
-        }
-      } else {
-        setCurrentUserId(null);
-      }
-    };
-    fetchCurrentUser();
-  }, [auth.isAuthenticated, auth.user?.profile?.sub]);
-
-  const handleAvatarLoad = () => {
-    setAvatarLoading(false);
-  };
-
-  const handleAvatarError = () => {
-    setAvatarLoading(false);
-    setAvatarError(true);
-  };
+  // avatar state from shared hook
+  const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
 
   const { email, setEmail, isSubscribing, handleSubscribe } = useMainWindow();
   const { bookmarks } = useBookmarks();
@@ -122,15 +86,6 @@ export const MainWindow: FC = () => {
 
   const isActiveRoute = (path: string) => {
     return location.pathname === `${environment.basePath}${path}`;
-  };
-
-  const getUserInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   let navigationItems = [
@@ -274,6 +229,10 @@ export const MainWindow: FC = () => {
                       onError={handleAvatarError}
                     />
                   </Box>
+                ) : avatarLoading ? (
+                  <StyledAvatar>
+                    <CircularProgress size={24} sx={{ color: '#FCD34D' }} />
+                  </StyledAvatar>
                 ) : (
                   <StyledAvatar>
                     {getUserInitials(auth.user?.profile.name || 'User Name')}

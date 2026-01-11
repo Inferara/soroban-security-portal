@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextField, Button, Grid, Paper, Typography, Box } from '@mui/material';
 import { useEditProfile } from './hooks/edit-profile.hook';
 import { styled } from '@mui/material/styles';
@@ -11,6 +11,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import XIcon from '@mui/icons-material/X';
 import ChatIcon from '@mui/icons-material/Chat';
 import { AvatarUpload } from '../../../../components/AvatarUpload';
+import { getUserInitials } from '../../../../utils/user-utils';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -78,10 +79,6 @@ export const EditProfile: React.FC = () => {
   const [username, setUsername] = useState('');
   const [aboutYou, setAboutYou] = useState('');
   const [image, setImage] = useState<string | null>(null);
-  // Track if user has manually modified their avatar (upload or remove)
-  const [isAvatarManuallySet, setIsAvatarManuallySet] = useState<boolean | undefined>(undefined);
-  // Track if this is the initial load to prevent triggering isAvatarManuallySet
-  const isInitialLoadRef = useRef(true);
 
   const {
     user,
@@ -94,11 +91,6 @@ export const EditProfile: React.FC = () => {
       setName(user.fullName || '');
       setUsername(user.login || '');
       setAboutYou(user.personalInfo || '');
-      // Mark initial load as complete after user data is loaded
-      // Use setTimeout to ensure AvatarUpload has processed initialImage
-      setTimeout(() => {
-        isInitialLoadRef.current = false;
-      }, 100);
     }
   }, [user]);
 
@@ -140,7 +132,6 @@ export const EditProfile: React.FC = () => {
       login: username,
       personalInfo: aboutYou,
       image: avatarImage || undefined,
-      isAvatarManuallySet: isAvatarManuallySet,
     });
 
     if (updateSuccess) {
@@ -149,16 +140,6 @@ export const EditProfile: React.FC = () => {
     } else {
       showError('Failed to update profile');
     }
-  };
-
-  // Get user initials for avatar
-  const getUserInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   const connectedAccounts = [
@@ -184,15 +165,7 @@ export const EditProfile: React.FC = () => {
         </ProfileHeader>
         <AvatarUpload
           placeholder={getUserInitials(user?.fullName || 'User Name')}
-          setImageCallback={(img) => {
-            setImage(img);
-            // Only set isAvatarManuallySet when user explicitly interacts (not on initial load)
-            if (!isInitialLoadRef.current) {
-              // When user uploads or removes avatar, mark it as manually set
-              // null means user clicked "remove picture", string means user uploaded
-              setIsAvatarManuallySet(true);
-            }
-          }}
+          setImageCallback={setImage}
           initialImage={user?.image || null}
         />
         <Box sx={{ display: 'flex', flexDirection: 'column', ml: 2 }}>

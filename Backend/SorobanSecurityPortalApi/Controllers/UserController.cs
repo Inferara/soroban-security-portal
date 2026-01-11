@@ -107,14 +107,25 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
+
+            // Get the authenticated user's actual ID from the token/context
+            var currentUserId = await _userContextAccessor.GetLoginIdAsync();
+
+            // Verify the user is only updating their own profile
+            if (currentUserId != loginId)
+            {
+                return Forbid();
+            }
+
             var user = await _userService.GetLoginById(loginId);
-            if (user.IsEnabled == false)
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (!user.IsEnabled)
             {
                 return BadRequest("User is disabled.");
-            }
-            if (user.LoginId != loginId)
-            {
-                return BadRequest("You can only update your own profile.");
             }
 
             var saved = await _userService.SelfUpdate(loginId, userUpdateSelfViewModel);

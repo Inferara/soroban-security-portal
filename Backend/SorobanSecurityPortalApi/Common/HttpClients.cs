@@ -8,6 +8,7 @@ namespace SorobanSecurityPortalApi.Common
     {
         public const string NoRetryClient = "NoRetryClient";
         public const string RetryClient = "RetryClient";
+        public const string AvatarFetchClient = "AvatarFetchClient";
 
         public static void AddHttpClients(this IServiceCollection services, ExtendedConfig extendedConfig, ILogger<Startup> logger)
         {
@@ -37,6 +38,21 @@ namespace SorobanSecurityPortalApi.Common
                     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
                 })
                 .ConfigurePrimaryHttpMessageHandler<HttpCallHandler>();
+
+            // Avatar fetch client with short timeout for SSO image downloads
+            services.AddHttpClient(AvatarFetchClient, httpClient =>
+                {
+                    httpClient.Timeout = TimeSpan.FromSeconds(10);
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "SorobanSecurityPortal/1.0");
+                })
+                .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    Proxy = string.IsNullOrEmpty(extendedConfig.Proxy) ? null : new WebProxy(new Uri(extendedConfig.Proxy)),
+                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+                    AllowAutoRedirect = true,
+                    MaxAutomaticRedirections = 3
+                });
         }
 
         private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(ILogger<Startup> logger) => HttpPolicyExtensions
