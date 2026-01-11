@@ -21,7 +21,8 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Add([FromForm] string auditorData, [FromForm] IFormFile? image = null)
         {
-            var auditorViewModel = System.Text.Json.JsonSerializer.Deserialize<AuditorViewModel>(auditorData);
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var auditorViewModel = System.Text.Json.JsonSerializer.Deserialize<AuditorViewModel>(auditorData, jsonOptions);
             if (auditorViewModel == null)
             {
                 return BadRequest("Invalid auditor data.");
@@ -42,7 +43,8 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPut]
         public async Task<IActionResult> Update([FromForm] string auditorData, [FromForm] IFormFile? image = null)
         {
-            var auditorViewModel = System.Text.Json.JsonSerializer.Deserialize<AuditorViewModel>(auditorData);
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var auditorViewModel = System.Text.Json.JsonSerializer.Deserialize<AuditorViewModel>(auditorData, jsonOptions);
             if (auditorViewModel == null)
             {
                 return BadRequest("Invalid auditor data.");

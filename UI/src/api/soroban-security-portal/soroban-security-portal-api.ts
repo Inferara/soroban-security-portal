@@ -64,12 +64,24 @@ export const removeAuditorCall = async (auditorId: number): Promise<boolean> => 
 };
 export const addAuditorCall = async (auditor: AuditorItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/auditors', 'POST', auditor);
+    const formData = createEntityFormData('auditorData', {
+        id: auditor.id,
+        name: auditor.name,
+        description: auditor.description,
+        url: auditor.url
+    }, auditor.image);
+    const response = await client.request('api/v1/auditors', 'POST', formData);
     return response.data as boolean;
 };
 export const editAuditorCall = async (auditor: AuditorItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/auditors`, 'PUT', auditor);
+    const formData = createEntityFormData('auditorData', {
+        id: auditor.id,
+        name: auditor.name,
+        description: auditor.description,
+        url: auditor.url
+    }, auditor.image);
+    const response = await client.request(`api/v1/auditors`, 'PUT', formData);
     return response.data as boolean;
 };
 export const getAuditorByIdCall = async (auditorId: number): Promise<AuditorItem> => {
@@ -96,12 +108,26 @@ export const removeProtocolCall = async (protocolId: number): Promise<boolean> =
 };
 export const addProtocolCall = async (protocol: ProtocolItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/protocols', 'POST', protocol);
+    const formData = createEntityFormData('protocolData', {
+        id: protocol.id,
+        name: protocol.name,
+        description: protocol.description,
+        url: protocol.url,
+        companyId: protocol.companyId
+    }, protocol.image);
+    const response = await client.request('api/v1/protocols', 'POST', formData);
     return response.data as boolean;
 };
 export const editProtocolCall = async (protocol: ProtocolItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/protocols`, 'PUT', protocol);
+    const formData = createEntityFormData('protocolData', {
+        id: protocol.id,
+        name: protocol.name,
+        description: protocol.description,
+        url: protocol.url,
+        companyId: protocol.companyId
+    }, protocol.image);
+    const response = await client.request(`api/v1/protocols`, 'PUT', formData);
     return response.data as boolean;
 };
 export const getProtocolByIdCall = async (protocolId: number): Promise<ProtocolItem> => {
@@ -128,12 +154,24 @@ export const removeCompanyCall = async (companyId: number): Promise<boolean> => 
 };
 export const addCompanyCall = async (company: CompanyItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/companies', 'POST', company);
+    const formData = createEntityFormData('companyData', {
+        id: company.id,
+        name: company.name,
+        description: company.description,
+        url: company.url
+    }, company.image);
+    const response = await client.request('api/v1/companies', 'POST', formData);
     return response.data as boolean;
 };
 export const editCompanyCall = async (company: CompanyItem): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request(`api/v1/companies`, 'PUT', company);
+    const formData = createEntityFormData('companyData', {
+        id: company.id,
+        name: company.name,
+        description: company.description,
+        url: company.url
+    }, company.image);
+    const response = await client.request(`api/v1/companies`, 'PUT', formData);
     return response.data as boolean;
 };
 export const getCompanyByIdCall = async (companyId: number): Promise<CompanyItem> => {
@@ -418,6 +456,25 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
     const client = await getRestClient();
     const response = await client.request(`api/v1/bookmarks/${bookmarkId}`, 'GET');
     return response.data as Bookmark;
+};
+
+// Helper function to create FormData for entity operations with image support
+const createEntityFormData = (dataFieldName: string, entityData: object, imageBase64?: string): FormData => {
+    const formData = new FormData();
+    formData.append(dataFieldName, JSON.stringify(entityData));
+
+    if (imageBase64) {
+        const byteCharacters = atob(imageBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+        formData.append('image', blob, 'image.png');
+    }
+
+    return formData;
 };
 
 // Rest client

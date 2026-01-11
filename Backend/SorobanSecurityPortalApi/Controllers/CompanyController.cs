@@ -21,7 +21,8 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Add([FromForm] string companyData, [FromForm] IFormFile? image = null)
         {
-            var companyViewModel = System.Text.Json.JsonSerializer.Deserialize<CompanyViewModel>(companyData);
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var companyViewModel = System.Text.Json.JsonSerializer.Deserialize<CompanyViewModel>(companyData, jsonOptions);
             if (companyViewModel == null)
             {
                 return BadRequest("Invalid company data.");
@@ -42,7 +43,8 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPut]
         public async Task<IActionResult> Update([FromForm] string companyData, [FromForm] IFormFile? image = null)
         {
-            var companyViewModel = System.Text.Json.JsonSerializer.Deserialize<CompanyViewModel>(companyData);
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var companyViewModel = System.Text.Json.JsonSerializer.Deserialize<CompanyViewModel>(companyData, jsonOptions);
             if (companyViewModel == null)
             {
                 return BadRequest("Invalid company data.");

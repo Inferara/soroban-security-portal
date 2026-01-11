@@ -9,6 +9,7 @@ interface AvatarUploadProps {
     placeholder: string,
     setImageCallback: (base64Image: string | null) => void;
     initialImage: string | null;
+    initialImageUrl?: string | null;
 }
 
 const ImageControlButton = styled(IconButton)(() => ({
@@ -33,15 +34,35 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
     placeholder,
     setImageCallback,
     initialImage,
+    initialImageUrl,
 }) => {
     const [image, setImage] = useState<string | null>(initialImage);
+    const [imageUrl, setImageUrl] = useState<string | null>(initialImageUrl ?? null);
     const [isImageUploading, setIsImageUploading] = useState(false);
+    const [isImageUrlLoading, setIsImageUrlLoading] = useState(!!initialImageUrl);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setImage(initialImage);
         setImageCallback(initialImage);
     }, [initialImage]);
+
+    useEffect(() => {
+        setImageUrl(initialImageUrl ?? null);
+        // Start loading state when we have a URL to load
+        if (initialImageUrl) {
+            setIsImageUrlLoading(true);
+        }
+    }, [initialImageUrl]);
+
+    const handleImageUrlLoad = () => {
+        setIsImageUrlLoading(false);
+    };
+
+    const handleImageUrlError = () => {
+        setImageUrl(null);
+        setIsImageUrlLoading(false);
+    };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -66,6 +87,7 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
                     // Convert data URL to base64 string (remove the data:image/...;base64, prefix)
                     const base64String = result.split(',')[1];
                     setImage(base64String);
+                    setImageUrl(null); // Clear the URL when a new image is uploaded
                     setImageCallback(base64String);
                     showSuccess('Image uploaded successfully');
                 } catch (error) {
@@ -84,6 +106,7 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
 
     const handleRemoveImage = () => {
         setImage(null);
+        setImageUrl(null);
         setImageCallback(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = ''; // Clear file input value
@@ -124,6 +147,34 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
                             alt="User avatar"
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
+                    ) : imageUrl ? (
+                        <>
+                            {isImageUrlLoading && (
+                                <CircularProgress
+                                    size={30}
+                                    sx={{
+                                        color: '#FCD34D',
+                                        position: 'absolute',
+                                        zIndex: 1,
+                                    }}
+                                />
+                            )}
+                            <img
+                                src={imageUrl}
+                                alt="User avatar"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    opacity: isImageUrlLoading ? 0 : 1,
+                                    transition: 'opacity 0.2s ease-in-out',
+                                }}
+                                onLoad={handleImageUrlLoad}
+                                onError={handleImageUrlError}
+                            />
+                        </>
+                    ) : isImageUrlLoading ? (
+                        <CircularProgress size={30} sx={{ color: '#FCD34D' }} />
                     ) : (
                         placeholder
                     )}
@@ -138,7 +189,7 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
                         {isImageUploading ? <CircularProgress size={20} color="inherit" /> : <PhotoCameraIcon fontSize="small" />}
                     </ImageControlButton>
                 </Tooltip>
-                {image && (
+                {(image || imageUrl) && (
                     <Tooltip title="Remove avatar" sx={{ mr: 1 }}>
                         <ImageControlButton
                             sx={{ bottom: 0, right: 0 }}

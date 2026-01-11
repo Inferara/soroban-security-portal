@@ -35,6 +35,7 @@ import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useAuditorDetails } from './hooks/auditor-details.hook';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
+import { environment } from '../../../../environments/environment';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
@@ -161,8 +162,11 @@ export const AuditorDetails: FC = () => {
         </Button>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ width: 60, height: 60, mr: 2, bgcolor: 'info.main' }}>
-            <Person />
+          <Avatar
+            sx={{ width: 60, height: 60, mr: 2, bgcolor: 'info.main' }}
+            src={auditor.image ? `${environment.apiUrl}/api/v1/auditors/${auditor.id}/image.png` : undefined}
+          >
+            {!auditor.image && <Person />}
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
@@ -414,6 +418,21 @@ export const AuditorDetails: FC = () => {
                     {formatDate(auditor.date)}
                   </Typography>
                 </Box>
+
+                {auditor.description && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      About
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
+                    >
+                      {auditor.description}
+                    </Typography>
+                  </Box>
+                )}
               </Stack>
             </CardContent>
           </Card>

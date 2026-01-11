@@ -40,6 +40,7 @@ import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
+import { environment } from '../../../../environments/environment';
 
 
 
@@ -185,8 +186,11 @@ export const ProtocolDetails: FC = () => {
         </Button>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ width: 60, height: 60, mr: 2, bgcolor: 'primary.main' }}>
-            <Business />
+          <Avatar
+            sx={{ width: 60, height: 60, mr: 2, bgcolor: 'primary.main' }}
+            src={protocol.image ? `${environment.apiUrl}/api/v1/protocols/${protocol.id}/image.png` : undefined}
+          >
+            {!protocol.image && <Business />}
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
@@ -482,6 +486,21 @@ export const ProtocolDetails: FC = () => {
                     {formatDate(protocol.date)}
                   </Typography>
                 </Box>
+
+                {protocol.description && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      About
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
+                    >
+                      {protocol.description}
+                    </Typography>
+                  </Box>
+                )}
               </Stack>
             </CardContent>
           </Card>

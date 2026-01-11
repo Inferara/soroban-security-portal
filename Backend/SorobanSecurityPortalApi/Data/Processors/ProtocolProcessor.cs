@@ -49,6 +49,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
             existingProtocol.Name = protocolModel.Name;
             existingProtocol.CompanyId = protocolModel.CompanyId;
             existingProtocol.Url = protocolModel.Url;
+            existingProtocol.Description = protocolModel.Description;
+            if (protocolModel.Image != null)
+            {
+                existingProtocol.Image = protocolModel.Image;
+            }
             await db.SaveChangesAsync();
             return existingProtocol;
         }

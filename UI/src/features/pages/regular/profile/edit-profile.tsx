@@ -10,7 +10,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import XIcon from '@mui/icons-material/X';
 import ChatIcon from '@mui/icons-material/Chat';
-import { AvatarUpload } from '../../../../components/AvarUpload';
+import { AvatarUpload } from '../../../../components/AvatarUpload';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',

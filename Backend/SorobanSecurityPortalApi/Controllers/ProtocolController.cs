@@ -21,7 +21,8 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Add([FromForm] string protocolData, [FromForm] IFormFile? image = null)
         {
-            var protocolViewModel = System.Text.Json.JsonSerializer.Deserialize<ProtocolViewModel>(protocolData);
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var protocolViewModel = System.Text.Json.JsonSerializer.Deserialize<ProtocolViewModel>(protocolData, jsonOptions);
             if (protocolViewModel == null)
             {
                 return BadRequest("Invalid protocol data.");
@@ -40,8 +41,22 @@ namespace SorobanSecurityPortalApi.Controllers
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPut]
-        public async Task<IActionResult> Update(int protocolId, [FromBody] ProtocolViewModel protocolViewModel)
+        public async Task<IActionResult> Update([FromForm] string protocolData, [FromForm] IFormFile? image = null)
         {
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var protocolViewModel = System.Text.Json.JsonSerializer.Deserialize<ProtocolViewModel>(protocolData, jsonOptions);
+            if (protocolViewModel == null)
+            {
+                return BadRequest("Invalid protocol data.");
+            }
+
+            if (image != null && image.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await image.CopyToAsync(memoryStream);
+                protocolViewModel.ImageData = memoryStream.ToArray();
+            }
+
             var result = await _protocolService.Update(protocolViewModel);
             if (result is Result<ProtocolViewModel, string>.Ok ok)
                 return Ok(ok.Value);

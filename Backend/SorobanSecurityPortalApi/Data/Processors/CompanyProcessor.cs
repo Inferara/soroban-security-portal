@@ -47,6 +47,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
             existingCompany.Name = companyModel.Name;
             existingCompany.Url = companyModel.Url;
+            existingCompany.Description = companyModel.Description;
+            if (companyModel.Image != null)
+            {
+                existingCompany.Image = companyModel.Image;
+            }
             await db.SaveChangesAsync();
             return existingCompany;
         }

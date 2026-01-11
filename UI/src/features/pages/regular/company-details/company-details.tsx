@@ -35,6 +35,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCompanyDetails } from './hooks/company-details.hook';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { environment } from '../../../../environments/environment';
 
 export const CompanyDetails: FC = () => {
   const navigate = useNavigate();
@@ -131,8 +132,11 @@ export const CompanyDetails: FC = () => {
         </Button>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ width: 60, height: 60, mr: 2, bgcolor: 'primary.main' }}>
-            <Business />
+          <Avatar
+            sx={{ width: 60, height: 60, mr: 2, bgcolor: 'primary.main' }}
+            src={company.image ? `${environment.apiUrl}/api/v1/companies/${company.id}/image.png` : undefined}
+          >
+            {!company.image && <Business />}
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
@@ -264,11 +268,17 @@ export const CompanyDetails: FC = () => {
                 </Typography>
                 
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7 }}>
-                    <strong>{company.name}</strong> is a blockchain company with {statistics?.totalProtocols || 0} protocols 
-                    under security audit. They have completed {statistics?.totalReports || 0} audit reports and identified{' '}
-                    {statistics?.totalVulnerabilities || 0} vulnerabilities across their ecosystem.
-                  </Typography>
+                  {company.description ? (
+                    <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                      {company.description}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7 }}>
+                      <strong>{company.name}</strong> is a blockchain company with {statistics?.totalProtocols || 0} protocols
+                      under security audit. They have completed {statistics?.totalReports || 0} audit reports and identified{' '}
+                      {statistics?.totalVulnerabilities || 0} vulnerabilities across their ecosystem.
+                    </Typography>
+                  )}
                 </Box>
               </CardContent>
             </Card>

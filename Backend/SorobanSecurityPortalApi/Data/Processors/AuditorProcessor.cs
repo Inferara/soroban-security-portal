@@ -49,6 +49,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
             existingAuditor.Name = auditorModel.Name;
             existingAuditor.Url = auditorModel.Url;
+            existingAuditor.Description = auditorModel.Description;
+            if (auditorModel.Image != null)
+            {
+                existingAuditor.Image = auditorModel.Image;
+            }
             await db.SaveChangesAsync();
             return existingAuditor;
         }
