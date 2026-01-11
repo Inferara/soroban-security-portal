@@ -7,7 +7,7 @@ import { useEditAuditor } from './hooks';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { AvatarUpload } from '../../../../../components/AvatarUpload.tsx';
-import { environment } from '../../../../../environments/environment.ts';
+import { getEntityAvatarUrl } from '../../../../../components/EntityAvatar.tsx';
 
 export const EditAuditor: FC = () => {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export const EditAuditor: FC = () => {
   // Construct image URL for existing auditor images with cache busting
   const existingImageUrl = useMemo(() => {
     if (!auditor?.id) return null;
-    return `${environment.apiUrl}/api/v1/auditors/${auditor.id}/image.png?t=${Date.now()}`;
+    return getEntityAvatarUrl('auditor', auditor.id, Date.now());
   }, [auditor?.id]);
 
   const handleEditAuditor = async () => {

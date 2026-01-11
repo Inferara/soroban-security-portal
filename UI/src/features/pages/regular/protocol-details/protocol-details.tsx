@@ -11,7 +11,6 @@ import {
   Stack,
   useMediaQuery,
   useTheme,
-  Avatar,
   List,
   ListItem,
   ListItemText,
@@ -40,7 +39,7 @@ import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
-import { environment } from '../../../../environments/environment';
+import { EntityAvatar } from '../../../../components/EntityAvatar';
 
 
 
@@ -186,12 +185,13 @@ export const ProtocolDetails: FC = () => {
         </Button>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar
-            sx={{ width: 60, height: 60, mr: 2, bgcolor: 'primary.main' }}
-            src={protocol.image ? `${environment.apiUrl}/api/v1/protocols/${protocol.id}/image.png` : undefined}
-          >
-            {!protocol.image && <Business />}
-          </Avatar>
+          <EntityAvatar
+            entityType="protocol"
+            entityId={protocol.id}
+            size="large"
+            fallbackText={protocol.name}
+            sx={{ mr: 2 }}
+          />
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
               variant={isMobile ? "h5" : "h4"} 
@@ -524,9 +524,12 @@ export const ProtocolDetails: FC = () => {
                         onClick={() => navigate(`/auditor/${auditor.id}`)}
                       >
                         <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                            {auditor.name.charAt(0).toUpperCase()}
-                          </Avatar>
+                          <EntityAvatar
+                            entityType="auditor"
+                            entityId={auditor.id}
+                            size="small"
+                            fallbackText={auditor.name}
+                          />
                         </ListItemAvatar>
                         <ListItemText
                           primary={auditor.name}
@@ -566,14 +569,17 @@ export const ProtocolDetails: FC = () => {
                         onClick={() => navigate(`/report/${report.id}`)}
                       >
                         <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                            <Assessment />
-                          </Avatar>
+                          <EntityAvatar
+                            entityType="report"
+                            entityId={report.id}
+                            size="small"
+                            fallbackText={report.name}
+                          />
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Typography 
-                              variant="subtitle2" 
+                            <Typography
+                              variant="subtitle2"
                               sx={{ fontWeight: 600, wordBreak: 'break-word' }}
                             >
                               {report.name}
@@ -634,13 +640,12 @@ export const ProtocolDetails: FC = () => {
                     onClick={() => navigate(`/report/${report.id}`)}
                   >
                     <ListItemAvatar>
-                      <Avatar sx={{ 
-                        bgcolor: theme.palette.primary.main,
-                        width: 48,
-                        height: 48
-                      }}>
-                        <BugReport />
-                      </Avatar>
+                      <EntityAvatar
+                        entityType="report"
+                        entityId={report.id}
+                        size={48}
+                        fallbackText={report.name}
+                      />
                     </ListItemAvatar>
                     <ListItemText
                       primary={

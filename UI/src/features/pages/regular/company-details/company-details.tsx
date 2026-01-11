@@ -35,7 +35,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCompanyDetails } from './hooks/company-details.hook';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
-import { environment } from '../../../../environments/environment';
+import { EntityAvatar } from '../../../../components/EntityAvatar';
 
 export const CompanyDetails: FC = () => {
   const navigate = useNavigate();
@@ -132,12 +132,13 @@ export const CompanyDetails: FC = () => {
         </Button>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar
-            sx={{ width: 60, height: 60, mr: 2, bgcolor: 'primary.main' }}
-            src={company.image ? `${environment.apiUrl}/api/v1/companies/${company.id}/image.png` : undefined}
-          >
-            {!company.image && <Business />}
-          </Avatar>
+          <EntityAvatar
+            entityType="company"
+            entityId={company.id}
+            size="large"
+            fallbackText={company.name}
+            sx={{ mr: 2 }}
+          />
           <Box sx={{ flexGrow: 1 }}>
             <Typography 
               variant={isMobile ? "h5" : "h4"} 
@@ -305,9 +306,13 @@ export const CompanyDetails: FC = () => {
                           onClick={() => navigate(`/protocol/${protocol.id}`)}
                         >
                           <ListItemAvatar>
-                            <Avatar sx={{ width: 40, height: 40, mr: 2, bgcolor: 'primary.main' }}>
-                              <Business />
-                            </Avatar>
+                            <EntityAvatar
+                              entityType="protocol"
+                              entityId={protocol.id}
+                              size="medium"
+                              fallbackText={protocol.name}
+                              sx={{ mr: 2 }}
+                            />
                           </ListItemAvatar>
                           <ListItemText
                             primary={
@@ -354,9 +359,13 @@ export const CompanyDetails: FC = () => {
                           onClick={() => navigate(`/report/${report.id}`)}
                         >
                           <ListItemAvatar>
-                            <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: 'info.main' }}>
-                              <Assessment fontSize="small" />
-                            </Avatar>
+                            <EntityAvatar
+                              entityType="report"
+                              entityId={report.id}
+                              size="small"
+                              fallbackText={report.name}
+                              sx={{ mr: 1 }}
+                            />
                           </ListItemAvatar>
                           <ListItemText
                             primary={

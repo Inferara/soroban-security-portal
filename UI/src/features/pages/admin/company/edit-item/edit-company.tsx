@@ -7,7 +7,7 @@ import { useEditCompany } from './hooks/index.ts';
 import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { AvatarUpload } from '../../../../../components/AvatarUpload.tsx';
-import { environment } from '../../../../../environments/environment.ts';
+import { getEntityAvatarUrl } from '../../../../../components/EntityAvatar.tsx';
 
 export const EditCompany: FC = () => {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ export const EditCompany: FC = () => {
   // Always try to load the image for existing companies - onError will handle 404s
   const existingImageUrl = useMemo(() => {
     if (!company?.id) return null;
-    return `${environment.apiUrl}/api/v1/companies/${company.id}/image.png?t=${Date.now()}`;
+    return getEntityAvatarUrl('company', company.id, Date.now());
   }, [company?.id]);
 
   const handleEditCompany = async () => {

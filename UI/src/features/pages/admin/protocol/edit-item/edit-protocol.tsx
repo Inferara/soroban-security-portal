@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
 import { AvatarUpload } from '../../../../../components/AvatarUpload.tsx';
-import { environment } from '../../../../../environments/environment.ts';
+import { getEntityAvatarUrl } from '../../../../../components/EntityAvatar.tsx';
 
 export const EditProtocol: FC = () => {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ export const EditProtocol: FC = () => {
   // Always try to load the image for existing protocols - onError will handle 404s
   const existingImageUrl = useMemo(() => {
     if (!protocol?.id) return null;
-    return `${environment.apiUrl}/api/v1/protocols/${protocol.id}/image.png?t=${Date.now()}`;
+    return getEntityAvatarUrl('protocol', protocol.id, Date.now());
   }, [protocol?.id]);
 
   const handleEditProtocol = async () => {
