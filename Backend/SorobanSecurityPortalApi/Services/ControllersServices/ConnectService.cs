@@ -37,6 +37,29 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             "googleusercontent.com"
         };
 
+        /// <summary>
+        /// Validates whether a host is in the allowed list or is a subdomain of an allowed host.
+        /// Prevents SSRF attacks by requiring exact domain boundaries (dot separator).
+        /// </summary>
+        /// <param name="hostToCheck">The host from the URL to validate.</param>
+        /// <param name="allowedHosts">HashSet of allowed host patterns (case-insensitive).</param>
+        /// <returns>True if the host is allowed; otherwise, false.</returns>
+        private static bool IsHostAllowed(string hostToCheck, HashSet<string> allowedHosts)
+        {
+            // Fast path: exact match using HashSet's O(1) lookup
+            if (allowedHosts.Contains(hostToCheck))
+                return true;
+
+            // Check subdomain pattern: host must end with ".allowedhost"
+            foreach (var allowedHost in allowedHosts)
+            {
+                if (hostToCheck.EndsWith(string.Concat(".", allowedHost), StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
         public ConnectService(
             ILoginProcessor loginProcessor,
             ILoginHistoryProcessor loginHistoryProcessor,
@@ -276,7 +299,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
 
             // Validate against allowlist of known SSO image hosts (SSRF protection)
-            if (!AllowedImageHosts.Any(host => uri.Host.EndsWith(host, StringComparison.OrdinalIgnoreCase)))
+            if (!IsHostAllowed(uri.Host, AllowedImageHosts))
             {
                 _logger.LogWarning("Image URL from untrusted host rejected: {Host}", uri.Host);
                 return Array.Empty<byte>();

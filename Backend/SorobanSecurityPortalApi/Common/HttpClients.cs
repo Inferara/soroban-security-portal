@@ -9,6 +9,7 @@ namespace SorobanSecurityPortalApi.Common
         public const string NoRetryClient = "NoRetryClient";
         public const string RetryClient = "RetryClient";
         public const string AvatarFetchClient = "AvatarFetchClient";
+        public const string ReportFetchClient = "ReportFetchClient";
 
         public static void AddHttpClients(this IServiceCollection services, ExtendedConfig extendedConfig, ILogger<Startup> logger)
         {
@@ -52,6 +53,21 @@ namespace SorobanSecurityPortalApi.Common
                     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
                     AllowAutoRedirect = true,
                     MaxAutomaticRedirections = 3
+                });
+
+            // Report fetch client for downloading PDFs from external URLs (SSRF-protected)
+            services.AddHttpClient(ReportFetchClient, httpClient =>
+                {
+                    httpClient.Timeout = TimeSpan.FromSeconds(30);
+                    httpClient.MaxResponseContentBufferSize = 60 * 1024 * 1024; // 60MB max
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "SorobanSecurityPortal/1.0");
+                })
+                .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    Proxy = string.IsNullOrEmpty(extendedConfig.Proxy) ? null : new WebProxy(new Uri(extendedConfig.Proxy)),
+                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+                    AllowAutoRedirect = false // Prevent redirect-based SSRF
                 });
         }
 
