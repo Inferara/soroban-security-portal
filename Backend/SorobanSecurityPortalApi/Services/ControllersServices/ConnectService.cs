@@ -109,13 +109,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                             : null
                     });
                 }
-            } 
-            else if (login.Image == null || login.Image.Length == 0)
+            }
+
+            // Sync avatar from SSO on every login, unless user has manually set their avatar
+            if (!login.IsAvatarManuallySet && !string.IsNullOrEmpty(extendedTokenModel.Picture))
             {
-                login.Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
-                    ? await GetImageByUrl(extendedTokenModel.Picture)
-                    : null;
-                await _loginProcessor.Update(login);
+                var ssoImage = await GetImageByUrl(extendedTokenModel.Picture);
+                if (ssoImage.Length > 0)
+                {
+                    login.Image = ssoImage;
+                    await _loginProcessor.Update(login);
+                }
             }
 
             if (!login.IsEnabled)
@@ -173,12 +177,16 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     });
                 }
             }
-            else if (login.Image == null || login.Image.Length == 0)
+
+            // Sync avatar from SSO on every login, unless user has manually set their avatar
+            if (!login.IsAvatarManuallySet && !string.IsNullOrEmpty(extendedTokenModel.Picture))
             {
-                login.Image = !string.IsNullOrEmpty(extendedTokenModel.Picture)
-                    ? await GetImageByUrl(extendedTokenModel.Picture)
-                    : null;
-                await _loginProcessor.Update(login);
+                var ssoImage = await GetImageByUrl(extendedTokenModel.Picture);
+                if (ssoImage.Length > 0)
+                {
+                    login.Image = ssoImage;
+                    await _loginProcessor.Update(login);
+                }
             }
 
             if (!login.IsEnabled)
@@ -335,6 +343,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 new(IdTokenClaims.Sub, login.Login),
                 new(IdTokenClaims.FullName, login.FullName),
                 new(IdTokenClaims.Picture, loginHistory.Picture),
+                new(IdTokenClaims.Id, login.LoginId.ToString()),
             };
             var idTokenAccessToken = new JwtSecurityToken(
                 issuer: _config.AuthIssuer,

@@ -45,11 +45,11 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> GetUserAvatar(int loginId)
         {
             var login = await _userService.GetLoginById(loginId);
-            if (login.Image == null || login.Image.Length == 0)
+            if (login?.Image == null || login.Image.Length == 0)
             {
-                return BadRequest("Avatar is not found.");
+                return NotFound("Avatar not found.");
             }
-            return File(login.Image, "image/png", $"avatar.png");
+            return File(login.Image, "image/png", "avatar.png");
         }
 
         [RoleAuthorize(Role.Admin)]

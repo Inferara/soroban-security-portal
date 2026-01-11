@@ -69,11 +69,22 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<bool> SelfUpdate(int loginId, LoginSelfUpdateViewModel userUpdateSelfViewModel)
         {
             var login = await _loginProcessor.GetById(loginId);
+            if (login == null)
+                return false;
+
             var loginModel = _mapper.Map<LoginModel>(userUpdateSelfViewModel);
             login.FullName = loginModel.FullName;
             login.PersonalInfo = loginModel.PersonalInfo;
             login.Image = loginModel.Image;
             login.ConnectedAccounts = loginModel.ConnectedAccounts;
+
+            // If IsAvatarManuallySet is explicitly provided, update the flag
+            // This prevents SSO from overwriting user's manual avatar choice
+            if (userUpdateSelfViewModel.IsAvatarManuallySet.HasValue)
+            {
+                login.IsAvatarManuallySet = userUpdateSelfViewModel.IsAvatarManuallySet.Value;
+            }
+
             await _loginProcessor.Update(login);
             return true;
         }

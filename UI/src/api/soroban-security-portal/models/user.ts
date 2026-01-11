@@ -5,6 +5,8 @@ export class SelfEditUserItem {
     image: string = '';
     personalInfo: string = '';
     connectedAccounts: ConnectedAccountItem[] = [];
+    /** When true, prevents SSO from overwriting user's manual avatar choice */
+    isAvatarManuallySet?: boolean;
 }
 
 export class EditUserItem extends SelfEditUserItem {

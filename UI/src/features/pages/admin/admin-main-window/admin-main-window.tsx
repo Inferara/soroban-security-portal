@@ -1,6 +1,6 @@
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Avatar, Grid, Menu, MenuItem } from '@mui/material';
+import { Avatar, CircularProgress, Grid, Menu, MenuItem } from '@mui/material';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -9,7 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import { styled } from '@mui/material/styles';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import { FC, MouseEvent, useState } from 'react';
+import { FC, MouseEvent, useState, useEffect } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../../../app/hooks.ts';
@@ -43,6 +43,7 @@ import { EditCompany } from '../company/edit-item/edit-company.tsx';
 import { ListTags } from '../tag/list-view/list-tags.tsx';
 import { AddTag } from '../tag/add-item/add-tag.tsx';
 import { EditTag } from '../tag/edit-item/edit-tag.tsx';
+import { getUserByIdCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 
 const drawerWidth = 240;
 const drawerMarginLeft = 24;
@@ -113,6 +114,46 @@ export const AdminMainWindow: FC = () => {
   const open = Boolean(anchorEl);
   const currentPage = useAppSelector(selectCurrentPage);
 
+  // avatar state - fetch user data from API to get loginId
+  const [avatarLoading, setAvatarLoading] = useState(true);
+  const [avatarError, setAvatarError] = useState(false);
+  const [avatarKey, setAvatarKey] = useState(Date.now());
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const avatarUrl = auth.isAuthenticated && currentUserId ? `${environment.apiUrl}/api/v1/user/${currentUserId}/avatar.png?t=${avatarKey}` : null;
+
+  // Fetch current user data when authenticated to get loginId for avatar URL
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (auth.isAuthenticated && auth.user) {
+        try {
+          // Call API with loginId=0 to get current user's data
+          const userData = await getUserByIdCall(0);
+          if (userData?.loginId) {
+            setCurrentUserId(userData.loginId);
+            setAvatarLoading(true);
+            setAvatarError(false);
+            setAvatarKey(Date.now());
+          }
+        } catch (error) {
+          console.error('Failed to fetch current user:', error);
+          setCurrentUserId(null);
+        }
+      } else {
+        setCurrentUserId(null);
+      }
+    };
+    fetchCurrentUser();
+  }, [auth.isAuthenticated, auth.user?.profile?.sub]);
+
+  const handleAvatarLoad = () => {
+    setAvatarLoading(false);
+  };
+
+  const handleAvatarError = () => {
+    setAvatarLoading(false);
+    setAvatarError(true);
+  };
+
   const handleUserMenuClick = (event: MouseEvent<HTMLButtonElement>) =>
     setAnchorEl(anchorEl == null ? event.currentTarget : null);
 
@@ -173,18 +214,37 @@ export const AdminMainWindow: FC = () => {
             {auth.user?.profile.name}
           </Typography>
           <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleUserMenuClick}>
-            {auth.user?.profile.picture ? (
-              <Box
-                component="img"                
-                src={`${environment.apiUrl}${auth.user.profile.picture}`}
-                alt="Profile"
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '50%',
-                  objectFit: 'cover'
-                }}
-              />
+            {avatarUrl && !avatarError ? (
+              <Box sx={{ position: 'relative', width: 34, height: 34 }}>
+                {avatarLoading && (
+                  <CircularProgress
+                    size={24}
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      marginTop: '-12px',
+                      marginLeft: '-12px',
+                      color: '#FCD34D',
+                    }}
+                  />
+                )}
+                <Box
+                  component="img"
+                  src={avatarUrl}
+                  alt="Profile"
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    opacity: avatarLoading ? 0 : 1,
+                    transition: 'opacity 0.2s ease-in-out',
+                  }}
+                  onLoad={handleAvatarLoad}
+                  onError={handleAvatarError}
+                />
+              </Box>
             ) : (
               <StyledAvatar>
                 {getUserInitials(auth.user?.profile.name || 'User Name')}
