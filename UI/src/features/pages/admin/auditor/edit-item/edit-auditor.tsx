@@ -1,122 +1,86 @@
-import { Button, FormHelperText, Grid, Stack, TextField } from '@mui/material';
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useMemo, useRef, useEffect } from 'react';
+import { editAuditorCall, getAuditorByIdCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
-import { showError } from '../../../../dialog-handler/dialog-handler';
-import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useEditAuditor } from './hooks';
-import { useNavigate } from 'react-router-dom';
-import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-import { AvatarUpload } from '../../../../../components/AvatarUpload.tsx';
-import { getEntityAvatarUrl } from '../../../../../components/EntityAvatar.tsx';
+import { CurrentPageState } from '../../admin-main-window/current-page-slice';
+import { EntityForm, EntityFieldConfig } from '../../../../../components/admin';
+import { useEntityForm } from '../../../../../hooks/admin';
+
+interface AuditorFormValues {
+  name: string;
+  url: string;
+  description: string;
+  image: string | null;
+}
 
 export const EditAuditor: FC = () => {
-  const navigate = useNavigate();
-  const [url, setUrl] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [image, setImage] = useState<string | null>(null);
-
-  const currentPageState: CurrentPageState = {
+  const currentPageState: CurrentPageState = useMemo(() => ({
     pageName: 'Edit Auditor',
     pageCode: 'editAuditor',
     pageUrl: window.location.pathname,
     routePath: 'admin/auditors/edit',
-  };
-  const { editAuditor, auditor } = useEditAuditor({ currentPageState });
+  }), []);
 
+  const entityToFormValues = useCallback((auditor: AuditorItem): AuditorFormValues => ({
+    name: auditor.name ?? '',
+    url: auditor.url ?? '',
+    description: auditor.description ?? '',
+    image: null, // Don't use base64 from API, use URL instead
+  }), []);
+
+  // Use a ref to store the entity for the submit callback
+  const entityRef = useRef<AuditorItem | null>(null);
+
+  const submitAuditor = useCallback(async (vals: AuditorFormValues): Promise<boolean> => {
+    const currentEntity = entityRef.current;
+    if (!currentEntity) return false;
+    const auditorItem: AuditorItem = {
+      id: currentEntity.id,
+      name: vals.name,
+      url: vals.url,
+      description: vals.description,
+      image: vals.image ?? undefined,
+      date: currentEntity.date,
+      createdBy: currentEntity.createdBy,
+    };
+    return await editAuditorCall(auditorItem);
+  }, []);
+
+  const { values, setFieldValue, submit, entity, entityId } = useEntityForm<AuditorItem, AuditorFormValues>({
+    currentPageState,
+    mode: 'edit',
+    entityIdParam: 'auditorId',
+    fetchEntity: getAuditorByIdCall,
+    submitEntity: submitAuditor,
+    initialValues: { name: '', url: '', description: '', image: null },
+    entityToFormValues,
+    successNavigatePath: '/admin/auditors',
+    validate: (v) => v.name !== '' && v.url !== '',
+    validationErrorMessage: 'Name and URL are required.',
+    submitErrorMessage: 'Auditor updating failed.',
+  });
+
+  // Keep entityRef in sync with entity from hook
   useEffect(() => {
-    setName(auditor?.name ?? '');
-    setUrl(auditor?.url ?? '');
-    setDescription(auditor?.description ?? '');
-    setImage(null); // Don't use the base64 from API, use URL instead
-  }, [auditor]);
+    entityRef.current = entity ?? null;
+  }, [entity]);
 
-  // Construct image URL for existing auditor images with cache busting
-  const existingImageUrl = useMemo(() => {
-    if (!auditor?.id) return null;
-    return getEntityAvatarUrl('auditor', auditor.id, Date.now());
-  }, [auditor?.id]);
-
-  const handleEditAuditor = async () => {
-    if (url === '' || name === '') {
-      showError('Name and URL are required.');
-      return;
-    }
-
-    const editAuditorItem = {
-      name: name,
-      url: url,
-      description: description,
-      image: image ?? undefined,
-      id: auditor?.id ?? 0,
-      date: auditor?.date ?? new Date(),
-      createdBy: auditor?.createdBy ?? '',
-    } as AuditorItem;
-
-    const editAuditorSuccess = await editAuditor(editAuditorItem);
-
-    if (editAuditorSuccess) {
-      navigate('/admin/auditors');
-    } else {
-      showError('Auditor updating failed.');
-    }
-  };
+  const fields: EntityFieldConfig[] = useMemo(() => [
+    { name: 'image', type: 'avatar', label: 'Avatar', placeholderFromField: 'name', defaultPlaceholder: 'A' },
+    { name: 'name', type: 'text', label: 'Name', required: true },
+    { name: 'url', type: 'text', label: 'URL', required: true },
+    { name: 'description', type: 'textarea', label: 'Description', minRows: 4, maxRows: 10 },
+  ], []);
 
   return (
-    <div style={defaultUiSettings.editAreaStyle}>
-      <Grid container spacing={2}>
-        <Grid size={12} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <AvatarUpload
-            key={`auditor-avatar-${auditor?.id ?? 'new'}`}
-            placeholder={name.charAt(0).toUpperCase() || 'A'}
-            setImageCallback={setImage}
-            initialImage={image}
-            initialImageUrl={existingImageUrl}
-          />
-          <FormHelperText sx={{ mt: 1, textAlign: 'center' }}>
-            PNG, JPG, or GIF. Max 100KB.
-          </FormHelperText>
-        </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            required={true}
-            id="name"
-            label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            type="text"
-          />
-        </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            required={true}
-            id="url"
-            label="URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            type="text"
-          />
-        </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}}>
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            id="description"
-            label="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            type="text"
-            multiline
-            minRows={4}
-            maxRows={10}
-          />
-        </Grid>
-      </Grid>
-      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
-        <Button onClick={handleEditAuditor}>Save</Button>
-        <Button onClick={() => history.back()}>Cancel</Button>
-      </Stack>
-    </div>
+    <EntityForm
+      mode="edit"
+      entityType="auditor"
+      entityId={entityId ?? undefined}
+      fields={fields}
+      values={values}
+      onFieldChange={setFieldValue}
+      onSubmit={submit}
+      submitButtonText="Save"
+    />
   );
 };

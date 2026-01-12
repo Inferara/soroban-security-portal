@@ -1,79 +1,61 @@
+import PostAdd from '@mui/icons-material/PostAdd';
 import ClearIcon from '@mui/icons-material/Clear';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import {
-  Box,
-  IconButton,
-  Link,
-  Tooltip,
-  Typography,
-  Stack,
-} from '@mui/material';
-import {
-  DataGrid,
-  GridColDef,
-  GridRenderCellParams,
-} from '@mui/x-data-grid';
-import { FC, useEffect, useState } from 'react';
-
-import { Vulnerability } from '../../../../../api/soroban-security-portal/models/vulnerability.ts';
-import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useListVulnerabilities } from './hooks/index.ts';
-import { ConfirmDialog } from '../../admin-main-window/confirm-dialog.tsx';
-import { CustomToolbar } from '../../../../components/custom-toolbar.tsx';
-import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
+import EditIcon from '@mui/icons-material/Edit';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import EditIcon from '@mui/icons-material/Edit';
+import { Box, IconButton, Link, Tooltip, Typography } from '@mui/material';
+import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { FC, useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MarkdownView } from '../../../../../components/MarkdownView.tsx';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
-import PostAdd from '@mui/icons-material/PostAdd';
+import { useAuth } from 'react-oidc-context';
+
+import { Vulnerability } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { Role } from '../../../../../api/soroban-security-portal/models/role';
+import { AdminDataGrid } from '../../../../../components/admin';
+import { useListVulnerabilities } from './hooks/index';
+import { CurrentPageState } from '../../admin-main-window/current-page-slice';
+import { MarkdownView } from '../../../../../components/MarkdownView';
+import { getStatusColor } from '../../../../../utils/status-utils';
+import { ConfirmDialog } from '../../admin-main-window/confirm-dialog';
 
 export const VulnerabilityManagement: FC = () => {
-  const currentPageState: CurrentPageState = {
+  const navigate = useNavigate();
+  const auth = useAuth();
+  const [collapsedDescriptions, setCollapsedDescriptions] = useState<Set<string>>(new Set());
+  const [removeId, setRemoveId] = useState(0);
+  const [approveId, setApproveId] = useState(0);
+  const [rejectId, setRejectId] = useState(0);
+
+  const currentPageState: CurrentPageState = useMemo(() => ({
     pageName: 'Vulnerabilities',
     pageCode: 'vulnerabilities',
     pageUrl: window.location.pathname,
     routePath: 'admin/vulnerabilities',
-  };
+  }), []);
 
   const { vulnerabilityListData, vulnerabilityApprove, vulnerabilityRemove, vulnerabilityReject } = useListVulnerabilities({ currentPageState });
-  const [vulnerabilityIdToRemove, setVulnerabilityIdToRemove] = useState(0);
-  const [collapsedDescriptions, setCollapsedDescriptions] = useState<Set<string>>(new Set());
-  const auth = useAuth();
-  const navigate = useNavigate();
+
+  const isAdmin = auth.user?.profile.role === Role.Admin;
 
   useEffect(() => {
     setCollapsedDescriptions(new Set(vulnerabilityListData.map(vuln => vuln.id.toString())));
   }, [vulnerabilityListData]);
 
-  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
+  const shouldShowCollapse = useCallback((description: string) => {
+    return description.split('\n').length > 6;
+  }, []);
 
-  const removeVulnerabilityConfirmed = async () => {
-    await vulnerabilityRemove(vulnerabilityIdToRemove);
-    setVulnerabilityIdToRemove(0);
-  };
-
-  const shouldShowCollapse = (description: string) => {
-    const lines = getDescriptionLines(description);
-    return lines.length > 6;
-  };
-  
-  const getDescriptionLines = (description: string) => {
-    return description.split('\n');
-  };
-
-  const getTruncatedDescription = (description: string) => {
-    const lines = getDescriptionLines(description);
+  const getTruncatedDescription = useCallback((description: string) => {
+    const lines = description.split('\n');
     if (lines.length <= 6) {
       return description;
     }
     return lines.slice(0, 6).join('\n');
-  };
+  }, []);
 
-  const toggleDescriptionCollapse = (id: string) => {
+  const toggleDescriptionCollapse = useCallback((id: string) => {
     setCollapsedDescriptions(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -83,9 +65,9 @@ export const VulnerabilityManagement: FC = () => {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const columnsData: GridColDef[] = [
+  const columnsData: GridColDef[] = useMemo(() => [
     {
       field: 'actions',
       headerName: 'Actions',
@@ -94,18 +76,20 @@ export const VulnerabilityManagement: FC = () => {
       filterable: false,
       renderCell: (params: GridRenderCellParams<Vulnerability>) => (
         <div style={{ display: 'flex', gap: 4 }}>
-          {isAdmin(auth) && (<Tooltip title="Remove Vulnerability">
-            <IconButton onClick={() => setVulnerabilityIdToRemove(params.row.id)}>
-              <ClearIcon sx={{ color: 'red' }} />
-            </IconButton>
-          </Tooltip>)}
+          {isAdmin && (
+            <Tooltip title="Remove Vulnerability">
+              <IconButton onClick={() => setRemoveId(params.row.id)}>
+                <ClearIcon sx={{ color: 'red' }} />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Approve Vulnerability">
-            <IconButton onClick={() => vulnerabilityApprove(params.row.id)}>
+            <IconButton onClick={() => setApproveId(params.row.id)}>
               <CheckCircleIcon sx={{ color: 'green' }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Reject Vulnerability">
-            <IconButton onClick={() => vulnerabilityReject(params.row.id)}>
+            <IconButton onClick={() => setRejectId(params.row.id)}>
               <CancelIcon sx={{ color: 'red' }} />
             </IconButton>
           </Tooltip>
@@ -116,70 +100,52 @@ export const VulnerabilityManagement: FC = () => {
           </Tooltip>
         </div>
       ),
-    } as GridColDef,
+    },
     {
       field: 'title',
       headerName: 'Title',
       width: 250,
-    } as GridColDef,
+    },
     {
       field: 'status',
       headerName: 'Status',
       width: 180,
-      renderCell: (params: GridRenderCellParams<Vulnerability>) => {
-        const getStatusColor = (status: string) => {
-          switch (status.toLowerCase()) {
-            case 'new':
-              return '#DAA520'; // dark yellow
-            case 'approved':
-              return '#4CAF50'; // green
-            case 'rejected':
-              return '#F44336'; // red
-            default:
-              return 'inherit';
-          }
-        };
-        return (
-          <span style={{ 
-            color: getStatusColor(params.row.status),
-            fontWeight: 'bold'
-          }}>
-            {params.row.status}
-          </span>
-        );
-      },
-    } as GridColDef,
+      renderCell: (params: GridRenderCellParams<Vulnerability>) => (
+        <span style={{ color: getStatusColor(params.row.status), fontWeight: 'bold' }}>
+          {params.row.status}
+        </span>
+      ),
+    },
     {
       field: 'description',
       headerName: 'Description',
       width: 950,
       renderCell: (params: GridRenderCellParams<Vulnerability>) => {
+        const isCollapsed = collapsedDescriptions.has(params.row.id.toString());
         return (
           <>
-          <MarkdownView 
-            content={collapsedDescriptions.has(params.row.id.toString()) ? getTruncatedDescription(params.row.description) : params.row.description}
-            background={{ p: 2 }}
-            sx={{ 
-              maxHeight: collapsedDescriptions.has(params.row.id.toString()) ? '150px' : '400px',
-              overflowY: 'auto'
-            }}
-          />
-          {shouldShowCollapse(params.row.description) && (
-            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
-              <IconButton
-                onClick={() => toggleDescriptionCollapse(params.row.id.toString())}
-              >
-                {collapsedDescriptions.has(params.row.id.toString()) ? <ExpandMoreIcon /> : <ExpandLessIcon />}
-              </IconButton>
-              <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                {collapsedDescriptions.has(params.row.id.toString()) ? 'Show more' : 'Show less'}
-              </Typography>
-            </Box>
-          )}
+            <MarkdownView
+              content={isCollapsed ? getTruncatedDescription(params.row.description) : params.row.description}
+              background={{ p: 2 }}
+              sx={{
+                maxHeight: isCollapsed ? '150px' : '400px',
+                overflowY: 'auto',
+              }}
+            />
+            {shouldShowCollapse(params.row.description) && (
+              <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
+                <IconButton onClick={() => toggleDescriptionCollapse(params.row.id.toString())}>
+                  {isCollapsed ? <ExpandMoreIcon /> : <ExpandLessIcon />}
+                </IconButton>
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                  {isCollapsed ? 'Show more' : 'Show less'}
+                </Typography>
+              </Box>
+            )}
           </>
         );
       },
-    } as GridColDef,
+    },
     {
       field: 'details',
       headerName: 'Details',
@@ -196,50 +162,58 @@ export const VulnerabilityManagement: FC = () => {
           <div>Report URL: <Link style={{ color: 'gray' }} href={params.row.reportUrl} target="_blank" rel="noopener">{params.row.reportUrl}</Link></div>
         </div>
       ),
-    } as GridColDef,
-  ];
+    },
+  ], [isAdmin, navigate, collapsedDescriptions, getTruncatedDescription, shouldShowCollapse, toggleDescriptionCollapse]);
+
+  const handleApproveConfirmed = useCallback(async () => {
+    await vulnerabilityApprove(approveId);
+    setApproveId(0);
+  }, [vulnerabilityApprove, approveId]);
+
+  const handleRejectConfirmed = useCallback(async () => {
+    await vulnerabilityReject(rejectId);
+    setRejectId(0);
+  }, [vulnerabilityReject, rejectId]);
 
   return (
-    <div style={defaultUiSettings.listAreaStyle}>
-      <Stack direction="row" spacing={2}>
-        <Tooltip title="Add Vulnerability">
-          <IconButton onClick={() => navigate('/vulnerabilities/add')}>
-            <PostAdd sx={{ color: 'green' }} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
-
-      <div style={{ height: 'calc(110vh - 64px)' }}>
-        <DataGrid
-          getRowId={(row: Vulnerability) => row.id}
-          getRowHeight={() => 'auto'}
-          sx={{
-            '& .MuiDataGrid-cell': {
-              whiteSpace: 'normal',
-              display: 'grid',
-              alignContent: 'center',
-              minHeight: 50,
-            },
-          }}
-          rows={vulnerabilityListData}
-          columns={columnsData}
-          showToolbar
-          slots={{
-            toolbar: CustomToolbar,
-          }}
-          isRowSelectable={() => false}
-        />
-      </div>
+    <>
+      <AdminDataGrid<Vulnerability>
+        rows={vulnerabilityListData}
+        columns={columnsData}
+        getRowId={(row) => row.id}
+        onRemove={vulnerabilityRemove}
+        addButton={{
+          path: '/vulnerabilities/add',
+          icon: <PostAdd sx={{ color: 'green' }} />,
+          tooltip: 'Add Vulnerability',
+        }}
+        confirmDialog={{
+          title: 'Remove Vulnerability',
+          message: 'Are you sure you want to remove this Vulnerability?',
+        }}
+        itemIdToRemove={removeId}
+        onItemIdToRemoveChange={setRemoveId}
+      />
 
       <ConfirmDialog
-        title="Remove Vulnerability"
-        message="Are you sure you want to remove this Vulnerability?"
+        title="Approve Vulnerability"
+        message="Are you sure you want to approve this Vulnerability?"
         okButtonText="Yes"
         cancelButtonText="No"
-        onConfirm={removeVulnerabilityConfirmed}
-        onCancel={() => setVulnerabilityIdToRemove(0)}
-        show={vulnerabilityIdToRemove !== 0}
+        onConfirm={handleApproveConfirmed}
+        onCancel={() => setApproveId(0)}
+        show={approveId !== 0}
       />
-    </div>
+
+      <ConfirmDialog
+        title="Reject Vulnerability"
+        message="Are you sure you want to reject this Vulnerability?"
+        okButtonText="Yes"
+        cancelButtonText="No"
+        onConfirm={handleRejectConfirmed}
+        onCancel={() => setRejectId(0)}
+        show={rejectId !== 0}
+      />
+    </>
   );
 };
