@@ -1,5 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import {
+  Box,
   Button,
   FormHelperText,
   Grid,
@@ -8,7 +9,7 @@ import {
   Autocomplete,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { defaultUiSettings } from '../../api/soroban-security-portal/models/ui-settings';
+import { formControlWidth, editAreaStyle } from '../../theme';
 import { AvatarUpload } from '../AvatarUpload';
 import { getEntityAvatarUrl, EntityType } from '../EntityAvatar';
 
@@ -241,7 +242,7 @@ export function EntityForm<T>({
         return (
           <Grid key={field.name} size={12} sx={gridSx}>
             <TextField
-              sx={{ width: defaultUiSettings.editControlSize }}
+              sx={formControlWidth}
               required={field.required}
               disabled={textField.disabled}
               id={field.name}
@@ -259,7 +260,7 @@ export function EntityForm<T>({
         return (
           <Grid key={field.name} size={12} sx={gridSx}>
             <TextField
-              sx={{ width: defaultUiSettings.editControlSize }}
+              sx={formControlWidth}
               required={field.required}
               id={field.name}
               label={field.label}
@@ -289,7 +290,7 @@ export function EntityForm<T>({
                   {...params}
                   label={field.label}
                   required={field.required}
-                  sx={{ width: defaultUiSettings.editControlSize }}
+                  sx={formControlWidth}
                 />
               )}
             />
@@ -302,7 +303,7 @@ export function EntityForm<T>({
         return (
           <Grid key={field.name} size={12} sx={gridSx}>
             <TextField
-              sx={{ width: defaultUiSettings.editControlSize }}
+              sx={formControlWidth}
               required={field.required}
               disabled={colorField.disabled}
               id={field.name}
@@ -326,7 +327,7 @@ export function EntityForm<T>({
   };
 
   return (
-    <div style={defaultUiSettings.editAreaStyle}>
+    <Box sx={editAreaStyle}>
       <Grid container spacing={2}>
         {fields.map(renderField)}
       </Grid>
@@ -335,6 +336,6 @@ export function EntityForm<T>({
         <Button type="button" variant="outlined" onClick={handleCancel}>{cancelButtonText}</Button>
       </Stack>
       {additionalContent}
-    </div>
+    </Box>
   );
 }

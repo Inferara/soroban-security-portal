@@ -1,11 +1,11 @@
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { Link, Switch } from '@mui/material';
-import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridRenderCellParams } from '@mui/x-data-grid';
 import { FC, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { UserItem } from '../../../../../api/soroban-security-portal/models/user';
-import { AdminDataGrid } from '../../../../../components/admin';
+import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
 import { useListUsers } from './hooks';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 
@@ -21,11 +21,13 @@ export const UserManagement: FC = () => {
 
   const { userListData, userEnabledChange, userRemove } = useListUsers({ currentPageState });
 
-  const columnsData: GridColDef[] = useMemo(() => [
+  const columnsData: ResponsiveColumn[] = useMemo(() => [
     {
       field: 'isEnabled',
       headerName: 'Enabled',
       width: 80,
+      mobileWidth: 60,
+      priority: 'essential',
       renderCell: (params: GridRenderCellParams<UserItem>) => (
         <Switch
           checked={params.row.isEnabled}
@@ -38,6 +40,8 @@ export const UserManagement: FC = () => {
       field: 'fullName',
       headerName: 'Full Name',
       width: 250,
+      mobileWidth: 150,
+      priority: 'essential',
       renderCell: (params: GridRenderCellParams<UserItem>) => (
         <Link
           sx={{
@@ -57,16 +61,23 @@ export const UserManagement: FC = () => {
       field: 'login',
       headerName: 'Login',
       width: 250,
+      priority: 'important',
+      hideOnMobile: true,
     },
     {
       field: 'loginType',
       headerName: 'Login Type',
       width: 120,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
     },
     {
       field: 'email',
       headerName: 'Email',
       width: 250,
+      priority: 'important',
+      hideOnMobile: true,
       renderCell: (params: GridRenderCellParams<UserItem>) => (
         <Link
           sx={{
@@ -87,6 +98,8 @@ export const UserManagement: FC = () => {
       field: 'role',
       headerName: 'Role',
       width: 150,
+      mobileWidth: 80,
+      priority: 'important',
     },
   ], [navigate, userEnabledChange]);
 

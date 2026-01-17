@@ -1,6 +1,6 @@
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Avatar, CircularProgress, Grid, Menu, MenuItem } from '@mui/material';
+import { CircularProgress, Grid, Menu, MenuItem } from '@mui/material';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -9,7 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import { styled } from '@mui/material/styles';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import { FC, MouseEvent, useState } from 'react';
+import { FC, MouseEvent, useState, useEffect, useCallback } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../../../app/hooks.ts';
@@ -45,33 +45,29 @@ import { EditCompany } from '../company/edit-item/edit-company.tsx';
 import { ListTags } from '../tag/list-view/list-tags.tsx';
 import { AddTag } from '../tag/add-item/add-tag.tsx';
 import { EditTag } from '../tag/edit-item/edit-tag.tsx';
+import { Layout, AccentColors } from '../../../../theme';
+import { StyledAvatar } from '../../../../components/common/StyledAvatar';
+import { useResponsive } from '../../../../hooks';
 
-const drawerWidth = 240;
-const drawerMarginLeft = 24;
+const drawerWidth = Layout.drawerWidth;
+const drawerMarginLeft = Layout.drawerMarginLeft;
 
 interface AppBarProps extends MuiAppBarProps {
   leftMenuOpen: boolean;
+  isTemporary?: boolean;
 }
 
-const StyledAvatar = styled(Avatar)(() => ({
-  width: 40,
-  height: 40,
-  backgroundColor: '#9386b6', 
-  border: '3px solid #FCD34D',
-  fontSize: '18px',
-  fontWeight: 'bold',
-}));
-
 const Main = styled('main', {
-  shouldForwardProp: (prop) => prop !== 'leftMenuOpen',
-})<AppBarProps>(({ theme, leftMenuOpen }) => ({
+  shouldForwardProp: (prop) => prop !== 'leftMenuOpen' && prop !== 'isTemporary',
+})<AppBarProps>(({ theme, leftMenuOpen, isTemporary }) => ({
   flexGrow: 1,
   padding: theme.spacing(3),
   transition: theme.transitions.create('margin', {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  ...(leftMenuOpen && {
+  // Only apply margin offset for persistent drawer (not temporary)
+  ...(leftMenuOpen && !isTemporary && {
     transition: theme.transitions.create('margin', {
       easing: theme.transitions.easing.easeOut,
       duration: theme.transitions.duration.enteringScreen,
@@ -81,13 +77,14 @@ const Main = styled('main', {
 }));
 
 const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'leftMenuOpen',
-})<AppBarProps>(({ theme, leftMenuOpen }) => ({
+  shouldForwardProp: (prop) => prop !== 'leftMenuOpen' && prop !== 'isTemporary',
+})<AppBarProps>(({ theme, leftMenuOpen, isTemporary }) => ({
   transition: theme.transitions.create(['margin', 'width'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  ...(leftMenuOpen && {
+  // Only apply width/margin offset for persistent drawer (not temporary)
+  ...(leftMenuOpen && !isTemporary && {
     width: `calc(100% - ${drawerWidth}px)`,
     marginLeft: `${drawerWidth + drawerMarginLeft}px`,
     transition: theme.transitions.create(['margin', 'width'], {
@@ -110,10 +107,21 @@ export const AdminMainWindow: FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
   const { themeMode, toggleTheme } = useTheme();
+  const { isMobile } = useResponsive();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [leftMenuOpen, setLeftMenuOpen] = useState(true);
   const open = Boolean(anchorEl);
   const currentPage = useAppSelector(selectCurrentPage);
+
+  // Initialize drawer state based on screen size (close on mobile)
+  useEffect(() => {
+    if (isMobile) setLeftMenuOpen(false);
+  }, []); // Run only once on mount
+
+  // Handler for closing drawer
+  const handleDrawerClose = useCallback(() => {
+    setLeftMenuOpen(false);
+  }, []);
 
   // avatar state from shared hook
   const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
@@ -137,9 +145,9 @@ export const AdminMainWindow: FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', position: 'relative', transform: `scale(${0.8})`, transformOrigin: 'top left', width: `125vw`, minHeight: `125vh`}}>
+    <Box sx={{ display: 'flex', position: 'relative', width: '100%', minHeight: '100vh' }}>
       <CssBaseline />
-      <AppBar position="fixed" leftMenuOpen={leftMenuOpen}>
+      <AppBar position="fixed" leftMenuOpen={leftMenuOpen} isTemporary={isMobile}>
         <Toolbar>
           <IconButton
             color="inherit"
@@ -181,7 +189,7 @@ export const AdminMainWindow: FC = () => {
                       left: '50%',
                       marginTop: '-12px',
                       marginLeft: '-12px',
-                      color: '#FCD34D',
+                      color: AccentColors.loadingIndicator,
                     }}
                   />
                 )}
@@ -203,7 +211,7 @@ export const AdminMainWindow: FC = () => {
               </Box>
             ) : avatarLoading ? (
               <StyledAvatar>
-                <CircularProgress size={20} sx={{ color: '#FCD34D' }} />
+                <CircularProgress size={20} sx={{ color: AccentColors.loadingIndicator }} />
               </StyledAvatar>
             ) : (
               <StyledAvatar>
@@ -227,21 +235,25 @@ export const AdminMainWindow: FC = () => {
       </AppBar>
       <Box component="nav" aria-label="drawer container">
         <Drawer
-          variant="persistent"
+          variant={isMobile ? 'temporary' : 'persistent'}
           sx={{
             display: 'block',
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
           }}
           anchor="left"
           open={leftMenuOpen}
+          onClose={handleDrawerClose}
+          ModalProps={{
+            keepMounted: true, // Better open performance on mobile
+          }}
         >
-          <IconButton onClick={() => setLeftMenuOpen(false)} sx={{ width: 40, alignSelf: 'center' }}>
+          <IconButton onClick={handleDrawerClose} sx={{ width: 40, alignSelf: 'center' }}>
             <ChevronLeftIcon />
           </IconButton>
-          <AdminLeftMenu />
+          <AdminLeftMenu onNavigate={isMobile ? handleDrawerClose : undefined} />
         </Drawer>
       </Box>
-      <Main leftMenuOpen={leftMenuOpen} className="mainWindowMain">
+      <Main leftMenuOpen={leftMenuOpen} isTemporary={isMobile} className="mainWindowMain">
         <DrawerHeader />
         <Routes>
           <Route path={`${environment.basePath}/admin`} element={<VulnerabilityManagement />} />

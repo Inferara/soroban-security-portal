@@ -1,9 +1,11 @@
+import { StatusColors } from '../theme';
+
 /**
  * Returns the appropriate color for a status value.
  * Used for displaying approval workflow statuses (new, approved, rejected).
  *
  * @param status - The status string to get color for
- * @returns A hex color code
+ * @returns A hex color code from StatusColors
  *
  * @example
  * ```tsx
@@ -13,11 +15,11 @@
 export function getStatusColor(status: string): string {
   switch (status.toLowerCase()) {
     case 'new':
-      return '#DAA520'; // Dark yellow/gold
+      return StatusColors.new;
     case 'approved':
-      return '#4CAF50'; // Green
+      return StatusColors.approved;
     case 'rejected':
-      return '#F44336'; // Red
+      return StatusColors.rejected;
     default:
       return 'inherit';
   }

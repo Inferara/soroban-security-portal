@@ -5,19 +5,20 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import DownloadIcon from '@mui/icons-material/Download';
 import EditIcon from '@mui/icons-material/Edit';
 import { Box, CardMedia, IconButton, Modal, Tooltip } from '@mui/material';
-import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridRenderCellParams } from '@mui/x-data-grid';
 import { FC, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
 import { Role } from '../../../../../api/soroban-security-portal/models/role';
-import { AdminDataGrid } from '../../../../../components/admin';
+import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
 import { useListReports } from './hooks/index';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 import { environment } from '../../../../../environments/environment';
 import { getStatusColor } from '../../../../../utils/status-utils';
 import { ConfirmDialog } from '../../admin-main-window/confirm-dialog';
+import { TouchTargets } from '../../../../../theme';
 
 export const ReportManagement: FC = () => {
   const navigate = useNavigate();
@@ -46,39 +47,56 @@ export const ReportManagement: FC = () => {
     setClickedImage(null);
   }, []);
 
-  const columnsData: GridColDef[] = useMemo(() => [
+  const columnsData: ResponsiveColumn[] = useMemo(() => [
     {
       field: 'actions',
       headerName: 'Actions',
       width: 300,
+      mobileWidth: 180,
+      priority: 'essential',
       sortable: false,
       filterable: false,
       renderCell: (params: GridRenderCellParams<Report>) => (
         <div style={{ display: 'flex', gap: 4 }}>
           {isAdmin && (
             <Tooltip title="Remove Report">
-              <IconButton onClick={() => setRemoveId(params.row.id)}>
+              <IconButton
+                onClick={() => setRemoveId(params.row.id)}
+                sx={{ minWidth: TouchTargets.primary, minHeight: TouchTargets.primary }}
+              >
                 <ClearIcon sx={{ color: 'red' }} />
               </IconButton>
             </Tooltip>
           )}
           <Tooltip title="Approve Report">
-            <IconButton onClick={() => setApproveId(params.row.id)}>
+            <IconButton
+              onClick={() => setApproveId(params.row.id)}
+              sx={{ minWidth: TouchTargets.primary, minHeight: TouchTargets.primary }}
+            >
               <CheckCircleIcon sx={{ color: 'green' }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Reject Report">
-            <IconButton onClick={() => setRejectId(params.row.id)}>
+            <IconButton
+              onClick={() => setRejectId(params.row.id)}
+              sx={{ minWidth: TouchTargets.primary, minHeight: TouchTargets.primary }}
+            >
               <CancelIcon sx={{ color: 'red' }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Download Report">
-            <IconButton onClick={() => downloadReport(params.row.id)}>
+            <IconButton
+              onClick={() => downloadReport(params.row.id)}
+              sx={{ minWidth: TouchTargets.primary, minHeight: TouchTargets.primary }}
+            >
               <DownloadIcon sx={{ color: 'blue' }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Edit Report">
-            <IconButton onClick={() => navigate(`/admin/reports/edit?reportId=${params.row.id}`)}>
+            <IconButton
+              onClick={() => navigate(`/admin/reports/edit?reportId=${params.row.id}`)}
+              sx={{ minWidth: TouchTargets.primary, minHeight: TouchTargets.primary }}
+            >
               <EditIcon sx={{ color: 'green' }} />
             </IconButton>
           </Tooltip>
@@ -89,6 +107,8 @@ export const ReportManagement: FC = () => {
       field: 'author',
       headerName: 'Details',
       width: 750,
+      mobileWidth: 200,
+      priority: 'essential',
       renderCell: (params: GridRenderCellParams<Report>) => (
         <>
           <div>Created by: <span style={{ color: 'gray' }}>{params.row.createdBy}</span></div>
@@ -107,7 +127,9 @@ export const ReportManagement: FC = () => {
       field: 'status',
       headerName: 'Status',
       width: 220,
-      renderCell: (params: GridRenderCellParams<Report>) => (
+      mobileWidth: 100,
+      priority: 'important',
+    renderCell: (params: GridRenderCellParams<Report>) => (
         <span style={{ color: getStatusColor(params.row.status ?? ''), fontWeight: 'bold' }}>
           {params.row.status}
         </span>
@@ -117,6 +139,9 @@ export const ReportManagement: FC = () => {
       field: 'image',
       headerName: 'Image',
       width: 380,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
       renderCell: (params: GridRenderCellParams<Report>) => {
         const imageUrl = `${environment.apiUrl}/api/v1/reports/${params.row.id}/image.png`;
         return (

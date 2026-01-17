@@ -1,6 +1,6 @@
 import AddToQueueIcon from '@mui/icons-material/AddToQueue';
 import { Link, Typography } from '@mui/material';
-import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridRenderCellParams } from '@mui/x-data-grid';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,7 +11,7 @@ import {
   getProtocolListDataCall,
   removeProtocolCall,
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { AdminDataGrid } from '../../../../../components/admin';
+import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
 import { useAdminList } from '../../../../../hooks/admin';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 
@@ -42,11 +42,18 @@ export const ListProtocols: FC = () => {
     void fetchCompanyData();
   }, [fetchCompanyData]);
 
-  const columnsData: GridColDef[] = useMemo(() => [
+  // Lookup map for O(1) company name resolution
+  const companyMap = useMemo(() => {
+    return new Map(companyListData.map(company => [company.id, company.name]));
+  }, [companyListData]);
+
+  const columnsData: ResponsiveColumn[] = useMemo(() => [
     {
       field: 'name',
       headerName: 'Protocol',
       width: 250,
+      mobileWidth: 150,
+      priority: 'essential',
       renderCell: (params: GridRenderCellParams<ProtocolItem>) => (
         <Link
           sx={{
@@ -66,14 +73,18 @@ export const ListProtocols: FC = () => {
       field: 'url',
       headerName: 'URL',
       width: 250,
+      priority: 'important',
+      hideOnMobile: true,
     },
     {
       field: 'companyId',
       headerName: 'Company',
       width: 250,
+      mobileWidth: 120,
+      priority: 'important',
       renderCell: (params: GridRenderCellParams<ProtocolItem>) => (
         <Typography>
-          {companyListData.find((company) => company.id === params.row.companyId)?.name}
+          {params.row.companyId !== undefined ? (companyMap.get(params.row.companyId) ?? '') : ''}
         </Typography>
       ),
     },
@@ -81,6 +92,9 @@ export const ListProtocols: FC = () => {
       field: 'date',
       headerName: 'Date',
       width: 250,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
       renderCell: (params: GridRenderCellParams<ProtocolItem>) => (
         <Typography>{params.row.date.toString().split('.')[0].replace('T', ' ')}</Typography>
       ),
@@ -89,8 +103,11 @@ export const ListProtocols: FC = () => {
       field: 'createdBy',
       headerName: 'Created By',
       width: 250,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
     },
-  ], [navigate, companyListData]);
+  ], [navigate, companyMap]);
 
   return (
     <AdminDataGrid<ProtocolItem>

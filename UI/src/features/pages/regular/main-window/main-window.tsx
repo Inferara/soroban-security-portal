@@ -9,7 +9,7 @@ import Button from '@mui/material/Button';
 import { useAuth } from 'react-oidc-context';
 import IconButton from '@mui/material/IconButton';
 import {
-  Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink, styled, Avatar,
+  Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink,
   Drawer, List, ListItemButton, ListItemText, Divider, CircularProgress
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -42,15 +42,8 @@ import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { BookmarkMenu } from './components/BookmarkMenu';
-
-const StyledAvatar = styled(Avatar)(() => ({
-  width: 40,
-  height: 40,
-  backgroundColor: '#9386b6',
-  border: '3px solid #FCD34D',
-  fontSize: '18px',
-  fontWeight: 'bold',
-}));
+import { StyledAvatar } from '../../../../components/common/StyledAvatar';
+import { AccentColors } from '../../../../theme';
 
 export const MainWindow: FC = () => {
   const navigate = useNavigate();
@@ -120,7 +113,7 @@ export const MainWindow: FC = () => {
           >
             <Button
               sx={{
-                color: isActive ? '#FFD84D' : '#DDCDB1',
+                color: isActive ? AccentColors.navigationActive : AccentColors.navigationInactive,
                 height: '54px',
                 backgroundColor: 'transparent',
                 fontSize: isActive ? '1.5rem' : '1.2rem',
@@ -209,7 +202,7 @@ export const MainWindow: FC = () => {
                           left: '50%',
                           marginTop: '-15px',
                           marginLeft: '-15px',
-                          color: '#FCD34D',
+                          color: AccentColors.loadingIndicator,
                         }}
                       />
                     )}
@@ -231,7 +224,7 @@ export const MainWindow: FC = () => {
                   </Box>
                 ) : avatarLoading ? (
                   <StyledAvatar>
-                    <CircularProgress size={24} sx={{ color: '#FCD34D' }} />
+                    <CircularProgress size={24} sx={{ color: AccentColors.loadingIndicator }} />
                   </StyledAvatar>
                 ) : (
                   <StyledAvatar>

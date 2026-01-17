@@ -10,6 +10,7 @@ import ReactGA from 'react-ga4';
 import { StatisticsChanges } from './statistics-changes';
 import { useState, useEffect } from 'react';
 import { RolesInfo } from './roles-info';
+import { AccentColors } from '../../../../theme';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
@@ -67,14 +68,14 @@ export const Home: FC = () => {
             color: 'background.default',
             textAlign: 'center',
             textShadow: `
-              -1px -1px 0 #DDCDB1,
-               1px -1px 0 #DDCDB1,
-              -1px  1px 0 #DDCDB1,
-               1px  1px 0 #DDCDB1,
-              -2px -2px 0 #DDCDB1,
-               2px -2px 0 #DDCDB1,
-              -2px  2px 0 #DDCDB1,
-               2px  2px 0 #DDCDB1
+              -1px -1px 0 ${AccentColors.navigationInactive},
+               1px -1px 0 ${AccentColors.navigationInactive},
+              -1px  1px 0 ${AccentColors.navigationInactive},
+               1px  1px 0 ${AccentColors.navigationInactive},
+              -2px -2px 0 ${AccentColors.navigationInactive},
+               2px -2px 0 ${AccentColors.navigationInactive},
+              -2px  2px 0 ${AccentColors.navigationInactive},
+               2px  2px 0 ${AccentColors.navigationInactive}
             `,
             fontWeight: 'bold',
             position: 'relative',

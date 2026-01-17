@@ -1,6 +1,6 @@
 import { ReactNode, useState, useMemo, useCallback } from 'react';
 import { Box, CircularProgress, IconButton, Stack, Tooltip } from '@mui/material';
-import { DataGrid, GridColDef, GridValidRowModel } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridValidRowModel, GridRenderCellParams } from '@mui/x-data-grid';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
@@ -8,7 +8,9 @@ import { useAuth } from 'react-oidc-context';
 import { CustomToolbar } from '../../features/components/custom-toolbar';
 import { ConfirmDialog } from '../../features/pages/admin/admin-main-window/confirm-dialog';
 import { Role } from '../../api/soroban-security-portal/models/role';
-import { defaultUiSettings } from '../../api/soroban-security-portal/models/ui-settings';
+import { listAreaStyle, dataGridContainerStyle, TouchTargets } from '../../theme';
+import { useResponsive } from '../../hooks';
+import { ResponsiveColumn, getResponsiveColumns } from './responsive-columns';
 
 /**
  * Configuration for the add button in the toolbar
@@ -50,8 +52,8 @@ export interface ConfirmDialogConfig {
 export interface AdminDataGridProps<T extends GridValidRowModel> {
   /** Array of data rows to display */
   rows: T[];
-  /** Column definitions for the grid */
-  columns: GridColDef[];
+  /** Column definitions for the grid (supports responsive configuration) */
+  columns: ResponsiveColumn[];
   /** Function to get unique row identifier */
   getRowId: (row: T) => number | string;
   /** Callback when an item is confirmed for removal (can return void or boolean) */
@@ -168,6 +170,7 @@ export function AdminDataGrid<T extends GridValidRowModel>({
   }, [isControlled, onItemIdToRemoveChange]);
 
   const isAdmin = auth.user?.profile.role === Role.Admin;
+  const { breakpoint } = useResponsive();
 
   const handleRemoveConfirmed = async () => {
     await onRemove(itemIdToRemove);
@@ -176,7 +179,7 @@ export function AdminDataGrid<T extends GridValidRowModel>({
 
   // Build columns with optional remove action - memoized to prevent unnecessary recalculations
   const finalColumns = useMemo((): GridColDef[] => {
-    const resultColumns: GridColDef[] = [];
+    const resultColumns: ResponsiveColumn[] = [];
 
     // Add remove action column if configured and user has permission
     if (removeAction) {
@@ -187,9 +190,11 @@ export function AdminDataGrid<T extends GridValidRowModel>({
           field: 'actions',
           headerName: 'Actions',
           width: 80,
+          mobileWidth: 60,
+          priority: 'essential',
           sortable: false,
           filterable: false,
-          renderCell: (params) => {
+          renderCell: (params: GridRenderCellParams) => {
             const rowId = removeAction.getRowId
               ? removeAction.getRowId(params.row)
               : params.row.id;
@@ -198,6 +203,10 @@ export function AdminDataGrid<T extends GridValidRowModel>({
                 <IconButton
                   onClick={() => handleSetItemIdToRemove(rowId)}
                   aria-label={removeAction.tooltip}
+                  sx={{
+                    minWidth: TouchTargets.primary,
+                    minHeight: TouchTargets.primary,
+                  }}
                 >
                   <ClearIcon sx={{ color: 'red' }} />
                 </IconButton>
@@ -208,8 +217,10 @@ export function AdminDataGrid<T extends GridValidRowModel>({
       }
     }
 
-    return [...resultColumns, ...columns];
-  }, [removeAction, isAdmin, columns, handleSetItemIdToRemove]);
+    // Combine action column with data columns and apply responsive transformations
+    const allColumns: ResponsiveColumn[] = [...resultColumns, ...columns];
+    return getResponsiveColumns(allColumns, breakpoint);
+  }, [removeAction, isAdmin, columns, handleSetItemIdToRemove, breakpoint]);
 
   const defaultGridSx = useMemo(() => ({
     ...(transparentBackground && { backgroundColor: 'transparent' }),
@@ -222,17 +233,20 @@ export function AdminDataGrid<T extends GridValidRowModel>({
   }), [transparentBackground]);
 
   return (
-    <div style={defaultUiSettings.listAreaStyle}>
+    <Box sx={listAreaStyle}>
       <Stack direction="row" spacing={2}>
         <Tooltip title={addButton.tooltip}>
-          <IconButton onClick={() => navigate(addButton.path)}>
+          <IconButton
+            onClick={() => navigate(addButton.path)}
+            sx={{ minWidth: TouchTargets.primary, minHeight: TouchTargets.primary }}
+          >
             {addButton.icon}
           </IconButton>
         </Tooltip>
         {additionalToolbarActions}
       </Stack>
 
-      <div style={{ height: 'calc(100vh - 128px)', position: 'relative' }}>
+      <Box sx={dataGridContainerStyle}>
         {loading && (
           <Box
             sx={{
@@ -264,7 +278,7 @@ export function AdminDataGrid<T extends GridValidRowModel>({
           isRowSelectable={() => false}
           loading={loading}
         />
-      </div>
+      </Box>
 
       <ConfirmDialog
         title={confirmDialog.title}
@@ -277,6 +291,6 @@ export function AdminDataGrid<T extends GridValidRowModel>({
       />
 
       {additionalContent}
-    </div>
+    </Box>
   );
 }

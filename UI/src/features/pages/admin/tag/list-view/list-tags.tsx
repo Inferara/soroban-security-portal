@@ -1,12 +1,12 @@
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { Chip, Link, Typography } from '@mui/material';
-import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridRenderCellParams } from '@mui/x-data-grid';
 import { FC, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { TagItem } from '../../../../../api/soroban-security-portal/models/tag';
 import { getTagsCall, removeTagCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { AdminDataGrid } from '../../../../../components/admin';
+import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
 import { useAdminList } from '../../../../../hooks/admin';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 
@@ -26,11 +26,13 @@ export const ListTags: FC = () => {
     currentPageState,
   });
 
-  const columnsData: GridColDef[] = useMemo(() => [
+  const columnsData: ResponsiveColumn[] = useMemo(() => [
     {
       field: 'name',
       headerName: 'Tag',
       width: 250,
+      mobileWidth: 150,
+      priority: 'essential',
       renderCell: (params: GridRenderCellParams<TagItem>) => (
         <Link
           sx={{
@@ -59,6 +61,9 @@ export const ListTags: FC = () => {
       field: 'date',
       headerName: 'Date',
       width: 250,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
       renderCell: (params: GridRenderCellParams<TagItem>) => (
         <Typography>{params.row.date.toString().split('.')[0].replace('T', ' ')}</Typography>
       ),
@@ -67,6 +72,9 @@ export const ListTags: FC = () => {
       field: 'createdBy',
       headerName: 'Created By',
       width: 250,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
     },
   ], [navigate]);
 

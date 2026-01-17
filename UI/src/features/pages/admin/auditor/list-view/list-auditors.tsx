@@ -1,12 +1,12 @@
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { Link, Typography } from '@mui/material';
-import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridRenderCellParams } from '@mui/x-data-grid';
 import { FC, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { getAuditorListDataCall, removeAuditorCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { AdminDataGrid } from '../../../../../components/admin';
+import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
 import { useAdminList } from '../../../../../hooks/admin';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 
@@ -26,11 +26,13 @@ export const ListAuditors: FC = () => {
     currentPageState,
   });
 
-  const columnsData: GridColDef[] = useMemo(() => [
+  const columnsData: ResponsiveColumn[] = useMemo(() => [
     {
       field: 'name',
       headerName: 'Auditor',
       width: 250,
+      mobileWidth: 150,
+      priority: 'essential',
       renderCell: (params: GridRenderCellParams<AuditorItem>) => (
         <Link
           sx={{
@@ -50,11 +52,18 @@ export const ListAuditors: FC = () => {
       field: 'url',
       headerName: 'URL',
       width: 250,
+      mobileWidth: 120,
+      priority: 'important',
+      hideOnMobile: true,
     },
     {
       field: 'date',
       headerName: 'Date',
       width: 250,
+      mobileWidth: 100,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
       renderCell: (params: GridRenderCellParams<AuditorItem>) => (
         <Typography>{params.row.date.toString().split('.')[0].replace('T', ' ')}</Typography>
       ),
@@ -63,6 +72,9 @@ export const ListAuditors: FC = () => {
       field: 'createdBy',
       headerName: 'Created By',
       width: 250,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
     },
   ], [navigate]);
 
