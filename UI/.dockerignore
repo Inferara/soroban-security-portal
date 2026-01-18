@@ -1,0 +1,33 @@
+# Dependencies (will be installed fresh in container)
+node_modules
+
+# Test files
+src/__tests__
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+e2e
+
+# Build outputs (will be built fresh in container)
+dist
+dist_sorobansecurityportal
+
+# Development files
+.git
+.gitignore
+.eslintrc.cjs
+.prettierrc
+*.md
+LICENSE
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
