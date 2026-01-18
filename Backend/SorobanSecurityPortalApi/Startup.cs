@@ -15,7 +15,7 @@ namespace SorobanSecurityPortalApi;
 public class Startup
 {
     private readonly Config _config;
-    private static ILogger<Startup> _logger;
+    private static ILogger<Startup>? _logger;
     public Startup(IConfiguration configuration)
     {
         _config = new Config();

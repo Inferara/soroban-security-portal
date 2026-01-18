@@ -42,6 +42,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<LoginSummaryViewModel?> Add(LoginSummaryViewModel loginSummaryViewModel)
         {
+            if (string.IsNullOrEmpty(loginSummaryViewModel.Login))
+                return null;
             var existingLogin = await _loginProcessor.GetByLogin(loginSummaryViewModel.Login, LoginTypeEnum.Password);
             if(existingLogin != null)
                 return null;
@@ -55,6 +57,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<bool> Update(int loginId, LoginViewModel editLoginViewModel)
         {
             var login = await _loginProcessor.GetById(loginId);
+            if (login == null)
+                return false;
             var loginModel = _mapper.Map<LoginModel>(editLoginViewModel);
             login.FullName = loginModel.FullName;
             login.Role = loginModel.Role;

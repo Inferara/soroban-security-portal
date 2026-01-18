@@ -2,7 +2,7 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
 {
     public class LoginProcessViewModel
     {
-        public string ClientId { get; set; }
+        public string ClientId { get; set; } = string.Empty;
         public string RedirectUri { get; set; } = string.Empty;
         public string CodeChallenge { get; set; } = string.Empty;
         public string CodeChallengeMethod { get; set; } = string.Empty;

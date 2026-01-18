@@ -14,7 +14,7 @@ namespace SorobanSecurityPortalApi.Authorization.Attributes
             _extendedConfig = extendedConfig;
         }
 
-        public bool TryAuthenticateUserFromToken(HttpContext httpContext, out ClaimsPrincipal user)
+        public bool TryAuthenticateUserFromToken(HttpContext httpContext, out ClaimsPrincipal? user)
         {
             user = null;
             var tokenFromQuery = httpContext.Request.Query["token"].FirstOrDefault();
@@ -48,7 +48,7 @@ namespace SorobanSecurityPortalApi.Authorization.Attributes
 
     public interface IAttributeHelper
     {
-        bool TryAuthenticateUserFromToken(HttpContext httpContext, out ClaimsPrincipal user);
+        bool TryAuthenticateUserFromToken(HttpContext httpContext, out ClaimsPrincipal? user);
     }
 }
 

@@ -65,7 +65,7 @@ namespace SorobanSecurityPortalApi.Controllers
                 return BadRequest("Invalid vulnerability JSON: " + ex.Message);
             }
 
-            if (vulnerability == null)
+            if (vulnerabilityModel == null)
                 return BadRequest("Parsed vulnerability is null.");
 
             var files = new List<FileViewModel>();
@@ -151,7 +151,7 @@ namespace SorobanSecurityPortalApi.Controllers
                 return BadRequest("Invalid vulnerability JSON: " + ex.Message);
             }
 
-            if (vulnerability == null)
+            if (vulnerabilityModel == null)
                 return BadRequest("Parsed vulnerability is null.");
 
             var files = new List<FileViewModel>();

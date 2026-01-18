@@ -58,7 +58,7 @@ public class ExtendedConfig : IExtendedConfig
         }
     }
 
-    private T GetValue<T>(string key) => GetValue(key, default(T));
+    private T GetValue<T>(string key) => GetValue(key, default(T)!);
     private T GetValue<T>(string key, T defaultValue)
     {
         if (DateTime.Now > _nextRefresh)
@@ -76,7 +76,7 @@ public class ExtendedConfig : IExtendedConfig
             return val.ToObject<T>()!;
         if (defaultValue != null)
             return defaultValue;
-        return default;
+        return default!;
     }
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Common)]

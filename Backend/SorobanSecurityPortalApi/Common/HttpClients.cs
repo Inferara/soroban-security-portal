@@ -98,7 +98,7 @@ namespace SorobanSecurityPortalApi.Common
                 if (nonSuccessRequest)
                 {
                     logger.LogWarning("Startup: {0}, url: {1}, request headers: {2}, code: {3}, body: {4}, response headers: {5}", "GetRetryPolicy",
-                        msg.RequestMessage.RequestUri, msg.RequestMessage.Headers, msg.StatusCode, msg.Content.ReadAsStringAsync().Result, msg.Headers);
+                        msg.RequestMessage?.RequestUri, msg.RequestMessage?.Headers, msg.StatusCode, msg.Content.ReadAsStringAsync().Result, msg.Headers);
                 }
                 return nonSuccessRequest;
             })
