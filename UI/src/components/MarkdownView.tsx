@@ -2,6 +2,7 @@ import { FC } from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
@@ -9,6 +10,61 @@ import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import { CodeBlock } from './CodeBlock';
 import 'katex/dist/katex.min.css';
+
+/**
+ * Custom sanitization schema based on GitHub's defaults.
+ * Allows safe HTML elements needed for markdown rendering while blocking XSS vectors.
+ *
+ * Blocked: script, style, iframe, object, embed, form, input, event handlers (onclick, onerror, etc.)
+ * Allowed: Standard markdown elements, tables, images, links, code blocks, KaTeX math
+ */
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [
+    // Block elements
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'p', 'div', 'span', 'br', 'hr',
+    'blockquote', 'pre', 'code',
+    // Lists
+    'ul', 'ol', 'li',
+    // Tables
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+    // Inline elements
+    'a', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'ins',
+    'sub', 'sup', 'mark', 'small',
+    // Media (with src restrictions below)
+    'img',
+    // KaTeX math elements
+    'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub',
+    'mfrac', 'mroot', 'msqrt', 'mover', 'munder', 'munderover',
+    'mtable', 'mtr', 'mtd', 'mtext', 'mspace', 'annotation',
+  ],
+  attributes: {
+    ...defaultSchema.attributes,
+    // Allow class on all elements for styling (code highlighting, KaTeX)
+    '*': ['className', 'class', 'style'],
+    // Links - allow href but protocols are restricted below
+    a: ['href', 'title', 'target', 'rel'],
+    // Images - allow src but protocols are restricted below
+    img: ['src', 'alt', 'title', 'width', 'height'],
+    // Code blocks
+    code: ['className', 'class'],
+    pre: ['className', 'class'],
+    // Table elements
+    th: ['scope', 'colspan', 'rowspan'],
+    td: ['colspan', 'rowspan'],
+    // KaTeX specific attributes
+    math: ['xmlns', 'display'],
+    annotation: ['encoding'],
+  },
+  // Only allow safe URL protocols
+  protocols: {
+    href: ['http', 'https', 'mailto'],
+    src: ['http', 'https', 'data'],
+  },
+  // Strip all event handlers and dangerous attributes
+  strip: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea'],
+};
 
 interface MarkdownViewProps {
   content: string;
@@ -105,7 +161,7 @@ export const MarkdownView: FC<MarkdownViewProps> = ({
         <ReactMarkdown
           skipHtml={false}
           remarkPlugins={[remarkParse, remarkGfm, remarkMath, remarkRehype]}
-          rehypePlugins={[rehypeRaw, rehypeKatex]}
+          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
           components={{
             table: ({ node, ...props }) => (
               <table {...props} style={{ width: '100%', borderCollapse: 'collapse' }} />

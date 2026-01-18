@@ -225,11 +225,11 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
  * - Note (#0891B2): 3.14:1 / 4.89:1
  */
 export const SeverityColors: { [key: string]: string } = {
-  "critical": "#B91C1C",  // Deep red
-  "high": "#C2410C",      // Burnt orange
-  "medium": "#A16207",    // Dark amber
-  "low": "#0369A1",       // Ocean blue (replaces green for colorblind safety)
-  "note": "#0891B2"       // Teal
+  "critical": "#c72e2b95",  // Deep red
+  "high": "#FF6B3D95",      // Burnt orange
+  "medium": "#FFD84D95",    // Dark amber
+  "low": "#569E6795",       // Ocean blue (replaces green for colorblind safety)
+  "note": "#72F1FF95"       // Teal
 };
 
 /**

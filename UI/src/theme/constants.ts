@@ -97,17 +97,11 @@ export const StatusColors = {
  * to ensure users with color vision deficiencies can distinguish categories.
  */
 export const CategoryColors = {
-  /** Valid (Fixed) - Emerald green */
-  valid: '#059669',
-  /** Valid (Not Fixed) - Amber */
-  validNotFixed: '#D97706',
-  /** Valid (Partially Fixed) - Violet */
-  validPartiallyFixed: '#7C3AED',
-  /** Invalid - Gray */
-  invalid: '#6B7280',
-  /** N/A - Teal */
-  na: '#0891B2',
-  /** Fallback/default color */
+  valid: '#6a1b9a',
+  validNotFixed: '#9c27b0',
+  validPartiallyFixed: '#ba68c8',
+  invalid: '#adadadff',
+  na: '#ce93d8',
   fallback: '#757575',
 } as const;
 

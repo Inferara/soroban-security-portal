@@ -19,7 +19,9 @@
 export function formatDateLong(dateString: Date | string | null | undefined): string {
   if (!dateString) return 'Unknown date';
   try {
-    return new Date(dateString).toLocaleDateString(undefined, {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Unknown date';
+    return date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
