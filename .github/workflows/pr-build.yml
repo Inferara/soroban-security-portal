@@ -59,10 +59,10 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore SorobanSecurityPortal.sln
 
       - name: Build
-        run: dotnet build --no-restore
+        run: dotnet build SorobanSecurityPortal.sln --no-restore
 
   build-images:
     runs-on: ubuntu-latest
