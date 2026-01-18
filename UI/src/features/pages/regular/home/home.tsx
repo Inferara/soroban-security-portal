@@ -98,9 +98,9 @@ export const Home: FC = () => {
             zIndex: 3,
           }}
         >
-          It's your go-to hub for all things secure in the world of Soroban - Soroban's<br />
+          It&apos;s your go-to hub for all things secure in the world of Soroban - Soroban&apos;s<br />
           smart contract platform. Think of it as your safety compass: audit history,<br />
-          tools, tips and top-tier experts who've put Soroban projects through their<br />
+          tools, tips and top-tier experts who&apos;ve put Soroban projects through their<br />
           paces.
         </Typography>
 

@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography, useTheme, SxProps, Theme } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -70,8 +70,8 @@ interface MarkdownViewProps {
   content: string;
   emptyMessage?: string;
   minHeight?: string | number;
-  background?: any;
-  sx?: any;
+  background?: SxProps<Theme>;
+  sx?: SxProps<Theme>;
 }
 
 export const MarkdownView: FC<MarkdownViewProps> = ({ 
@@ -163,27 +163,26 @@ export const MarkdownView: FC<MarkdownViewProps> = ({
           remarkPlugins={[remarkParse, remarkGfm, remarkMath, remarkRehype]}
           rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
           components={{
-            table: ({ node, ...props }) => (
+            table: ({ ...props }) => (
               <table {...props} style={{ width: '100%', borderCollapse: 'collapse' }} />
             ),
-            thead: ({ node, ...props }) => (
+            thead: ({ ...props }) => (
               <thead {...props} />
             ),
-            tbody: ({ node, ...props }) => (
+            tbody: ({ ...props }) => (
               <tbody {...props} />
             ),
-            tr: ({ node, ...props }) => (
+            tr: ({ ...props }) => (
               <tr {...props} />
             ),
-            th: ({ node, ...props }) => (
+            th: ({ ...props }) => (
               <th {...props} />
             ),
-            td: ({ node, ...props }) => (
+            td: ({ ...props }) => (
               <td {...props} />
             ),
-            code: (props) => {
-              const { className, children, ...rest } = props as any;
-              const inline = (props as any).inline;
+            code: (props: { className?: string; children?: React.ReactNode; inline?: boolean; [key: string]: unknown }) => {
+              const { className, children, inline, ...rest } = props;
               const match = /language-(\w+)/.exec(className || '');
               if (!inline && match) {
                 return (

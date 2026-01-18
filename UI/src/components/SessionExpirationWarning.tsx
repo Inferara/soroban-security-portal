@@ -76,7 +76,7 @@ export const SessionExpirationWarning: FC<SessionExpirationWarningProps> = ({
     try {
       await extendSession();
       setShowWarning(false);
-    } catch (error) {
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsExtending(false);

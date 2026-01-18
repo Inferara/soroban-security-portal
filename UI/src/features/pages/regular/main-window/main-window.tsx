@@ -81,55 +81,52 @@ export const MainWindow: FC = () => {
     return location.pathname === `${environment.basePath}${path}`;
   };
 
-  let navigationItems = [
+  const baseNavigationItems = [
     { label: 'Home', path: '/' },
     { label: 'Reports', path: '/reports' },
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
     { label: 'About', path: '/about' },
   ];
-  if (auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator)) {
-    navigationItems.push({ label: 'Admin', path: '/admin' });
-  }
+  const isAdminUser = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator);
+  const navigationItems = isAdminUser
+    ? [...baseNavigationItems, { label: 'Admin', path: '/admin' }]
+    : baseNavigationItems;
 
-  const NavButtons = () => (
-    <>
-      {navigationItems.map((item) => {
-        const isActive = isActiveRoute(item.path);
-        const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
-        return (
-          <MuiLink
-            key={item.path}
-            href={fullPath}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ textDecoration: 'none' }}
-            onClick={(event) => {
-              if (!event.ctrlKey && !event.metaKey) {
-                event.preventDefault();
-                navigate(item.path);
-                setMobileOpen(false);
-              }
-            }}
-          >
-            <Button
-              sx={{
-                color: isActive ? AccentColors.navigationActive : AccentColors.navigationInactive,
-                height: '54px',
-                backgroundColor: 'transparent',
-                fontSize: isActive ? '1.5rem' : '1.2rem',
-                fontWeight: isActive ? 600 : 400,
-                textTransform: 'none',
-                '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
-              }}
-              fullWidth
-            >
-              {item.label}
-            </Button>
-          </MuiLink>
-        );
-      })}
-    </>
-  );
+  const navButtons = navigationItems.map((item) => {
+    const isActive = isActiveRoute(item.path);
+    const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
+    return (
+      <MuiLink
+        key={item.path}
+        href={fullPath}
+        target="_blank"
+        rel="noopener noreferrer"
+        sx={{ textDecoration: 'none' }}
+        onClick={(event) => {
+          if (!event.ctrlKey && !event.metaKey) {
+            event.preventDefault();
+            navigate(item.path);
+            setMobileOpen(false);
+          }
+        }}
+      >
+        <Button
+          sx={{
+            color: isActive ? AccentColors.navigationActive : AccentColors.navigationInactive,
+            height: '54px',
+            backgroundColor: 'transparent',
+            fontSize: isActive ? '1.5rem' : '1.2rem',
+            fontWeight: isActive ? 600 : 400,
+            textTransform: 'none',
+            '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
+          }}
+          fullWidth
+        >
+          {item.label}
+        </Button>
+      </MuiLink>
+    );
+  });
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -170,7 +167,7 @@ export const MainWindow: FC = () => {
 
           {/* Desktop navigation */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, ml: 4, gap: 1 }}>
-            <NavButtons />
+            {navButtons}
           </Box>
 
           <Box sx={{ flexGrow: 1 }} />

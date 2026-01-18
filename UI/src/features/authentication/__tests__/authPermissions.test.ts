@@ -32,8 +32,8 @@ const createMockAuth = (overrides: Partial<AuthContextProps> = {}): AuthContextP
   querySessionStatus: vi.fn(),
   startSilentRenew: vi.fn(),
   stopSilentRenew: vi.fn(),
-  settings: {} as any,
-  events: {} as any,
+  settings: {} as AuthContextProps['settings'],
+  events: {} as AuthContextProps['events'],
   ...overrides,
 });
 
@@ -53,7 +53,7 @@ const createAuthenticatedMock = (role: Role): AuthContextProps =>
       expires_at: Date.now() / 1000 + 3600,
       expired: false,
       scopes: ['openid'],
-    } as any,
+    } as AuthContextProps['user'],
   });
 
 describe('authPermissions', () => {
@@ -131,7 +131,7 @@ describe('authPermissions', () => {
             sub: '1',
             role: 'InvalidRole',
           },
-        } as any,
+        } as AuthContextProps['user'],
       });
       expect(getUserRole(auth)).toBeNull();
     });
@@ -301,7 +301,7 @@ describe('authPermissions', () => {
             sub: '1',
             // No role
           },
-        } as any,
+        } as AuthContextProps['user'],
       });
       expect(isAuthorized(auth)).toBe(false);
     });
@@ -324,7 +324,7 @@ describe('authPermissions', () => {
         user: {
           profile: { sub: '1' },
           // No access_token
-        } as any,
+        } as AuthContextProps['user'],
       });
       expect(hasAccessToken(auth)).toBe(false);
     });
@@ -335,7 +335,7 @@ describe('authPermissions', () => {
         user: {
           access_token: '',
           profile: { sub: '1' },
-        } as any,
+        } as AuthContextProps['user'],
       });
       expect(hasAccessToken(auth)).toBe(false);
     });

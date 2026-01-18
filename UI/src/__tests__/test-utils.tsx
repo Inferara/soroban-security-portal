@@ -33,7 +33,7 @@ export const createMockAuth = (overrides: Partial<AuthContextProps> = {}): AuthC
   querySessionStatus: vi.fn(),
   startSilentRenew: vi.fn(),
   stopSilentRenew: vi.fn(),
-  settings: {} as any,
+  settings: {} as AuthContextProps['settings'],
   events: {
     addAccessTokenExpired: vi.fn(),
     removeAccessTokenExpired: vi.fn(),
@@ -51,7 +51,7 @@ export const createMockAuth = (overrides: Partial<AuthContextProps> = {}): AuthC
     removeUserSignedOut: vi.fn(),
     addUserSessionChanged: vi.fn(),
     removeUserSessionChanged: vi.fn(),
-  } as any,
+  } as AuthContextProps['events'],
   ...overrides,
 });
 
@@ -156,7 +156,7 @@ export const renderWithAuth = (
   const authUser = createAuthenticatedUser(user);
   const auth = createMockAuth({
     isAuthenticated: true,
-    user: authUser as any,
+    user: authUser as AuthContextProps['user'],
   });
 
   return customRender(ui, { ...rest, auth });

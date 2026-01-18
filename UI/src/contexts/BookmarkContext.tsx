@@ -52,9 +52,9 @@ export const BookmarkProvider = ({ children }: BookmarkProviderProps) => {
         try {
             const data = await getBookmarksCall();
             setBookmarks(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error fetching bookmarks:', err);
-            const errorMessage = err?.message || 'Failed to load bookmarks';
+            const errorMessage = err instanceof Error ? err.message : 'Failed to load bookmarks';
             
             // Don't show error for authentication issues, just silently clear bookmarks
             if (errorMessage.includes('Authentication') || errorMessage.includes('log in')) {
@@ -89,9 +89,9 @@ export const BookmarkProvider = ({ children }: BookmarkProviderProps) => {
             // Refresh the bookmark list from server to get updated state
             await fetchBookmarks();
             return added;
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error adding bookmark:', err);
-            const errorMessage = err?.message || 'Failed to add bookmark';
+            const errorMessage = err instanceof Error ? err.message : 'Failed to add bookmark';
             
             // Don't show error for authentication issues
             if (errorMessage.includes('Authentication') || errorMessage.includes('log in')) {
@@ -114,9 +114,9 @@ export const BookmarkProvider = ({ children }: BookmarkProviderProps) => {
             // Refresh the bookmark list from server to get updated state
             await fetchBookmarks();
             return true;
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error removing bookmark:', err);
-            const errorMessage = err?.message || 'Failed to remove bookmark';
+            const errorMessage = err instanceof Error ? err.message : 'Failed to remove bookmark';
             
             // Don't show error for authentication issues
             if (errorMessage.includes('Authentication') || errorMessage.includes('log in')) {

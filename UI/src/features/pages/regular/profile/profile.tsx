@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { TextField, Button, Grid, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
+import { Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
 import { useProfile } from './hooks';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
-import LockIcon from '@mui/icons-material/Lock';
+// import LockIcon from '@mui/icons-material/Lock'; // For password change section (commented out)
 import EditIcon from '@mui/icons-material/Edit';
 import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -162,9 +162,10 @@ function a11yProps(index: number) {
 
 export const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Password change state - currently disabled in UI (see commented section below)
+  const [oldPassword, _setOldPassword] = useState('');
+  const [newPassword, _setNewPassword] = useState('');
+  const [confirmPassword, _setConfirmPassword] = useState('');
   const [tabValue, setTabValue] = useState(0);
 
   const {
@@ -207,19 +208,20 @@ export const Profile: React.FC = () => {
     }
   };
 
-  const handleChangePassword = async () => {
+  // Password change handler - currently disabled in UI (see commented section below)
+  const _handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
       showError('New passwords do not match');
       return;
     }
-    
+
     const changePasswordSuccess = await changePassword(oldPassword, newPassword);
     if (changePasswordSuccess) {
       showSuccess('Password changed successfully');
     } else {
       showError('Password change failed');
     }
-  }
+  };
 
   // Using shared getUserInitials from utils/user-utils.ts
 
@@ -408,8 +410,8 @@ export const Profile: React.FC = () => {
           </TabPanel>
         </ContentSection>
 
-        {/* Password Change Section - Hidden by default, can be shown in Edit Profile */}
-        {user?.loginType === "Password" && false && (
+        {/* Password Change Section - Hidden by default, can be shown in Edit Profile
+        {user?.loginType === "Password" && (
           <ContentSection>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <LockIcon sx={{ mr: 1, color: '#3B82F6' }} />
@@ -525,6 +527,7 @@ export const Profile: React.FC = () => {
             </Grid>
           </ContentSection>
         )}
+        */}
       </Box>
     </ProfileContainer>
   );

@@ -45,14 +45,14 @@ export const About: FC = () => {
       </TextBlock>
       <H5 text="Mission" />
       <TextBlock>
-        As Soroban's capabilities grow, so do the stakes. Deployed on Stellar's robust layer-1 blockchain, Soroban brings powerful smart contract functionality — but also attracts scrutiny in an inherently adversarial environment. The Soroban Security Portal is dedicated to supporting developers, auditors, and builders with clear, centralized guidance, tools, and insights to build securely from the ground up.
+        As Soroban&apos;s capabilities grow, so do the stakes. Deployed on Stellar&apos;s robust layer-1 blockchain, Soroban brings powerful smart contract functionality — but also attracts scrutiny in an inherently adversarial environment. The Soroban Security Portal is dedicated to supporting developers, auditors, and builders with clear, centralized guidance, tools, and insights to build securely from the ground up.
       </TextBlock>
       <H5 text="What you can find in the Portal" />
       <TextBlock>
         <ul>
           <li><InternalLink path="/reports" text="Audit reports"/>, detailed <InternalLink path="/vulnerabilities" text="vulnerability descriptions"/>, and many more soon;</li>
           {/* , security tools (soon), checklists (soon), and expert insights (soon) — forming your "safety compass" within the Soroban ecosystem;</li> */}
-          <li>Up to date database, aligned with the <ExternalLink url="https://stellar.org/blog/developers/the-soroban-audit-bank-fostering-a-secure-smart-contract-ecosystem" text="Soroban Security Audit Bank"/> from the <ExternalLink url="https://stellar.org/foundation" text="Stellar Development Foundation"/>, the Portal connects you with structured audit insights, streamlined processes, and educational opportunities (soon). Whether you're launching a new DeFi protocol or enhancing an existing dApp, you'll find development and security guidance;</li>
+          <li>Up to date database, aligned with the <ExternalLink url="https://stellar.org/blog/developers/the-soroban-audit-bank-fostering-a-secure-smart-contract-ecosystem" text="Soroban Security Audit Bank"/> from the <ExternalLink url="https://stellar.org/foundation" text="Stellar Development Foundation"/>, the Portal connects you with structured audit insights, streamlined processes, and educational opportunities (soon). Whether you&apos;re launching a new DeFi protocol or enhancing an existing dApp, you&apos;ll find development and security guidance;</li>
           {/* <li>Soroban emphasizes testability, offering local testing, unit and integration tests, fuzzing, and static analysis via Rust tooling. We highlight (soon) STRIDE-based threat modeling, formal verification options, and tooling from trusted providers—helping teams catch vulnerabilities early and efficiently;</li>
           <li>From developer workshops to fireside chats featuring industry experts, we bring you the latest thinking on proactive security and evolving threats. You'll also find recommendations, checklists, and real-world audit analysis;</li>
           <li>To prevent scattered information from slowing you down, our community-powered knowledge base (soon) aggregates vulnerabilities, past audits, and best practices into a searchable, well-classified repository—complete with moderation and advanced integration capabilities.</li> */}
@@ -62,8 +62,8 @@ export const About: FC = () => {
       <TextBlock>
         <ul>
           <li><strong>Security is foundational:</strong> Soroban, built in Rust, offers strong safety features — but ecosystem-wide safety depends on builders being informed and proactive;</li>
-          <li><strong>A proactive approach wins:</strong> Stellar's Audit Bank embeds security before launch — helping prevent hacks and build user trust. The Portal amplifies this mission with full visibility and education.</li>
-          <li><strong>Learning from real mistakes:</strong> By spotlighting actual audits, common pitfalls, and expert insights, we help you avoid repeating others' errors — and encourage resilient, secure code.</li>
+          <li><strong>A proactive approach wins:</strong> Stellar&apos;s Audit Bank embeds security before launch — helping prevent hacks and build user trust. The Portal amplifies this mission with full visibility and education.</li>
+          <li><strong>Learning from real mistakes:</strong> By spotlighting actual audits, common pitfalls, and expert insights, we help you avoid repeating others&apos; errors — and encourage resilient, secure code.</li>
         </ul>
       </TextBlock>
       <H5 text="For whom" />
@@ -106,7 +106,7 @@ export const About: FC = () => {
         <ExternalLink url="https://communityfund.stellar.org/" text="Stellar Community Fund" />.
       </TextBlock>
       <TextBlock>We are deeply grateful to the Stellar community for recognizing the importance of security in the Soroban ecosystem and for providing the resources to turn this vision into reality. This sponsorship not only helped us launch the portal but also reinforced the shared belief that secure smart contracts are the foundation of trust and adoption on Stellar.</TextBlock>
-      <TextBlock>This support empowers us to continue building tools, knowledge bases, and educational resources that help developers, auditors, and the community at large create safer decentralized applications. Together with Stellar, we're shaping a secure and sustainable future for Soroban.</TextBlock>
+      <TextBlock>This support empowers us to continue building tools, knowledge bases, and educational resources that help developers, auditors, and the community at large create safer decentralized applications. Together with Stellar, we&apos;re shaping a secure and sustainable future for Soroban.</TextBlock>
     </Box>
   );
 };

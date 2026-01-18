@@ -35,8 +35,8 @@ describe('BookmarkContext', () => {
     querySessionStatus: vi.fn(),
     startSilentRenew: vi.fn(),
     stopSilentRenew: vi.fn(),
-    settings: {} as any,
-    events: {} as any,
+    settings: {} as AuthContextProps['settings'],
+    events: {} as AuthContextProps['events'],
     ...overrides,
   });
 
@@ -46,11 +46,13 @@ describe('BookmarkContext', () => {
   ];
 
   const createWrapper = (auth: AuthContextProps) => {
-    return ({ children }: { children: ReactNode }) => (
+    const TestWrapper = ({ children }: { children: ReactNode }) => (
       <AuthContext.Provider value={auth}>
         <BookmarkProvider>{children}</BookmarkProvider>
       </AuthContext.Provider>
     );
+    TestWrapper.displayName = 'BookmarkTestWrapper';
+    return TestWrapper;
   };
 
   beforeEach(() => {
@@ -110,7 +112,7 @@ describe('BookmarkContext', () => {
         expires_at: Date.now() / 1000 + 3600,
         expired: false,
         scopes: ['openid'],
-      } as any,
+      } as AuthContextProps['user'],
     });
 
     it('fetches bookmarks on mount', async () => {
@@ -166,7 +168,7 @@ describe('BookmarkContext', () => {
           expires_at: Date.now() / 1000 + 3600,
           expired: false,
           scopes: [],
-        } as any,
+        } as AuthContextProps['user'],
       });
       mockedGetBookmarks.mockResolvedValue(mockBookmarks);
 
@@ -189,7 +191,7 @@ describe('BookmarkContext', () => {
           expires_at: Date.now() / 1000 + 3600,
           expired: false,
           scopes: [],
-        } as any,
+        } as AuthContextProps['user'],
       });
       mockedGetBookmarks.mockResolvedValue(mockBookmarks);
 
@@ -212,7 +214,7 @@ describe('BookmarkContext', () => {
           expires_at: Date.now() / 1000 + 3600,
           expired: false,
           scopes: [],
-        } as any,
+        } as AuthContextProps['user'],
       });
       mockedGetBookmarks.mockResolvedValue(mockBookmarks);
 
@@ -238,7 +240,7 @@ describe('BookmarkContext', () => {
           expires_at: Date.now() / 1000 + 3600,
           expired: false,
           scopes: [],
-        } as any,
+        } as AuthContextProps['user'],
       });
       mockedGetBookmarks.mockResolvedValue(mockBookmarks);
 
@@ -261,7 +263,7 @@ describe('BookmarkContext', () => {
           expires_at: Date.now() / 1000 + 3600,
           expired: false,
           scopes: [],
-        } as any,
+        } as AuthContextProps['user'],
       });
       mockedGetBookmarks.mockResolvedValue(mockBookmarks);
 
@@ -285,7 +287,7 @@ describe('BookmarkContext', () => {
         expires_at: Date.now() / 1000 + 3600,
         expired: false,
         scopes: [],
-      } as any,
+      } as AuthContextProps['user'],
     });
 
     it('adds bookmark and refreshes list', async () => {
@@ -346,7 +348,7 @@ describe('BookmarkContext', () => {
         expires_at: Date.now() / 1000 + 3600,
         expired: false,
         scopes: [],
-      } as any,
+      } as AuthContextProps['user'],
     });
 
     it('removes bookmark and refreshes list', async () => {
@@ -404,7 +406,7 @@ describe('BookmarkContext', () => {
         expires_at: Date.now() / 1000 + 3600,
         expired: false,
         scopes: [],
-      } as any,
+      } as AuthContextProps['user'],
     });
 
     it('adds bookmark when not bookmarked', async () => {
@@ -466,7 +468,7 @@ describe('BookmarkContext', () => {
           expires_at: Date.now() / 1000 + 3600,
           expired: false,
           scopes: [],
-        } as any,
+        } as AuthContextProps['user'],
       });
       mockedGetBookmarks
         .mockResolvedValueOnce([])

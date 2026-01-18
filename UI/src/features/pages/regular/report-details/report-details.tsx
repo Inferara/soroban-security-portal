@@ -705,7 +705,7 @@ export const ReportDetails: FC = () => {
                           }}
                         >
                           <Typography variant="h6" color="text.secondary">
-                            Click on the "Full Report (PDF)" tab to load the document
+                            Click on the &quot;Full Report (PDF)&quot; tab to load the document
                           </Typography>
                         </Box>
                       )}

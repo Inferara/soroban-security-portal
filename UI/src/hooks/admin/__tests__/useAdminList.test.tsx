@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { useAdminList, CustomOperationsRecord } from '../useAdminList';
+import { useAdminList } from '../useAdminList';
 import currentPageReducer from '../../../features/pages/admin/admin-main-window/current-page-slice';
 import currentErrorReducer from '../../../features/pages/admin/admin-main-window/current-error-slice';
 

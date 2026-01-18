@@ -73,7 +73,7 @@ export function AppWrapper() {
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      const oidcUserKey = `oidc.user:${(window as any).env.API_URL!}/api/v1/connect:${environment.clientId}`;
+      const oidcUserKey = `oidc.user:${window.env.API_URL}/api/v1/connect:${environment.clientId}`;
       if (e.key === oidcUserKey && e.newValue === null && auth.isAuthenticated) {
         auth.removeUser().then(() => {
           if (window.location.pathname.startsWith(`${environment.basePath}/admin`)) {

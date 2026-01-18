@@ -145,7 +145,7 @@ export const ChipsControl: React.FC<ChipsControlProps> = (props: ChipsControlPro
       {groupedOptions.length > 0 ? (
         <ul className='tags-available' {...getListboxProps()} style={{ width: props.width, zIndex: '2' }}>
           {(groupedOptions as typeof props.chips || []).map((option, index) => {
-            const { key, ...optionProps } = getOptionProps({ option, index });
+            const { key: _key, ...optionProps } = getOptionProps({ option, index });
             return (
               <li key={index} {...optionProps}>
                 <span>{props.chipText(option)}</span>

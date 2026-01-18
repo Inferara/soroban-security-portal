@@ -86,7 +86,7 @@ export function getResponsiveColumns(
     })
     .map((col): GridColDef => {
       // Remove custom responsive properties before returning
-      const { priority, hideOnMobile, hideOnTablet, mobileWidth, ...baseCol } = col;
+      const { priority: _priority, hideOnMobile: _hideOnMobile, hideOnTablet: _hideOnTablet, mobileWidth, ...baseCol } = col;
 
       if (!isMobile) return baseCol;
 

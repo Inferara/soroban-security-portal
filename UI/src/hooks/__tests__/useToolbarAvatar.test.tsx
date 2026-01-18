@@ -37,8 +37,8 @@ describe('useToolbarAvatar', () => {
     querySessionStatus: vi.fn(),
     startSilentRenew: vi.fn(),
     stopSilentRenew: vi.fn(),
-    settings: {} as any,
-    events: {} as any,
+    settings: {} as AuthContextProps['settings'],
+    events: {} as AuthContextProps['events'],
     ...overrides,
   });
 

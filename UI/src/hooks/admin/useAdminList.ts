@@ -35,9 +35,8 @@ export interface UseAdminListConfig<T, TOperations extends CustomOperationsRecor
 /**
  * Type to extract the handler function signature from a CustomOperation
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OperationHandler<T> = T extends CustomOperation
-  ? (...args: any[]) => Promise<void>
+  ? (...args: unknown[]) => Promise<void>
   : never;
 
 /**

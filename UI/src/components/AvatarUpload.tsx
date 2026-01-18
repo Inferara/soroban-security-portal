@@ -91,7 +91,7 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
                     setImageUrl(null); // Clear the URL when a new image is uploaded
                     setImageCallback(base64String);
                     showSuccess('Image uploaded successfully');
-                } catch (error) {
+                } catch {
                     showError('Failed to process image');
                 } finally {
                     setIsImageUploading(false);

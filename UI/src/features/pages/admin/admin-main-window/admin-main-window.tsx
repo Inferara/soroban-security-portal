@@ -28,8 +28,9 @@ import { EditVulnerability } from '../vulnerabilities/edit-item/edit-vulnerabili
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
+// Theme toggle icons - currently unused but kept for future feature
+// import Brightness4Icon from '@mui/icons-material/Brightness4';
+// import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ReportManagement } from '../reports/list-view/list-reports.tsx';
 import { EditReport } from '../reports/edit-item/edit-report.tsx';
 import { Subscriptions } from '../subscriptions/subscriptions.tsx';
@@ -106,7 +107,8 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 export const AdminMainWindow: FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
-  const { themeMode, toggleTheme } = useTheme();
+  // Theme toggle is not yet supported, keeping these for future use
+  const { themeMode: _themeMode, toggleTheme: _toggleTheme } = useTheme();
   const { isMobile } = useResponsive();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [leftMenuOpen, setLeftMenuOpen] = useState(true);
@@ -165,15 +167,15 @@ export const AdminMainWindow: FC = () => {
               </Typography>
             </Grid>
           </Grid>
-          {/* Theme Toggle Button not yet supported */}
-          {false && (
-          <IconButton 
-            color="inherit" 
+          {/* Theme Toggle Button not yet supported
+          <IconButton
+            color="inherit"
             onClick={toggleTheme}
             sx={{ mr: 1 }}
           >
             {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>)}
+          </IconButton>
+          */}
           <Typography noWrap component="div" sx={{ overflow: 'unset', marginRight: '20px' }}>
             {auth.user?.profile.name}
           </Typography>
