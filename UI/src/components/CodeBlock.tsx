@@ -10,7 +10,7 @@ interface CodeBlockProps {
   children: string;
   className?: string;
   inline?: boolean;
-  [key: string]: any; // Allow additional props from ReactMarkdown
+  [key: string]: unknown; // Allow additional props from ReactMarkdown
 }
 
 export const CodeBlock: React.FC<CodeBlockProps> = ({ children, className, inline = false, ...props }) => {

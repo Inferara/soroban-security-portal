@@ -137,5 +137,6 @@ dist
 
 .*
 !.github
+!.dockerignore
 *.MD
 !README.md

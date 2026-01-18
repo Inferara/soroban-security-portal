@@ -1,73 +1,38 @@
-import ClearIcon from '@mui/icons-material/Clear';
-import {
-  IconButton,
-  Link,
-  Stack,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import {
-  DataGrid,
-  GridColDef,
-  GridRenderCellParams,
-} from '@mui/x-data-grid';
-import { FC, useState } from 'react';
-
-import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
-import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useListCompanies } from './hooks/index.ts';
-import { ConfirmDialog } from '../../admin-main-window/confirm-dialog.tsx';
-import { CustomToolbar } from '../../../../components/custom-toolbar.tsx';
-import { useNavigate } from 'react-router-dom';
-import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
 import AddBusinessIcon from '@mui/icons-material/AddBusiness';
+import { Link, Typography } from '@mui/material';
+import { GridRenderCellParams } from '@mui/x-data-grid';
+import { FC, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
+import { getCompanyListDataCall, removeCompanyCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
+import { useAdminList } from '../../../../../hooks/admin';
+import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 
 export const ListCompanies: FC = () => {
-  const auth = useAuth();
   const navigate = useNavigate();
 
-  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
-
-  const currentPageState: CurrentPageState = {
+  const currentPageState: CurrentPageState = useMemo(() => ({
     pageName: 'Companies',
     pageCode: 'companies',
     pageUrl: window.location.pathname,
     routePath: 'admin/companies',
-  };
+  }), []);
 
-  const { companyListData, companyRemove } = useListCompanies({ currentPageState });
-  const [companyIdToRemove, setCompanyIdToRemove] = useState(0);
+  const { data: companyListData, remove: companyRemove } = useAdminList<CompanyItem>({
+    fetchData: getCompanyListDataCall,
+    removeItem: removeCompanyCall,
+    currentPageState,
+  });
 
-  const removeCompanyConfirmed = async () => {
-    await companyRemove(companyIdToRemove);
-    setCompanyIdToRemove(0);
-  };
-
-  let columnsData: GridColDef[] = [];
-  if (isAdmin(auth)) {
-    columnsData.push({
-      field: 'actions',
-      headerName: 'Actions',
-      width: 80,
-      sortable: false,
-      filterable: false,
-      renderCell: (params: GridRenderCellParams<CompanyItem>) => (
-        <Tooltip title="Remove Company">
-          <IconButton onClick={() => setCompanyIdToRemove(params.row.id)}>
-            <ClearIcon sx={{ color: 'red' }} />
-          </IconButton>
-        </Tooltip>
-      ),
-    } as GridColDef);
-  }
-
-  columnsData = columnsData.concat([
+  const columnsData: ResponsiveColumn[] = useMemo(() => [
     {
       field: 'name',
       headerName: 'Company',
       width: 250,
+      mobileWidth: 150,
+      priority: 'essential',
       renderCell: (params: GridRenderCellParams<CompanyItem>) => (
         <Link
           sx={{
@@ -77,76 +42,58 @@ export const ListCompanies: FC = () => {
             whiteSpace: 'nowrap',
           }}
           component="button"
-          onClick={() =>
-            navigate(`/admin/companies/edit?companyId=${params.row.id}`)
-          }
+          onClick={() => navigate(`/admin/companies/edit?companyId=${params.row.id}`)}
         >
           {params.row.name}
         </Link>
       ),
-    } as GridColDef,
+    },
     {
       field: 'url',
       headerName: 'URL',
       width: 250,
-    } as GridColDef,
+      priority: 'important',
+      hideOnMobile: true,
+    },
     {
       field: 'date',
       headerName: 'Date',
       width: 250,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
       renderCell: (params: GridRenderCellParams<CompanyItem>) => (
         <Typography>{params.row.date.toString().split('.')[0].replace('T', ' ')}</Typography>
       ),
-    } as GridColDef,
+    },
     {
       field: 'createdBy',
       headerName: 'Created By',
       width: 250,
-    } as GridColDef,
-  ]);
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
+    },
+  ], [navigate]);
 
   return (
-    <div style={defaultUiSettings.listAreaStyle}>
-      <Stack direction="row" spacing={2}>
-        <Tooltip title="Add Company">
-          <IconButton onClick={() => navigate('/admin/companies/add')}>
-            <AddBusinessIcon sx={{ color: 'green' }} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
-
-      <div style={{ height: 'calc(110vh - 64px)' }}>
-        <DataGrid
-          getRowId={(row: CompanyItem) => row.id}
-          getRowHeight={() => 'auto'}
-          sx={{
-            backgroundColor: 'transparent',
-            '& .MuiDataGrid-cell': {
-              whiteSpace: 'normal',
-              display: 'grid',
-              alignContent: 'center',
-              minHeight: 50,
-            },
-          }}
-          rows={companyListData}
-          columns={columnsData}
-          showToolbar={true}
-          slots={{
-            toolbar: CustomToolbar,
-          }}
-          isRowSelectable={() => false}
-        />
-      </div>
-
-      <ConfirmDialog
-        title="Remove Company"
-        message="Are you sure you want to remove this Company?"
-        okButtonText="Yes"
-        cancelButtonText="No"
-        onConfirm={removeCompanyConfirmed}
-        onCancel={() => setCompanyIdToRemove(0)}
-        show={companyIdToRemove !== 0}
-      />
-    </div>
+    <AdminDataGrid<CompanyItem>
+      rows={companyListData}
+      columns={columnsData}
+      getRowId={(row) => row.id}
+      onRemove={companyRemove}
+      addButton={{
+        path: '/admin/companies/add',
+        icon: <AddBusinessIcon sx={{ color: 'green' }} />,
+        tooltip: 'Add Company',
+      }}
+      removeAction={{
+        tooltip: 'Remove Company',
+      }}
+      confirmDialog={{
+        title: 'Remove Company',
+        message: 'Are you sure you want to remove this Company?',
+      }}
+    />
   );
 };

@@ -1,101 +1,65 @@
-import { Button, FormHelperText, Grid, Stack, TextField } from '@mui/material';
-import { FC, useState } from 'react';
-import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor.ts';
-import { showError } from '../../../../dialog-handler/dialog-handler.ts';
-import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useAddAuditor } from './hooks/index.ts';
-import { useNavigate } from 'react-router-dom';
-import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-import { AvatarUpload } from '../../../../../components/AvatarUpload.tsx';
+import { FC, useMemo } from 'react';
+import { addAuditorCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
+import { CurrentPageState } from '../../admin-main-window/current-page-slice';
+import { EntityForm, EntityFieldConfig } from '../../../../../components/admin';
+import { useEntityForm } from '../../../../../hooks/admin';
+
+interface AuditorFormValues {
+  name: string;
+  url: string;
+  description: string;
+  image: string | null;
+}
 
 export const AddAuditor: FC = () => {
-  const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
-  const [description, setDescription] = useState('');
-  const [image, setImage] = useState<string | null>(null);
-
-  const currentPageState: CurrentPageState = {
+  const currentPageState: CurrentPageState = useMemo(() => ({
     pageName: 'Add Auditor',
     pageCode: 'addAuditor',
     pageUrl: window.location.pathname,
     routePath: 'admin/auditors/add',
-  };
-  const { addAuditor } = useAddAuditor({ currentPageState });
+  }), []);
 
-  const handleCreateAuditor = async () => {
-    if (name === '' || url === '') {
-      showError('Name and URL are required.');
-      return;
-    }
-    const createAuditorItem = {
+  const submitAuditor = async (values: AuditorFormValues): Promise<boolean> => {
+    const auditorItem: AuditorItem = {
       id: 0,
-      name: name,
-      url: url,
-      description: description,
-      image: image ?? undefined,
-    } as AuditorItem;
-    const createAuditorSuccess = await addAuditor(createAuditorItem);
-    if (createAuditorSuccess) {
-      navigate('/admin/auditors');
-    } else {
-      showError('Auditor creation failed. Probably auditor already exists.');
-    }
+      name: values.name,
+      url: values.url,
+      description: values.description,
+      image: values.image ?? undefined,
+      date: new Date(),
+      createdBy: '',
+    };
+    return await addAuditorCall(auditorItem);
   };
+
+  const { values, setFieldValue, submit } = useEntityForm<AuditorItem, AuditorFormValues>({
+    currentPageState,
+    mode: 'add',
+    submitEntity: submitAuditor,
+    initialValues: { name: '', url: '', description: '', image: null },
+    successNavigatePath: '/admin/auditors',
+    validate: (v) => v.name !== '' && v.url !== '',
+    validationErrorMessage: 'Name and URL are required.',
+    submitErrorMessage: 'Auditor creation failed. Probably auditor already exists.',
+  });
+
+  const fields: EntityFieldConfig[] = useMemo(() => [
+    { name: 'image', type: 'avatar', label: 'Avatar', placeholderFromField: 'name', defaultPlaceholder: 'A' },
+    { name: 'name', type: 'text', label: 'Name', required: true },
+    { name: 'url', type: 'text', label: 'URL', required: true },
+    { name: 'description', type: 'textarea', label: 'Description', minRows: 4, maxRows: 10 },
+  ], []);
 
   return (
-    <div style={defaultUiSettings.editAreaStyle}>
-      <Grid container spacing={2}>
-        <Grid size={12} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <AvatarUpload
-            placeholder={name.charAt(0).toUpperCase() || 'A'}
-            setImageCallback={setImage}
-            initialImage={null}
-          />
-          <FormHelperText sx={{ mt: 1, textAlign: 'center' }}>
-            PNG, JPG, or GIF. Max 100KB.
-          </FormHelperText>
-        </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            required={true}
-            id="name"
-            label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            type="text"
-          />
-        </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            required={true}
-            id="url"
-            label="URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            type="text"
-          />
-        </Grid>
-        <Grid size={12} sx={{textAlign: 'center', alignContent: 'center'}} >
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            id="description"
-            label="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            type="text"
-            multiline
-            minRows={4}
-            maxRows={10}
-          />
-        </Grid>
-      </Grid>
-      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
-        <Button onClick={handleCreateAuditor}>Create Auditor</Button>
-        <Button onClick={() => history.back()}>Cancel</Button>
-      </Stack>
-    </div>
+    <EntityForm
+      mode="add"
+      entityType="auditor"
+      fields={fields}
+      values={values}
+      onFieldChange={setFieldValue}
+      onSubmit={submit}
+      submitButtonText="Create Auditor"
+    />
   );
 };

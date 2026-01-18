@@ -9,7 +9,7 @@ import Button from '@mui/material/Button';
 import { useAuth } from 'react-oidc-context';
 import IconButton from '@mui/material/IconButton';
 import {
-  Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink, styled, Avatar,
+  Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink,
   Drawer, List, ListItemButton, ListItemText, Divider, CircularProgress
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -42,15 +42,8 @@ import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { BookmarkMenu } from './components/BookmarkMenu';
-
-const StyledAvatar = styled(Avatar)(() => ({
-  width: 40,
-  height: 40,
-  backgroundColor: '#9386b6',
-  border: '3px solid #FCD34D',
-  fontSize: '18px',
-  fontWeight: 'bold',
-}));
+import { StyledAvatar } from '../../../../components/common/StyledAvatar';
+import { AccentColors } from '../../../../theme';
 
 export const MainWindow: FC = () => {
   const navigate = useNavigate();
@@ -88,55 +81,52 @@ export const MainWindow: FC = () => {
     return location.pathname === `${environment.basePath}${path}`;
   };
 
-  let navigationItems = [
+  const baseNavigationItems = [
     { label: 'Home', path: '/' },
     { label: 'Reports', path: '/reports' },
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
     { label: 'About', path: '/about' },
   ];
-  if (auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator)) {
-    navigationItems.push({ label: 'Admin', path: '/admin' });
-  }
+  const isAdminUser = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator);
+  const navigationItems = isAdminUser
+    ? [...baseNavigationItems, { label: 'Admin', path: '/admin' }]
+    : baseNavigationItems;
 
-  const NavButtons = () => (
-    <>
-      {navigationItems.map((item) => {
-        const isActive = isActiveRoute(item.path);
-        const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
-        return (
-          <MuiLink
-            key={item.path}
-            href={fullPath}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ textDecoration: 'none' }}
-            onClick={(event) => {
-              if (!event.ctrlKey && !event.metaKey) {
-                event.preventDefault();
-                navigate(item.path);
-                setMobileOpen(false);
-              }
-            }}
-          >
-            <Button
-              sx={{
-                color: isActive ? '#FFD84D' : '#DDCDB1',
-                height: '54px',
-                backgroundColor: 'transparent',
-                fontSize: isActive ? '1.5rem' : '1.2rem',
-                fontWeight: isActive ? 600 : 400,
-                textTransform: 'none',
-                '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
-              }}
-              fullWidth
-            >
-              {item.label}
-            </Button>
-          </MuiLink>
-        );
-      })}
-    </>
-  );
+  const navButtons = navigationItems.map((item) => {
+    const isActive = isActiveRoute(item.path);
+    const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
+    return (
+      <MuiLink
+        key={item.path}
+        href={fullPath}
+        target="_blank"
+        rel="noopener noreferrer"
+        sx={{ textDecoration: 'none' }}
+        onClick={(event) => {
+          if (!event.ctrlKey && !event.metaKey) {
+            event.preventDefault();
+            navigate(item.path);
+            setMobileOpen(false);
+          }
+        }}
+      >
+        <Button
+          sx={{
+            color: isActive ? AccentColors.navigationActive : AccentColors.navigationInactive,
+            height: '54px',
+            backgroundColor: 'transparent',
+            fontSize: isActive ? '1.5rem' : '1.2rem',
+            fontWeight: isActive ? 600 : 400,
+            textTransform: 'none',
+            '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
+          }}
+          fullWidth
+        >
+          {item.label}
+        </Button>
+      </MuiLink>
+    );
+  });
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -177,7 +167,7 @@ export const MainWindow: FC = () => {
 
           {/* Desktop navigation */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, ml: 4, gap: 1 }}>
-            <NavButtons />
+            {navButtons}
           </Box>
 
           <Box sx={{ flexGrow: 1 }} />
@@ -209,7 +199,7 @@ export const MainWindow: FC = () => {
                           left: '50%',
                           marginTop: '-15px',
                           marginLeft: '-15px',
-                          color: '#FCD34D',
+                          color: AccentColors.loadingIndicator,
                         }}
                       />
                     )}
@@ -231,7 +221,7 @@ export const MainWindow: FC = () => {
                   </Box>
                 ) : avatarLoading ? (
                   <StyledAvatar>
-                    <CircularProgress size={24} sx={{ color: '#FCD34D' }} />
+                    <CircularProgress size={24} sx={{ color: AccentColors.loadingIndicator }} />
                   </StyledAvatar>
                 ) : (
                   <StyledAvatar>

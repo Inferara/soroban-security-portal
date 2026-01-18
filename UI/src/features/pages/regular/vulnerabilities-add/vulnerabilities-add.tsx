@@ -25,6 +25,7 @@ import {
   VulnerabilitySource,
   VulnerabilityCategory,
   VulnerabilityCategories,
+  VulnerabilityCategoryInfo,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -146,7 +147,17 @@ export const AddVulnerability: FC = () => {
 
       // Load saved data from sessionStorage
       const savedData = sessionStorage.getItem(STORAGE_KEY);
-      let parsedData: any = null;
+      let parsedData: {
+        title?: string;
+        reportUrl?: string;
+        description?: string;
+        category?: number | null;
+        severityName?: string;
+        tagNames?: string[];
+        protocolId?: number;
+        auditorId?: number;
+        sourceId?: number;
+      } | null = null;
       if (savedData) {
         try {
           parsedData = JSON.parse(savedData);
@@ -172,7 +183,8 @@ export const AddVulnerability: FC = () => {
         
         // Restore tags
         if (parsedData.tagNames && Array.isArray(parsedData.tagNames)) {
-          const foundTags = tagsList.filter(t => parsedData.tagNames.includes(t.name));
+          const tagNames = parsedData.tagNames;
+          const foundTags = tagsList.filter(t => tagNames.includes(t.name));
           setTags(foundTags);
         }
       }
@@ -487,7 +499,7 @@ export const AddVulnerability: FC = () => {
                 options={Object.entries(VulnerabilityCategories).map(([_, value]) => value)}
                 value={category !== null ? VulnerabilityCategories.find(c => c.id === category) || null : null}
                 onChange={(_, newValue) => setCategory(newValue ? newValue.id : null)}
-                getOptionLabel={(option) => (option as any).label}
+                getOptionLabel={(option) => (option as VulnerabilityCategoryInfo).label}
                 renderInput={(params) => (
                   <TextField
                     {...params}

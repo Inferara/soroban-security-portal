@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
 
 /**
@@ -222,7 +222,7 @@ test.describe('Avatar SSO Sync Rules', () => {
    */
 
   test.describe.skip('Manual Avatar Override', () => {
-    test('uploading avatar should automatically set server-side flag', async ({ page, request }) => {
+    test('uploading avatar should automatically set server-side flag', async ({ page }) => {
       // Login as test user
       await page.goto('/profile/edit');
 

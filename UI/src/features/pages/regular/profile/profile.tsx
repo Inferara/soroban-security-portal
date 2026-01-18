@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { TextField, Button, Grid, Paper, Typography, Box, Avatar, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
+import { Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
 import { useProfile } from './hooks';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
-import LockIcon from '@mui/icons-material/Lock';
+// import LockIcon from '@mui/icons-material/Lock'; // For password change section (commented out)
 import EditIcon from '@mui/icons-material/Edit';
 import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -14,6 +14,8 @@ import { MarkdownView } from '../../../../components/MarkdownView';
 import { useNavigate } from 'react-router-dom';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
+import { StyledAvatar } from '../../../../components/common/StyledAvatar';
+import { getUserInitials } from '../../../../utils/user-utils';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -35,15 +37,7 @@ const AvatarContainer = styled(Box)(() => ({
   alignItems: 'center',
 }));
 
-const StyledAvatar = styled(Avatar)(({ theme }) => ({
-  width: 80,
-  height: 80,
-  marginRight: theme.spacing(3),
-  backgroundColor: '#9386b6', 
-  border: '3px solid #FCD34D',
-  fontSize: '24px',
-  fontWeight: 'bold',
-}));
+// Using shared StyledAvatar from components/common/StyledAvatar.tsx
 
 const UserInfo = styled(Box)(() => ({
   display: 'flex',
@@ -168,13 +162,9 @@ function a11yProps(index: number) {
 
 export const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [tabValue, setTabValue] = useState(0);
 
   const {
-    changePassword,
     user,
     userId
   } = useProfile();
@@ -213,29 +203,7 @@ export const Profile: React.FC = () => {
     }
   };
 
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      showError('New passwords do not match');
-      return;
-    }
-    
-    const changePasswordSuccess = await changePassword(oldPassword, newPassword);
-    if (changePasswordSuccess) {
-      showSuccess('Password changed successfully');
-    } else {
-      showError('Password change failed');
-    }
-  }
-
-  // Get user initials for avatar
-  const getUserInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // Using shared getUserInitials from utils/user-utils.ts
 
   return (
     <ProfileContainer>
@@ -243,10 +211,10 @@ export const Profile: React.FC = () => {
         {/* Profile Header */}
         <ProfileHeader>
           <AvatarContainer>
-            <StyledAvatar>
+            <StyledAvatar size="large" sx={{ mr: 3 }}>
               {user?.image ? (
-                <img 
-                  src={`data:image/png;base64,${user.image}`} 
+                <img
+                  src={`data:image/png;base64,${user.image}`}
                   alt="User avatar"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
@@ -422,8 +390,8 @@ export const Profile: React.FC = () => {
           </TabPanel>
         </ContentSection>
 
-        {/* Password Change Section - Hidden by default, can be shown in Edit Profile */}
-        {user?.loginType === "Password" && false && (
+        {/* Password Change Section - Hidden by default, can be shown in Edit Profile
+        {user?.loginType === "Password" && (
           <ContentSection>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <LockIcon sx={{ mr: 1, color: '#3B82F6' }} />
@@ -539,6 +507,7 @@ export const Profile: React.FC = () => {
             </Grid>
           </ContentSection>
         )}
+        */}
       </Box>
     </ProfileContainer>
   );

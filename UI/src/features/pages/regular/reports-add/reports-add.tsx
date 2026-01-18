@@ -108,7 +108,14 @@ export const AddReport: FC = () => {
 
       // Load saved data from sessionStorage
       const savedData = sessionStorage.getItem(STORAGE_KEY);
-      let parsedData: any = null;
+      let parsedData: {
+        title?: string;
+        url?: string;
+        date?: string;
+        protocolId?: number;
+        companyId?: number;
+        auditorId?: number;
+      } | null = null;
       if (savedData) {
         try {
           parsedData = JSON.parse(savedData);
@@ -229,7 +236,7 @@ export const AddReport: FC = () => {
   };
 
   const addNewReport = async () => {
-    let validationErrors: string[] = [];
+    const validationErrors: string[] = [];
     if (!title) {
       validationErrors.push('Please fill in the title');
     }

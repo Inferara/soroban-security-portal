@@ -107,7 +107,7 @@ export const useCompanyDetails = () => {
       const stats = calculateStatistics(protocolsData, reportsData, vulnerabilitiesData);
       setStatistics(stats);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching company details:', err);
       setError('Failed to load company details');
     } finally {

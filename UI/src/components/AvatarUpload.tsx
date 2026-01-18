@@ -4,6 +4,7 @@ import { styled } from '@mui/material/styles';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { showError, showSuccess } from "../features/dialog-handler/dialog-handler";
+import { AccentColors } from "../theme";
 
 interface AvatarUploadProps {
     placeholder: string,
@@ -90,7 +91,7 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
                     setImageUrl(null); // Clear the URL when a new image is uploaded
                     setImageCallback(base64String);
                     showSuccess('Image uploaded successfully');
-                } catch (error) {
+                } catch {
                     showError('Failed to process image');
                 } finally {
                     setIsImageUploading(false);
@@ -136,8 +137,8 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
                         width: 80,
                         height: 80,
                         mr: 3,
-                        backgroundColor: '#9386b6', // Purple background
-                        border: '3px solid #FCD34D', // Yellow-gold border
+                        backgroundColor: AccentColors.avatarBackground,
+                        border: `3px solid ${AccentColors.avatarBorder}`,
                         fontSize: '24px',
                         fontWeight: 'bold',
                     }}>
@@ -153,7 +154,7 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
                                 <CircularProgress
                                     size={30}
                                     sx={{
-                                        color: '#FCD34D',
+                                        color: AccentColors.loadingIndicator,
                                         position: 'absolute',
                                         zIndex: 1,
                                     }}
@@ -174,7 +175,7 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
                             />
                         </>
                     ) : isImageUrlLoading ? (
-                        <CircularProgress size={30} sx={{ color: '#FCD34D' }} />
+                        <CircularProgress size={30} sx={{ color: AccentColors.loadingIndicator }} />
                     ) : (
                         placeholder
                     )}

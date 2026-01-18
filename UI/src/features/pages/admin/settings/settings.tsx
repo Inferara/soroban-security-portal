@@ -1,17 +1,17 @@
 import React from 'react';
 import { CurrentPageState } from '../admin-main-window/current-page-slice'
-import { 
-  TextField, 
-  Button, 
-  Grid, Paper, 
-  ToggleButton, 
-  ToggleButtonGroup, 
-  IconButton, 
-  FormControl, 
-  InputLabel, 
+import {
+  TextField,
+  Button,
+  Grid, Paper,
+  ToggleButton,
+  ToggleButtonGroup,
+  IconButton,
+  FormControl,
+  InputLabel,
   OutlinedInput,
   InputAdornment,
-  Box, 
+  Box,
   Tooltip,
   Select,
   MenuItem,
@@ -23,6 +23,7 @@ import { showWarning } from '../../../dialog-handler/dialog-handler'
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { MuiColorInput } from 'mui-color-input'
+import { settingsControlStyle, Layout } from '../../../../theme';
 
 const Item = styled(Paper)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
@@ -81,7 +82,7 @@ export const Settings: React.FC = () => {
     switch (setting.dateType) {
       case DateType.Boolean:
         return <ToggleButtonGroup
-            sx={{ width: '594px', height: '56px'}}
+            sx={{ ...settingsControlStyle, height: '56px'}}
             color="primary"
             value={setting.value}
             exclusive
@@ -95,7 +96,7 @@ export const Settings: React.FC = () => {
 
           </ToggleButtonGroup>
       case DateType.Password:
-        return <FormControl sx={{ width: '594px', height: '56px'}} variant="outlined">
+        return <FormControl sx={{ ...settingsControlStyle, height: '56px'}} variant="outlined">
             <InputLabel htmlFor="outlined-adornment-password">{setting.description}</InputLabel>
             <OutlinedInput
               id="outlined-adornment-password"
@@ -118,40 +119,40 @@ export const Settings: React.FC = () => {
             />
           </FormControl>
       case DateType.Color:
-        return <MuiColorInput 
-          sx={{ width: '594px' }}
+        return <MuiColorInput
+          sx={settingsControlStyle}
           format='hex'
           label={setting.description}
-          value={setting.value} 
-          onChange={(e) => setSettingValue(setting, e)} 
+          value={setting.value}
+          onChange={(e) => setSettingValue(setting, e)}
           />
       case DateType.Double:
-        return <TextField 
-          sx={{ width: '594px' }}
-          label={setting.description} 
+        return <TextField
+          sx={settingsControlStyle}
+          label={setting.description}
           value={setting.value}
           onChange={(e) => setSettingValue(setting, e.target.value)}
           type="number"
           >
         </TextField>
       case DateType.Int:
-        return <TextField 
-          sx={{ width: '594px' }}
-          label={setting.description} 
+        return <TextField
+          sx={settingsControlStyle}
+          label={setting.description}
           value={setting.value}
           type="number"
-          onChange={(e) => 
+          onChange={(e) =>
             {
               // Only allow numbers
               if(/^\d+$/.test(e.target.value)){
-                setSettingValue(setting, e.target.value);              
+                setSettingValue(setting, e.target.value);
               }
             }
           }
           >
         </TextField>
       case DateType.Url:
-        return <FormControl sx={{ width: '594px', height: '56px'}} variant="outlined">
+        return <FormControl sx={{ ...settingsControlStyle, height: '56px'}} variant="outlined">
           <InputLabel htmlFor="outlined-adornment-url">{setting.description}</InputLabel>
           <OutlinedInput
             id="outlined-adornment-url"
@@ -174,7 +175,7 @@ export const Settings: React.FC = () => {
           />
         </FormControl>        
       case DateType.Dropdown:
-        return <FormControl sx={{ width: '594px', height: '56px'}} variant="outlined">
+        return <FormControl sx={{ ...settingsControlStyle, height: '56px'}} variant="outlined">
           <InputLabel>{setting.description}</InputLabel>
           <Select
             multiple={false}
@@ -191,13 +192,13 @@ export const Settings: React.FC = () => {
           </Select>
         </FormControl>
       case DateType.Link:
-        return setting.value 
-          ? <a style={{ width: '594px' }} href={setting.value} target="_blank" rel="noreferrer">{setting.description}</a>
+        return setting.value
+          ? <Box component="a" sx={settingsControlStyle} href={setting.value} target="_blank" rel="noreferrer">{setting.description}</Box>
           : <></>
       default:
-        return <TextField 
-          sx={{ width: '594px' }}
-          label={setting.description} 
+        return <TextField
+          sx={settingsControlStyle}
+          label={setting.description}
           value={setting.value}
           onChange={(e) => setSettingValue(setting, e.target.value)}
           type="text"
@@ -208,7 +209,7 @@ export const Settings: React.FC = () => {
 
   const categories = Array.from(new Set(settingsListData.map((setting) => setting.category)))
   return (
-    <Box sx={{ width: '1200px', display: 'flow-root'}}>
+    <Box sx={{ width: Layout.settingsPageWidth, display: 'flow-root'}}>
       <Grid container spacing={2}>
         {
           categories.map((category, index) => (
@@ -218,7 +219,7 @@ export const Settings: React.FC = () => {
               </Grid>
               {
                 settingsListData.filter((setting) => setting.category === category).map((setting, index) => (
-                  <Grid size={6} key={"s-"+index}>
+                  <Grid size={{ xs: 12, md: 6 }} key={"s-"+index}>
                     <Item>
                       <Tooltip title={setting.tooltip} placement="top">
                         {

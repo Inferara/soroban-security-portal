@@ -3,7 +3,7 @@ import { FC } from "react";
 import { AnimatedSuperscriptCounter } from "./statistics-counter";
 import { useVulnerabilityStatistics } from "./hooks";
 
-export interface StatisticsChangeProps {}
+export type StatisticsChangeProps = Record<string, never>;
 
 export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
   const {

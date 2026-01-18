@@ -1,73 +1,59 @@
-import ClearIcon from '@mui/icons-material/Clear';
-import {
-  IconButton,
-  Link,
-  Stack,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import {
-  DataGrid,
-  GridColDef,
-  GridRenderCellParams,
-} from '@mui/x-data-grid';
-import { FC, useState } from 'react';
-
-import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol.ts';
-import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useListProtocols } from './hooks/index.ts';
-import { ConfirmDialog } from '../../admin-main-window/confirm-dialog.tsx';
-import { CustomToolbar } from '../../../../components/custom-toolbar.tsx';
-import { useNavigate } from 'react-router-dom';
-import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { Role } from '../../../../../api/soroban-security-portal/models/role.ts';
 import AddToQueueIcon from '@mui/icons-material/AddToQueue';
+import { Link, Typography } from '@mui/material';
+import { GridRenderCellParams } from '@mui/x-data-grid';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
+import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
+import {
+  getCompanyListDataCall,
+  getProtocolListDataCall,
+  removeProtocolCall,
+} from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
+import { useAdminList } from '../../../../../hooks/admin';
+import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 
 export const ListProtocols: FC = () => {
-  const auth = useAuth();
   const navigate = useNavigate();
+  const [companyListData, setCompanyListData] = useState<CompanyItem[]>([]);
 
-  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
-
-  const currentPageState: CurrentPageState = {
+  const currentPageState: CurrentPageState = useMemo(() => ({
     pageName: 'Protocols',
     pageCode: 'protocols',
     pageUrl: window.location.pathname,
     routePath: 'admin/protocols',
-  };
+  }), []);
 
-  const { protocolListData, protocolRemove, companyListData } = useListProtocols({ currentPageState });
-  const [protocolIdToRemove, setProtocolIdToRemove] = useState(0);
+  const { data: protocolListData, remove: protocolRemove } = useAdminList<ProtocolItem>({
+    fetchData: getProtocolListDataCall,
+    removeItem: removeProtocolCall,
+    currentPageState,
+  });
 
-  const removeProtocolConfirmed = async () => {
-    await protocolRemove(protocolIdToRemove);
-    setProtocolIdToRemove(0);
-  };
+  // Fetch company data for display
+  const fetchCompanyData = useCallback(async () => {
+    const companies = await getCompanyListDataCall();
+    setCompanyListData(companies);
+  }, []);
 
-  let columnsData: GridColDef[] = [];
-  if (isAdmin(auth)) {
-    columnsData.push({
-      field: 'actions',
-      headerName: 'Actions',
-      width: 80,
-      sortable: false,
-      filterable: false,
-      renderCell: (params: GridRenderCellParams<ProtocolItem>) => (
-        <Tooltip title="Remove Protocol">
-          <IconButton onClick={() => setProtocolIdToRemove(params.row.id)}>
-            <ClearIcon sx={{ color: 'red' }} />
-          </IconButton>
-        </Tooltip>
-      ),
-    } as GridColDef);
-  }
+  useEffect(() => {
+    void fetchCompanyData();
+  }, [fetchCompanyData]);
 
-  columnsData = columnsData.concat([
+  // Lookup map for O(1) company name resolution
+  const companyMap = useMemo(() => {
+    return new Map(companyListData.map(company => [company.id, company.name]));
+  }, [companyListData]);
+
+  const columnsData: ResponsiveColumn[] = useMemo(() => [
     {
       field: 'name',
       headerName: 'Protocol',
       width: 250,
+      mobileWidth: 150,
+      priority: 'essential',
       renderCell: (params: GridRenderCellParams<ProtocolItem>) => (
         <Link
           sx={{
@@ -77,84 +63,70 @@ export const ListProtocols: FC = () => {
             whiteSpace: 'nowrap',
           }}
           component="button"
-          onClick={() =>
-            navigate(`/admin/protocols/edit?protocolId=${params.row.id}`)
-          }
+          onClick={() => navigate(`/admin/protocols/edit?protocolId=${params.row.id}`)}
         >
           {params.row.name}
         </Link>
       ),
-    } as GridColDef,
+    },
     {
       field: 'url',
       headerName: 'URL',
       width: 250,
-    } as GridColDef,
+      priority: 'important',
+      hideOnMobile: true,
+    },
     {
       field: 'companyId',
       headerName: 'Company',
       width: 250,
+      mobileWidth: 120,
+      priority: 'important',
       renderCell: (params: GridRenderCellParams<ProtocolItem>) => (
-        <Typography>{companyListData.find(company => company.id === params.row.companyId)?.name}</Typography>
+        <Typography>
+          {params.row.companyId !== undefined ? (companyMap.get(params.row.companyId) ?? '') : ''}
+        </Typography>
       ),
-    } as GridColDef,
+    },
     {
       field: 'date',
       headerName: 'Date',
       width: 250,
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
       renderCell: (params: GridRenderCellParams<ProtocolItem>) => (
         <Typography>{params.row.date.toString().split('.')[0].replace('T', ' ')}</Typography>
       ),
-    } as GridColDef,
+    },
     {
       field: 'createdBy',
       headerName: 'Created By',
       width: 250,
-    } as GridColDef,
-  ]);
+      priority: 'optional',
+      hideOnMobile: true,
+      hideOnTablet: true,
+    },
+  ], [navigate, companyMap]);
 
   return (
-    <div style={defaultUiSettings.listAreaStyle}>
-      <Stack direction="row" spacing={2}>
-        <Tooltip title="Add Protocol">
-          <IconButton onClick={() => navigate('/admin/protocols/add')}>
-            <AddToQueueIcon sx={{ color: 'green' }} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
-
-      <div style={{ height: 'calc(110vh - 64px)' }}>
-        <DataGrid
-          getRowId={(row: ProtocolItem) => row.id}
-          getRowHeight={() => 'auto'}
-          sx={{
-            backgroundColor: 'transparent',
-            '& .MuiDataGrid-cell': {
-              whiteSpace: 'normal',
-              display: 'grid',
-              alignContent: 'center',
-              minHeight: 50,
-            },
-          }}
-          rows={protocolListData}
-          columns={columnsData}
-          showToolbar={true}
-          slots={{
-            toolbar: CustomToolbar,
-          }}
-          isRowSelectable={() => false}
-        />
-      </div>
-
-      <ConfirmDialog
-        title="Remove Protocol"
-        message="Are you sure you want to remove this Protocol?"
-        okButtonText="Yes"
-        cancelButtonText="No"
-        onConfirm={removeProtocolConfirmed}
-        onCancel={() => setProtocolIdToRemove(0)}
-        show={protocolIdToRemove !== 0}
-      />
-    </div>
+    <AdminDataGrid<ProtocolItem>
+      rows={protocolListData}
+      columns={columnsData}
+      getRowId={(row) => row.id}
+      onRemove={protocolRemove}
+      addButton={{
+        path: '/admin/protocols/add',
+        icon: <AddToQueueIcon sx={{ color: 'green' }} />,
+        tooltip: 'Add Protocol',
+      }}
+      removeAction={{
+        tooltip: 'Remove Protocol',
+      }}
+      confirmDialog={{
+        title: 'Remove Protocol',
+        message: 'Are you sure you want to remove this Protocol?',
+      }}
+    />
   );
 };
