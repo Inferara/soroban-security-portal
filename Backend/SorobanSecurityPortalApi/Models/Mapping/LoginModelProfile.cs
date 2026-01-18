@@ -46,7 +46,7 @@ public class LoginModelProfile : Profile
                 opt => opt.MapFrom(e => e.ConnectedAccounts))
             .ForMember(
                 dst => dst.PasswordHash,
-                opt => opt.MapFrom(e => e.Password.GetHash()));
+                opt => opt.MapFrom(e => e.Password != null ? e.Password.GetHash() : null));
 
         CreateMap<LoginModel, LoginSummaryViewModel>()
             .ForMember(

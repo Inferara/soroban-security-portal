@@ -5,7 +5,16 @@ using System.Security.Claims;
 
 namespace SorobanSecurityPortalApi.Common
 {
-    public class UserContextAccessor
+    public interface IUserContextAccessor
+    {
+        Task<int> GetLoginIdAsync();
+        Task<string> GetLoginNameAsync();
+        bool HasRole(string role);
+        Task<bool> IsLoginAdmin(string login);
+        Task<bool> IsLoginIdAdmin(int loginId);
+    }
+
+    public class UserContextAccessor : IUserContextAccessor
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 

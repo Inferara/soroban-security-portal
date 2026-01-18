@@ -8,28 +8,31 @@ namespace SorobanSecurityPortalApi.Common.Data
 {
     public class DbQuery : IDbQuery
     {
-        private readonly Config _config;
+        private readonly Config? _config;
 
         public DbQuery(string connectionString)
         {
             ConnectionString = connectionString;
+            LastSqlCall = string.Empty;
         }
 
         public DbQuery(Config config)
         {
             _config = config;
+            LastSqlCall = string.Empty;
+            ConnectionString = string.Empty;
             UseConfigDb();
         }
         public string ConnectionString { get; set; }
         public string LastSqlCall { get; set; }
 
-        public void UseConfigDb() => UseDb(_config.DbName);
+        public void UseConfigDb() => UseDb(_config!.DbName);
 
         public void UsePostgresDb() => UseDb("postgres");
 
         private void UseDb(string dbName)
         {
-            ConnectionString = $"Server={_config.DbServer};Port={_config.DbPort};User Id={_config.DbUser};Password={_config.DbPassword};Database={dbName};" +
+            ConnectionString = $"Server={_config!.DbServer};Port={_config.DbPort};User Id={_config.DbUser};Password={_config.DbPassword};Database={dbName};" +
                                $"Pooling=true;Minimum Pool Size=0;Maximum Pool Size={_config.DbPgPoolSize};Timeout={_config.DbConnectionTimeout};CommandTimeout={_config.DbTimeout};";
         }
 
@@ -73,7 +76,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public bool IsConfigDbExists()
         {
             UsePostgresDb();
-            var result = ExecuteScalar($@"select exists(select datname from pg_database where datname =  '{_config.DbName.SqlSafe()}')");
+            var result = ExecuteScalar($@"select exists(select datname from pg_database where datname =  '{_config!.DbName.SqlSafe()}')");
             UseConfigDb();
             return Convert.ToBoolean(result);
         }
@@ -109,7 +112,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public void CreateFromDb(string dbName, string dbFrom)
         {
             UsePostgresDb();
-            ExecuteNonQuery($@"create database ""{dbName.SqlSafe()}"" with template ""{dbFrom.SqlSafe()}"" owner '{_config.DbUser}';");
+            ExecuteNonQuery($@"create database ""{dbName.SqlSafe()}"" with template ""{dbFrom.SqlSafe()}"" owner '{_config!.DbUser}';");
             UseConfigDb();
         }
 
@@ -133,7 +136,7 @@ namespace SorobanSecurityPortalApi.Common.Data
                 TerminateConnections(backupName);
                 DropDatabaseIfExist(backupName);
             }
-            RevokeConnect(_config.DbName);
+            RevokeConnect(_config!.DbName);
             TerminateConnections(_config.DbName);
             CreateFromDb(backupName, _config.DbName);
         }
@@ -144,7 +147,7 @@ namespace SorobanSecurityPortalApi.Common.Data
             if (databaseNames.All(dbName => dbName.ToLower() != backupName.ToLower()))
                 return;
 
-            RevokeConnect(_config.DbName);
+            RevokeConnect(_config!.DbName);
             TerminateConnections(_config.DbName);
             DropDatabaseIfExist(_config.DbName);
 
@@ -208,24 +211,26 @@ namespace SorobanSecurityPortalApi.Common.Data
             var result = new DataTable();
             using (var connection = new NpgsqlConnection(ConnectionString))
             {
-                var adapter = new NpgsqlDataAdapter(sqlCommand, connection) { SelectCommand = { CommandTimeout = _config?.DbTimeout ?? 600 } };
+                var adapter = new NpgsqlDataAdapter(sqlCommand, connection);
+                if (adapter.SelectCommand != null)
+                    adapter.SelectCommand.CommandTimeout = _config?.DbTimeout ?? 600;
                 adapter.Fill(result);
             }
             return result;
         }
 
-        public DataRow ExecuteRow(string sqlCommand)
+        public DataRow? ExecuteRow(string sqlCommand)
         {
             var table = ExecuteTable(sqlCommand);
             return table.Rows.Count > 0 ? table.Rows[0] : null;
         }
 
-        public string ExecuteScalar(string sqlCommand)
+        public string? ExecuteScalar(string sqlCommand)
         {
             LastSqlCall = sqlCommand;
             using var connection = new NpgsqlConnection(ConnectionString);
             connection.Open();
-            using var command = new NpgsqlCommand(sqlCommand, connection) { CommandTimeout = _config.DbTimeout };
+            using var command = new NpgsqlCommand(sqlCommand, connection) { CommandTimeout = _config?.DbTimeout ?? 600 };
             return Convert.ToString(command.ExecuteScalar());
         }
 
@@ -234,7 +239,7 @@ namespace SorobanSecurityPortalApi.Common.Data
             return ExecuteTable(sqlCommand).Rows.Cast<DataRow>().Select(resultRow => (T)Convert.ChangeType(resultRow[0], typeof(T))).ToList();
         }
 
-        public T GetValue<T>(DataRow row, string columnName, T defaultValue = default)
+        public T? GetValue<T>(DataRow row, string columnName, T? defaultValue = default)
         {
             if (row == null || !row.Table.Columns.Contains(columnName) || row[columnName] == DBNull.Value)
             {
@@ -275,10 +280,10 @@ where table_name = '{tableName.SqlSafe()}' and table_schema = '{schemaName.SqlSa
         void ExecuteScript(string scriptPath, Dictionary<string, string> replacements, string preScript = "");
         int GetRowCount(string sqlCommand);
         DataTable ExecuteTable(string sqlCommand);
-        DataRow ExecuteRow(string sqlCommand);
-        string ExecuteScalar(string sqlCommand);
+        DataRow? ExecuteRow(string sqlCommand);
+        string? ExecuteScalar(string sqlCommand);
         List<T> ExecuteList<T>(string sqlCommand);
-        T GetValue<T>(DataRow row, string columnName, T defaultValue = default);
+        T? GetValue<T>(DataRow row, string columnName, T? defaultValue = default);
         bool TableExists(string tableName, string schemaName = "public");
     }
 }

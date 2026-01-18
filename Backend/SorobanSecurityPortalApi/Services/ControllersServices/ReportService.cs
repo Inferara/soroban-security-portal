@@ -37,7 +37,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportSearchModel.SearchText);
                 reportSearchModel.Embedding = new Vector(embeddingArray);
             }
-            var searchResult = await _reportProcessor.Search(reportSearchModel);
+            var searchResult = await _reportProcessor.Search(reportSearchModel!);
             var result = _mapper.Map<List<ReportViewModel>>(searchResult);
             return result;
         }
@@ -53,9 +53,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
         {
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
-            reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
-            reportModel.MdFile = PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile);
-            var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
+            reportModel.Image = reportModel.BinFile != null ? RenderFirstPageAsPng(reportModel.BinFile, dpi: 150) : null;
+            reportModel.MdFile = reportModel.BinFile != null ? PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile) : string.Empty;
+            var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile ?? string.Empty);
             reportModel.Embedding = new Vector(embeddingArray);
 
             var addedReport = await _reportProcessor.Add(reportModel);

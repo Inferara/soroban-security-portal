@@ -1,9 +1,11 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import {
     getAllReportListDataCall,
     removeReportCall,
     approveReportCall,
     rejectReportCall,
+    extractVulnerabilitiesFromReportCall,
+    VulnerabilityExtractionResult,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { CurrentPageState } from '../../../admin-main-window/current-page-slice';
 import { Report } from '../../../../../../api/soroban-security-portal/models/report';
@@ -16,6 +18,11 @@ type UseListReportsProps = {
 
 export const useListReports = (props: UseListReportsProps) => {
     const { currentPageState } = props;
+
+    // Extraction state
+    const [extractingReportId, setExtractingReportId] = useState<number | null>(null);
+    const [extractionResult, setExtractionResult] = useState<VulnerabilityExtractionResult | null>(null);
+    const [extractionError, setExtractionError] = useState<string | null>(null);
 
     const customOperations = useMemo(() => ({
         approve: { handler: approveReportCall },
@@ -35,11 +42,38 @@ export const useListReports = (props: UseListReportsProps) => {
         window.open(url, '_blank');
     }, []);
 
+    // Extract vulnerabilities from a report using AI
+    const extractVulnerabilities = useCallback(async (reportId: number): Promise<void> => {
+        setExtractingReportId(reportId);
+        setExtractionError(null);
+        try {
+            const result = await extractVulnerabilitiesFromReportCall(reportId);
+            setExtractionResult(result);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Extraction failed';
+            setExtractionError(message);
+        } finally {
+            setExtractingReportId(null);
+        }
+    }, []);
+
+    // Clear extraction result
+    const clearExtractionResult = useCallback(() => {
+        setExtractionResult(null);
+        setExtractionError(null);
+    }, []);
+
     return {
         reportListData: data as Report[],
         reportRemove: remove,
         reportApprove: operations.approve as (id: number) => Promise<void>,
         reportReject: operations.reject as (id: number) => Promise<void>,
         downloadReport,
+        // Extraction
+        extractVulnerabilities,
+        extractingReportId,
+        extractionResult,
+        extractionError,
+        clearExtractionResult,
     };
 };

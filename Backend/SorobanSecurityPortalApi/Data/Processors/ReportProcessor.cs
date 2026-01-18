@@ -27,7 +27,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var q = db.Report
                 .Include(v => v.Auditor)
                 .Include(v => v.Protocol)
-                .ThenInclude(p => p.Company)
+                .ThenInclude(p => p!.Company)
                 .AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved);
 
             if (reportSearch != null)
@@ -43,17 +43,17 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     q = q.Where(v => v.Date <= to);
                 }
                 if (reportSearch.CompanyId is not null)
-                    q = q.Where(x => x.Protocol.Company.Id == reportSearch.CompanyId);
+                    q = q.Where(x => x.Protocol != null && x.Protocol.Company != null && x.Protocol.Company.Id == reportSearch.CompanyId);
                 else if (!string.IsNullOrWhiteSpace(reportSearch.CompanyName))
-                    q = q.Where(x => x.Protocol.Company.Name == reportSearch.CompanyName);
+                    q = q.Where(x => x.Protocol != null && x.Protocol.Company != null && x.Protocol.Company.Name == reportSearch.CompanyName);
                 if (reportSearch.ProtocolId is not null)
-                    q = q.Where(x => x.Protocol.Id == reportSearch.ProtocolId);
+                    q = q.Where(x => x.Protocol != null && x.Protocol.Id == reportSearch.ProtocolId);
                 else if (!string.IsNullOrWhiteSpace(reportSearch.ProtocolName))
-                    q = q.Where(x => x.Protocol.Name == reportSearch.ProtocolName);
+                    q = q.Where(x => x.Protocol != null && x.Protocol.Name == reportSearch.ProtocolName);
                 if (reportSearch.AuditorId is not null)
-                    q = q.Where(x => x.Auditor.Id == reportSearch.AuditorId);
+                    q = q.Where(x => x.Auditor != null && x.Auditor.Id == reportSearch.AuditorId);
                 else if (!string.IsNullOrWhiteSpace(reportSearch.AuditorName))
-                    q = q.Where(x => x.Auditor.Name == reportSearch.AuditorName);
+                    q = q.Where(x => x.Auditor != null && x.Auditor.Name == reportSearch.AuditorName);
 
                 // Build a single scoring expression
                 if (!string.IsNullOrWhiteSpace(reportSearch.SearchText) || reportSearch.Embedding is not null)
@@ -197,7 +197,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var query = db.Report
                 .Include(r => r.Auditor)
                 .Include(r => r.Protocol)
-                .ThenInclude(p => p.Company)
+                .ThenInclude(p => p!.Company)
                 .AsNoTracking();
             if (!includeNotApproved)
             {

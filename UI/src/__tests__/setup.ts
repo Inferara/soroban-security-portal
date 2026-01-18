@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { expect, afterEach, vi, beforeAll } from 'vitest';
+import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 
@@ -12,19 +12,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-// Mock window.env for environment configuration
-beforeAll(() => {
-  Object.defineProperty(window, 'env', {
-    value: {
-      API_URL: 'http://localhost:3000',
-      CLIENT_ID: 'test-client-id',
-      BASE_PATH: '/',
-      GA_ID: '',
-    },
-    writable: true,
-    configurable: true,
-  });
-});
+// Note: window.env is set in env-setup.ts which runs before this file
 
 // Mock ResizeObserver (used by MUI components like TextareaAutosize)
 class MockResizeObserver {

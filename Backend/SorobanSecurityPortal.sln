@@ -9,6 +9,8 @@ Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-co
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{31D2B285-041B-4759-A2E0-3DCA03E8F170}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SorobanSecurityPortalApi.Tests", "SorobanSecurityPortalApi.Tests\SorobanSecurityPortalApi.Tests.csproj", "{5A8E4F6D-9B2C-4E3F-A1D0-7C6B5A4E8F9D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +25,10 @@ Global
 		{B327BF88-4AEB-4161-A7A1-407C64093C61}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B327BF88-4AEB-4161-A7A1-407C64093C61}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B327BF88-4AEB-4161-A7A1-407C64093C61}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A8E4F6D-9B2C-4E3F-A1D0-7C6B5A4E8F9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A8E4F6D-9B2C-4E3F-A1D0-7C6B5A4E8F9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A8E4F6D-9B2C-4E3F-A1D0-7C6B5A4E8F9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A8E4F6D-9B2C-4E3F-A1D0-7C6B5A4E8F9D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

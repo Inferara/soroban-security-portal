@@ -8,7 +8,30 @@ using Newtonsoft.Json.Linq;
 
 namespace SorobanSecurityPortalApi.Common;
 
-public class ExtendedConfig
+public interface IExtendedConfig
+{
+    string Proxy { get; }
+    int TokenExpirationTimeMinutes { get; }
+    int PermanentTokenExpirationTimeDays { get; }
+    string AuthIssuer { get; }
+    string AuthAudience { get; }
+    string AuthSecurityKey { get; }
+    string GoogleClientId { get; }
+    string GoogleClientSecret { get; }
+    string DiscordClientId { get; }
+    string DiscordClientSecret { get; }
+    bool AllowBasicAuth { get; }
+    string GeminiEmbeddingModel { get; }
+    string GeminiApiKey { get; }
+    string GeminiGenerativeModel { get; }
+    double TrigramNameWeight { get; }
+    double TrigramContentWeight { get; }
+    double VectorContentWeight { get; }
+    double MinRelevanceForSearch { get; }
+    void Reset();
+}
+
+public class ExtendedConfig : IExtendedConfig
 {
     private DateTime _nextRefresh = DateTime.MinValue;
     private ConcurrentDictionary<string, string> _configValues = new();
@@ -35,7 +58,7 @@ public class ExtendedConfig
         }
     }
 
-    private T GetValue<T>(string key) => GetValue(key, default(T));
+    private T GetValue<T>(string key) => GetValue(key, default(T)!);
     private T GetValue<T>(string key, T defaultValue)
     {
         if (DateTime.Now > _nextRefresh)
@@ -53,7 +76,7 @@ public class ExtendedConfig
             return val.ToObject<T>()!;
         if (defaultValue != null)
             return defaultValue;
-        return default;
+        return default!;
     }
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
@@ -128,6 +151,12 @@ public class ExtendedConfig
     [Description("Gemini API Key")]
     [Tooltip("The Gemini API Key is used to authenticate the application with the Gemini API service. This is required for using the Gemini embedding model and other Gemini features.")]
     public string GeminiApiKey => GetValue<string>("GeminiApiKey", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
+    [Description("Gemini Generative Model")]
+    [Tooltip("The Gemini Generative Model used for AI-powered vulnerability extraction from audit reports. Supports models like 'gemini-2.0-flash', 'gemini-1.5-pro'.")]
+    public string GeminiGenerativeModel => GetValue<string>("GeminiGenerativeModel", "gemini-3-flash-preview");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Double)]

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SorobanSecurityPortalApi.Services.ControllersServices;
+using SorobanSecurityPortalApi.Services.AgentServices;
 using Microsoft.AspNetCore.Mvc;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.Security;
@@ -15,6 +16,7 @@ namespace SorobanSecurityPortalApi.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly IReportService _reportService;
+        private readonly IVulnerabilityExtractionService _extractionService;
         private readonly UserContextAccessor _userContextAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ReportsController> _logger;
@@ -24,11 +26,13 @@ namespace SorobanSecurityPortalApi.Controllers
 
         public ReportsController(
             IReportService reportService,
+            IVulnerabilityExtractionService extractionService,
             UserContextAccessor userContextAccessor,
             IHttpClientFactory httpClientFactory,
             ILogger<ReportsController> logger)
         {
             _reportService = reportService;
+            _extractionService = extractionService;
             _userContextAccessor = userContextAccessor;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
@@ -255,6 +259,25 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             var result = await _reportService.GetStatisticsChanges();
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Extracts vulnerabilities from a report using AI-powered multi-agent analysis.
+        /// </summary>
+        /// <param name="reportId">The ID of the report to extract vulnerabilities from.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>Extraction result with statistics.</returns>
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
+        [HttpPost("{reportId}/extract-vulnerabilities")]
+        public async Task<IActionResult> ExtractVulnerabilities(int reportId, CancellationToken ct)
+        {
+            var result = await _extractionService.ExtractVulnerabilitiesAsync(reportId, null, ct);
+            return result switch
+            {
+                Result<VulnerabilityExtractionResultViewModel, string>.Ok ok => Ok(ok.Value),
+                Result<VulnerabilityExtractionResultViewModel, string>.Err err => BadRequest(err.Error),
+                _ => throw new InvalidOperationException("Unexpected result type")
+            };
         }
     }
 }

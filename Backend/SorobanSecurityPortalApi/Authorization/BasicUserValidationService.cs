@@ -34,7 +34,7 @@ public class BasicUserValidationService : IBasicUserValidationService
                 return false;
             var login = await _loginProcessor.GetByCredentials(username, password);
             var result = login != null;
-            if (result && _httpContextAccessor.HttpContext != null)
+            if (result && login != null && _httpContextAccessor.HttpContext != null)
             {
                 _httpContextAccessor.HttpContext.Items.Add(ClaimTypes.Role, login.Role.ToString());
             }

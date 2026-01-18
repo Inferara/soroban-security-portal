@@ -26,7 +26,7 @@ namespace SorobanSecurityPortalApi.Common
             {
                 await HandleAuthExceptionAsync(context, ex);
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException)
             {
                 // Do nothing. This is expected when the request is canceled.
             }

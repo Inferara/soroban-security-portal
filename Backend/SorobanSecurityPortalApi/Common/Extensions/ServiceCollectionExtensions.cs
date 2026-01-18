@@ -11,8 +11,8 @@ namespace SorobanSecurityPortalApi.Common.Extensions
     public class Registration : IRegistrationOfAssemblies, IRegistrationReuseImplementations, IRegistrationServiceLifetime
     {
         private readonly IServiceCollection _serviceCollection;
-        public string Regex { get; set; }
-        public List<Assembly> Assemblies { get; set; }
+        public string Regex { get; set; } = string.Empty;
+        public List<Assembly> Assemblies { get; set; } = new();
         public Dictionary<Type, object> ReusableImplementations { get; set; } = new Dictionary<Type, object>();
 
         public Registration(IServiceCollection serviceCollection)
@@ -56,8 +56,8 @@ namespace SorobanSecurityPortalApi.Common.Extensions
                 .ToList();
             foreach (var interfaceValue in interfaces)
             {
-                if (interfaceValue.Namespace.StartsWith("System") ||
-                    interfaceValue.Namespace.StartsWith("Microsoft") ||
+                if (interfaceValue.Namespace?.StartsWith("System") == true ||
+                    interfaceValue.Namespace?.StartsWith("Microsoft") == true ||
                     interfaceValue.Name == "IRegistrationOfAssemblies" ||
                     interfaceValue.Name == "IRegistrationReuseImplementations" ||
                     interfaceValue.Name == "IRegistrationServiceLifetime" ||
