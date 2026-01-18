@@ -236,6 +236,28 @@ export const downloadReportPDFCall = async (reportId: number): Promise<Blob> => 
     return await client.downloadBlob(`api/v1/reports/${reportId}/download`);
 };
 
+// --- VULNERABILITY EXTRACTION ---
+export interface VulnerabilityExtractionResult {
+    totalExtracted: number;
+    totalCreated: number;
+    duplicatesSkipped: number;
+    createdVulnerabilityIds: number[];
+    validationWarnings: string[];
+    processingErrors: string[];
+    processingTimeMs: number;
+}
+
+export const extractVulnerabilitiesFromReportCall = async (
+    reportId: number
+): Promise<VulnerabilityExtractionResult> => {
+    const client = await getRestClient();
+    const response = await client.request(
+        `api/v1/reports/${reportId}/extract-vulnerabilities`,
+        'POST'
+    );
+    return response.data as VulnerabilityExtractionResult;
+};
+
 export const downloadReportPDF = async (reportName: string, reportId: number): Promise<void> => {
     const blob = await downloadReportPDFCall(reportId);
     

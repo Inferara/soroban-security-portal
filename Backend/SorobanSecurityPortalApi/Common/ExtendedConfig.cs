@@ -130,6 +130,12 @@ public class ExtendedConfig
     public string GeminiApiKey => GetValue<string>("GeminiApiKey", "");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
+    [Description("Gemini Generative Model")]
+    [Tooltip("The Gemini Generative Model used for AI-powered vulnerability extraction from audit reports. Supports models like 'gemini-2.0-flash', 'gemini-1.5-pro'.")]
+    public string GeminiGenerativeModel => GetValue<string>("GeminiGenerativeModel", "gemini-3-flash-preview");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Search)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Double)]
     [Description("Name Weight via Trigram Search")]
     [Tooltip("The Name Weight via Trigram Search is used to specify the weight of the name field in the trigram search. This is used to improve search results by giving more weight to the name field when searching for reports and vulnerabilities.")]
