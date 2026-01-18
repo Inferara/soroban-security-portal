@@ -162,14 +162,9 @@ function a11yProps(index: number) {
 
 export const Profile: React.FC = () => {
   const navigate = useNavigate();
-  // Password change state - currently disabled in UI (see commented section below)
-  const [oldPassword, _setOldPassword] = useState('');
-  const [newPassword, _setNewPassword] = useState('');
-  const [confirmPassword, _setConfirmPassword] = useState('');
   const [tabValue, setTabValue] = useState(0);
 
   const {
-    changePassword,
     user,
     userId
   } = useProfile();
@@ -205,21 +200,6 @@ export const Profile: React.FC = () => {
         return <BugReportIcon />;
       default:
         return <BookmarksIcon />;
-    }
-  };
-
-  // Password change handler - currently disabled in UI (see commented section below)
-  const _handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      showError('New passwords do not match');
-      return;
-    }
-
-    const changePasswordSuccess = await changePassword(oldPassword, newPassword);
-    if (changePasswordSuccess) {
-      showSuccess('Password changed successfully');
-    } else {
-      showError('Password change failed');
     }
   };
 

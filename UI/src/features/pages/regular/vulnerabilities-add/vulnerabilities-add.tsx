@@ -183,7 +183,8 @@ export const AddVulnerability: FC = () => {
         
         // Restore tags
         if (parsedData.tagNames && Array.isArray(parsedData.tagNames)) {
-          const foundTags = tagsList.filter(t => parsedData.tagNames.includes(t.name));
+          const tagNames = parsedData.tagNames;
+          const foundTags = tagsList.filter(t => tagNames.includes(t.name));
           setTags(foundTags);
         }
       }

@@ -91,72 +91,72 @@ export const MarkdownView: FC<MarkdownViewProps> = ({
 
   const backgroundStyle = background || defaultBackground;
 
-  return (
-    <Box sx={{ 
+  const baseSx = {
+    overflow: 'auto',
+    minHeight: minHeight || 'auto',
+    '& .katex-display': {
+      margin: '1em 0 !important',
+      textAlign: 'center',
+      overflowX: 'auto',
+      overflowY: 'hidden'
+    },
+    '& .katex': {
+      fontSize: '1em !important',
+      lineHeight: '1.2 !important'
+    },
+    '& .katex-inline': {
+      display: 'inline !important',
+      margin: '0 !important',
+      padding: '0 !important'
+    },
+    '& table': {
+      width: '100%',
+      borderCollapse: 'collapse',
+      marginTop: '1em',
+      marginBottom: '1em',
       overflow: 'auto',
-      minHeight,
-      '& .katex-display': { 
-        margin: '1em 0 !important', 
-        textAlign: 'center', 
-        overflowX: 'auto', 
-        overflowY: 'hidden' 
+      display: 'block',
+    },
+    '& thead': {
+      backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100],
+    },
+    '& th': {
+      padding: '12px',
+      textAlign: 'left',
+      fontWeight: 600,
+      borderBottom: `2px solid ${theme.palette.divider}`,
+      borderRight: `1px solid ${theme.palette.divider}`,
+      '&:last-child': {
+        borderRight: 'none',
       },
-      '& .katex': { 
-        fontSize: '1em !important', 
-        lineHeight: '1.2 !important' 
+    },
+    '& td': {
+      padding: '12px',
+      borderBottom: `1px solid ${theme.palette.divider}`,
+      borderRight: `1px solid ${theme.palette.divider}`,
+      '&:last-child': {
+        borderRight: 'none',
       },
-      '& .katex-inline': { 
-        display: 'inline !important', 
-        margin: '0 !important', 
-        padding: '0 !important' 
+    },
+    '& tbody tr': {
+      '&:hover': {
+        backgroundColor: theme.palette.mode === 'dark'
+          ? theme.palette.grey[900]
+          : theme.palette.grey[50],
       },
-      '& table': {
-        width: '100%',
-        borderCollapse: 'collapse',
-        marginTop: '1em',
-        marginBottom: '1em',
-        overflow: 'auto',
-        display: 'block',
-      },
-      '& thead': {
-        backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100],
-      },
-      '& th': {
-        padding: '12px',
-        textAlign: 'left',
-        fontWeight: 600,
-        borderBottom: `2px solid ${theme.palette.divider}`,
-        borderRight: `1px solid ${theme.palette.divider}`,
-        '&:last-child': {
-          borderRight: 'none',
-        },
-      },
-      '& td': {
-        padding: '12px',
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        borderRight: `1px solid ${theme.palette.divider}`,
-        '&:last-child': {
-          borderRight: 'none',
-        },
-      },
-      '& tbody tr': {
-        '&:hover': {
-          backgroundColor: theme.palette.mode === 'dark' 
-            ? theme.palette.grey[900] 
-            : theme.palette.grey[50],
-        },
-      },
-      '& img': {
-        maxWidth: '70%',
-        height: 'auto',
-        display: 'block',
-        margin: '24px auto',
-        borderRadius: '8px',
-        boxShadow: theme.shadows[2],
-      },
-      ...backgroundStyle,
-      ...sx
-    }}>
+    },
+    '& img': {
+      maxWidth: '70%',
+      height: 'auto',
+      display: 'block',
+      margin: '24px auto',
+      borderRadius: '8px',
+      boxShadow: theme.shadows[2],
+    },
+  };
+
+  return (
+    <Box sx={[baseSx, backgroundStyle, sx].flat()}>
       {content ? (
         <ReactMarkdown
           skipHtml={false}
@@ -181,22 +181,22 @@ export const MarkdownView: FC<MarkdownViewProps> = ({
             td: ({ ...props }) => (
               <td {...props} />
             ),
-            code: (props: { className?: string; children?: React.ReactNode; inline?: boolean; [key: string]: unknown }) => {
-              const { className, children, inline, ...rest } = props;
+            code: ((props: { className?: string; children?: React.ReactNode; inline?: boolean }) => {
+              const { className, children, inline } = props;
               const match = /language-(\w+)/.exec(className || '');
               if (!inline && match) {
                 return (
-                  <CodeBlock className={className} {...rest}>
+                  <CodeBlock className={className}>
                     {String(children).replace(/\n$/, '')}
                   </CodeBlock>
                 );
               }
               return (
-                <CodeBlock className={className} inline={true} {...rest}>
+                <CodeBlock className={className} inline={true}>
                   {String(children).replace(/\n$/, '')}
                 </CodeBlock>
               );
-            },
+            }) as React.ComponentType,
             span: ({ className, children, ...props }) => {
               if (className && className.includes('math')) {
                 return <span className={className} {...props}>{children}</span>;
