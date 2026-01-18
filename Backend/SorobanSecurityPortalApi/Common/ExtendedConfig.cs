@@ -8,7 +8,30 @@ using Newtonsoft.Json.Linq;
 
 namespace SorobanSecurityPortalApi.Common;
 
-public class ExtendedConfig
+public interface IExtendedConfig
+{
+    string Proxy { get; }
+    int TokenExpirationTimeMinutes { get; }
+    int PermanentTokenExpirationTimeDays { get; }
+    string AuthIssuer { get; }
+    string AuthAudience { get; }
+    string AuthSecurityKey { get; }
+    string GoogleClientId { get; }
+    string GoogleClientSecret { get; }
+    string DiscordClientId { get; }
+    string DiscordClientSecret { get; }
+    bool AllowBasicAuth { get; }
+    string GeminiEmbeddingModel { get; }
+    string GeminiApiKey { get; }
+    string GeminiGenerativeModel { get; }
+    double TrigramNameWeight { get; }
+    double TrigramContentWeight { get; }
+    double VectorContentWeight { get; }
+    double MinRelevanceForSearch { get; }
+    void Reset();
+}
+
+public class ExtendedConfig : IExtendedConfig
 {
     private DateTime _nextRefresh = DateTime.MinValue;
     private ConcurrentDictionary<string, string> _configValues = new();

@@ -177,7 +177,7 @@ public class ReportsControllerExtractVulnerabilitiesTests
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
         var badRequest = (BadRequestObjectResult)result;
-        badRequest.Value.Should().Contain("too large");
+        badRequest.Value.Should().BeOfType<string>().Which.Should().Contain("too large");
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class ReportsControllerExtractVulnerabilitiesTests
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
         var badRequest = (BadRequestObjectResult)result;
-        badRequest.Value.Should().Contain("Gemini API error");
+        badRequest.Value.Should().BeOfType<string>().Which.Should().Contain("Gemini API error");
     }
 
     #endregion

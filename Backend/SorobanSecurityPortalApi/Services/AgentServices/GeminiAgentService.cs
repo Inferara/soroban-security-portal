@@ -10,7 +10,7 @@ namespace SorobanSecurityPortalApi.Services.AgentServices;
 /// </summary>
 public class GeminiAgentService : IGeminiAgentService
 {
-    private readonly ExtendedConfig _extendedConfig;
+    private readonly IExtendedConfig _extendedConfig;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GeminiAgentService> _logger;
 
@@ -22,7 +22,7 @@ public class GeminiAgentService : IGeminiAgentService
     };
 
     public GeminiAgentService(
-        ExtendedConfig extendedConfig,
+        IExtendedConfig extendedConfig,
         IHttpClientFactory httpClientFactory,
         ILogger<GeminiAgentService> logger)
     {

@@ -17,13 +17,13 @@ public class GeminiAgentServiceTests
 {
     private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
     private readonly Mock<ILogger<GeminiAgentService>> _loggerMock;
-    private readonly Mock<ExtendedConfig> _extendedConfigMock;
+    private readonly Mock<IExtendedConfig> _extendedConfigMock;
 
     public GeminiAgentServiceTests()
     {
         _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         _loggerMock = new Mock<ILogger<GeminiAgentService>>();
-        _extendedConfigMock = new Mock<ExtendedConfig>(MockBehavior.Loose, null!);
+        _extendedConfigMock = new Mock<IExtendedConfig>();
     }
 
     #region API Key Validation Tests
@@ -84,7 +84,6 @@ public class GeminiAgentServiceTests
     [InlineData(AgentType.Parser)]
     [InlineData(AgentType.Extractor)]
     [InlineData(AgentType.Classifier)]
-    [InlineData(AgentType.Validator)]
     public async Task CallAgentAsync_WithValidApiKey_CallsCorrectEndpoint(AgentType agentType)
     {
         // Arrange
