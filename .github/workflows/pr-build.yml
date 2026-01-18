@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Run linter
-        run: npm run lint
+        run: ESLINT_USE_FLAT_CONFIG=false npm run lint
 
       - name: Run tests
         run: npm test -- --run
