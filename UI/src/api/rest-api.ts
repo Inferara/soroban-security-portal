@@ -1,6 +1,20 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { showError } from '../features/dialog-handler/dialog-handler';
 
+/**
+ * Custom event name for authentication failures.
+ * Listen for this event to handle session cleanup when API returns 401.
+ */
+export const AUTH_FAILURE_EVENT = 'auth:failure';
+
+/**
+ * Dispatch an authentication failure event.
+ * This is used to notify the app that the session has expired.
+ */
+export const dispatchAuthFailure = (): void => {
+  window.dispatchEvent(new CustomEvent(AUTH_FAILURE_EVENT));
+};
+
 class RestApi {
   private baseUrl: string;
   private requestConfig: AxiosRequestConfig;
@@ -59,8 +73,10 @@ class RestApi {
 
         // Handle authentication errors specifically
         if (status === 401) {
-          const authError = 'Authentication failed. Please log in again.';
+          const authError = 'Your session has expired. Please log in again.';
           showError(authError);
+          // Dispatch event to trigger session cleanup
+          dispatchAuthFailure();
           throw new Error(authError);
         } else if (status === 403) {
           const forbiddenError = 'Access denied. You do not have permission for this action.';
@@ -92,8 +108,10 @@ class RestApi {
         
         // Handle authentication errors specifically
         if (status === 401) {
-          const authError = 'Authentication failed. Please log in again.';
+          const authError = 'Your session has expired. Please log in again.';
           showError(authError);
+          // Dispatch event to trigger session cleanup
+          dispatchAuthFailure();
           throw new Error(authError);
         } else if (status === 403) {
           const forbiddenError = 'Access denied. You do not have permission for this action.';

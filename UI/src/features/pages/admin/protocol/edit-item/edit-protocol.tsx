@@ -1,141 +1,105 @@
-import { Autocomplete, Button, FormHelperText, Grid, Stack, TextField } from '@mui/material';
-import { FC, useEffect, useMemo, useState } from 'react';
-import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol.ts';
-import { showError } from '../../../../dialog-handler/dialog-handler.ts';
-import { CurrentPageState } from '../../admin-main-window/current-page-slice.ts';
-import { useEditProtocol } from './hooks/index.ts';
-import { useNavigate } from 'react-router-dom';
-import { defaultUiSettings } from '../../../../../api/soroban-security-portal/models/ui-settings.ts';
-import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company.ts';
-import { AvatarUpload } from '../../../../../components/AvatarUpload.tsx';
-import { getEntityAvatarUrl } from '../../../../../components/EntityAvatar.tsx';
+import { FC, useEffect, useMemo, useCallback, useRef } from 'react';
+import { editProtocolCall, getCompanyListDataCall, getProtocolByIdCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
+import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
+import { CurrentPageState } from '../../admin-main-window/current-page-slice';
+import { EntityForm, EntityFieldConfig } from '../../../../../components/admin';
+import { useEntityForm } from '../../../../../hooks/admin';
+
+interface ProtocolFormValues {
+  name: string;
+  url: string;
+  company: CompanyItem | null;
+  description: string;
+  image: string | null;
+}
 
 export const EditProtocol: FC = () => {
-  const navigate = useNavigate();
-  const [url, setUrl] = useState('');
-  const [name, setName] = useState('');
-  const [company, setCompany] = useState<CompanyItem | null>(null);
-  const [description, setDescription] = useState('');
-  const [image, setImage] = useState<string | null>(null);
-
-  const currentPageState: CurrentPageState = {
+  const currentPageState: CurrentPageState = useMemo(() => ({
     pageName: 'Edit Protocol',
     pageCode: 'editProtocol',
     pageUrl: window.location.pathname,
     routePath: 'admin/protocols/edit',
-  };
-  const { editProtocol, protocol, companyListData } = useEditProtocol({ currentPageState });
+  }), []);
 
+  const additionalLoaders = useMemo(() => [
+    { key: 'companies', loader: getCompanyListDataCall }
+  ], []);
+
+  // Use a ref to store the entity for the submit callback
+  const entityRef = useRef<ProtocolItem | null>(null);
+
+  const submitProtocol = useCallback(async (vals: ProtocolFormValues): Promise<boolean> => {
+    const currentEntity = entityRef.current;
+    if (!currentEntity) return false;
+    const protocolItem: ProtocolItem = {
+      id: currentEntity.id,
+      name: vals.name,
+      url: vals.url,
+      companyId: vals.company?.id ?? 0,
+      description: vals.description,
+      image: vals.image ?? undefined,
+      date: currentEntity.date,
+      createdBy: currentEntity.createdBy,
+    };
+    return await editProtocolCall(protocolItem);
+  }, []);
+
+  const { values, setFieldValue, setValues, submit, entity, entityId, additionalData } = useEntityForm<ProtocolItem, ProtocolFormValues>({
+    currentPageState,
+    mode: 'edit',
+    entityIdParam: 'protocolId',
+    fetchEntity: getProtocolByIdCall,
+    submitEntity: submitProtocol,
+    initialValues: { name: '', url: '', company: null, description: '', image: null },
+    successNavigatePath: '/admin/protocols',
+    validate: (v) => v.name !== '' && v.url !== '',
+    validationErrorMessage: 'Name and URL are required.',
+    submitErrorMessage: 'Protocol updating failed.',
+    additionalLoaders,
+  });
+
+  const companies = (additionalData.companies ?? []) as CompanyItem[];
+
+  // Keep entityRef in sync with entity from hook
   useEffect(() => {
-    setName(protocol?.name ?? '');
-    setUrl(protocol?.url ?? '');
-    setCompany(companyListData.find(company => company.id === protocol?.companyId) ?? null);
-    setDescription(protocol?.description ?? '');
-    setImage(null); // Don't use the base64 from API, use URL instead
-  }, [protocol]);
+    entityRef.current = entity ?? null;
+  }, [entity]);
 
-  // Construct image URL for existing protocol images with cache busting
-  // Always try to load the image for existing protocols - onError will handle 404s
-  const existingImageUrl = useMemo(() => {
-    if (!protocol?.id) return null;
-    return getEntityAvatarUrl('protocol', protocol.id, Date.now());
-  }, [protocol?.id]);
-
-  const handleEditProtocol = async () => {
-    if (url === '' || name === '') {
-      showError('All fields are required.');
-      return;
+  // Update form values when entity loads (need to find company from list)
+  // This useEffect is intentionally here because it needs to correlate
+  // entity.companyId with the loaded companies list
+  useEffect(() => {
+    if (entity) {
+      setValues({
+        name: entity.name ?? '',
+        url: entity.url ?? '',
+        company: companies.find(c => c.id === entity.companyId) ?? null,
+        description: entity.description ?? '',
+        image: null, // Don't use base64 from API, use URL instead
+      });
     }
+  }, [entity, companies, setValues]);
 
-    const editProtocolItem = {
-      name: name,
-      url: url,
-      companyId: company?.id ?? 0,
-      id: protocol?.id ?? 0,
-      date: protocol?.date ?? new Date(),
-      createdBy: protocol?.createdBy ?? '',
-      description: description,
-      image: image ?? undefined,
-    } as ProtocolItem;
-    const editProtocolSuccess = await editProtocol(editProtocolItem);
-
-    if (editProtocolSuccess) {
-      navigate('/admin/protocols');
-    } else {
-      showError('Protocol updating failed.');
-    }
-  };
+  const fields: EntityFieldConfig[] = useMemo(() => [
+    { name: 'image', type: 'avatar', label: 'Avatar', placeholderFromField: 'name', defaultPlaceholder: 'P' },
+    { name: 'name', type: 'text', label: 'Name', required: true },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { name: 'company', type: 'autocomplete', label: 'Company', options: companies, getOptionLabel: (option: any) => option.name },
+    { name: 'url', type: 'text', label: 'URL', required: true },
+    { name: 'description', type: 'textarea', label: 'Description', minRows: 4, maxRows: 10 },
+  ], [companies]);
 
   return (
-    <div style={defaultUiSettings.editAreaStyle}>
-      <Grid container spacing={2}>
-        <Grid size={12} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <AvatarUpload
-            key={`protocol-avatar-${protocol?.id ?? 'new'}`}
-            placeholder={name.charAt(0).toUpperCase() || 'P'}
-            setImageCallback={setImage}
-            initialImage={image}
-            initialImageUrl={existingImageUrl}
-          />
-          <FormHelperText sx={{ mt: 1, textAlign: 'center' }}>
-            PNG, JPG, or GIF. Max 100KB.
-          </FormHelperText>
-        </Grid>
-        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            required={true}
-            id="name"
-            label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            type="text"
-          />
-        </Grid>
-        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
-          <Autocomplete
-            options={companyListData}
-            value={company}
-            onChange={(_, newValue) => setCompany(newValue)}
-            getOptionLabel={(option) => (option as CompanyItem).name}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Company"
-                sx={{ width: defaultUiSettings.editControlSize }}
-              />
-            )}
-          />
-        </Grid>
-        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            required={true}
-            id="url"
-            label="URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            type="text"
-          />
-        </Grid>
-        <Grid size={12} sx={{ textAlign: 'center', alignContent: 'center' }}>
-          <TextField
-            sx={{ width: defaultUiSettings.editControlSize }}
-            id="description"
-            label="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            type="text"
-            multiline
-            minRows={4}
-            maxRows={10}
-          />
-        </Grid>
-      </Grid>
-      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
-        <Button onClick={handleEditProtocol}>Save</Button>
-        <Button onClick={() => history.back()}>Cancel</Button>
-      </Stack>
-    </div>
+    <EntityForm
+      mode="edit"
+      entityType="protocol"
+      entityId={entityId ?? undefined}
+      fields={fields}
+      values={values}
+      onFieldChange={setFieldValue}
+      onSubmit={submit}
+      submitButtonText="Save"
+    />
   );
 };

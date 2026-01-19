@@ -137,5 +137,7 @@ dist
 
 .*
 !.github
+!.dockerignore
+!.eslintrc.cjs
 *.MD
 !README.md

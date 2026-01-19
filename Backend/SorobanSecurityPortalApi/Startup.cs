@@ -15,7 +15,7 @@ namespace SorobanSecurityPortalApi;
 public class Startup
 {
     private readonly Config _config;
-    private static ILogger<Startup> _logger;
+    private static ILogger<Startup>? _logger;
     public Startup(IConfiguration configuration)
     {
         _config = new Config();
@@ -60,7 +60,9 @@ public class Startup
         services.AddHttpContextAccessor();
         services.AddSingleton(sp => sp);
         services.AddScoped<UserContextAccessor>();
+        services.AddScoped<IUserContextAccessor>(sp => sp.GetRequiredService<UserContextAccessor>());
         services.AddSingleton<ExtendedConfig>();
+        services.AddSingleton<IExtendedConfig>(sp => sp.GetRequiredService<ExtendedConfig>());
         var serviceProvider = services.BuildServiceProvider();
         _logger = serviceProvider.GetRequiredService<ILogger<Startup>>();
         var extendedConfig = serviceProvider.GetRequiredService<ExtendedConfig>();

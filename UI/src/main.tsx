@@ -17,6 +17,8 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { BookmarkProvider } from './contexts/BookmarkContext';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import ReactGA from 'react-ga4';
+import { AUTH_FAILURE_EVENT } from './api/rest-api';
+import { SessionExpirationWarning } from './components/SessionExpirationWarning';
 
 if (environment.gaId) {
   ReactGA.initialize(environment.gaId);
@@ -71,7 +73,7 @@ export function AppWrapper() {
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      const oidcUserKey = `oidc.user:${(window as any).env.API_URL!}/api/v1/connect:${environment.clientId}`;
+      const oidcUserKey = `oidc.user:${window.env.API_URL}/api/v1/connect:${environment.clientId}`;
       if (e.key === oidcUserKey && e.newValue === null && auth.isAuthenticated) {
         auth.removeUser().then(() => {
           if (window.location.pathname.startsWith(`${environment.basePath}/admin`)) {
@@ -82,11 +84,27 @@ export function AppWrapper() {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [auth.isAuthenticated, navigate]);
+
+  // Handle API 401 errors by clearing session
+  useEffect(() => {
+    const handleAuthFailure = async () => {
+      const oidcStorageKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
+      localStorage.removeItem(oidcStorageKey);
+      await auth.removeUser();
+
+      if (window.location.pathname.startsWith(`${environment.basePath}/admin`)) {
+        navigate('/login');
+      }
+    };
+
+    window.addEventListener(AUTH_FAILURE_EVENT, handleAuthFailure);
+    return () => window.removeEventListener(AUTH_FAILURE_EVENT, handleAuthFailure);
+  }, [auth, navigate]);
 
   // Handle navigation based on auth state and route
   useEffect(() => {
@@ -169,6 +187,7 @@ export function AppWrapper() {
       return (
           <MuiThemeProvider theme={theme}>
             <AdminMainWindow />
+            <SessionExpirationWarning warningThresholdSeconds={120} />
           </MuiThemeProvider>
         );
     }
@@ -191,6 +210,7 @@ export function AppWrapper() {
     return (
       <MuiThemeProvider theme={theme}>
         <MainWindow />
+        {auth.isAuthenticated && <SessionExpirationWarning warningThresholdSeconds={120} />}
       </MuiThemeProvider>
     );
   }

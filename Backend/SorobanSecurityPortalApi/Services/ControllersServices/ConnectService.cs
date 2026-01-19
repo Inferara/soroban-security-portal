@@ -195,7 +195,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 login = await _loginProcessor.GetByEmail(extendedTokenModel.Email);
                 if (login != null)
                 {
-                    if (!login.ConnectedAccounts!.Any(ca => ca.ServiceName == "Google" && ca.AccountId == extendedTokenModel.Email))
+                    login.ConnectedAccounts ??= new List<ConnectedAccountModel>();
+                    if (!login.ConnectedAccounts.Any(ca => ca.ServiceName == "Google" && ca.AccountId == extendedTokenModel.Email))
                     {
                         login.ConnectedAccounts.Add(new ConnectedAccountModel
                         {
@@ -381,6 +382,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _loginHistoryProcessor.Update(loginHistory);
 
             var login = await _loginProcessor.GetById(loginHistory.LoginId);
+            if (login == null)
+                throw new InvalidOperationException($"Login with ID {loginHistory.LoginId} not found.");
 
             var now = DateTime.UtcNow;
             var accessToken = CreateAccessToken(login, loginHistory, now);

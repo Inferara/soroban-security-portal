@@ -62,11 +62,13 @@ namespace SorobanSecurityPortalApi.Common.SsoSources
             var userContent = await userResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
             var hasAvatar = !string.IsNullOrEmpty(userContent.JsonGet<string>("avatar"));
 
-            var member = await GetGuildMemberAsync(accessToken, StellarDevelopersGuildMember.GuildId);
+            var member = !string.IsNullOrEmpty(accessToken)
+                ? await GetGuildMemberAsync(accessToken, StellarDevelopersGuildMember.GuildId)
+                : null;
 
             return new ExtendedTokenModel
             {
-                AccessToken = accessToken,
+                AccessToken = accessToken ?? string.Empty,
                 RefreshToken = content.JsonGet<string>("refresh_token"),
                 Email = userContent.JsonGet<string>("email")?.ToLower() ?? "",
                 Name = userContent.JsonGet<string>("username") ?? "",

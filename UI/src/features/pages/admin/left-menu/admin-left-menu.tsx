@@ -20,12 +20,20 @@ import { environment } from '../../../../environments/environment';
 import { useNavigate } from 'react-router-dom';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 
-export const AdminLeftMenu: FC = () => {
+interface AdminLeftMenuProps {
+  /** Callback when a menu item is clicked (for closing drawer on mobile) */
+  onNavigate?: () => void;
+}
+
+export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
   const auth = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
 
-  const navigateMenuItem = (path: string) => navigate(`${environment.basePath}/${path}`);
+  const navigateMenuItem = (path: string) => {
+    navigate(`${environment.basePath}/${path}`);
+    onNavigate?.(); // Close drawer on mobile
+  };
   const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
   const isAdminOrModerator = (auth: AuthContextProps) => 
     auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;

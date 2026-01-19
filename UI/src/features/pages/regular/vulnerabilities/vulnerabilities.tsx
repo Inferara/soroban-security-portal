@@ -28,7 +28,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVulnerabilities } from './hooks';
-import { VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, AvailableVulnerabilityCategories, VulnerabilityCategoryInfo, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, AvailableVulnerabilityCategories, VulnerabilityCategoryInfo, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { SelectChangeEvent } from '@mui/material/Select';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { SeverityColors, useTheme } from '../../../../contexts/ThemeContext';
 import { ProtocolItem } from '../../../../api/soroban-security-portal/models/protocol';
@@ -60,7 +61,7 @@ export const Vulnerabilities: FC = () => {
   const [sortBy] = useState<'date' | 'severity'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedVulnerability, setSelectedVulnerability] = useState<any>(null);
+  const [selectedVulnerability, setSelectedVulnerability] = useState<Vulnerability | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
@@ -146,7 +147,7 @@ export const Vulnerabilities: FC = () => {
     }, 0);
   };
 
-  const handlePageSizeChange = (event: any) => {
+  const handlePageSizeChange = (event: SelectChangeEvent<number>) => {
     const newPageSize = event.target.value;
     const newTotalPages = Math.ceil(totalItems / newPageSize);
 
@@ -171,7 +172,7 @@ export const Vulnerabilities: FC = () => {
     return tag;
   };
 
-  const handleCardClick = (vulnerability: any) => {
+  const handleCardClick = (vulnerability: Vulnerability) => {
     if (selectedVulnerability === vulnerability) {
       setSelectedVulnerability(null);
     }

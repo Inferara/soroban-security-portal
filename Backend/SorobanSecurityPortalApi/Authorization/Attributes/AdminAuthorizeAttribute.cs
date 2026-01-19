@@ -20,7 +20,7 @@ namespace SorobanSecurityPortalApi.Authorization.Attributes
             var attributeHelper = httpContext.RequestServices.GetRequiredService<IAttributeHelper>();
             if (user?.Identity == null || !user.Identity.IsAuthenticated)
             {
-                if (!attributeHelper.TryAuthenticateUserFromToken(httpContext, out user))
+                if (!attributeHelper.TryAuthenticateUserFromToken(httpContext, out user) || user == null)
                 {
                     context.Result = new UnauthorizedResult();
                     return;
@@ -28,7 +28,7 @@ namespace SorobanSecurityPortalApi.Authorization.Attributes
             }
 
             var role = user.FindFirstValue(ClaimTypes.Role);
-            if (!_roles.Contains((Role)Enum.Parse(typeof(Role), role)))
+            if (string.IsNullOrEmpty(role) || !_roles.Contains((Role)Enum.Parse(typeof(Role), role)))
             {
                 context.Result = new UnauthorizedResult();
             }

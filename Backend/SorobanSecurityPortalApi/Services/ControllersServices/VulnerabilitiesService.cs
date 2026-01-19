@@ -76,7 +76,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(vulnerabilitySearchModel.SearchText);
                 vulnerabilitySearchModel.Embedding = new Vector(embeddingArray);
             }
-            var searchResult = await _vulnerabilityProcessor.Search(vulnerabilitySearchModel);
+            var searchResult = await _vulnerabilityProcessor.Search(vulnerabilitySearchModel!);
             var result = _mapper.Map<List<VulnerabilityViewModel>>(searchResult);
             return result;
         }
@@ -200,11 +200,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public class IdValue
     {
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
     public class IdValueUrl : IdValue
     {
-        public string Url { get; set; }
+        public string Url { get; set; } = string.Empty;
         public int? ProtocolId { get; set; }
         public int? AuditorId { get; set; }
     }
