@@ -27,6 +27,7 @@ import {
   GetApp,
   Description,
   Dashboard,
+  Comment as CommentIcon,
 } from '@mui/icons-material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import { useNavigate } from 'react-router-dom';
@@ -58,6 +59,8 @@ import {
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
+import { CommentList } from '../../../../components/CommentList';
+import { CommentEntityType } from '../../../../api/soroban-security-portal/models/comment';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -72,6 +75,8 @@ export const ReportDetails: FC = () => {
     statistics,
     loading,
     error,
+    reportId,
+    commentCount,
     // PDF handling from hook
     pdfBlobUrl,
     pdfLoading,
@@ -188,6 +193,7 @@ export const ReportDetails: FC = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
     { id: 'full-report', label: 'Full Report', icon: <Description /> },
+    { id: 'discussion', label: 'Discussion', icon: <CommentIcon />, count: commentCount || undefined },
   ];
 
   return (
@@ -295,7 +301,7 @@ export const ReportDetails: FC = () => {
 
                     {sortedVulnerabilities.length > 0 ? (
                       <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                        {sortedVulnerabilities.map((vulnerability, index) => (
+                        {sortedVulnerabilities.map((vulnerability: Vulnerability, index: number) => (
                           <Box key={vulnerability.id}>
                             <ListItem disablePadding>
                               <ListItemButton
@@ -729,6 +735,19 @@ export const ReportDetails: FC = () => {
                   )}
                 </CardContent>
               </Card>
+            </Box>
+          )}
+
+          {/* Third Tab - Discussion */}
+          {tabValue === 2 && report && (
+            <Box>
+              <CommentList
+                entityType={CommentEntityType.Report}
+                entityId={reportId}
+                showFilter={true}
+                includeVulnerabilityComments={true}
+                vulnerabilityIds={vulnerabilities.map((v: Vulnerability) => v.id)}
+              />
             </Box>
           )}
         </>
