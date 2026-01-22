@@ -87,8 +87,9 @@ export const useModerationQueue = () => {
 
     const handleAction = (id: string, action: 'approve' | 'hide' | 'delete', reason?: string) => {
         setItems(prev => prev.filter(item => item.id !== id));
-        // In a real app, we'd send an API request here
-        console.log(`Action: ${action} on ${id} with reason: ${reason}`);
+        // TODO: Backend Integration (Issue #87)
+        // This will be replaced with: await api.moderation.takeAction(id, action, reason);
+        void action; void reason; // Suppress unused var check for mock
     };
 
     return { items, stats, loading, handleAction };
