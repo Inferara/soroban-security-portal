@@ -7,13 +7,15 @@ import {
   getProtocolByIdCall,
   getAuditorByIdCall,
   getCompanyByIdCall,
-  getVulnerabilitiesCall
+  getVulnerabilitiesCall,
+  getCommentsCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
 import { Vulnerability, VulnerabilitySearch } from '../../../../../api/soroban-security-portal/models/vulnerability';
+import { CommentEntityType } from '../../../../../api/soroban-security-portal/models/comment';
 
 interface ReportStatistics {
   totalVulnerabilities: number;
@@ -34,6 +36,7 @@ export const useReportDetails = () => {
   const [statistics, setStatistics] = useState<ReportStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [commentCount, setCommentCount] = useState<number>(0);
   
   // PDF handling state
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
@@ -159,6 +162,22 @@ export const useReportDetails = () => {
       const stats = calculateStatistics(vulnerabilitiesData);
       setStatistics(stats);
 
+      // Fetch comment count (report-level comments)
+      try {
+        const reportComments = await getCommentsCall(CommentEntityType.Report, reportId);
+        const vulnerabilityComments = await Promise.all(
+          vulnerabilitiesData.map((vuln) =>
+            getCommentsCall(CommentEntityType.Vulnerability, vuln.id)
+          )
+        );
+        const allComments = [...reportComments, ...vulnerabilityComments.flat()];
+        setCommentCount(allComments.length);
+      } catch (commentErr) {
+        // Don't fail the whole page if comment count fails
+        console.error('Error fetching comment count:', commentErr);
+        setCommentCount(0);
+      }
+
     } catch (err) {
       console.error('Error fetching report details:', err);
       setError('Failed to load report details');
@@ -183,6 +202,7 @@ export const useReportDetails = () => {
     loading,
     error,
     reportId,
+    commentCount,
     // PDF handling
     pdfBlobUrl,
     pdfLoading,

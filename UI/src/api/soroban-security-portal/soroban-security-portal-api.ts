@@ -12,6 +12,7 @@ import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
+import { Comment, CreateComment, UpdateComment } from './models/comment';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -478,6 +479,30 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
     const client = await getRestClient();
     const response = await client.request(`api/v1/bookmarks/${bookmarkId}`, 'GET');
     return response.data as Bookmark;
+};
+
+// --- COMMENTS ---
+export const getCommentsCall = async (entityType: number, entityId: number): Promise<Comment[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as Comment[];
+};
+
+export const addCommentCall = async (comment: CreateComment): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/comments', 'POST', comment);
+    return response.data as Comment;
+};
+
+export const updateCommentCall = async (comment: UpdateComment): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${comment.id}`, 'PUT', comment);
+    return response.data as Comment;
+};
+
+export const deleteCommentCall = async (commentId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/comments/${commentId}`, 'DELETE');
 };
 
 // Helper function to create FormData for entity operations with image support

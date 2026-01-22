@@ -5,6 +5,7 @@ import {
   Tab,
   useMediaQuery,
   useTheme,
+  Badge,
 } from '@mui/material';
 
 /**
@@ -17,6 +18,8 @@ export interface TabConfig {
   label: string;
   /** Icon to display before the label */
   icon: ReactNode;
+  /** Optional count to display as a badge */
+  count?: number;
 }
 
 /**
@@ -119,7 +122,15 @@ export function DetailTabs({
         {tabs.map((tab) => (
           <Tab
             key={tab.id}
-            icon={tab.icon as React.ReactElement}
+            icon={
+              tab.count !== undefined ? (
+                <Badge badgeContent={tab.count} color="primary" max={99}>
+                  {tab.icon as React.ReactElement}
+                </Badge>
+              ) : (
+                tab.icon as React.ReactElement
+              )
+            }
             iconPosition="start"
             label={tab.label}
           />
