@@ -1,4 +1,5 @@
 import { useMemo, useCallback, useState } from 'react';
+import { AuthContextProps } from 'react-oidc-context';
 import {
     getAllReportListDataCall,
     removeReportCall,
@@ -14,10 +15,11 @@ import { useAdminList } from '../../../../../../hooks/admin';
 
 type UseListReportsProps = {
     currentPageState: CurrentPageState;
+    auth: AuthContextProps;
 };
 
 export const useListReports = (props: UseListReportsProps) => {
-    const { currentPageState } = props;
+    const { currentPageState, auth } = props;
 
     // Extraction state
     const [extractingReportId, setExtractingReportId] = useState<number | null>(null);
@@ -36,11 +38,16 @@ export const useListReports = (props: UseListReportsProps) => {
         customOperations,
     });
 
-    // downloadReport is a client-side action (no API call, just opens URL)
+    // downloadReport opens report in new tab with token authentication
     const downloadReport = useCallback(async (reportId: number): Promise<void> => {
-        const url = `${environment.apiUrl}/api/v1/reports/${reportId}/download`;
+        const token = auth.user?.access_token;
+        if (!token) {
+            console.error('No access token available for download');
+            return;
+        }
+        const url = `${environment.apiUrl}/api/v1/reports/${reportId}/download?token=${encodeURIComponent(token)}`;
         window.open(url, '_blank');
-    }, []);
+    }, [auth.user?.access_token]);
 
     // Extract vulnerabilities from a report using AI
     const extractVulnerabilities = useCallback(async (reportId: number): Promise<void> => {

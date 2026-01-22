@@ -62,7 +62,7 @@ export const ReportManagement: FC = () => {
     extractionResult,
     extractionError,
     clearExtractionResult,
-  } = useListReports({ currentPageState });
+  } = useListReports({ currentPageState, auth });
 
   const isAdmin = auth.user?.profile.role === Role.Admin;
   const isModerator = auth.user?.profile.role === Role.Moderator;
