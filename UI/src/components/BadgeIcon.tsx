@@ -1,4 +1,4 @@
-import { Tooltip, Box, styled } from '@mui/material';
+import { Tooltip, Box } from '@mui/material';
 import { UserBadge, BadgeRarity } from '../api/soroban-security-portal/models/badge';
 import { format } from 'date-fns';
 
@@ -21,34 +21,35 @@ const sizeMap = {
     large: 48,
 };
 
-const BadgeContainer = styled(Box)<{ rarity: BadgeRarity; size: number; isLocked?: boolean }>(
-    ({ rarity, size, isLocked }) => ({
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: isLocked ? '#E0E0E0' : rarityColors[rarity],
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: size * 0.5,
-        boxShadow: isLocked ? 'none' : `0 2px 8px ${rarityColors[rarity]}40`,
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        cursor: 'pointer',
-        opacity: isLocked ? 0.5 : 1,
-        '&:hover': {
-            transform: isLocked ? 'none' : 'scale(1.1)',
-            boxShadow: isLocked ? 'none' : `0 4px 12px ${rarityColors[rarity]}60`,
-        },
-    })
-);
-
 export function BadgeIcon({ badge, size = 'medium', showTooltip = true }: BadgeIconProps) {
+    const badgeSize = sizeMap[size];
+    const isLocked = badge.isLocked || false;
+
     const badgeElement = (
-        <BadgeContainer rarity={badge.rarity} size={sizeMap[size]} isLocked={badge.isLocked}>
+        <Box
+            sx={{
+                width: badgeSize,
+                height: badgeSize,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: isLocked ? '#E0E0E0' : rarityColors[badge.rarity],
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: badgeSize * 0.5,
+                boxShadow: isLocked ? 'none' : `0 2px 8px ${rarityColors[badge.rarity]}40`,
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                cursor: 'pointer',
+                opacity: isLocked ? 0.5 : 1,
+                '&:hover': {
+                    transform: isLocked ? 'none' : 'scale(1.1)',
+                    boxShadow: isLocked ? 'none' : `0 4px 12px ${rarityColors[badge.rarity]}60`,
+                },
+            }}
+        >
             {badge.icon || badge.name.charAt(0).toUpperCase()}
-        </BadgeContainer>
+        </Box>
     );
 
     if (!showTooltip) {

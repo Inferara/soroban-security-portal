@@ -1,7 +1,7 @@
 import { Box, Container, Typography, Paper, Divider } from '@mui/material';
-import { UserBadges } from '../components/UserBadges';
-import { BadgeShowcase } from '../components/BadgeShowcase';
-import { MOCK_BADGES } from '../utils/mockBadges';
+import { UserBadges } from '../../components/UserBadges';
+import { BadgeShowcase } from '../../components/BadgeShowcase';
+import { MOCK_BADGES } from '../../utils/mockBadges';
 
 export function BadgeDemoPage() {
     const earnedBadges = MOCK_BADGES.filter((b) => !b.isLocked);
