@@ -39,6 +39,7 @@
     "react-audio-voice-recorder": "^2.2.0",
     "react-dom": "^19.2.0",
     "react-ga4": "2.1.0",
+    "react-helmet-async": "^2.0.5",
     "react-highlight-words": "^0.21.0",
     "react-idle-timer": "^5.7.2",
     "react-js-cron": "^5.2.0",

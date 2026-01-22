@@ -58,6 +58,8 @@ import {
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
+import { SeoHead } from '../../../../components/common/SeoHead';
+import { ShareButtons } from '../../../../components/common/ShareButtons';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -209,6 +211,11 @@ export const ReportDetails: FC = () => {
               description={`Published: ${formatDateLong(report.date)}`}
               actions={
                 <>
+                  <SeoHead
+                    title={report.name}
+                    description={`Security audit report for ${report.name}`}
+                    url={window.location.href}
+                  />
                   <Button
                     variant="contained"
                     startIcon={<GetApp />}
@@ -232,14 +239,17 @@ export const ReportDetails: FC = () => {
                 </>
               }
               headerExtra={
-                auth.isAuthenticated && (
-                  <BookmarkButton
-                    itemId={report.id ?? 0}
-                    bookmarkType={BookmarkType.Report}
-                    isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
-                    onToggle={toggleBookmark}
-                  />
-                )
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <ShareButtons title={report.name} url={window.location.href} />
+                  {auth.isAuthenticated && (
+                    <BookmarkButton
+                      itemId={report.id ?? 0}
+                      bookmarkType={BookmarkType.Report}
+                      isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
+                      onToggle={toggleBookmark}
+                    />
+                  )}
+                </Stack>
               }
             />
           </Box>
