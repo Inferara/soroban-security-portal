@@ -6,6 +6,7 @@ using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.Security;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Models.DbModels;
+using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Authorization.Attributes;
 
@@ -17,6 +18,7 @@ namespace SorobanSecurityPortalApi.Controllers
     {
         private readonly IReportService _reportService;
         private readonly IVulnerabilityExtractionService _extractionService;
+        private readonly IActivityProcessor _activityProcessor;
         private readonly UserContextAccessor _userContextAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ReportsController> _logger;
@@ -27,12 +29,14 @@ namespace SorobanSecurityPortalApi.Controllers
         public ReportsController(
             IReportService reportService,
             IVulnerabilityExtractionService extractionService,
+            IActivityProcessor activityProcessor,
             UserContextAccessor userContextAccessor,
             IHttpClientFactory httpClientFactory,
             ILogger<ReportsController> logger)
         {
             _reportService = reportService;
             _extractionService = extractionService;
+            _activityProcessor = activityProcessor;
             _userContextAccessor = userContextAccessor;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
@@ -186,6 +190,18 @@ namespace SorobanSecurityPortalApi.Controllers
                 return BadRequest("No Report uploaded and no Url specified.");
             }
             var result = await _reportService.Add(parsedReport);
+            
+            if (result > 0)
+            {
+                await _activityProcessor.Add(new ActivityModel 
+                { 
+                    Type = ActivityType.ReportCreated, 
+                    EntityId = result, 
+                    LoginId = userLoginId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            
             return Ok(result);
         }
 
@@ -195,7 +211,20 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             var result = await _reportService.Approve(reportId);
             if (result is Result<bool, string>.Ok)
+            {
+                // We need to get the report to know who approved it (current user) or created it
+                // For approval activity, we'll use the current user as the actor
+                var userId = await _userContextAccessor.GetLoginIdAsync();
+                await _activityProcessor.Add(new ActivityModel 
+                { 
+                    Type = ActivityType.ReportApproved, 
+                    EntityId = reportId, 
+                    LoginId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+                
                 return Ok();
+            }
             else if (result is Result<bool, string>.Err err)
                 return BadRequest(err.Error);
             else

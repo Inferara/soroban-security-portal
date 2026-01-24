@@ -20,6 +20,9 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<FileModel> File { get; set; }
         public DbSet<CompanyModel> Company { get; set; }
         public DbSet<BookmarkModel> Bookmark { get; set; }
+        public DbSet<CommentModel> Comment { get; set; }
+        public DbSet<UserFollowModel> UserFollow { get; set; }
+        public DbSet<ActivityModel> Activity { get; set; }
 
 
         private readonly IDbQuery _dbQuery;

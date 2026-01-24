@@ -42,6 +42,8 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
+import { FollowButton } from '../../../../components/FollowButton';
+import { FollowEntityType } from '../../../../api/soroban-security-portal/models/activity';
 
 export const ProtocolDetails: FC = () => {
   const navigate = useNavigate();
@@ -197,6 +199,11 @@ export const ProtocolDetails: FC = () => {
                       Add Report
                     </Button>
                   )}
+                  <FollowButton
+                    entityType={FollowEntityType.Protocol}
+                    entityId={protocol.id}
+                    entityName={protocol.name}
+                  />
                 </>
               }
             />
