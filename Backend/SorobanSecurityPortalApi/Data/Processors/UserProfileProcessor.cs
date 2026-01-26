@@ -57,7 +57,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
             profile.UpdatedAt = DateTime.UtcNow;
             db.Entry(existingProfile).CurrentValues.SetValues(profile);
 
-            db.UserProfiles.Update(existingProfile);
             await db.SaveChangesAsync();
 
             return profile;

@@ -12,11 +12,16 @@ namespace SorobanSecurityPortalApi.Controllers
     {
         private readonly IUserProfileService _profileService;
         private readonly UserContextAccessor _userContext;
+        private readonly ILogger<UserProfileController> _logger;
 
-        public UserProfileController(IUserProfileService profileService, UserContextAccessor userContext)
+        public UserProfileController(
+            IUserProfileService profileService,
+            UserContextAccessor userContext,
+            ILogger<UserProfileController> logger)
         {
             _profileService = profileService;
             _userContext = userContext;
+            _logger = logger;
         }
 
         /// <summary>
@@ -38,7 +43,8 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred", error = ex.Message });
+                _logger.LogError(ex, "Error retrieving profile for userId: {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while retrieving the profile" });
             }
         }
 
@@ -63,7 +69,8 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred", error = ex.Message });
+                _logger.LogError(ex, "Error retrieving profile for current user");
+                return StatusCode(500, new { message = "An error occurred while retrieving your profile" });
             }
         }
 
@@ -95,7 +102,8 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred", error = ex.Message });
+                _logger.LogError(ex, "Error updating profile for current user");
+                return StatusCode(500, new { message = "An error occurred while updating your profile" });
             }
         }
 
@@ -115,7 +123,8 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred", error = ex.Message });
+                _logger.LogError(ex, "Error deleting profile for current user");
+                return StatusCode(500, new { message = "An error occurred while deleting your profile" });
             }
         }
     }
