@@ -1,26 +1,30 @@
 ## Cargo Audit Warnings
 
 **Severity:** Info  
-**Commit:** 16f4d7c  
-**Type:** Maintainability  
 **Status:** Acknowledged  
-**File(s):** `rs-stellar-xdr`, `rs-soroban-env`  
-**Location(s):** N/A  
-**Confirmed Fix At:** N/A  
+**Tags:** Maintainability, Dependencies, Third-Party Risk  
 
-`cargo audit` gives a warning for the package `bumpalo` due to a potential use-after-free issue caused by `Vec::into_iter()`.  
-It also reports warnings for a couple of dependencies of the package `textplots`.
+### Description
+`cargo audit` reports warnings for the dependency **bumpalo** due to a potential use-after-free issue related to `Vec::into_iter()`. Additional warnings are also reported for dependencies of the **textplots** package.
+
+These issues originate from third-party dependencies and do not directly impact the core logic of the codebase.
+
+### Affected Files
+- `rs-stellar-xdr`
+- `rs-soroban-env`
+
+### Affected Locations
+- N/A
+
+### Commit
+- **Reported At Commit:** `16f4d7c`
+- **Confirmed Fix At:** N/A
 
 ### Impact
-Upgrading the dependencies will improve maintainability by avoiding potential errors caused by these issues.
+Upgrading the affected dependencies improves maintainability and reduces the risk of potential memory errors introduced by known third-party issues.
 
 ### Recommendation
-- Run `cargo update -p bumpalo` for `rs-stellar-xdr` to avoid the risk of this memory error.  
-- Update the packages `textplots` and `colored` for `rs-soroban-env` to resolve warnings for this repository.  
+- Run the following command to update **bumpalo** in `rs-stellar-xdr`:
+  ```bash
+  cargo update -p bumpalo
 
-Both projects build and pass all tests with these updates.
-
-### Developer Response
-For the `bumpalo` dependency, developers indicated they are not concerned with the issue at this time as it is compile-time.  
-For `textplots` and `colored`, these are only `[dev-dependencies]` used for tests.  
-As a result, they will address these concerns at the next "protocol boundary".
