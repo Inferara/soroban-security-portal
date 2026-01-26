@@ -7,10 +7,10 @@ import {
     rejectReportCall,
     extractVulnerabilitiesFromReportCall,
     VulnerabilityExtractionResult,
+    downloadReportPDFCall,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { CurrentPageState } from '../../../admin-main-window/current-page-slice';
 import { Report } from '../../../../../../api/soroban-security-portal/models/report';
-import { environment } from '../../../../../../environments/environment';
 import { useAdminList } from '../../../../../../hooks/admin';
 
 type UseListReportsProps = {
@@ -19,7 +19,7 @@ type UseListReportsProps = {
 };
 
 export const useListReports = (props: UseListReportsProps) => {
-    const { currentPageState, auth } = props;
+    const { currentPageState } = props;
 
     // Extraction state
     const [extractingReportId, setExtractingReportId] = useState<number | null>(null);
@@ -38,16 +38,21 @@ export const useListReports = (props: UseListReportsProps) => {
         customOperations,
     });
 
-    // downloadReport opens report in new tab with token authentication
+    // downloadReport uses secure header-based authentication instead of exposing tokens in URLs
     const downloadReport = useCallback(async (reportId: number): Promise<void> => {
-        const token = auth.user?.access_token;
-        if (!token) {
-            console.error('No access token available for download');
-            return;
+        try {
+            const blob = await downloadReportPDFCall(reportId);
+
+            // Create blob URL and open in new tab
+            const blobUrl = window.URL.createObjectURL(blob);
+            window.open(blobUrl, '_blank');
+
+            // Clean up blob URL after a delay to ensure it loads
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+        } catch (error) {
+            console.error('Failed to download report:', error);
         }
-        const url = `${environment.apiUrl}/api/v1/reports/${reportId}/download?token=${encodeURIComponent(token)}`;
-        window.open(url, '_blank');
-    }, [auth.user?.access_token]);
+    }, []);
 
     // Extract vulnerabilities from a report using AI
     const extractVulnerabilities = useCallback(async (reportId: number): Promise<void> => {
