@@ -87,7 +87,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             CheckLinkFlooding(result, sanitizedHtml);
 
-            await ValidateUrlsAsync(result, sanitizedHtml);
+            ValidateUrls(result, sanitizedHtml);
 
             if (result.IsBlocked || result.RequiresModeration)
             {
@@ -137,7 +137,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
         }
 
-        private async Task ValidateUrlsAsync(ContentFilterResult result, string html)
+        private void ValidateUrls(ContentFilterResult result, string html)
         {
             var linkMatches = Regex.Matches(html, @"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase);
             var trustedDomains = _config.TrustedDomains;
@@ -178,8 +178,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     }
                 }
             }
-
-            await Task.CompletedTask;
         }
 
         public async Task<bool> CheckRateLimitAsync(int userId)
