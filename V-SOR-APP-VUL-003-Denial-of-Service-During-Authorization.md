@@ -1,4 +1,4 @@
-### A.2.2 V-SOR-APP-VUL-003: Denial of Service During Authorization
+## Denial of Service During Authorization
 
 **Severity:** Critical  
 **Commit:** 2674d86  

@@ -1,4 +1,4 @@
-Primitive i64 conversion works as intended
+## Primitive i64 conversion works as intended
 
 We are testing type conversion functions in `rs-soroban-env/soroban-env-hos` based on the `basic.rs` tests which take a fixed primitive value (like `u64`, `i64`, etc.), convert it into a host value, convert it back and check equality.
 

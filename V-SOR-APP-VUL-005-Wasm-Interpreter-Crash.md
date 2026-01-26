@@ -1,4 +1,4 @@
-### A.2.4 V-SOR-APP-VUL-005: Wasm Interpreter Crash
+## Wasm Interpreter Crash
 
 **Severity:** High  
 **Commit:** 2674d86  

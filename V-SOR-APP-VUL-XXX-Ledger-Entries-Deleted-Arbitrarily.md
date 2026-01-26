@@ -1,4 +1,4 @@
-### V-SOR-APP-VUL-002: Ledger Entries Deleted Arbitrarily
+## Ledger Entries Deleted Arbitrarily
 
 **Severity:** Critical  
 **Commit:** 2674d86  

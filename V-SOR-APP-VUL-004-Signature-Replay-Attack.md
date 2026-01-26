@@ -1,4 +1,4 @@
-### A.2.3 V-SOR-APP-VUL-004: Signature Replay Attack
+##  Signature Replay Attack
 
 **Severity:** High  
 **Commit:** 16f4d7c  
@@ -10,11 +10,6 @@
 `rs-stellar-xdr/src/next/generated.rs`  
 
 **Location(s):** N/A  
-
-**Description:**  
-`SorobanAddressCredentials` contains a signature expiration ledger and a nonce for each signature. These credentials are stored temporarily on the ledger and erased after expiration.  
-
-If the signature is not hashed with a timestamp, an attacker could reuse an expired signature to replay a previous transaction.
 
 **Impact:**  
 A reusable signature could allow attackers to replay transactions and potentially steal funds.
