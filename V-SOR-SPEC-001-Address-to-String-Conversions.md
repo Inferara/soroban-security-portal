@@ -4,10 +4,6 @@
 **Status:** Fixed  
 **Tags:** Unchecked Arithmetic, Resource Management, Budget Bypass  
 
-### Description
-The Soroban Host uses metered data structures to account for computation from smart contracts. One such structure is the **Metered Map**, which augments standard map operations with computation and memory tracking.
-
-However, the arithmetic used to track resource usage in metered map operations is unchecked. In Rust, unchecked arithmetic may overflow without raising errors. This can potentially allow users to bypass resource limits through integer overflow when tracking computation and memory usage.
 
 ### Affected Files
 - `rs-soroban-env/soroban-env-host/src/host/metered_map.rs`
