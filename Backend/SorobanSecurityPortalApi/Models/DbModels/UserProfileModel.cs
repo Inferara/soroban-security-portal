@@ -23,12 +23,6 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         [MaxLength(200)]
         public string? Website { get; set; }
 
-        [MaxLength(50)]
-        public string? TwitterHandle { get; set; }
-
-        [MaxLength(50)]
-        public string? GithubHandle { get; set; }
-
         [Column(TypeName = "jsonb")]
         public List<string> ExpertiseTags { get; set; } = new List<string>();
 

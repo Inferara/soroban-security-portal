@@ -41,8 +41,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 Bio = profileDto.Bio,
                 Location = profileDto.Location,
                 Website = profileDto.Website,
-                TwitterHandle = profileDto.TwitterHandle,
-                GithubHandle = profileDto.GithubHandle,
                 ExpertiseTags = profileDto.ExpertiseTags ?? new List<string>(),
                 ReputationScore = 0
             };
@@ -62,8 +60,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (profileDto.Bio != null) existingProfile.Bio = profileDto.Bio;
             if (profileDto.Location != null) existingProfile.Location = profileDto.Location;
             if (profileDto.Website != null) existingProfile.Website = profileDto.Website;
-            if (profileDto.TwitterHandle != null) existingProfile.TwitterHandle = profileDto.TwitterHandle;
-            if (profileDto.GithubHandle != null) existingProfile.GithubHandle = profileDto.GithubHandle;
             if (profileDto.ExpertiseTags != null) existingProfile.ExpertiseTags = profileDto.ExpertiseTags;
 
             var updatedProfile = await _processor.UpdateAsync(existingProfile);
