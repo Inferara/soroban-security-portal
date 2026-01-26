@@ -192,8 +192,9 @@ public class ExtendedConfig : IExtendedConfig
     public bool ProfanityFilterEnabled => GetValue<bool>("ProfanityFilterEnabled", false);
 
     [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
-    [Description("Profanity Word List")]
-    [Tooltip("Comma-separated list of words to filter. Words are matched case-insensitively.")]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Multiline)]
+    [Description("Custom Profanity Words (one per line)")]
+    [Tooltip("Additional words to filter beyond the default dictionary. Enter one word per line. Words are matched case-insensitively. The system will notify you if a word already exists in the default dictionary.")]
     public List<string> ProfanityWords
     {
         get
@@ -201,9 +202,18 @@ public class ExtendedConfig : IExtendedConfig
             var words = GetValue<string>("ProfanityWords", "");
             return string.IsNullOrWhiteSpace(words)
                 ? new List<string>()
-                : words.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(w => w.Trim()).ToList();
+                : words.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                       .Select(w => w.Trim())
+                       .Where(w => !string.IsNullOrWhiteSpace(w))
+                       .ToList();
         }
     }
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Link)]
+    [Description("View Default Profanity Dictionary")]
+    [Tooltip("Click to view the built-in profanity words that are always active. These words cannot be modified, but you can add custom words above.")]
+    public string DefaultProfanityWordsLink => "/api/settings/default-profanity-words";
 
     [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
     [Description("Trusted Domains")]
@@ -254,7 +264,8 @@ public class DataTypeAttribute : Attribute, IAttributeHandler
         Color,
         Hidden,
         Link,
-        Dropdown
+        Dropdown,
+        Multiline
     }
 }
 

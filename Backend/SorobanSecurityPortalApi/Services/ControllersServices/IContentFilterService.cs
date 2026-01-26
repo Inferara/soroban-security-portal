@@ -6,5 +6,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     {
         Task<ContentFilterResult> FilterContentAsync(string content, int userId);
         Task<bool> CheckRateLimitAsync(int userId);
+        HashSet<string> GetDefaultProfanityWords();
+        HashSet<string> GetAllProfanityWords();
     }
 }

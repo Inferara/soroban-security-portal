@@ -15,11 +15,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IModerationLogProcessor _moderationLogProcessor;
         private readonly IExtendedConfig _config;
         private readonly ILogger<ContentFilterService> _logger;
+        private readonly HashSet<string> _defaultProfanityWords;
 
         private static readonly string[] AllowedTags = { "p", "br", "strong", "em", "code", "pre", "a", "ul", "ol", "li", "blockquote" };
         private const int MaxLinksAllowed = 5;
         private const int RateLimitPerMinute = 10;
         private const string RateLimitKeyPrefix = "content_filter_rate_limit:";
+        private const string DefaultProfanityWordsFile = "Data/default-profanity-words.txt";
 
         public ContentFilterService(
             ICacheAccessor cacheAccessor,
@@ -34,6 +36,47 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             _sanitizer = new HtmlSanitizer();
             ConfigureSanitizer();
+
+            _defaultProfanityWords = LoadDefaultProfanityWords();
+        }
+
+        private HashSet<string> LoadDefaultProfanityWords()
+        {
+            try
+            {
+                if (File.Exists(DefaultProfanityWordsFile))
+                {
+                    var words = File.ReadAllLines(DefaultProfanityWordsFile)
+                        .Select(w => w.Trim().ToLowerInvariant())
+                        .Where(w => !string.IsNullOrWhiteSpace(w))
+                        .ToHashSet();
+
+                    _logger.LogInformation("Loaded {Count} default profanity words", words.Count);
+                    return words;
+                }
+                else
+                {
+                    _logger.LogWarning("Default profanity words file not found at {Path}", DefaultProfanityWordsFile);
+                    return new HashSet<string>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load default profanity words");
+                return new HashSet<string>();
+            }
+        }
+
+        public HashSet<string> GetDefaultProfanityWords() => _defaultProfanityWords;
+
+        public HashSet<string> GetAllProfanityWords()
+        {
+            var allWords = new HashSet<string>(_defaultProfanityWords, StringComparer.OrdinalIgnoreCase);
+            foreach (var word in _config.ProfanityWords)
+            {
+                allWords.Add(word.ToLowerInvariant());
+            }
+            return allWords;
         }
 
         private void ConfigureSanitizer()
@@ -110,18 +153,22 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         private void CheckProfanity(ContentFilterResult result, string content)
         {
-            if (_config.ProfanityFilterEnabled && _config.ProfanityWords.Count > 0)
+            if (_config.ProfanityFilterEnabled)
             {
-                var lowerContent = content.ToLowerInvariant();
-                var foundProfanity = _config.ProfanityWords
-                    .Where(word => lowerContent.Contains(word.ToLowerInvariant()))
-                    .ToList();
-
-                if (foundProfanity.Any())
+                var allWords = GetAllProfanityWords();
+                if (allWords.Count > 0)
                 {
-                    result.RequiresModeration = true;
-                    result.Warnings.Add($"Profanity detected: {string.Join(", ", foundProfanity)}");
-                    _logger.LogWarning("Profanity detected in content from user");
+                    var lowerContent = content.ToLowerInvariant();
+                    var foundProfanity = allWords
+                        .Where(word => lowerContent.Contains(word))
+                        .ToList();
+
+                    if (foundProfanity.Any())
+                    {
+                        result.RequiresModeration = true;
+                        result.Warnings.Add($"Profanity detected: {string.Join(", ", foundProfanity)}");
+                        _logger.LogWarning("Profanity detected in content from user");
+                    }
                 }
             }
         }
