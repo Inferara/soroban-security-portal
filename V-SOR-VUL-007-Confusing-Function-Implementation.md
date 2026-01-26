@@ -1,4 +1,4 @@
-# Confusing Function Implementation
+## Confusing Function Implementation
 
 **Severity:** Info  
 **Status:** Acknowledged  
