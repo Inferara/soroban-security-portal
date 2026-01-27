@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Box, Typography, useTheme, SxProps, Theme, Link } from '@mui/material';
+import { Box, Typography, useTheme, SxProps, Theme } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -74,53 +74,7 @@ interface MarkdownViewProps {
   sx?: SxProps<Theme>;
 }
 
-// Function to render mentions in text
-const renderMentions = (text: string): React.ReactNode[] => {
-  const mentionRegex = /@(\w+)/g;
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match;
 
-  while ((match = mentionRegex.exec(text)) !== null) {
-    // Add text before the mention
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-
-    // Add the mention as a styled link
-    const username = match[1];
-    parts.push(
-      <Link
-        key={match.index}
-        href={`/user/${username}`}
-        sx={{
-          color: 'primary.main',
-          textDecoration: 'none',
-          fontWeight: 600,
-          '&:hover': {
-            textDecoration: 'underline',
-          },
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          // Handle navigation - you might want to use React Router here
-          window.location.href = `/user/${username}`;
-        }}
-      >
-        @{username}
-      </Link>
-    );
-
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-
-  return parts.length > 0 ? parts : [text];
-};
 
 export const MarkdownView: FC<MarkdownViewProps> = ({ 
   content, 

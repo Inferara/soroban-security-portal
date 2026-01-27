@@ -57,9 +57,11 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
     // Register completion provider for @ mentions
     monaco.languages.registerCompletionItemProvider('markdown', {
       triggerCharacters: ['@'],
-      provideCompletionItems: async (model: editor.ITextModel, position: any) => {
-        const lineContent = model.getLineContent(position.lineNumber);
-        const textBeforeCursor = lineContent.substring(0, position.column - 1);
+      provideCompletionItems: async (model: editor.ITextModel, position: unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pos = position as any;
+        const lineContent = model.getLineContent(pos.lineNumber);
+        const textBeforeCursor = lineContent.substring(0, pos.column - 1);
 
         // Check if we're in an @ mention
         const atIndex = textBeforeCursor.lastIndexOf('@');
@@ -76,10 +78,10 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
           detail: user.fullName,
           insertText: `@${user.login} `,
           range: {
-            startLineNumber: position.lineNumber,
-            endLineNumber: position.lineNumber,
+            startLineNumber: pos.lineNumber,
+            endLineNumber: pos.lineNumber,
             startColumn: atIndex + 1,
-            endColumn: position.column
+            endColumn: pos.column
           },
           sortText: `${index.toString().padStart(3, '0')}`,
           documentation: {
