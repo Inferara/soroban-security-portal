@@ -9,8 +9,18 @@ import Button from '@mui/material/Button';
 import { useAuth } from 'react-oidc-context';
 import IconButton from '@mui/material/IconButton';
 import {
-  Menu, MenuItem, Stack, TextField, Tooltip, Link as MuiLink,
-  Drawer, List, ListItemButton, ListItemText, Divider, CircularProgress
+  Menu,
+  MenuItem,
+  Stack,
+  TextField,
+  Tooltip,
+  Link as MuiLink,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  Divider,
+  CircularProgress,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { environment } from '../../../../environments/environment';
@@ -27,6 +37,7 @@ import { ProtocolDetails } from '../protocol-details/protocol-details';
 import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
 import { CompanyDetails } from '../company-details/company-details';
+import { Forum, CategoryThreads } from '../forum';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
@@ -57,7 +68,7 @@ export const MainWindow: FC = () => {
 
   // mobile drawer
   const [mobileOpen, setMobileOpen] = useState(false);
-  const toggleMobile  = () => setMobileOpen(prev => !prev);
+  const toggleMobile = () => setMobileOpen((prev) => !prev);
 
   // avatar state from shared hook
   const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
@@ -85,9 +96,13 @@ export const MainWindow: FC = () => {
     { label: 'Home', path: '/' },
     { label: 'Reports', path: '/reports' },
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
+    { label: 'Forum', path: '/forum' },
     { label: 'About', path: '/about' },
   ];
-  const isAdminUser = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator);
+  const isAdminUser =
+    auth.isAuthenticated &&
+    auth.user &&
+    (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator);
   const navigationItems = isAdminUser
     ? [...baseNavigationItems, { label: 'Admin', path: '/admin' }]
     : baseNavigationItems;
@@ -135,7 +150,7 @@ export const MainWindow: FC = () => {
         position="fixed"
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          borderBottom: themeMode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '0px'
+          borderBottom: themeMode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '0px',
         }}
       >
         <Toolbar sx={{ bgcolor: 'background.paper', py: { xs: 0.5, md: 1.25 } }}>
@@ -157,18 +172,13 @@ export const MainWindow: FC = () => {
               alt="Logo"
               sx={{ height: { xs: 44, sm: 56, md: 70 }, mr: { xs: 1, md: 2 } }}
             />
-            <Typography
-              variant="h6"
-              sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 700 }}
-            >
+            <Typography variant="h6" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 700 }}>
               {/* Optional brand text if you want */}
             </Typography>
           </Box>
 
           {/* Desktop navigation */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, ml: 4, gap: 1 }}>
-            {navButtons}
-          </Box>
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, ml: 4, gap: 1 }}>{navButtons}</Box>
 
           <Box sx={{ flexGrow: 1 }} />
 
@@ -176,7 +186,7 @@ export const MainWindow: FC = () => {
           <IconButton
             color="inherit"
             onClick={toggleTheme}
-            sx={{ mr: 1, visibility: 'hidden' }}  // keep your hidden behavior
+            sx={{ mr: 1, visibility: 'hidden' }} // keep your hidden behavior
           >
             {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
@@ -184,7 +194,11 @@ export const MainWindow: FC = () => {
           {/* Right: Profile/Login */}
           {auth.isAuthenticated && auth.user ? (
             <>
-              <Typography noWrap component="div" sx={{ display: { xs: 'block', sm: 'block' }, mr: 2, fontSize: '1.2rem' }}>
+              <Typography
+                noWrap
+                component="div"
+                sx={{ display: { xs: 'block', sm: 'block' }, mr: 2, fontSize: '1.2rem' }}
+              >
                 {auth.user?.profile.name}
               </Typography>
               <IconButton color="inherit" aria-label="open user menu" edge="end" onClick={handleUserMenuClick}>
@@ -224,9 +238,7 @@ export const MainWindow: FC = () => {
                     <CircularProgress size={24} sx={{ color: AccentColors.loadingIndicator }} />
                   </StyledAvatar>
                 ) : (
-                  <StyledAvatar>
-                    {getUserInitials(auth.user?.profile.name || 'User Name')}
-                  </StyledAvatar>
+                  <StyledAvatar>{getUserInitials(auth.user?.profile.name || 'User Name')}</StyledAvatar>
                 )}
               </IconButton>
 
@@ -240,21 +252,20 @@ export const MainWindow: FC = () => {
                 <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
                 <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
               </Menu>
-              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks}/> }
+              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks} />}
             </>
           ) : (
             <Button
               color="primary"
               variant="contained"
               onClick={() => navigate('/login')}
-              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1,  display: { xs: 'none', md: 'inline-flex' } }}
+              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1, display: { xs: 'none', md: 'inline-flex' } }}
             >
               Log In
             </Button>
           )}
         </Toolbar>
       </AppBar>
-
       {/* Mobile Drawer */}
       <Drawer
         anchor="left"
@@ -266,7 +277,9 @@ export const MainWindow: FC = () => {
         <Box role="presentation" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
             <Box component="img" src="/static/images/logo.png" alt="Logo" sx={{ height: 40, mr: 1 }} />
-            <Typography variant="h6" fontWeight={700}>Menu</Typography>
+            <Typography variant="h6" fontWeight={700}>
+              Menu
+            </Typography>
           </Box>
           <Divider />
           <List sx={{ py: 0 }}>
@@ -291,8 +304,8 @@ export const MainWindow: FC = () => {
                     primary={item.label}
                     slotProps={{
                       primary: {
-                        fontWeight: isActive ? 700 : 500
-                      }
+                        fontWeight: isActive ? 700 : 500,
+                      },
                     }}
                   />
                 </ListItemButton>
@@ -305,7 +318,10 @@ export const MainWindow: FC = () => {
               <Button
                 fullWidth
                 variant="outlined"
-                onClick={() => { navigate('/profile'); setMobileOpen(false); }}
+                onClick={() => {
+                  navigate('/profile');
+                  setMobileOpen(false);
+                }}
               >
                 My Profile
               </Button>
@@ -313,7 +329,10 @@ export const MainWindow: FC = () => {
               <Button
                 fullWidth
                 variant="contained"
-                onClick={() => { navigate('/login'); setMobileOpen(false); }}
+                onClick={() => {
+                  navigate('/login');
+                  setMobileOpen(false);
+                }}
               >
                 Log In
               </Button>
@@ -321,12 +340,12 @@ export const MainWindow: FC = () => {
           </Box>
         </Box>
       </Drawer>
-
       <Toolbar /> {/* Spacer for AppBar */}
-
       {/* Main content area */}
       <Box sx={{ flexGrow: 1, p: 0 }}>
-        <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: { xs: 2, md: 3 }, minHeight: '91vh' }}>
+        <Box
+          sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: { xs: 2, md: 3 }, minHeight: '91vh' }}
+        >
           <Routes>
             <Route path={`${environment.basePath}/`} element={<Home />} />
             <Route path={`${environment.basePath}/reports`} element={<Reports />} />
@@ -341,10 +360,11 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
             <Route path={`${environment.basePath}/auditor/:id`} element={<AuditorDetails />} />
             <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
+            <Route path={`${environment.basePath}/forum`} element={<Forum />} />
+            <Route path={`${environment.basePath}/forum/c/:slug`} element={<CategoryThreads />} />
           </Routes>
         </Box>
       </Box>
-
       {/* Footer */}
       {(location.pathname.endsWith('home') || location.pathname === '/' || location.pathname.endsWith('about')) && (
         <Box sx={{ backgroundColor: 'background.paper', color: 'secondary.main', p: { xs: 2.5, md: 4 }, mt: 'auto' }}>
@@ -369,7 +389,7 @@ export const MainWindow: FC = () => {
                   pb: 1,
                   mb: 3,
                   gap: 1,
-                  flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                  flexWrap: { xs: 'wrap', sm: 'nowrap' },
                 }}
               >
                 <TextField
@@ -382,7 +402,7 @@ export const MainWindow: FC = () => {
                     input: {
                       disableUnderline: true,
                       sx: { color: 'secondary.main', backgroundColor: 'transparent' },
-                    }
+                    },
                   }}
                   fullWidth
                 />
@@ -395,7 +415,7 @@ export const MainWindow: FC = () => {
                     backgroundColor: 'transparent',
                     textTransform: 'none',
                     '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
-                    '&:disabled': { color: 'rgba(255, 255, 255, 0.38)' }
+                    '&:disabled': { color: 'rgba(255, 255, 255, 0.38)' },
                   }}
                 >
                   {isSubscribing ? 'Subscribing...' : 'Subscribe'}
@@ -404,12 +424,14 @@ export const MainWindow: FC = () => {
             </Box>
 
             {/* Social Icons Section */}
-            <Box sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: { xs: 'flex-start', md: 'center' },
-              '& .MuiButtonBase-root': { '&:hover': { color: '#2D4EFF' } }
-            }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: { xs: 'flex-start', md: 'center' },
+                '& .MuiButtonBase-root': { '&:hover': { color: '#2D4EFF' } },
+              }}
+            >
               <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
                 &nbsp;
               </Typography>
@@ -496,3 +518,4 @@ export const MainWindow: FC = () => {
     </Box>
   );
 };
+
