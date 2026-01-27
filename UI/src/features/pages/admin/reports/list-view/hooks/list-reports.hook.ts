@@ -1,5 +1,4 @@
 import { useMemo, useCallback, useState } from 'react';
-import { AuthContextProps } from 'react-oidc-context';
 import {
     getAllReportListDataCall,
     removeReportCall,
@@ -15,7 +14,6 @@ import { useAdminList } from '../../../../../../hooks/admin';
 
 type UseListReportsProps = {
     currentPageState: CurrentPageState;
-    auth: AuthContextProps;
 };
 
 export const useListReports = (props: UseListReportsProps) => {
