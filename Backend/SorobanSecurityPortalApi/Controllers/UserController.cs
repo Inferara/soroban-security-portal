@@ -14,12 +14,18 @@ namespace SorobanSecurityPortalApi.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly INotificationService _notificationService;
         private readonly Config _config;
         private readonly UserContextAccessor _userContextAccessor;
 
-        public UserController(IUserService userService, Config config, UserContextAccessor userContextAccessor)           
+        public UserController(
+            IUserService userService,
+            INotificationService notificationService,
+            Config config,
+            UserContextAccessor userContextAccessor)
         {
             _userService = userService;
+            _notificationService = notificationService;
             _config = config;
             _userContextAccessor = userContextAccessor;
         }
@@ -154,6 +160,79 @@ namespace SorobanSecurityPortalApi.Controllers
 
             var result = await _userService.ChangePassword(currentUser!, changePasswordViewModel);
             return Ok(result);
+        }
+
+        [Authorize]
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchUsers([FromQuery] string query, [FromQuery] int limit = 5)
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            {
+                return BadRequest("Query must be at least 2 characters long.");
+            }
+
+            if (limit > 10)
+            {
+                limit = 10; // Max limit
+            }
+
+            var users = await _userService.SearchUsers(query, limit);
+            return Ok(users);
+        }
+
+        [Authorize]
+        [HttpGet("notifications")]
+        public async Task<IActionResult> GetNotifications([FromQuery] bool onlyUnread = false)
+        {
+            var currentUser = this.GetLogin();
+            if (currentUser == null) return Unauthorized();
+
+            var notifications = await _notificationService.GetNotificationsForUser(currentUser.LoginId, onlyUnread);
+            return Ok(notifications);
+        }
+
+        [Authorize]
+        [HttpGet("notifications/unread-count")]
+        public async Task<IActionResult> GetUnreadNotificationCount()
+        {
+            var currentUser = this.GetLogin();
+            if (currentUser == null) return Unauthorized();
+
+            var count = await _notificationService.GetUnreadCount(currentUser.LoginId);
+            return Ok(new { count });
+        }
+
+        [Authorize]
+        [HttpPost("notifications/{notificationId}/read")]
+        public async Task<IActionResult> MarkNotificationAsRead(int notificationId)
+        {
+            var currentUser = this.GetLogin();
+            if (currentUser == null) return Unauthorized();
+
+            await _notificationService.MarkAsRead(notificationId, currentUser.LoginId);
+            return Ok();
+        }
+
+        [Authorize]
+        [HttpPost("notifications/mark-all-read")]
+        public async Task<IActionResult> MarkAllNotificationsAsRead()
+        {
+            var currentUser = this.GetLogin();
+            if (currentUser == null) return Unauthorized();
+
+            await _notificationService.MarkAllAsRead(currentUser.LoginId);
+            return Ok();
+        }
+
+        [Authorize]
+        [HttpDelete("notifications/{notificationId}")]
+        public async Task<IActionResult> DeleteNotification(int notificationId)
+        {
+            var currentUser = this.GetLogin();
+            if (currentUser == null) return Unauthorized();
+
+            await _notificationService.DeleteNotification(notificationId, currentUser.LoginId);
+            return Ok();
         }
     }
 }
