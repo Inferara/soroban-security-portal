@@ -1,4 +1,4 @@
-Wasmi module works with no crashes
+## Wasmi module works with no crashes
 
 Minutes Fuzzed 4320 Bugs Found 0
 Scope We are testing the wasmi module which is used by soroban-env-rs repository. wasmi module provides an interpreter to run Web Assembly (WASM) code and as Soroban depends on wasmi as an interpreter, we test it with random Web Assembly code.
