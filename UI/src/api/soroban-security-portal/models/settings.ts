@@ -20,4 +20,5 @@ export enum DateType {
     Hidden = "Hidden",
     Link = "Link",
     Dropdown = "Dropdown",
+    Multiline = "Multiline",
 }
