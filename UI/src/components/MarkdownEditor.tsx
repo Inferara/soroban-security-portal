@@ -6,6 +6,7 @@ import { MarkdownView } from './MarkdownView';
 import { searchUsersCall } from '../api/soroban-security-portal/soroban-security-portal-api';
 import { UserSearchResult } from '../api/soroban-security-portal/models/user';
 import { debounce } from 'lodash';
+import type { editor } from 'monaco-editor';
 
 interface MarkdownEditorProps {
   value: string;
@@ -25,30 +26,38 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
   const { themeMode } = useThemeContext();
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   // Debounced user search function
   const debouncedSearchUsers = useCallback(
-    debounce(async (query: string): Promise<UserSearchResult[]> => {
-      if (query.length < 2) return [];
-      try {
-        return await searchUsersCall(query, 5);
-      } catch (error) {
-        console.error('Error searching users:', error);
-        return [];
-      }
-    }, 300),
+    (query: string): Promise<UserSearchResult[]> => {
+      return new Promise((resolve) => {
+        debounce(async (q: string) => {
+          if (q.length < 2) {
+            resolve([]);
+            return;
+          }
+          try {
+            const result = await searchUsersCall(q, 5);
+            resolve(result);
+          } catch (error) {
+            console.error('Error searching users:', error);
+            resolve([]);
+          }
+        }, 300)(query);
+      });
+    },
     []
   );
 
   // Handle editor mount
-  const handleEditorDidMount = useCallback((editor: any, monaco: any) => {
+  const handleEditorDidMount = useCallback((editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
     editorRef.current = editor;
 
     // Register completion provider for @ mentions
     monaco.languages.registerCompletionItemProvider('markdown', {
       triggerCharacters: ['@'],
-      provideCompletionItems: async (model: any, position: any) => {
+      provideCompletionItems: async (model: editor.ITextModel, position: any) => {
         const lineContent = model.getLineContent(position.lineNumber);
         const textBeforeCursor = lineContent.substring(0, position.column - 1);
 

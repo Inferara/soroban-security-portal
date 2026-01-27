@@ -247,7 +247,7 @@ export const MarkdownView: FC<MarkdownViewProps> = ({
             }) as React.ComponentType,
             p: ({ children, ...props }) => (
               <p {...props}>
-                {renderMentions(String(children))}
+                {children}
               </p>
             ),
             span: ({ className, children, ...props }) => {
