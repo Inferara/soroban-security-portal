@@ -187,7 +187,8 @@ namespace SorobanSecurityPortalApi.Controllers
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
 
-            var notifications = await _notificationService.GetNotificationsForUser(currentUser.LoginId, onlyUnread);
+            var currentUserId = await _userContextAccessor.GetLoginIdAsync();
+            var notifications = await _notificationService.GetNotificationsForUser(currentUserId, onlyUnread);
             return Ok(notifications);
         }
 
@@ -198,7 +199,8 @@ namespace SorobanSecurityPortalApi.Controllers
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
 
-            var count = await _notificationService.GetUnreadCount(currentUser.LoginId);
+            var currentUserId = await _userContextAccessor.GetLoginIdAsync();
+            var count = await _notificationService.GetUnreadCount(currentUserId);
             return Ok(new { count });
         }
 
@@ -209,7 +211,8 @@ namespace SorobanSecurityPortalApi.Controllers
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
 
-            await _notificationService.MarkAsRead(notificationId, currentUser.LoginId);
+            var currentUserId = await _userContextAccessor.GetLoginIdAsync();
+            await _notificationService.MarkAsRead(notificationId, currentUserId);
             return Ok();
         }
 
@@ -220,7 +223,8 @@ namespace SorobanSecurityPortalApi.Controllers
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
 
-            await _notificationService.MarkAllAsRead(currentUser.LoginId);
+            var currentUserId = await _userContextAccessor.GetLoginIdAsync();
+            await _notificationService.MarkAllAsRead(currentUserId);
             return Ok();
         }
 
@@ -231,7 +235,8 @@ namespace SorobanSecurityPortalApi.Controllers
             var currentUser = this.GetLogin();
             if (currentUser == null) return Unauthorized();
 
-            await _notificationService.DeleteNotification(notificationId, currentUser.LoginId);
+            var currentUserId = await _userContextAccessor.GetLoginIdAsync();
+            await _notificationService.DeleteNotification(notificationId, currentUserId);
             return Ok();
         }
     }

@@ -19,15 +19,14 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var query = db.Notification.AsNoTracking()
                 .Include(n => n.Sender)
                 .Include(n => n.Recipient)
-                .Where(n => n.RecipientUserId == userId)
-                .OrderByDescending(n => n.CreatedAt);
+                .Where(n => n.RecipientUserId == userId);
 
             if (onlyUnread)
             {
                 query = query.Where(n => !n.IsRead);
             }
 
-            return await query.ToListAsync();
+            return await query.OrderByDescending(n => n.CreatedAt).ToListAsync();
         }
 
         public async Task<NotificationModel?> GetNotificationById(int notificationId)
