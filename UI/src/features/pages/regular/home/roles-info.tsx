@@ -26,7 +26,7 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
         {
             name: "Contributor",
             permissions: ["read", "download", "create"],
-            description: "Contributor are Pilots (see the handbook) or those who expressed interest in contibuting"
+            description: "Contributors are Pilots (see the handbook) or those who expressed interest in contributing"
         },
         {
             name: "Moderator",
