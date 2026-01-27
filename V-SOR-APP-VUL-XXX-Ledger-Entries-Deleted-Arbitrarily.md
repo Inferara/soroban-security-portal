@@ -16,28 +16,3 @@
 
 ---
 
-## Description
-
-During the application of `InvokeHostFunctionOp`, ledger entries declared in
-`footprint.readWrite` but not returned by the host as created or modified
-entries are automatically erased.
-
-The following logic removes such entries:
-
-```cpp
-// Erase every entry not returned.
-for (auto const& lk : footprint.readWrite) {
-    if (createdAndModifiedKeys.find(lk) == createdAndModifiedKeys.end()) {
-        auto ltxe = ltx.load(lk);
-        if (ltxe) {
-            releaseAssertOrThrow(isSorobanEntry(lk));
-            ltx.erase(lk);
-
-            // Also delete associated TTLEntry
-            auto ttlLK = getTTLKey(lk);
-            auto ttlLtxe = ltx.load(ttlLK);
-            releaseAssertOrThrow(ttlLtxe);
-            ltx.erase(ttlLK);
-        }
-    }
-}

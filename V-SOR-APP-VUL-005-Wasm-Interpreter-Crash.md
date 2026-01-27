@@ -9,9 +9,6 @@
 **File(s):** N/A  
 **Location(s):** N/A  
 
-**Description:**  
-A crash occurs in the wasmi fuzz test with Rust nightly 1.76.0, using `wasm_smith` to generate random Wasm objects. The crash occurs in `ty_to_arg()` when converting Wasm function types to random values.
-
 **Error message snippet:**  
 ```text
 ==51503== ERROR: libFuzzer: deadly signal
