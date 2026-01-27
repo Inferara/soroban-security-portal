@@ -22,6 +22,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<BookmarkModel> Bookmark { get; set; }
         public DbSet<ModerationLogModel> ModerationLog { get; set; }
         public DbSet<UserProfileModel> UserProfiles { get; set; }
+        public DbSet<RatingModel> Rating { get; set; }
 
 
         private readonly IDbQuery _dbQuery;
@@ -37,8 +38,7 @@ namespace SorobanSecurityPortalApi.Common.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            /* 
-            After updating to EF Core version: 9.0.0, the error "The model for context 'Db' has pending changes." occurs.
+            /* After updating to EF Core version: 9.0.0, the error "The model for context 'Db' has pending changes." occurs.
             To avoid this error we suppress the corresponding warning
             Reference: https://github.com/dotnet/efcore/issues/34431
             */
@@ -66,6 +66,13 @@ namespace SorobanSecurityPortalApi.Common.Data
             builder.Entity<UserProfileModel>()
                 .HasIndex(up => up.LoginId)
                 .IsUnique();
+
+            builder.Entity<RatingModel>()
+                .HasIndex(r => new { r.UserId, r.EntityType, r.EntityId })
+                .IsUnique();
+
+            builder.Entity<RatingModel>()
+                .HasIndex(r => new { r.EntityType, r.EntityId });
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function
