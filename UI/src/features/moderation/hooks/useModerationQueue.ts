@@ -86,11 +86,41 @@ export const useModerationQueue = () => {
     }, []);
 
     const handleAction = (id: string, action: 'approve' | 'hide' | 'delete', reason?: string) => {
-        setItems(prev => prev.filter(item => item.id !== id));
+        setItems(prev => prev.map(item => {
+            if (item.id === id) {
+                let newStatus: 'approved' | 'hidden' | 'deleted' | 'pending' = 'pending';
+                switch (action) {
+                    case 'approve': newStatus = 'approved'; break;
+                    case 'hide': newStatus = 'hidden'; break;
+                    case 'delete': newStatus = 'deleted'; break;
+                }
+                return { ...item, status: newStatus };
+            }
+            return item;
+        }));
         // TODO: Backend Integration (Issue #87)
         // This will be replaced with: await api.moderation.takeAction(id, action, reason);
-        void action; void reason; // Suppress unused var check for mock
+        void reason; // Suppress unused var check for mock
     };
+
+    // Update stats when items change
+    useEffect(() => {
+        if (!loading && stats) {
+            const pendingCount = items.filter(i => i.status === 'pending').length;
+            const processedCount = items.filter(i => i.status !== 'pending').length;
+            
+            setStats(prev => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    queueSize: pendingCount,
+                    actionsToday: MOCK_STATS.actionsToday + processedCount,
+                    actionsThisWeek: MOCK_STATS.actionsThisWeek + processedCount,
+                    actionsThisMonth: MOCK_STATS.actionsThisMonth + processedCount
+                };
+            });
+        }
+    }, [items, loading]);
 
     return { items, stats, loading, handleAction };
 };
