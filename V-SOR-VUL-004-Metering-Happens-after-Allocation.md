@@ -4,11 +4,6 @@
 **Status:** Open  
 **Tags:** Logic Error, Metering Order, DoS Risk  
 
-### Description
-The `snapshot` function in `auth.rs` allocates a vector of `AccountAuthorizationTrackerSnapshot` entries before charging for the allocation. The allocation is performed first, followed by a metering charge, as shown in the code below.
-
-Allowing memory allocation to occur before charging is generally unsafe, as malicious users could attempt to allocate large amounts of memory prior to being charged, potentially enabling denial-of-service (DoS) attacks.
-
 ### Affected Files
 - `rs-soroban-env/soroban-env-host/src/auth.rs`
 
