@@ -4,10 +4,6 @@
 **Status:** Open  
 **Tags:** Logic Error, Metering, Undercharging  
 
-### Description
-The function `add_invoker_contract_auth` undercharges the corresponding computation when adding authorization trackers. Specifically, the implementation allocates space for `num_entries` additional trackers but only charges for `num_entries` `Val` objects.
-
-This behavior results in incorrect metering and can be observed in the implementation below.
 
 ### Affected Files
 - `rs-soroban-env/soroban-env-host/src/auth.rs`
