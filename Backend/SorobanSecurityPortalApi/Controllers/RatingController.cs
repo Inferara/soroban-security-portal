@@ -21,6 +21,12 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpGet("summary")]
         public async Task<IActionResult> GetSummary([FromQuery] EntityType entityType, [FromQuery] int entityId)
         {
+            // Ensure entityId is positive
+            if (entityId <= 0)
+            {
+                return BadRequest("EntityId must be a positive integer.");
+            }
+
             var result = await _ratingService.GetSummary(entityType, entityId);
             return Ok(result);
         }
@@ -28,6 +34,12 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetRatings([FromQuery] EntityType entityType, [FromQuery] int entityId, [FromQuery] int page = 1)
         {
+            // Ensure entityId is positive
+            if (entityId <= 0)
+            {
+                return BadRequest("EntityId must be a positive integer.");
+            }
+
             var result = await _ratingService.GetRatings(entityType, entityId, page);
             return Ok(result);
         }
@@ -37,6 +49,17 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> CreateOrUpdate([FromBody] CreateRatingRequest request)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            // Explicit validation for Score range (Security/Stability check)
+            if (request == null)
+            {
+                return BadRequest("Request body cannot be null.");
+            }
+            if (request.Score < 1 || request.Score > 5)
+            {
+                ModelState.AddModelError("Score", "Score must be between 1 and 5.");
+                return BadRequest(ModelState);
+            }
             
             var result = await _ratingService.AddOrUpdateRating(request);
             return Ok(result);
@@ -46,6 +69,8 @@ namespace SorobanSecurityPortalApi.Controllers
         [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
+            if (id <= 0) return BadRequest("Invalid Rating Id");
+            
             try
             {
                 await _ratingService.DeleteRating(id);

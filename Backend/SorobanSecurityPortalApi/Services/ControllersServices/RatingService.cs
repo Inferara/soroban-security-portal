@@ -35,29 +35,42 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             string cacheKey = $"ratings_summary_{entityType}_{entityId}";
             
+            // Try get from Cache
             var cached = await _cache.GetAsync<RatingSummaryViewModel>(cacheKey);
             if (cached != null) return cached;
 
-            var ratings = await _db.Rating
+            var aggregated = await _db.Rating
                 .Where(r => r.EntityType == entityType && r.EntityId == entityId)
-                .ToListAsync();
+                .GroupBy(r => 1)
+                .Select(g => new
+                {
+                    TotalReviews = g.Count(),
+                    AverageScore = g.Average(r => (double?)r.Score),
+                    Count1 = g.Count(r => r.Score == 1),
+                    Count2 = g.Count(r => r.Score == 2),
+                    Count3 = g.Count(r => r.Score == 3),
+                    Count4 = g.Count(r => r.Score == 4),
+                    Count5 = g.Count(r => r.Score == 5)
+                })
+                .FirstOrDefaultAsync();
 
             var summary = new RatingSummaryViewModel
             {
                 EntityType = entityType,
                 EntityId = entityId,
-                TotalReviews = ratings.Count,
-                AverageScore = ratings.Any() ? Math.Round(ratings.Average(r => r.Score), 1) : 0,
+                TotalReviews = aggregated?.TotalReviews ?? 0,
+                AverageScore = aggregated?.AverageScore != null ? Math.Round(aggregated.AverageScore.Value, 1) : 0,
                 Distribution = new Dictionary<int, int>
                 {
-                    { 1, ratings.Count(r => r.Score == 1) },
-                    { 2, ratings.Count(r => r.Score == 2) },
-                    { 3, ratings.Count(r => r.Score == 3) },
-                    { 4, ratings.Count(r => r.Score == 4) },
-                    { 5, ratings.Count(r => r.Score == 5) }
+                    { 1, aggregated?.Count1 ?? 0 },
+                    { 2, aggregated?.Count2 ?? 0 },
+                    { 3, aggregated?.Count3 ?? 0 },
+                    { 4, aggregated?.Count4 ?? 0 },
+                    { 5, aggregated?.Count5 ?? 0 }
                 }
             };
 
+            // Cache for 10 minutes
             await _cache.SetAsync(cacheKey, summary, TimeSpan.FromMinutes(10));
 
             return summary;
@@ -138,8 +151,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             if (rating == null) return;
             
-            // Allow deletion if user owns it. 
-            // Admin check: if (!IsAdmin && rating.UserId != userId)
+            // Allow deletion if user owns it OR user is Admin
             if (rating.UserId != userId && !await _userContext.IsLoginIdAdmin(userId)) 
                 throw new UnauthorizedAccessException("You can only delete your own ratings.");
 
