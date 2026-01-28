@@ -193,6 +193,14 @@ export const ReportDetails: FC = () => {
   ];
 
   return (
+    <>
+    {report && (
+      <SeoHead
+      title={report.name}
+      description={`Security audit report for ${report.name}`}
+      url={window.location.href}
+    />
+    )}
     <DetailPageLayout
       loading={loading}
       error={error}
@@ -211,11 +219,6 @@ export const ReportDetails: FC = () => {
               description={`Published: ${formatDateLong(report.date)}`}
               actions={
                 <>
-                  <SeoHead
-                    title={report.name}
-                    description={`Security audit report for ${report.name}`}
-                    url={window.location.href}
-                  />
                   <Button
                     variant="contained"
                     startIcon={<GetApp />}
@@ -744,5 +747,6 @@ export const ReportDetails: FC = () => {
         </>
       )}
     </DetailPageLayout>
+    </>
   );
 };
