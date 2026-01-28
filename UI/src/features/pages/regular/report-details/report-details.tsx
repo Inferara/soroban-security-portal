@@ -58,6 +58,9 @@ import {
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
+import { CommentSection } from '../../../../components/comments/comment-section';
+import { ReferenceType } from '../../../../api/soroban-security-portal/models/comment';
+
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -286,7 +289,7 @@ export const ReportDetails: FC = () => {
                 </Box>
 
                 {/* Vulnerabilities List */}
-                <Card>
+                <Card sx={{ mb: 3 }}>
                   <CardContent>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                       <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -397,6 +400,9 @@ export const ReportDetails: FC = () => {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Comments Section */}
+                <CommentSection referenceId={report.id} referenceType={ReferenceType.Report} />
               </Box>
 
               {/* Sidebar - Report Info */}

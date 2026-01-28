@@ -12,6 +12,7 @@ import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
+import { CommentItem, CreateCommentRequest, UpdateCommentRequest, CommentHistoryItem, ReferenceType } from './models/comment';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -101,7 +102,7 @@ export const getProtocolListDataCall = async (): Promise<ProtocolItem[]> => {
     const response = await client.request('api/v1/protocols', 'GET');
     return response.data as ProtocolItem[];
 };
-export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {   
+export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/protocols/${protocolId}`, 'DELETE');
     return response.data as boolean;
@@ -147,7 +148,7 @@ export const getCompanyListDataCall = async (): Promise<CompanyItem[]> => {
     const response = await client.request('api/v1/companies', 'GET');
     return response.data as CompanyItem[];
 };
-export const removeCompanyCall = async (companyId: number): Promise<boolean> => {   
+export const removeCompanyCall = async (companyId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/companies/${companyId}`, 'DELETE');
     return response.data as boolean;
@@ -260,18 +261,18 @@ export const extractVulnerabilitiesFromReportCall = async (
 
 export const downloadReportPDF = async (reportName: string, reportId: number): Promise<void> => {
     const blob = await downloadReportPDFCall(reportId);
-    
+
     // Create blob URL and trigger download
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = `${reportName}.pdf`;
     link.style.display = 'none';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Clean up blob URL
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
 };
@@ -362,7 +363,7 @@ export const editVulnerabilityCall = async (vulnerability: Vulnerability | FormD
 // --- USERS ---
 export const changePasswordCall = async (oldPassword: string, newPassword: string): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/user/changePassword', 'POST', {oldPassword, newPassword});
+    const response = await client.request('api/v1/user/changePassword', 'POST', { oldPassword, newPassword });
     return response.data as boolean;
 };
 export const getUserByIdCall = async (loginId: number): Promise<UserItem | null | undefined> => {
@@ -480,6 +481,36 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
     return response.data as Bookmark;
 };
 
+// --- COMMENTS ---
+export const getCommentsCall = async (referenceId: number, referenceType: ReferenceType): Promise<CommentItem[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${referenceType}/${referenceId}`, 'GET');
+    return response.data as CommentItem[];
+};
+
+export const addCommentCall = async (request: CreateCommentRequest): Promise<CommentItem> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/comments', 'POST', request);
+    return response.data as CommentItem;
+};
+
+export const updateCommentCall = async (commentId: number, request: UpdateCommentRequest): Promise<CommentItem> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${commentId}`, 'PUT', request);
+    return response.data as CommentItem;
+};
+
+export const deleteCommentCall = async (commentId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/comments/${commentId}`, 'DELETE');
+};
+
+export const getCommentHistoryCall = async (commentId: number): Promise<CommentHistoryItem[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${commentId}/history`, 'GET');
+    return response.data as CommentHistoryItem[];
+};
+
 // Helper function to create FormData for entity operations with image support
 const createEntityFormData = (dataFieldName: string, entityData: object, imageBase64?: string): FormData => {
     const formData = new FormData();
@@ -511,11 +542,11 @@ const getAccessToken = (): string | null => {
     try {
         const oidcStorageKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
         const oidcStorage = localStorage.getItem(oidcStorageKey);
-        
+
         if (!oidcStorage) {
             return null;
         }
-        
+
         const user = User.fromStorageString(oidcStorage);
         return user.access_token || null;
     } catch (error) {
