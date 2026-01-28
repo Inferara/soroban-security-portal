@@ -12,6 +12,7 @@ import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
+import { Activity, Comment, CreateComment, UpdateComment, UserFollow, FollowEntityType, CommentEntityType } from './models/activity';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -101,7 +102,7 @@ export const getProtocolListDataCall = async (): Promise<ProtocolItem[]> => {
     const response = await client.request('api/v1/protocols', 'GET');
     return response.data as ProtocolItem[];
 };
-export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {   
+export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/protocols/${protocolId}`, 'DELETE');
     return response.data as boolean;
@@ -147,7 +148,7 @@ export const getCompanyListDataCall = async (): Promise<CompanyItem[]> => {
     const response = await client.request('api/v1/companies', 'GET');
     return response.data as CompanyItem[];
 };
-export const removeCompanyCall = async (companyId: number): Promise<boolean> => {   
+export const removeCompanyCall = async (companyId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/companies/${companyId}`, 'DELETE');
     return response.data as boolean;
@@ -236,6 +237,67 @@ export const downloadReportPDFCall = async (reportId: number): Promise<Blob> => 
     return await client.downloadBlob(`api/v1/reports/${reportId}/download`);
 };
 
+// --- ACTIVITIES ---
+export const getRecentActivitiesCall = async (hours: number = 24, limit: number = 10): Promise<Activity[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/activities?hours=${hours}&limit=${limit}`, 'GET');
+    return response.data as Activity[];
+};
+
+export const getPersonalizedActivitiesCall = async (hours: number = 24, limit: number = 10): Promise<Activity[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/activities/personalized?hours=${hours}&limit=${limit}`, 'GET');
+    return response.data as Activity[];
+};
+
+// --- COMMENTS ---
+export const getCommentsCall = async (entityType: CommentEntityType, entityId: number): Promise<Comment[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${entityType}/${entityId}`, 'GET');
+    return response.data as Comment[];
+};
+
+export const addCommentCall = async (comment: CreateComment): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/comments', 'POST', comment);
+    return response.data as Comment;
+};
+
+export const updateCommentCall = async (comment: UpdateComment): Promise<void> => {
+    const client = await getRestClient();
+    await client.request('api/v1/comments', 'PUT', comment);
+};
+
+export const deleteCommentCall = async (commentId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/comments/${commentId}`, 'DELETE');
+};
+
+// --- FOLLOWS ---
+export const getMyFollowsCall = async (): Promise<UserFollow[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/follows', 'GET');
+    return response.data as UserFollow[];
+};
+
+export const isFollowingCall = async (entityType: FollowEntityType, entityId: number): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/follows/check/${entityType}/${entityId}`, 'GET');
+    return response.data as boolean;
+};
+
+export const followCall = async (entityType: FollowEntityType, entityId: number): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/follows', 'POST', { entityType, entityId });
+    return response.data as number;
+};
+
+export const unfollowCall = async (entityType: FollowEntityType, entityId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/follows/${entityType}/${entityId}`, 'DELETE');
+};
+
+
 // --- VULNERABILITY EXTRACTION ---
 export interface VulnerabilityExtractionResult {
     totalExtracted: number;
@@ -260,18 +322,18 @@ export const extractVulnerabilitiesFromReportCall = async (
 
 export const downloadReportPDF = async (reportName: string, reportId: number): Promise<void> => {
     const blob = await downloadReportPDFCall(reportId);
-    
+
     // Create blob URL and trigger download
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = `${reportName}.pdf`;
     link.style.display = 'none';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Clean up blob URL
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
 };
@@ -362,7 +424,7 @@ export const editVulnerabilityCall = async (vulnerability: Vulnerability | FormD
 // --- USERS ---
 export const changePasswordCall = async (oldPassword: string, newPassword: string): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/user/changePassword', 'POST', {oldPassword, newPassword});
+    const response = await client.request('api/v1/user/changePassword', 'POST', { oldPassword, newPassword });
     return response.data as boolean;
 };
 export const getUserByIdCall = async (loginId: number): Promise<UserItem | null | undefined> => {
@@ -511,11 +573,11 @@ const getAccessToken = (): string | null => {
     try {
         const oidcStorageKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
         const oidcStorage = localStorage.getItem(oidcStorageKey);
-        
+
         if (!oidcStorage) {
             return null;
         }
-        
+
         const user = User.fromStorageString(oidcStorage);
         return user.access_token || null;
     } catch (error) {

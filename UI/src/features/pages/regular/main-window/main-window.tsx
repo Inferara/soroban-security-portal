@@ -27,6 +27,7 @@ import { ProtocolDetails } from '../protocol-details/protocol-details';
 import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
 import { CompanyDetails } from '../company-details/company-details';
+import { ActivityPage } from '../activity/activity-page';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
@@ -57,7 +58,7 @@ export const MainWindow: FC = () => {
 
   // mobile drawer
   const [mobileOpen, setMobileOpen] = useState(false);
-  const toggleMobile  = () => setMobileOpen(prev => !prev);
+  const toggleMobile = () => setMobileOpen(prev => !prev);
 
   // avatar state from shared hook
   const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
@@ -240,14 +241,14 @@ export const MainWindow: FC = () => {
                 <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
                 <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
               </Menu>
-              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks}/> }
+              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks} />}
             </>
           ) : (
             <Button
               color="primary"
               variant="contained"
               onClick={() => navigate('/login')}
-              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1,  display: { xs: 'none', md: 'inline-flex' } }}
+              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1, display: { xs: 'none', md: 'inline-flex' } }}
             >
               Log In
             </Button>
@@ -341,6 +342,7 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
             <Route path={`${environment.basePath}/auditor/:id`} element={<AuditorDetails />} />
             <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
+            <Route path={`${environment.basePath}/activity`} element={<ActivityPage />} />
           </Routes>
         </Box>
       </Box>

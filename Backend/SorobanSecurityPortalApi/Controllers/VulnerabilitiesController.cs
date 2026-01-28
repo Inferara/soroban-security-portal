@@ -5,6 +5,8 @@ using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Authorization.Attributes;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Models.DbModels;
+using SorobanSecurityPortalApi.Data.Processors;
 
 namespace SorobanSecurityPortalApi.Controllers
 {
@@ -13,10 +15,17 @@ namespace SorobanSecurityPortalApi.Controllers
     public class VulnerabilitiesController : ControllerBase
     {
         private readonly IVulnerabilityService _vulnerabilityService;
+        private readonly IActivityProcessor _activityProcessor;
+        private readonly UserContextAccessor _userContextAccessor;
 
-        public VulnerabilitiesController(IVulnerabilityService vulnerabilityService)
+        public VulnerabilitiesController(
+            IVulnerabilityService vulnerabilityService,
+            IActivityProcessor activityProcessor,
+            UserContextAccessor userContextAccessor)
         {
             _vulnerabilityService = vulnerabilityService;
+            _activityProcessor = activityProcessor;
+            _userContextAccessor = userContextAccessor;
         }
 
         [HttpGet("severities")]
@@ -89,6 +98,19 @@ namespace SorobanSecurityPortalApi.Controllers
                 }
             }
             var result = await _vulnerabilityService.Add(vulnerabilityModel, files);
+            
+            if (result > 0)
+            {
+                var userId = await _userContextAccessor.GetLoginIdAsync();
+                await _activityProcessor.Add(new ActivityModel 
+                { 
+                    Type = ActivityType.VulnerabilityCreated, 
+                    EntityId = result, 
+                    LoginId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            
             return Ok(result);
         }
 
@@ -98,7 +120,18 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             var result = await _vulnerabilityService.Approve(vulnerabilityId);
             if (result is Result<bool, string>.Ok)
+            {
+                var userId = await _userContextAccessor.GetLoginIdAsync();
+                await _activityProcessor.Add(new ActivityModel 
+                { 
+                    Type = ActivityType.VulnerabilityApproved, 
+                    EntityId = vulnerabilityId, 
+                    LoginId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+                
                 return Ok();
+            }
             else if (result is Result<bool, string>.Err err)
                 return BadRequest(err.Error);
             else

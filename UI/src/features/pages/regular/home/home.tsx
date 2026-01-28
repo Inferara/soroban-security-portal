@@ -11,6 +11,7 @@ import { StatisticsChanges } from './statistics-changes';
 import { useState, useEffect } from 'react';
 import { RolesInfo } from './roles-info';
 import { AccentColors } from '../../../../theme';
+import { RecentActivity } from './recent-activity';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
@@ -116,33 +117,33 @@ export const Home: FC = () => {
             zIndex: 3,
           }}
         >
-            <Button
-              variant="contained"
-              onClick={handleGetStarted}
-              sx={{
-                px: 4,
-                py: 1.5,
-                fontSize: '1.1rem',
-                fontWeight: 900,
-                textTransform: 'uppercase',
-                position: 'relative',
-                overflow: 'hidden',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  left: '-150%',
-                  width: '200%',
-                  height: '100%',
-                  background: 'linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 70%)',
-                  transform: 'skewX(-20deg)',
-                  animation: 'glitter 2s infinite',
-                },
-              }}
-            >
+          <Button
+            variant="contained"
+            onClick={handleGetStarted}
+            sx={{
+              px: 4,
+              py: 1.5,
+              fontSize: '1.1rem',
+              fontWeight: 900,
+              textTransform: 'uppercase',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                left: '-150%',
+                width: '200%',
+                height: '100%',
+                background: 'linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 70%)',
+                transform: 'skewX(-20deg)',
+                animation: 'glitter 2s infinite',
+              },
+            }}
+          >
             Warp
-            </Button>
+          </Button>
 
-            <style>
+          <style>
             {`
               @keyframes glitter {
               0% {
@@ -156,7 +157,7 @@ export const Home: FC = () => {
               }
               }
             `}
-            </style>
+          </style>
 
           <Button
             variant="outlined"
@@ -186,8 +187,14 @@ export const Home: FC = () => {
       <Box sx={{ pt: 10 }}>
         <RolesInfo isCompact={isOnSmallScreen} />
       </Box>
+
+      {/* Recent Activity Section */}
+      <Box sx={{}}>
+        <RecentActivity />
+      </Box>
+
       {/* Vulnerability Statistics Pie Chart */}
-     {!isOnSmallScreen && (<Box
+      {!isOnSmallScreen && (<Box
         sx={{
           width: '100%',
           display: 'flex',
