@@ -69,7 +69,7 @@ namespace SorobanSecurityPortalApi.Controllers
         [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
-            if (id <= 0) return BadRequest("Invalid Rating Id");
+            if (id <= 0) return BadRequest("Rating ID must be a positive integer.");
             
             try
             {
