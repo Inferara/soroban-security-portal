@@ -1,15 +1,13 @@
-## Map has function works as intended
+# Map has function works as intended
 
-**Severity:** Info  
-**Minutes Fuzzed:** 300  
-**Bugs Found:** 0  
-**Type:** Fuzzed Specification  
-**Status:** Open  
-**File(s):** `rs-soroban-env/soroban-env-host`  
-**Location(s):** N/A  
-**Confirmed Fix At:** N/A  
+Verify that if an ScMap is constructed correctly with some initial values, `map_has()` will correctly determine whether or not a key is present in the Map.
 
-We are testing type conversion functions in `rs-soroban-env/soroban-env-host` based on the `map.rs` tests, performing the possible operations on the map types.
+**Minutes Fuzzed:** 300
 
-### Specification
-Verify that if an `ScMap` is constructed correctly with some initial values, `map_has` will correctly determine whether or not a key is present in the Map.
+**Bugs Found:** 0
+
+## **File(s)**
+
+rs-soroban-env/soroban-env-host/src/map.rs
+
+## **Scope**
