@@ -1,21 +1,27 @@
-##  Signature Replay Attack
+# Signature Replay Attack
 
-**Severity:** High  
-**Commit:** 16f4d7c  
-**Type:** Data Validation  
-**Status:** Investigated  
-**Confirmed Fix At:** N/A  
+SorobanAddressCredentials contains a signature expiration ledger and a nonce for each signature. These credentials are only stored on the ledger as temporary values so they will be completely erased once they expire. As a result, if the signature itself isn't hashed with an expiration date or timestamp, there would be no way to know if an attacker reuses a previous signature that has expired off of the ledger to replay a previous transaction on behalf of a user who had executed that transaction in the past.
 
-**File(s):**  
-`rs-stellar-xdr/src/next/generated.rs`  
+**Severity:** High
 
-**Location(s):** N/A  
+**Type:** Data Validation
 
-**Impact:**  
-A reusable signature could allow attackers to replay transactions and potentially steal funds.
+## **File(s)**
 
-**Recommendation:**  
-Hash the signature with a timestamp for each transaction, so reuse after expiration can be detected even if the previous nonce/expiration has been erased.
+rs-stellar-xdr/src/next/generated.rs
 
-**Why Invalid:**  
-Developers confirmed that the signature is already hashed with a timestamp, preventing this attack.
+## **Impact**
+
+If this signature can be reused for a replay attack, this could allow attackers to steal funds etc. If the signature cannot be reused, then there is no vulnerability.
+
+## **Recommendation**
+
+Hash the signature with some timestamp for the transaction, so that if the signature is reused later in time, it is possible to know that the signature has expired, even if the previous nonce/expiration timestamp have been erased from the ledger.
+
+## **Status**
+
+Invalid (Commit: 16f4d7c)
+
+## **Developer Response**
+
+Developers have indicated that the signature is already hashed with a timestamp that would prevent such an attack.
