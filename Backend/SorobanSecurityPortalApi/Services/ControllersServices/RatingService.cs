@@ -149,7 +149,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var userId = await _userContext.GetLoginIdAsync();
             var rating = await _db.Rating.FindAsync(id);
 
-            if (rating == null) return;
+            if (rating == null)
+                throw new KeyNotFoundException($"Rating with id {id} was not found.");
             
             // Allow deletion if user owns it OR user is Admin
             if (rating.UserId != userId && !await _userContext.IsLoginIdAdmin(userId)) 
