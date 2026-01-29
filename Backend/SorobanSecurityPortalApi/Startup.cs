@@ -75,6 +75,9 @@ public class Startup
         services.AddScoped<IBadgeProcessor, BadgeProcessor>();
         services.AddScoped<IBadgeAwardService, BadgeAwardService>();
 
+        services.AddScoped<ICommentProcessor, CommentProcessor>();
+        services.AddScoped<ICommentService, CommentService>();
+
         var combinedAuthenticationScheme = "Combined";
         services.AddAuthentication(options =>
         {

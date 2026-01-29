@@ -24,9 +24,11 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<ModerationLogModel> ModerationLog { get; set; }
         public DbSet<UserProfileModel> UserProfiles { get; set; }
 
-        // Added for Issue #91: Badge System tables
         public DbSet<BadgeDefinitionModel> BadgeDefinitions { get; set; }
         public DbSet<UserBadgeModel> UserBadges { get; set; }
+
+        public DbSet<CommentModel> Comments { get; set; }
+        public DbSet<MentionModel> Mentions { get; set; }
 
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
@@ -41,10 +43,6 @@ namespace SorobanSecurityPortalApi.Common.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            /* After updating to EF Core version: 9.0.0, the error "The model for context 'Db' has pending changes." occurs.
-            To avoid this error we suppress the corresponding warning
-            Reference: https://github.com/dotnet/efcore/issues/34431
-            */
             optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
 
             if (optionsBuilder.IsConfigured) return;
@@ -54,11 +52,35 @@ namespace SorobanSecurityPortalApi.Common.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.HasPostgresExtension("vector");
+            
             builder.Entity<ReportModel>()
                 .Property(x => x.Embedding)
                 .HasColumnType("vector(3072)");
 
             base.OnModelCreating(builder);
+
+            
+            builder.Entity<CommentModel>()
+                .HasIndex(c => new { c.EntityType, c.EntityId })
+                .HasDatabaseName("ix_comments_entity");
+
+            builder.Entity<CommentModel>()
+                .HasIndex(c => c.AuthorId)
+                .HasDatabaseName("ix_comments_author");
+
+            builder.Entity<CommentModel>()
+                .Property(c => c.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            builder.Entity<CommentModel>()
+                .HasQueryFilter(c => c.DeletedAt == null);
+
+            builder.Entity<CommentModel>()
+                .HasOne(c => c.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(c => c.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<UserProfileModel>()
                 .HasOne(up => up.Login)
@@ -71,9 +93,8 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .IsUnique();
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
-                .HasName("similarity"); // PostgreSQL built-in function
+                .HasName("similarity");
 
-            // Existing logic to handle Postgres Snake Case naming
             foreach (var entity in builder.Model.GetEntityTypes())
             {
                 var tableName = entity.GetTableName();
@@ -107,7 +128,6 @@ namespace SorobanSecurityPortalApi.Common.Data
                 }
             }
 
-            // Seed Initial Badge Definitions for Issue #91
             builder.Entity<BadgeDefinitionModel>().HasData(
                 new BadgeDefinitionModel { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "First Comment", Description = "Posted first comment", Icon = "🎉", Category = BadgeCategory.Participation, Criteria = "first_comment" },
                 new BadgeDefinitionModel { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "Reporter", Description = "Submitted first report", Icon = "📝", Category = BadgeCategory.Contribution, Criteria = "first_report" },
@@ -134,3 +154,4 @@ namespace SorobanSecurityPortalApi.Common.Data
         }
     }
 }
+
