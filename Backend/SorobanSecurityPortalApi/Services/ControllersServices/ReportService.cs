@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
@@ -50,6 +51,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         }
 
         //TODO UI should send Protocol and Auditor as Ids, not names. Then need to update the mapping used at the line 55
+        [SupportedOSPlatform("windows")]
+        [SupportedOSPlatform("linux")]
+        [SupportedOSPlatform("macos")]
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
         {
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
@@ -62,6 +66,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ReportViewModel>(addedReport);
         }
 
+        [SupportedOSPlatform("windows")]
+        [SupportedOSPlatform("linux")]
+        [SupportedOSPlatform("macos")]
         public async Task<ReportViewModel> Update(ReportViewModel reportViewModel)
         {
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
@@ -81,6 +88,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ReportViewModel>(updatedReport);
         }
 
+        [SupportedOSPlatform("windows")]
+        [SupportedOSPlatform("linux")]
+        [SupportedOSPlatform("macos")]
         private static byte[] RenderFirstPageAsPng(byte[] file, int dpi = 150)
         {
             var bitmap = Conversion.ToImage(file, 0);

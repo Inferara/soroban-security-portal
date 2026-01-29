@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Json.Schema.Generation;
@@ -38,16 +39,17 @@ public class ExtendedConfig : IExtendedConfig
 {
     private DateTime _nextRefresh = DateTime.MinValue;
     private ConcurrentDictionary<string, string> _configValues = new();
-    private readonly ISettingsProcessor _settingsProcessor;
+    private readonly IServiceScopeFactory _scopeFactory;
     private const int RefreshTimeSec = 15;
     private readonly object _lock = new();
 
     private readonly string _appSettings = File.ReadAllText("appsettings.json");
 
-    public ExtendedConfig(ISettingsProcessor settingsProcessor)
+    public ExtendedConfig(IServiceScopeFactory scopeFactory)
     {
-        _settingsProcessor = settingsProcessor;
+        _scopeFactory = scopeFactory;
     }
+
 
     public void Reset()
     {
@@ -55,7 +57,11 @@ public class ExtendedConfig : IExtendedConfig
         {
             if (DateTime.Now > _nextRefresh)
             {
-                _configValues = new ConcurrentDictionary<string, string>(_settingsProcessor.Get(SettingType.Common));
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var settingsProcessor = scope.ServiceProvider.GetRequiredService<ISettingsProcessor>();
+                    _configValues = new ConcurrentDictionary<string, string>(settingsProcessor.Get(SettingType.Common));
+                }
                 _nextRefresh = DateTime.Now.AddSeconds(RefreshTimeSec);
             }
         }

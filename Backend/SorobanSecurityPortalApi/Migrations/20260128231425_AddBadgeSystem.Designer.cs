@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -14,9 +15,11 @@ using SorobanSecurityPortalApi.Models.DbModels;
 namespace SorobanSecurityPortalApi.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20260128231425_AddBadgeSystem")]
+    partial class AddBadgeSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -485,7 +488,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2026, 1, 29, 1, 18, 36, 384, DateTimeKind.Utc).AddTicks(2530),
+                            Created = new DateTime(2026, 1, 28, 23, 14, 18, 430, DateTimeKind.Utc).AddTicks(7509),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -727,6 +730,35 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("subscription");
                 });
 
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserBadgeModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("AwardedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("awarded_at");
+
+                    b.Property<Guid>("BadgeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("badge_id");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_user_badges");
+
+                    b.HasIndex("BadgeId")
+                        .HasDatabaseName("ix_user_badges_badge_id");
+
+                    b.ToTable("user_badges");
+                });
+
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", b =>
                 {
                     b.Property<int>("Id")
@@ -862,37 +894,6 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("vulnerability");
                 });
 
-            modelBuilder.Entity("UserBadgeModel", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("AwardedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("awarded_at");
-
-                    b.Property<Guid>("BadgeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("badge_id");
-
-                    b.Property<int>("UserProfileId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_profile_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_badges");
-
-                    b.HasIndex("BadgeId")
-                        .HasDatabaseName("ix_user_badges_badge_id");
-
-                    b.HasIndex("UserProfileId")
-                        .HasDatabaseName("ix_user_badges_user_profile_id");
-
-                    b.ToTable("user_badges");
-                });
-
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProtocolModel", b =>
                 {
                     b.HasOne("SorobanSecurityPortalApi.Models.DbModels.CompanyModel", "Company")
@@ -920,6 +921,18 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.Navigation("Protocol");
                 });
 
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserBadgeModel", b =>
+                {
+                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.BadgeDefinitionModel", "Badge")
+                        .WithMany()
+                        .HasForeignKey("BadgeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_badges_badge_definitions_badge_id");
+
+                    b.Navigation("Badge");
+                });
+
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", b =>
                 {
                     b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Login")
@@ -940,27 +953,6 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasConstraintName("fk_vulnerability_report_report_id");
 
                     b.Navigation("Report");
-                });
-
-            modelBuilder.Entity("UserBadgeModel", b =>
-                {
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.BadgeDefinitionModel", "Badge")
-                        .WithMany()
-                        .HasForeignKey("BadgeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_badges_badge_definitions_badge_id");
-
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", "UserProfile")
-                        .WithMany()
-                        .HasForeignKey("UserProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_badges_user_profiles_user_profile_id");
-
-                    b.Navigation("Badge");
-
-                    b.Navigation("UserProfile");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.AuditorModel", b =>
