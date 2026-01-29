@@ -1,35 +1,41 @@
-## Confusing Naming of AllowanceValue Expiration
+# Confusing Naming of AllowanceValue Expiration
 
-**Severity:** Informational  
-**Status:** Open  
-**Type:** Maintainability / Documentation  
-**Tags:** Maintainability, Documentation, Developer Experience  
-**Commit:** 2674d86  
+Allowances are stored as a Temporary ledger entry consisting of an AllowanceValue struct declared as the following:
 
-### Affected Files
-- `rs-soroban-env/soroban-env-host/src/.../allowance.rs`
+```rust
+#[contracttype]
+pub(crate) struct AllowanceValue {
+pub amount: i128,
+pub live_until_ledger: u32,
+}
+```
 
-### Locations
-- N/A
+The `AllowanceValue.live_until_ledger` is used to determine whether or not the allowance has expired, and this value can be lower than the TTL of the ledger entry by calling `write_allowance` with a low value passed as the live_until argument or by bumping the TTL of the ledger entry.
 
-### Impact
+Since this struct value is called `live_until_ledger` it may be easy for new smart contract developers to confuse this value with the TTL value of the ledger entry, which is an unsafe way to enforce the expiration.
 
-If developers mistakenly assume that `live_until_ledger` represents the ledger
-entry TTL, they may write unsafe code that relies on ledger expiration semantics
-instead of explicit allowance expiration checks. This confusion could result in
-critical vulnerabilities in downstream smart contracts.
+**Severity:** Info
 
-### Recommendation
+**Type:** Maintainability
 
-Clarify the distinction between allowance expiration and ledger entry TTL by
-renaming the `live_until_ledger` field to a more explicit name such as
-`allowance_expiration_ledger`.
+## **File(s)**
 
-Additionally, update the parameters of relevant allowance-related functions to
-use naming such as `expiration_ledger` instead of `live_until`, reducing the
-likelihood of developer confusion and unsafe usage patterns.
+rs-soroban-env/soroban-env-host/src/.../allowance.rs
 
-### Status
+## **Impact**
 
-This issue is informational in nature and affects developer experience and
-maintainability rather than protocol correctness.
+If future developers confuse the `live_until_ledger` with the TTL of the ledger entry, they may write unsafe code that relies on the TTL of the ledger entry which could cause critical vulnerabilities in their code.
+
+## **Recommendation**
+
+Clarify the distinction between the allowance expiration and the TTL of the AllowanceValue entry by renaming the `live_until_ledger` to something like `allowance_expiration_ledger`, so developers who don't have a thorough understanding of the docs will be less likely to make this mistake.
+
+Also update the params of some of the allowance functions to use `expiration_ledger` instead of `live_until`.
+
+## **Status**
+
+Open (Commit: 2674d86)
+
+## **Developer Response**
+
+TBD
