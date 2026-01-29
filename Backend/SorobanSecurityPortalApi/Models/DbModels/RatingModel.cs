@@ -4,6 +4,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SorobanSecurityPortalApi.Models.DbModels
 {
+    public enum EntityType
+    {
+        Protocol = 0,
+        Auditor = 1
+    }
+
     [Table("rating")]
     public class RatingModel
     {

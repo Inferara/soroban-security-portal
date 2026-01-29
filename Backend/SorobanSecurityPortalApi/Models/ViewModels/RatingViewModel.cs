@@ -27,7 +27,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
     {
         public EntityType EntityType { get; set; }
         public int EntityId { get; set; }
-        public double AverageScore { get; set; }
+        public float AverageScore { get; set; } 
+        
         public int TotalReviews { get; set; }
         
         // Distribution: Key is star (1-5), Value is count

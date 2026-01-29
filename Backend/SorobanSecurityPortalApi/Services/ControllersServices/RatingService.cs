@@ -59,7 +59,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 EntityType = entityType,
                 EntityId = entityId,
                 TotalReviews = aggregated?.TotalReviews ?? 0,
-                AverageScore = aggregated?.AverageScore != null ? Math.Round(aggregated.AverageScore.Value, 1) : 0,
+                AverageScore = aggregated?.AverageScore != null ? (float)Math.Round(aggregated.AverageScore.Value, 1) : 0f,
                 Distribution = new Dictionary<int, int>
                 {
                     { 1, aggregated?.Count1 ?? 0 },
