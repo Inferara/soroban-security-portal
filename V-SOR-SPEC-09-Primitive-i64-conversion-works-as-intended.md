@@ -1,18 +1,19 @@
-## Primitive i64 conversion works as intended
+# Primitive i64 conversion works as intended
 
-We are testing type conversion functions in `rs-soroban-env/soroban-env-hos` based on the `basic.rs` tests which take a fixed primitive value (like `u64`, `i64`, etc.), convert it into a host value, convert it back and check equality.
+Given any integer within a set of i64 integers, converting it into a host value and converting it back does not change its value.
 
-Given any integer within a set of `i64` integers, converting it into a host value and converting it back does not change its value.
+**Minutes Fuzzed:** 480
 
-## Metadata
-**Scope**  
-Type conversion functions in `rs-soroban-env/soroban-env-host`
+**Bugs Found:** 0
 
-**Test File**  
-`basic.rs`
+## **File(s)**
 
-**Test Duration**  
-480 minutes fuzzed
+rs-soroban-env/soroban-env-host/src/basic.rs
 
-**Bugs Found**  
-0
+## **Scope**
+
+We are testing type conversion functions in rs-soroban-env/soroban-env-host based on the basic.rs tests which take a fixed primitive value (like u64, i64, etc.), convert it into a host value, convert it back and check equality.
+
+## **Specification**
+
+Given any integer within a set of i64 integers, converting it into a host value and converting it back does not change its value.
