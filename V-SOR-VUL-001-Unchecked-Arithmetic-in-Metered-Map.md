@@ -1,29 +1,31 @@
-## Unchecked Arithmetic in Metered Map
+# Unchecked Arithmetic in Metered Map
 
-**Severity:** Medium  
-**Status:** Fixed  
-**Tags:** Unchecked Arithmetic, Resource Management, Budget Bypass  
+The Soroban Host uses metered data structures to account for computation from smart contracts. One data structure used is called a Metered Map which is a Map for which all the usual operations are augmented to track computation and memory allocations.
 
-### Description
-The Soroban Host uses metered data structures to account for computation from smart contracts. One such structure is the **Metered Map**, which augments standard map operations with computation and memory tracking.
+However, the arithmetic used to track the resources used by the metered map operations are not checked. In Rust, by default, arithmetic can overflow without throwing an error and by using unchecked arithmetic when tracking resources can potentially allow users to bypass their resource limits via overflow.
 
-However, the arithmetic used to track resource usage in metered map operations is unchecked. In Rust, unchecked arithmetic may overflow without raising errors. This can potentially allow users to bypass resource limits through integer overflow when tracking computation and memory usage.
+**Severity:** Medium
 
-### Affected Files
-- `rs-soroban-env/soroban-env-host/src/host/metered_map.rs`
+**Type:** Unchecked Arithmetic
 
-### Affected Locations
-- N/A
+## **File(s)**
 
-### Commit
-- **Vulnerable Commit:** `2674d86`
-- **Confirmed Fix At:** `c29b5a1`
+rs-soroban-env/soroban-env-host/src/host/metered_map.rs
 
-### Impact
-By exploiting unchecked arithmetic, users could theoretically bypass budget limitations by allocating sufficiently large maps and repeatedly adding, deleting, or resizing entries.
+## **Impact**
 
-This impact is partially mitigated by the fact that allocating such large maps would already incur significant resource costs before an overflow could occur.
+By using unchecked arithmetic users could, in principle, bypass their budget limitations by allocating sufficiently large maps and adding to/deleting/resizing existing maps.
 
-### Recommendation
-Replace all unchecked arithmetic in the metered map implementation with **checked** or **saturating arithmetic** (e.g., `checked_add` or `saturating_add`) to prevent overflow-related budget bypasses.
+The impact is mitigated by the fact that the user must first successfully allocate a map of large enough size to allow the budget to potentially overflow which would cost the user a significant amount in the first place.
 
+## **Recommendation**
+
+We recommend changing all arithmetic in the map to use saturating addition or checked addition.
+
+## **Status**
+
+Fixed (Commit: c29b5a1, Original: 2674d86)
+
+## **Developer Response**
+
+The developers have acknowledged this issue and plan to fix it.
