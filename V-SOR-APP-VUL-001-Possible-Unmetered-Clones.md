@@ -1,31 +1,14 @@
-# Unchecked Arithmetic in Metered Map
+## Possible Unmetered Clones
 
-The Soroban Host uses metered data structures to account for computation from smart contracts. One data structure used is called a Metered Map which is a Map for which all the usual operations are augmented to track computation and memory allocations.
+**Severity:** Warning  
+**Commit:** 2674d86  
+**Type:** Incorrect Metering  
+**Status:** Intended Behavior  
 
-However, the arithmetic used to track the resources used by the metered map operations are not checked. In Rust, by default, arithmetic can overflow without throwing an error and by using unchecked arithmetic when tracking resources can potentially allow users to bypass their resource limits via overflow.
+The `e2e_invoke.rs` file contains cloning operations where some are metered and others are not.
 
-**Severity:** Medium
+In the `build_storage_footprint_from_xdr` function, the cloning of the `key` variable of type
+`LedgerKey` is metered, as shown below:
 
-**Type:** Unchecked Arithmetic
-
-## **File(s)**
-
-rs-soroban-env/soroban-env-host/src/host/metered_map.rs
-
-## **Impact**
-
-By using unchecked arithmetic users could, in principle, bypass their budget limitations by allocating sufficiently large maps and adding to/deleting/resizing existing maps.
-
-The impact is mitigated by the fact that the user must first successfully allocate a map of large enough size to allow the budget to potentially overflow which would cost the user a significant amount in the first place.
-
-## **Recommendation**
-
-We recommend changing all arithmetic in the map to use saturating addition or checked addition.
-
-## **Status**
-
-Fixed (Commit: c29b5a1, Original: 2674d86)
-
-## **Developer Response**
-
-The developers have acknowledged this issue and plan to fix it.
+```rust
+Rc::metered_new(key.metered_clone(budget)?, budget)?
