@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -48,17 +49,15 @@ namespace SorobanSecurityPortalApi.Controllers
         [Authorize]
         public async Task<IActionResult> CreateOrUpdate([FromBody] CreateRatingRequest request)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            // Explicit validation for Score range (Security/Stability check)
+            
             if (request == null)
             {
                 return BadRequest("Request body cannot be null.");
             }
+            
             if (request.Score < 1 || request.Score > 5)
             {
-                ModelState.AddModelError("Score", "Score must be between 1 and 5.");
-                return BadRequest(ModelState);
+                return BadRequest("Score must be between 1 and 5.");
             }
             
             var result = await _ratingService.AddOrUpdateRating(request);
@@ -69,7 +68,7 @@ namespace SorobanSecurityPortalApi.Controllers
         [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
-            if (id <= 0) return BadRequest("Invalid Rating Id");
+            if (id <= 0) return BadRequest("Rating ID must be a positive integer.");
             
             try
             {
@@ -79,6 +78,10 @@ namespace SorobanSecurityPortalApi.Controllers
             catch (System.UnauthorizedAccessException)
             {
                 return Forbid();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Rating with id {id} not found.");
             }
         }
     }
