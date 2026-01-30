@@ -36,7 +36,6 @@ export const useListReports = (props: UseListReportsProps) => {
         customOperations,
     });
 
-    // downloadReport uses secure header-based authentication instead of exposing tokens in URLs
     const downloadReport = useCallback(async (reportId: number): Promise<void> => {
         try {
             const blob = await downloadReportPDFCall(reportId);
