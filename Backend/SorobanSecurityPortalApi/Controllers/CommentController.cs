@@ -52,7 +52,7 @@ namespace SorobanSecurityPortalApi.Controllers
                 return Unauthorized();
 
             var success = await _commentService.DeleteComment(id, userId);
-            if (!success) return BadRequest("Could not delete comment or unauthorized.");
+            if (!success) return BadRequest("Failed to delete comment.");
 
             return NoContent();
         }

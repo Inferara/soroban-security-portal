@@ -20,6 +20,11 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
             _pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
         }
 
+        private static readonly Regex MentionRegex = new Regex(
+            @"@(\w+)", 
+            RegexOptions.Compiled | RegexOptions.IgnoreCase
+        );
+
         public async Task<List<CommentViewModel>> GetThreadedComments(string entityType, int entityId)
         {
             var rawComments = await _processor.GetCommentsForEntity(entityType, entityId);
@@ -67,22 +72,36 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
         private List<MentionModel> ParseMentions(string content)
         {
             var mentions = new List<MentionModel>();
-            var regex = new Regex(@"@(\w+)");
-            var matches = regex.Matches(content);
+            if (string.IsNullOrWhiteSpace(content)) return mentions;
+
+            var matches = MentionRegex.Matches(content);
 
             foreach (Match match in matches)
             {
                 mentions.Add(new MentionModel
                 {
                     StartIndex = match.Index,
-                    Length = match.Length,
+                    Length = match.Length
                 });
             }
+
             return mentions;
         }
 
         public async Task<bool> DeleteComment(int commentId, int userId)
         {
+            var comment = await _processor.GetCommentById(commentId);
+
+            if (comment == null)
+            {
+                return false;
+            }
+
+            if (comment.AuthorId != userId)
+            {
+                return false; 
+            }
+
             return await _processor.SoftDeleteComment(commentId);
         }
 

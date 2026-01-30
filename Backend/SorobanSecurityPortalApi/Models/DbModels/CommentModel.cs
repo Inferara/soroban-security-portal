@@ -17,7 +17,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         [Required]
         [MaxLength(50)]
-        public string? EntityType { get; set; } 
+        public string EntityType { get; set; } = string.Empty;
 
         [Required]
         public int EntityId { get; set; }
@@ -30,7 +30,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public virtual ICollection<CommentModel> Replies { get; set; } = new List<CommentModel>();
 
         [Required]
-        public string? Content { get; set; }
+        public string Content { get; set; } = string.Empty;
 
         public string? ContentHtml { get; set; }
 

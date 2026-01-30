@@ -16,6 +16,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<bool> UpdateCommentStatus(int commentId, CommentStatus status);
         Task<bool> SoftDeleteComment(int commentId);
         Task<bool> UpdateVoteCounts(int commentId, int upvoteDelta, int downvoteDelta);
+        Task<CommentModel?> GetCommentByIdAdmin(int commentId); 
+        Task<bool> RestoreComment(int commentId);
     }
 
     public class CommentProcessor : ICommentProcessor
@@ -82,6 +84,30 @@ namespace SorobanSecurityPortalApi.Data.Processors
             comment.UpvoteCount += upvoteDelta;
             comment.DownvoteCount += downvoteDelta;
             
+            return await _db.SaveChangesAsync() > 0;
+        }
+
+        public async Task<CommentModel?> GetCommentByIdAdmin(int commentId)
+        {
+            return await _db.Comments
+                .IgnoreQueryFilters()
+                .Include(c => c.Author)
+                .Include(c => c.Mentions)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+        }
+
+        public async Task<bool> RestoreComment(int commentId)
+        {
+            var comment = await _db.Comments
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+
+            if (comment == null) return false;
+
+            comment.DeletedAt = null;
+            comment.Status = CommentStatus.Active; 
+            comment.UpdatedAt = DateTime.UtcNow;
+
             return await _db.SaveChangesAsync() > 0;
         }
     }

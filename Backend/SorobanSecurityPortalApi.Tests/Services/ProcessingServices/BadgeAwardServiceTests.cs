@@ -53,14 +53,10 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _mockProcessor.Setup(p => p.AwardBadge(userId, badgeId))
                 .ReturnsAsync(true);
 
-            // Act
             await _service.CheckAndAwardReputationBadges(userId, userReputation);
 
-            // Assert
-            // Should award the "reputation:400" badge because 500 >= 400
             _mockProcessor.Verify(p => p.AwardBadge(userId, badgeId), Times.Once);
             
-            // Should NOT award the "reputation:1000" badge
             _mockProcessor.Verify(p => p.AwardBadge(userId, It.Is<Guid>(g => g != badgeId)), Times.Never);
         }
 
