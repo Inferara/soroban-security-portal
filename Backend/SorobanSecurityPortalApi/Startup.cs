@@ -117,14 +117,8 @@ public class Startup
             });
 
         services.AddScoped<HttpCallHandler>();
-        
-        
-        using (var sp = services.BuildServiceProvider())
-        {
-            var ec = sp.GetRequiredService<ExtendedConfig>();
-            var logger = sp.GetRequiredService<ILogger<Startup>>();
-            services.AddHttpClients(ec, logger);
-        }
+
+        services.AddHttpClients();
 
         services.AddAutoMapper(typeof(Startup));
         services.AddHealthChecks();

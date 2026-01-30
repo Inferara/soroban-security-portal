@@ -12,6 +12,7 @@ namespace SorobanSecurityPortalApi.Common;
 public interface IExtendedConfig
 {
     string Proxy { get; }
+    string AppUrl { get; }
     int TokenExpirationTimeMinutes { get; }
     int PermanentTokenExpirationTimeDays { get; }
     string AuthIssuer { get; }
@@ -92,6 +93,11 @@ public class ExtendedConfig : IExtendedConfig
     [Description("Proxy")]
     [Tooltip("Proxy is used to route all requests through a proxy server. Can be used for debug purposes, i.e. to use Fiddler. Sample: http://host.docker.internal:8888")]
     public string Proxy => GetValue<string>("Proxy");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
+    [Description("Base API URL")]
+    [Tooltip("The root URL for the Soroban Security Portal API (e.g., http://localhost:7878/api/v1)")]
+    public string AppUrl => GetValue<string>("AppUrl", "http://localhost:7878/api/v1");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]

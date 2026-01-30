@@ -50,7 +50,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return reportViewModel;
         }
 
-        //TODO UI should send Protocol and Auditor as Ids, not names. Then need to update the mapping used at the line 55
+        
         [SupportedOSPlatform("windows")]
         [SupportedOSPlatform("linux")]
         [SupportedOSPlatform("macos")]

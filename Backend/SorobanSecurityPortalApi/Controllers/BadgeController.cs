@@ -30,11 +30,5 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
-        [HttpGet("test-definitions")]
-        public async Task<IActionResult> GetDefinitions()
-        {
-            var list = await _badgeProcessor.GetAllBadgeDefinitions();
-            return Ok(list); 
-        }
     }
 }
