@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Models.DbModels;
@@ -21,10 +23,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public class RatingService : IRatingService
     {
         private readonly Db _db;
-        private readonly CacheAccessor _cache;
+        private readonly IDistributedCache _cache;
         private readonly UserContextAccessor _userContext;
 
-        public RatingService(Db db, CacheAccessor cache, UserContextAccessor userContext)
+        public RatingService(Db db, IDistributedCache cache, UserContextAccessor userContext)
         {
             _db = db;
             _cache = cache;
@@ -35,8 +37,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             string cacheKey = $"ratings_summary_{entityType}_{entityId}";
             
-            // Try get from Cache
-            var cached = await _cache.GetAsync<RatingSummaryViewModel>(cacheKey);
+            // Try get from Cache (Using helper method)
+            var cached = await GetCachedAsync<RatingSummaryViewModel>(cacheKey);
             if (cached != null) return cached;
 
             var aggregated = await _db.Rating
@@ -70,8 +72,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 }
             };
 
-            // Cache for 10 minutes
-            await _cache.SetAsync(cacheKey, summary, TimeSpan.FromMinutes(10));
+            // Cache for 10 minutes (Using helper method)
+            await SetCachedAsync(cacheKey, summary, TimeSpan.FromMinutes(10));
 
             return summary;
         }
@@ -166,6 +168,25 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             string cacheKey = $"ratings_summary_{type}_{id}";
             await _cache.RemoveAsync(cacheKey);
+        }
+
+        // --- HELPER METHODS FOR CACHING ---
+
+        private async Task<T?> GetCachedAsync<T>(string key)
+        {
+            var data = await _cache.GetStringAsync(key);
+            if (string.IsNullOrEmpty(data)) return default;
+            return JsonSerializer.Deserialize<T>(data);
+        }
+
+        private async Task SetCachedAsync<T>(string key, T value, TimeSpan expiry)
+        {
+            var options = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = expiry
+            };
+            var data = JsonSerializer.Serialize(value);
+            await _cache.SetStringAsync(key, data, options);
         }
     }
 }
