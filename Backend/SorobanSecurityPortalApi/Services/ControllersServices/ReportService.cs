@@ -59,6 +59,52 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             reportModel.Embedding = new Vector(embeddingArray);
 
             var addedReport = await _reportProcessor.Add(reportModel);
+
+            // In-app notification for protocol watchers
+            if (reportModel.ProtocolId.HasValue)
+            {
+                using (var db = new Common.Data.Db(null, null, null)) // Replace with DI if possible
+                {
+                    var watcherIds = await db.Watch
+                        .Where(w => w.EntityId == reportModel.ProtocolId && w.EntityType == "Protocol")
+                        .Select(w => w.UserId)
+                        .ToListAsync();
+                    foreach (var userId in watcherIds)
+                    {
+                        db.Notification.Add(new NotificationModel
+                        {
+                            UserId = userId,
+                            Message = $"New report added for protocol: {reportModel.Name}",
+                            CreatedAt = DateTime.UtcNow,
+                            IsRead = false
+                        });
+                    }
+                    await db.SaveChangesAsync();
+                }
+            }
+            // In-app notification for auditor watchers
+            if (reportModel.AuditorId.HasValue)
+            {
+                using (var db = new Common.Data.Db(null, null, null)) // Replace with DI if possible
+                {
+                    var watcherIds = await db.Watch
+                        .Where(w => w.EntityId == reportModel.AuditorId && w.EntityType == "Auditor")
+                        .Select(w => w.UserId)
+                        .ToListAsync();
+                    foreach (var userId in watcherIds)
+                    {
+                        db.Notification.Add(new NotificationModel
+                        {
+                            UserId = userId,
+                            Message = $"Auditor {reportModel.Auditor?.Name ?? ""} published a new report: {reportModel.Name}",
+                            CreatedAt = DateTime.UtcNow,
+                            IsRead = false
+                        });
+                    }
+                    await db.SaveChangesAsync();
+                }
+            }
+
             return _mapper.Map<ReportViewModel>(addedReport);
         }
 

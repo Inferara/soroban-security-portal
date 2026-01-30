@@ -109,6 +109,30 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
             vulnerabilityModel.CreatedBy = loginId;
             var addedVulnerability = await _vulnerabilityProcessor.Add(vulnerabilityModel);
+
+            // In-app notification for protocol watchers
+            if (vulnerabilityModel.ProtocolId.HasValue)
+            {
+                using (var db = new Common.Data.Db(null, null, null)) // Replace with DI if possible
+                {
+                    var watcherIds = await db.Watch
+                        .Where(w => w.EntityId == vulnerabilityModel.ProtocolId && w.EntityType == "Protocol")
+                        .Select(w => w.UserId)
+                        .ToListAsync();
+                    foreach (var userId in watcherIds)
+                    {
+                        db.Notification.Add(new NotificationModel
+                        {
+                            UserId = userId,
+                            Message = $"New vulnerability found in protocol: {vulnerabilityModel.Name}",
+                            CreatedAt = DateTime.UtcNow,
+                            IsRead = false
+                        });
+                    }
+                    await db.SaveChangesAsync();
+                }
+            }
+
             return _mapper.Map<VulnerabilityViewModel>(addedVulnerability);
         }
 
