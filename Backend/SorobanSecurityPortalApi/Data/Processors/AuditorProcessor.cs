@@ -18,7 +18,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<AuditorModel?> GetById(int id)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            return await db.Auditor.FindAsync(id);
+            return await db.Auditor
+                .Include(a => a.Ratings)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == id);
         }
 
         public async Task<AuditorModel> Add(AuditorModel auditorModel)
@@ -73,7 +76,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<List<AuditorModel>> List()
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            return await db.Auditor.OrderByDescending(x => x.Id).ToListAsync();
+            return await db.Auditor
+                .Include(a => a.Ratings)
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
         }
 
         public async Task<AuditorStatisticsChangesViewModel> GetStatisticsChanges()

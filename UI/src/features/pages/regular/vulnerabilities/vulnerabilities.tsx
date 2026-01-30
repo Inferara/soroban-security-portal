@@ -18,6 +18,7 @@ import {
   InputLabel,
   CircularProgress,
   Tooltip,
+  Rating,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import SearchIcon from '@mui/icons-material/Search';
@@ -710,6 +711,19 @@ export const Vulnerabilities: FC = () => {
               value={auditors}
               onChange={(_, newValue) => setAuditors(newValue as AuditorItem[])}
               getOptionLabel={(option) => (option as AuditorItem).name}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <Typography component="span">{option.name}</Typography>
+                    {option.averageRating && option.averageRating > 0 && (
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Rating value={option.averageRating} readOnly size="small" precision={0.5} sx={{ fontSize: '0.8rem' }} />
+                        <Typography variant="caption" sx={{ ml: 0.5 }}>({option.ratingCount || 0})</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </li>
+              )}
               renderInput={(params) => (
                 <TextField
                   {...params}

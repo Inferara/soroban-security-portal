@@ -7,7 +7,7 @@ import { environment } from './../../environments/environment';
 import { User } from "oidc-client-ts"
 import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityStatistics, StatisticsChanges } from './models/vulnerability';
 import { AddReport, Report, ReportSearch } from './models/report';
-import { AuditorItem } from './models/auditor';
+import { AuditorItem, AuditorRating } from './models/auditor';
 import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
@@ -95,13 +95,32 @@ export const getAuditorStatisticsChanges = async (): Promise<StatisticsChanges> 
     return response.data as StatisticsChanges;
 };
 
+// --- AUDITOR RATINGS ---
+export const getAuditorRatingsCall = async (auditorId: number): Promise<AuditorRating[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/auditor-ratings/auditor/${auditorId}`, 'GET');
+    return response.data as AuditorRating[];
+};
+
+export const addAuditorRatingCall = async (rating: Partial<AuditorRating>): Promise<AuditorRating> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/auditor-ratings', 'POST', rating);
+    return response.data as AuditorRating;
+};
+
+export const getAuditorAverageRatingCall = async (auditorId: number): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/auditor-ratings/auditor/${auditorId}/average`, 'GET');
+    return response.data as number;
+};
+
 // --- PROTOCOLS ---
 export const getProtocolListDataCall = async (): Promise<ProtocolItem[]> => {
     const client = await getRestClient();
     const response = await client.request('api/v1/protocols', 'GET');
     return response.data as ProtocolItem[];
 };
-export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {   
+export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/protocols/${protocolId}`, 'DELETE');
     return response.data as boolean;
@@ -147,7 +166,7 @@ export const getCompanyListDataCall = async (): Promise<CompanyItem[]> => {
     const response = await client.request('api/v1/companies', 'GET');
     return response.data as CompanyItem[];
 };
-export const removeCompanyCall = async (companyId: number): Promise<boolean> => {   
+export const removeCompanyCall = async (companyId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/companies/${companyId}`, 'DELETE');
     return response.data as boolean;
@@ -260,18 +279,18 @@ export const extractVulnerabilitiesFromReportCall = async (
 
 export const downloadReportPDF = async (reportName: string, reportId: number): Promise<void> => {
     const blob = await downloadReportPDFCall(reportId);
-    
+
     // Create blob URL and trigger download
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = `${reportName}.pdf`;
     link.style.display = 'none';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Clean up blob URL
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
 };
@@ -362,7 +381,7 @@ export const editVulnerabilityCall = async (vulnerability: Vulnerability | FormD
 // --- USERS ---
 export const changePasswordCall = async (oldPassword: string, newPassword: string): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/user/changePassword', 'POST', {oldPassword, newPassword});
+    const response = await client.request('api/v1/user/changePassword', 'POST', { oldPassword, newPassword });
     return response.data as boolean;
 };
 export const getUserByIdCall = async (loginId: number): Promise<UserItem | null | undefined> => {
@@ -511,11 +530,11 @@ const getAccessToken = (): string | null => {
     try {
         const oidcStorageKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
         const oidcStorage = localStorage.getItem(oidcStorageKey);
-        
+
         if (!oidcStorage) {
             return null;
         }
-        
+
         const user = User.fromStorageString(oidcStorage);
         return user.access_token || null;
     } catch (error) {

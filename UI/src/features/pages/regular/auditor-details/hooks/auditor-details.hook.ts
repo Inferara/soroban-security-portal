@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { 
+import {
   getAuditorByIdCall,
   getReportsCall,
   getVulnerabilitiesCall,
-  getProtocolListDataCall
+  getProtocolListDataCall,
+  getAuditorRatingsCall,
+  addAuditorRatingCall,
+  getAuditorAverageRatingCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
+import { AuditorItem, AuditorRating } from '../../../../../api/soroban-security-portal/models/auditor';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
 import { Vulnerability, VulnerabilitySearch } from '../../../../../api/soroban-security-portal/models/vulnerability';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
@@ -23,18 +26,20 @@ interface AuditorStatistics {
 export const useAuditorDetails = () => {
   const { id } = useParams<{ id: string }>();
   const auditorId = parseInt(id ?? '0');
-  
+
   const [auditor, setAuditor] = useState<AuditorItem | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [protocols, setProtocols] = useState<ProtocolItem[]>([]);
   const [statistics, setStatistics] = useState<AuditorStatistics | null>(null);
+  const [ratings, setRatings] = useState<AuditorRating[]>([]);
+  const [averageRating, setAverageRating] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const calculateStatistics = (
-    reports: Report[], 
-    vulnerabilities: Vulnerability[], 
+    reports: Report[],
+    vulnerabilities: Vulnerability[],
     protocols: ProtocolItem[]
   ): AuditorStatistics => {
     const severityBreakdown: { [key: string]: number } = {};
@@ -63,7 +68,7 @@ export const useAuditorDetails = () => {
         count
       }))
       .sort((a, b) => a.month.localeCompare(b.month))
-      // .slice(-12); // Last 12 months
+    // .slice(-12); // Last 12 months
 
     // Get unique protocols from reports
     const auditedProtocolIds = new Set(reports.map(r => r.protocolId));
@@ -89,7 +94,7 @@ export const useAuditorDetails = () => {
         setError('Invalid auditor ID');
         return;
       }
-      
+
       const auditorData = await getAuditorByIdCall(auditorId);
       setAuditor(auditorData);
 
@@ -108,6 +113,13 @@ export const useAuditorDetails = () => {
 
       const protocolsData = await getProtocolListDataCall();
       setProtocols(protocolsData);
+
+      // Fetch ratings
+      const ratingsData = await getAuditorRatingsCall(auditorData.id);
+      setRatings(ratingsData);
+
+      const avgRating = await getAuditorAverageRatingCall(auditorData.id);
+      setAverageRating(avgRating);
 
       // Calculate statistics
       const stats = calculateStatistics(reportsData, vulnerabilitiesData, protocolsData);
@@ -133,12 +145,34 @@ export const useAuditorDetails = () => {
     }
   }, [auditorId]);
 
+  const handleAddRating = async (rating: Partial<AuditorRating>) => {
+    try {
+      await addAuditorRatingCall({
+        ...rating,
+        auditorId: auditorId
+      });
+      // Refresh ratings
+      const [newRatings, newAvg] = await Promise.all([
+        getAuditorRatingsCall(auditorId),
+        getAuditorAverageRatingCall(auditorId)
+      ]);
+      setRatings(newRatings);
+      setAverageRating(newAvg);
+    } catch (err) {
+      console.error('Failed to add rating:', err);
+      throw err;
+    }
+  };
+
   return {
     auditor,
     reports,
     vulnerabilities,
     protocols,
     statistics,
+    ratings,
+    averageRating,
+    handleAddRating,
     loading,
     error,
     auditorId

@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import React from 'react';
-import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress, Tooltip, Link as MuiLink } from '@mui/material';
+import { Box, Card, CardContent, CardMedia, Typography, Button, TextField, InputAdornment, IconButton, Autocomplete, Chip, CircularProgress, Tooltip, Link as MuiLink, Rating } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -176,6 +176,19 @@ export const Reports: FC = () => {
             value={auditor}
             onChange={(_, newValue) => setAuditor(newValue as AuditorItem)}
             getOptionLabel={(option) => (option as AuditorItem).name}
+            renderOption={(props, option) => (
+              <li {...props}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <Typography component="span">{option.name}</Typography>
+                  {option.averageRating && option.averageRating > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Rating value={option.averageRating} readOnly size="small" precision={0.5} sx={{ fontSize: '0.8rem' }} />
+                      <Typography variant="caption" sx={{ ml: 0.5 }}>({option.ratingCount || 0})</Typography>
+                    </Box>
+                  )}
+                </Box>
+              </li>
+            )}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -250,120 +263,120 @@ export const Reports: FC = () => {
           </Button>
         </Box>
       </Box>
-        <Typography variant="h3" sx={{ fontWeight: 600, pl: 3, pb: 3, mb: 1, color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2' }}>REPORTS</Typography>
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: 3,
-            pl: 3,
-            pb: 3,
-          }}
-        >
-          {reportsList.map((report) => (
-            <Card 
-              key={report.id}
+      <Typography variant="h3" sx={{ fontWeight: 600, pl: 3, pb: 3, mb: 1, color: themeMode === 'light' ? '#1A1A1A' : '#F2F2F2' }}>REPORTS</Typography>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: 3,
+          pl: 3,
+          pb: 3,
+        }}
+      >
+        {reportsList.map((report) => (
+          <Card
+            key={report.id}
+            sx={{
+              height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '0px', borderRadius: '20px',
+              backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
+              border: '1px solid', position: 'relative'
+            }}>
+            <CardMedia
+              component="img"
               sx={{
-                height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '0px', borderRadius: '20px',
-                backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-                border: '1px solid', position: 'relative'
-              }}>
-              <CardMedia
-                component="img"
-                sx={{
-                  objectFit: 'cover',
-                  objectPosition: 'top',
-                  height: '150px',
-                  transition: 'all 0.3s ease-in-out',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    objectFit: 'contain',
-                    objectPosition: 'center',
-                    transform: 'scale(1.05)',
-                    zIndex: 1000,
-                    position: 'relative',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                    borderRadius: '8px'
-                  }
-                }}
-                height="540"
-                image={`${environment.apiUrl}/api/v1/reports/${report.id}/image.png`}
-                alt={report.name}
-                title={report.name}
-                onLoad={() => handleImageLoad(report.id)}
-                onError={() => handleImageError(report.id)}
-                onLoadStart={() => startImageLoading(report.id)}
-              />
-              {loadingImages[report.id] && (
-                <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                  <CircularProgress size={40} sx={{ color: themeMode === 'light' ? '#1A1A1A' : '#fafafa' }} />
-                </Box>
-              )}
-              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <Box>
-                  <Tooltip title={report.name} placement="top">
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                      {report.name}
-                    </Typography>
-                  </Tooltip>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Published:&nbsp;{new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                objectFit: 'cover',
+                objectPosition: 'top',
+                height: '150px',
+                transition: 'all 0.3s ease-in-out',
+                cursor: 'pointer',
+                '&:hover': {
+                  objectFit: 'contain',
+                  objectPosition: 'center',
+                  transform: 'scale(1.05)',
+                  zIndex: 1000,
+                  position: 'relative',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                  borderRadius: '8px'
+                }
+              }}
+              height="540"
+              image={`${environment.apiUrl}/api/v1/reports/${report.id}/image.png`}
+              alt={report.name}
+              title={report.name}
+              onLoad={() => handleImageLoad(report.id)}
+              onError={() => handleImageError(report.id)}
+              onLoadStart={() => startImageLoading(report.id)}
+            />
+            {loadingImages[report.id] && (
+              <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                <CircularProgress size={40} sx={{ color: themeMode === 'light' ? '#1A1A1A' : '#fafafa' }} />
+              </Box>
+            )}
+            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box>
+                <Tooltip title={report.name} placement="top">
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    {report.name}
                   </Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Protocol:&nbsp;
-                    <MuiLink
-                      rel="noopener noreferrer"
-                      style={{ cursor: 'pointer'}}
-                      sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
-                      onClick={() => {
-                        const protocol = protocolsList.find(p => p.name === report.protocolName);
-                        if (protocol) navigate(`/protocol/${protocol.id}`);
-                      }}
-                    >
-                      {report.protocolName}
-                    </MuiLink>
-                  </Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Auditor:&nbsp;
-                    <MuiLink
-                      rel="noopener noreferrer"
-                      style={{ cursor: 'pointer'}}
-                      sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
-                      onClick={() => {
-                        const auditor = auditorsList.find(a => a.name === report.auditorName);
-                        if (auditor) navigate(`/auditor/${auditor.id}`);
-                      }}
-                    >
-                      {report.auditorName}
-                    </MuiLink>
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mt: 2 }}>
-                  <IconButton
-                    size='large'
-                    title="Details"
-                    onClick={() => navigate(`/report/${report.id}`)}
+                </Tooltip>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Published:&nbsp;{new Date(report.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                </Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Protocol:&nbsp;
+                  <MuiLink
+                    rel="noopener noreferrer"
+                    style={{ cursor: 'pointer' }}
+                    sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+                    onClick={() => {
+                      const protocol = protocolsList.find(p => p.name === report.protocolName);
+                      if (protocol) navigate(`/protocol/${protocol.id}`);
+                    }}
                   >
-                    <FullscreenIcon fontSize="inherit"/>
-                  </IconButton>
-                  <Button
-                    variant="contained"
-                    startIcon={<GetApp />}
-                    onClick={() => handleReportDownload(report.name, report.id)}
-                    // sx={{
-                    //   fontWeight: 600,
-                    //   borderRadius: 2,
-                    //   backgroundColor: themeMode === 'light' ? '#1A1A1A' : '#fafafa',
-                    //   color: themeMode === 'light' ? '#fafafa' : '#1A1A1A'
-                    // }}
+                    {report.protocolName}
+                  </MuiLink>
+                </Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Auditor:&nbsp;
+                  <MuiLink
+                    rel="noopener noreferrer"
+                    style={{ cursor: 'pointer' }}
+                    sx={{ textDecoration: 'none', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+                    onClick={() => {
+                      const auditor = auditorsList.find(a => a.name === report.auditorName);
+                      if (auditor) navigate(`/auditor/${auditor.id}`);
+                    }}
                   >
-                    Download Report
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
+                    {report.auditorName}
+                  </MuiLink>
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mt: 2 }}>
+                <IconButton
+                  size='large'
+                  title="Details"
+                  onClick={() => navigate(`/report/${report.id}`)}
+                >
+                  <FullscreenIcon fontSize="inherit" />
+                </IconButton>
+                <Button
+                  variant="contained"
+                  startIcon={<GetApp />}
+                  onClick={() => handleReportDownload(report.name, report.id)}
+                // sx={{
+                //   fontWeight: 600,
+                //   borderRadius: 2,
+                //   backgroundColor: themeMode === 'light' ? '#1A1A1A' : '#fafafa',
+                //   color: themeMode === 'light' ? '#fafafa' : '#1A1A1A'
+                // }}
+                >
+                  Download Report
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
     </LocalizationProvider>
   );
 };
