@@ -27,6 +27,7 @@ import { ProtocolDetails } from '../protocol-details/protocol-details';
 import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
 import { CompanyDetails } from '../company-details/company-details';
+import { Leaderboard } from '../leaderboard/leaderboard';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
@@ -57,7 +58,7 @@ export const MainWindow: FC = () => {
 
   // mobile drawer
   const [mobileOpen, setMobileOpen] = useState(false);
-  const toggleMobile  = () => setMobileOpen(prev => !prev);
+  const toggleMobile = () => setMobileOpen(prev => !prev);
 
   // avatar state from shared hook
   const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
@@ -85,6 +86,7 @@ export const MainWindow: FC = () => {
     { label: 'Home', path: '/' },
     { label: 'Reports', path: '/reports' },
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
+    { label: 'Leaderboard', path: '/leaderboard' },
     { label: 'About', path: '/about' },
   ];
   const isAdminUser = auth.isAuthenticated && auth.user && (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator);
@@ -240,14 +242,14 @@ export const MainWindow: FC = () => {
                 <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
                 <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
               </Menu>
-              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks}/> }
+              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks} />}
             </>
           ) : (
             <Button
               color="primary"
               variant="contained"
               onClick={() => navigate('/login')}
-              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1,  display: { xs: 'none', md: 'inline-flex' } }}
+              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1, display: { xs: 'none', md: 'inline-flex' } }}
             >
               Log In
             </Button>
@@ -336,6 +338,7 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/about`} element={<About />} />
             <Route path={`${environment.basePath}/profile`} element={<Profile />} />
             <Route path={`${environment.basePath}/profile/edit`} element={<EditProfile />} />
+            <Route path={`${environment.basePath}/leaderboard`} element={<Leaderboard />} />
             <Route path={`${environment.basePath}/vulnerability/:id`} element={<VulnerabilityDetails />} />
             <Route path={`${environment.basePath}/protocol/:id`} element={<ProtocolDetails />} />
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
