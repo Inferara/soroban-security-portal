@@ -81,6 +81,7 @@ namespace SorobanSecurityPortalApi.Common.Data
 
             builder.Entity<ForumPostModel>()
                 .HasIndex(p => new { p.ThreadId, p.CreatedAt });
+            var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
             builder.Entity<ForumCategoryModel>().HasData(
                 new ForumCategoryModel 
@@ -90,7 +91,7 @@ namespace SorobanSecurityPortalApi.Common.Data
                     Slug = "general", 
                     Description = "General discussions about the portal.", 
                     SortOrder = 1, 
-                    CreatedAt = DateTime.UtcNow 
+                    CreatedAt = seedDate 
                 },
                 new ForumCategoryModel 
                 { 
@@ -99,7 +100,7 @@ namespace SorobanSecurityPortalApi.Common.Data
                     Slug = "soroban-development", 
                     Description = "Discussions about smart contract development.", 
                     SortOrder = 2, 
-                    CreatedAt = DateTime.UtcNow 
+                    CreatedAt = seedDate 
                 },
                 new ForumCategoryModel 
                 { 
@@ -108,7 +109,7 @@ namespace SorobanSecurityPortalApi.Common.Data
                     Slug = "security-best-practices", 
                     Description = "Sharing security tips and patterns.", 
                     SortOrder = 3, 
-                    CreatedAt = DateTime.UtcNow 
+                    CreatedAt = seedDate 
                 },
                 new ForumCategoryModel 
                 { 
@@ -117,7 +118,7 @@ namespace SorobanSecurityPortalApi.Common.Data
                     Slug = "vulnerability-discussions", 
                     Description = "Deep dives into specific vulnerabilities.", 
                     SortOrder = 4, 
-                    CreatedAt = DateTime.UtcNow 
+                    CreatedAt = seedDate 
                 }
             );
 
