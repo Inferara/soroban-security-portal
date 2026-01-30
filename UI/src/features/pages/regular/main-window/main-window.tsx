@@ -42,6 +42,7 @@ import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
 import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { BookmarkMenu } from './components/BookmarkMenu';
+import { NotificationMenu } from './components/NotificationMenu';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { AccentColors } from '../../../../theme';
 
@@ -57,7 +58,7 @@ export const MainWindow: FC = () => {
 
   // mobile drawer
   const [mobileOpen, setMobileOpen] = useState(false);
-  const toggleMobile  = () => setMobileOpen(prev => !prev);
+  const toggleMobile = () => setMobileOpen(prev => !prev);
 
   // avatar state from shared hook
   const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
@@ -240,14 +241,15 @@ export const MainWindow: FC = () => {
                 <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
                 <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
               </Menu>
-              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks}/> }
+              <NotificationMenu />
+              {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks} />}
             </>
           ) : (
             <Button
               color="primary"
               variant="contained"
               onClick={() => navigate('/login')}
-              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1,  display: { xs: 'none', md: 'inline-flex' } }}
+              sx={{ ml: 2, textTransform: 'uppercase', px: 3, py: 1, display: { xs: 'none', md: 'inline-flex' } }}
             >
               Log In
             </Button>

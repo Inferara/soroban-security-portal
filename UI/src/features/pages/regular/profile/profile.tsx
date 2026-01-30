@@ -10,12 +10,15 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import DeleteIcon from '@mui/icons-material/Delete';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import ChatIcon from '@mui/icons-material/Chat';
 import { MarkdownView } from '../../../../components/MarkdownView';
 import { useNavigate } from 'react-router-dom';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
+import { formatDateLong } from '../../../../utils';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -166,9 +169,12 @@ export const Profile: React.FC = () => {
 
   const {
     user,
-    userId
+    userId,
+    watchedThreads,
+    threadsLoading,
+    toggleWatch
   } = useProfile();
-  
+
   const { bookmarks, removeBookmark } = useBookmarks();
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
@@ -266,6 +272,7 @@ export const Profile: React.FC = () => {
           >
             <Tab label="Profile" {...a11yProps(0)} />
             <Tab label="Bookmarks" {...a11yProps(1)} />
+            <Tab label="Watched Threads" {...a11yProps(2)} />
           </Tabs>
         </Box>
 
@@ -336,23 +343,23 @@ export const Profile: React.FC = () => {
                         {bookmark.title}
                       </Typography>
                       {bookmark.description && (
-                        <MarkdownView 
-                          content={bookmark.description.length > 200 
-                            ? bookmark.description.substring(0, 200) + '...' 
+                        <MarkdownView
+                          content={bookmark.description.length > 200
+                            ? bookmark.description.substring(0, 200) + '...'
                             : bookmark.description
-                          } 
+                          }
                           sx={{
                             p: 0,
                             '& .markdown-content': {
                               fontSize: '0.875rem',
                               color: 'text.secondary',
                               '& p': { margin: 0 },
-                              '& h1, & h2, & h3, & h4, & h5, & h6': { 
+                              '& h1, & h2, & h3, & h4, & h5, & h6': {
                                 fontSize: '0.875rem',
                                 fontWeight: 'normal',
                                 margin: 0
                               },
-                              '& ul, & ol': { 
+                              '& ul, & ol': {
                                 margin: 0,
                                 paddingLeft: 16
                               },
@@ -381,6 +388,66 @@ export const Profile: React.FC = () => {
                         title="Remove bookmark"
                       >
                         <DeleteIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={2}>
+            {/* Watched Threads */}
+            <SectionTitle>
+              Watched Threads
+            </SectionTitle>
+            {watchedThreads.length === 0 ? (
+              <PlaceholderText>
+                You are not watching any threads yet. Threads you reply to or manually watch will appear here.
+              </PlaceholderText>
+            ) : (
+              <List sx={{ width: '100%' }}>
+                {watchedThreads.map((thread) => (
+                  <ListItem
+                    key={thread.id}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      mb: 2,
+                      backgroundColor: 'background.paper',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: 'secondary.main' }}>
+                      <ChatIcon />
+                    </ListItemIcon>
+                    <Box sx={{ flexGrow: 1, minWidth: 0, pr: 8 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        Discussion on Vulnerability #{thread.vulnerabilityId}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {thread.replies.length} replies • Last activity {thread.replies.length > 0 ? formatDateLong(thread.replies[thread.replies.length - 1].createdAt) : formatDateLong(thread.createdAt)}
+                      </Typography>
+                    </Box>
+                    <ListItemSecondaryAction>
+                      <IconButton
+                        edge="end"
+                        onClick={() => navigate(`/vulnerability/${thread.vulnerabilityId}?tab=2`)}
+                        sx={{ color: 'primary.main', mr: 1 }}
+                        title="Open Thread"
+                      >
+                        <OpenInNewIcon />
+                      </IconButton>
+                      <IconButton
+                        edge="end"
+                        onClick={() => toggleWatch(thread.id, false)}
+                        sx={{ color: 'secondary.main' }}
+                        title="Unwatch Thread"
+                      >
+                        <VisibilityOffIcon />
                       </IconButton>
                     </ListItemSecondaryAction>
                   </ListItem>
