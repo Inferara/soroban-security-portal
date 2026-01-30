@@ -120,7 +120,7 @@ export const useModerationQueue = () => {
                 };
             });
         }
-    }, [items, loading]);
+    }, [items, loading, stats]);
 
     return { items, stats, loading, handleAction };
 };

@@ -342,7 +342,6 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
             <Route path={`${environment.basePath}/auditor/:id`} element={<AuditorDetails />} />
             <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
-            <Route path={`${environment.basePath}/badgedemo`} element={<BadgeDemoPage />} />
           </Routes>
         </Box>
       </Box>

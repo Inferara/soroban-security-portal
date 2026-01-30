@@ -128,7 +128,7 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
             <Collapse in={!!showReasonInput}>
                 <Box sx={{ mt: 2, pt: 2, borderTop: `1px dashed ${theme.palette.divider}` }}>
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Reason for {showReasonInput}ing content:
+                        Reason for {showReasonInput === 'hide' ? 'hiding' : 'deleting'} content:
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 2 }}>
                         <TextField
