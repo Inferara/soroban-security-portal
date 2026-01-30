@@ -12,5 +12,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string Url { get; set; } = "";
         public DateTime Date { get; set; }
         public int CreatedBy { get; set; }
+        public double AverageRating { get; set; }
+        public int RatingCount { get; set; }
+        public List<AuditorRatingViewModel> Ratings { get; set; } = new();
     }
 }

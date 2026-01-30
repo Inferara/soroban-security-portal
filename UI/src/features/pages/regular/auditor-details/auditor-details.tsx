@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useState } from 'react';
 import {
   Box,
   Card,
@@ -21,7 +21,9 @@ import {
   Person,
   Timeline as TimelineIcon,
   Dashboard,
+  Star,
 } from '@mui/icons-material';
+import { Rating } from '@mui/material';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useAuditorDetails } from './hooks/auditor-details.hook';
@@ -41,6 +43,8 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong, formatMonthYear } from '../../../../utils';
+import { AuditorRatingSection } from './components/AuditorRatingSection';
+import { AddRatingDialog } from './components/AddRatingDialog';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
@@ -52,9 +56,15 @@ export const AuditorDetails: FC = () => {
     reports,
     protocols,
     statistics,
+    ratings,
+    averageRating,
+    handleAddRating,
     loading,
     error
   } = useAuditorDetails();
+
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const isAuthenticated = !!useAppAuth().auth; // Simple check for now
 
   const { tabValue, tabProps } = useDetailTabs(0);
 
@@ -142,17 +152,43 @@ export const AuditorDetails: FC = () => {
             description={`Since ${formatDateLong(auditor.date)}`}
             websiteUrl={auditor.url}
             actions={
-              canAddReport && (
+              <>
+                {canAddReport && (
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={<Assessment />}
+                    onClick={() => navigate(`/reports/add?auditor=${encodeURIComponent(auditor.name)}`)}
+                  >
+                    Add Report
+                  </Button>
+                )}
                 <Button
-                  variant="outlined"
-                  color="secondary"
-                  startIcon={<Assessment />}
-                  onClick={() => navigate(`/reports/add?auditor=${encodeURIComponent(auditor.name)}`)}
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Star />}
+                  onClick={() => setRatingDialogOpen(true)}
+                  disabled={!isAuthenticated}
                 >
-                  Add Report
+                  Rate Auditor
                 </Button>
-              )
+              </>
             }
+            headerExtra={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Rating value={averageRating} precision={0.5} readOnly size="medium" />
+                <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                  ({averageRating.toFixed(1)})
+                </Typography>
+              </Box>
+            }
+          />
+
+          <AddRatingDialog
+            open={ratingDialogOpen}
+            onClose={() => setRatingDialogOpen(false)}
+            onSubmit={handleAddRating}
+            auditorName={auditor.name}
           />
 
           {/* Tabs */}
@@ -169,6 +205,14 @@ export const AuditorDetails: FC = () => {
               <Box sx={{ flex: 1 }}>
                 {/* Overview Statistics */}
                 <StatisticsCards cards={statsCards} />
+
+                {/* Rating Section */}
+                <AuditorRatingSection
+                  ratings={ratings}
+                  averageRating={averageRating}
+                  onAddRating={() => setRatingDialogOpen(true)}
+                  canRate={isAuthenticated}
+                />
 
                 {/* Charts */}
                 <Box sx={{
@@ -324,43 +368,43 @@ export const AuditorDetails: FC = () => {
                       {reports
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map((report, index) => (
-                        <Box key={report.id}>
-                          <ListItem
-                            sx={{
-                              px: 0,
-                              cursor: 'pointer',
-                              '&:hover': { backgroundColor: 'action.hover' },
-                              borderRadius: 1
-                            }}
-                            onClick={() => navigate(`/report/${report.id}`)}
-                          >
-                            <ListItemAvatar>
-                              <EntityAvatar
-                                entityType="report"
-                                entityId={report.id}
-                                size="small"
-                                fallbackText={report.name}
+                          <Box key={report.id}>
+                            <ListItem
+                              sx={{
+                                px: 0,
+                                cursor: 'pointer',
+                                '&:hover': { backgroundColor: 'action.hover' },
+                                borderRadius: 1
+                              }}
+                              onClick={() => navigate(`/report/${report.id}`)}
+                            >
+                              <ListItemAvatar>
+                                <EntityAvatar
+                                  entityType="report"
+                                  entityId={report.id}
+                                  size="small"
+                                  fallbackText={report.name}
+                                />
+                              </ListItemAvatar>
+                              <ListItemText
+                                primary={
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 600, wordBreak: 'break-word' }}
+                                  >
+                                    {report.name}
+                                  </Typography>
+                                }
+                                secondary={
+                                  <Typography component="span" variant="body2" color="text.secondary">
+                                    Published: {formatDateLong(report.date)}
+                                  </Typography>
+                                }
                               />
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={
-                                <Typography
-                                  variant="subtitle2"
-                                  sx={{ fontWeight: 600, wordBreak: 'break-word' }}
-                                >
-                                  {report.name}
-                                </Typography>
-                              }
-                              secondary={
-                                <Typography component="span" variant="body2" color="text.secondary">
-                                  Published: {formatDateLong(report.date)}
-                                </Typography>
-                              }
-                            />
-                          </ListItem>
-                          {index < reports.length - 1 && <Divider />}
-                        </Box>
-                      ))}
+                            </ListItem>
+                            {index < reports.length - 1 && <Divider />}
+                          </Box>
+                        ))}
                     </List>
                   ) : (
                     <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>

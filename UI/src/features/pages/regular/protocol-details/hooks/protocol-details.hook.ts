@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { 
+import {
   getProtocolByIdCall,
   getCompanyByIdCall,
   getReportsCall,
-  getVulnerabilitiesCall
+  getVulnerabilitiesCall,
+  getAuditorListDataCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
@@ -23,12 +25,13 @@ interface ProtocolStatistics {
 export const useProtocolDetails = () => {
   const { id } = useParams<{ id: string }>();
   const protocolId = parseInt(id ?? '0');
-  
+
   const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
   const [company, setCompany] = useState<CompanyItem | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [statistics, setStatistics] = useState<ProtocolStatistics | null>(null);
+  const [auditors, setAuditors] = useState<AuditorItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,10 +46,10 @@ export const useProtocolDetails = () => {
       if (vuln.severity) {
         severityBreakdown[vuln.severity] = (severityBreakdown[vuln.severity] || 0) + 1;
       }
-      
+
       // Count vulnerability categories
       vulnerabilitiesByCategory[vuln.category] = (vulnerabilitiesByCategory[vuln.category] || 0) + 1;
-      
+
       // Count fixed vs active
       if (vuln.status?.toLowerCase() === 'fixed') {
         fixedCount++;
@@ -104,6 +107,12 @@ export const useProtocolDetails = () => {
       const stats = calculateStatistics(reportsData, vulnerabilitiesData);
       setStatistics(stats);
 
+      // Fetch all auditors to get ratings and then filter match against reports
+      const allAuditors = await getAuditorListDataCall();
+      const reportAuditorIds = new Set(reportsData.map(r => r.auditorId));
+      const protocolAuditors = allAuditors.filter(a => reportAuditorIds.has(a.id));
+      setAuditors(protocolAuditors);
+
     } catch (err) {
       console.error('Error fetching protocol details:', err);
       setError('Failed to load protocol details');
@@ -124,6 +133,7 @@ export const useProtocolDetails = () => {
     reports,
     vulnerabilities,
     statistics,
+    auditors,
     loading,
     error,
     protocolId

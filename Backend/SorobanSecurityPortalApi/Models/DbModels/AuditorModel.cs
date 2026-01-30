@@ -18,5 +18,6 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         [Column(TypeName = "vector(3072)")]
         public Vector? Embedding { get; set; }
         public List<ReportModel> Reports { get; set; } = new();
+        public List<AuditorRatingModel> Ratings { get; set; } = new();
     }
 }

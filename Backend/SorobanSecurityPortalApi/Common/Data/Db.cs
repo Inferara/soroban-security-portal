@@ -22,6 +22,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<BookmarkModel> Bookmark { get; set; }
         public DbSet<ModerationLogModel> ModerationLog { get; set; }
         public DbSet<UserProfileModel> UserProfiles { get; set; }
+        public DbSet<AuditorRatingModel> AuditorRating { get; set; }
 
 
         private readonly IDbQuery _dbQuery;

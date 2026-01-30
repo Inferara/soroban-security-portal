@@ -14,6 +14,7 @@ import {
   ListItemAvatar,
   Link as MuiLink,
   Divider,
+  Rating,
 } from '@mui/material';
 import {
   Business,
@@ -53,6 +54,7 @@ export const ProtocolDetails: FC = () => {
     company,
     reports,
     statistics,
+    auditors,
     loading,
     error
   } = useProtocolDetails();
@@ -106,17 +108,7 @@ export const ProtocolDetails: FC = () => {
       }));
   }, [reports]);
 
-  // Get unique auditors for easy access (deduplicate by auditorId)
-  const uniqueAuditors = useMemo(() => {
-    if (reports.length === 0) return [];
-    const auditorMap = new Map<number, { id: number; name: string }>();
-    reports.forEach(r => {
-      if (!auditorMap.has(r.auditorId)) {
-        auditorMap.set(r.auditorId, { id: r.auditorId, name: r.auditorName });
-      }
-    });
-    return Array.from(auditorMap.values());
-  }, [reports]);
+  // uniqueAuditors replaced by auditors from hook
 
   // Calculate fix rate
   const fixRate = statistics && statistics.totalVulnerabilities > 0
@@ -342,9 +334,9 @@ export const ProtocolDetails: FC = () => {
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                       Auditors
                     </Typography>
-                    {uniqueAuditors.length > 0 ? (
+                    {auditors && auditors.length > 0 ? (
                       <List>
-                        {uniqueAuditors.map((auditor, index) => (
+                        {auditors.map((auditor, index) => (
                           <React.Fragment key={auditor.id}>
                             <ListItem
                               sx={{
@@ -365,10 +357,30 @@ export const ProtocolDetails: FC = () => {
                               </ListItemAvatar>
                               <ListItemText
                                 primary={auditor.name}
-                                secondary={`${reports.filter(r => r.auditorName === auditor.name).length} reports`}
+                                secondary={
+                                  <Box>
+                                    <Typography variant="body2" color="text.secondary">
+                                      {reports.filter(r => r.auditorId === auditor.id).length} reports
+                                    </Typography>
+                                    {auditor.averageRating ? (
+                                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                                        <Rating
+                                          value={auditor.averageRating}
+                                          readOnly
+                                          size="small"
+                                          precision={0.1}
+                                          sx={{ fontSize: '1rem' }}
+                                        />
+                                        <Typography variant="caption" sx={{ ml: 0.5, color: 'text.secondary' }}>
+                                          ({auditor.ratingCount || 0})
+                                        </Typography>
+                                      </Box>
+                                    ) : null}
+                                  </Box>
+                                }
                               />
                             </ListItem>
-                            {index < uniqueAuditors.length - 1 && <Divider />}
+                            {index < auditors.length - 1 && <Divider />}
                           </React.Fragment>
                         ))}
                       </List>
