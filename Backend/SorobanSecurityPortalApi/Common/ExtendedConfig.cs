@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Json.Schema.Generation;
@@ -11,6 +12,7 @@ namespace SorobanSecurityPortalApi.Common;
 public interface IExtendedConfig
 {
     string Proxy { get; }
+    string AppUrl { get; }
     int TokenExpirationTimeMinutes { get; }
     int PermanentTokenExpirationTimeDays { get; }
     string AuthIssuer { get; }
@@ -38,16 +40,17 @@ public class ExtendedConfig : IExtendedConfig
 {
     private DateTime _nextRefresh = DateTime.MinValue;
     private ConcurrentDictionary<string, string> _configValues = new();
-    private readonly ISettingsProcessor _settingsProcessor;
+    private readonly IServiceScopeFactory _scopeFactory;
     private const int RefreshTimeSec = 15;
     private readonly object _lock = new();
 
     private readonly string _appSettings = File.ReadAllText("appsettings.json");
 
-    public ExtendedConfig(ISettingsProcessor settingsProcessor)
+    public ExtendedConfig(IServiceScopeFactory scopeFactory)
     {
-        _settingsProcessor = settingsProcessor;
+        _scopeFactory = scopeFactory;
     }
+
 
     public void Reset()
     {
@@ -55,7 +58,11 @@ public class ExtendedConfig : IExtendedConfig
         {
             if (DateTime.Now > _nextRefresh)
             {
-                _configValues = new ConcurrentDictionary<string, string>(_settingsProcessor.Get(SettingType.Common));
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var settingsProcessor = scope.ServiceProvider.GetRequiredService<ISettingsProcessor>();
+                    _configValues = new ConcurrentDictionary<string, string>(settingsProcessor.Get(SettingType.Common));
+                }
                 _nextRefresh = DateTime.Now.AddSeconds(RefreshTimeSec);
             }
         }
@@ -86,6 +93,11 @@ public class ExtendedConfig : IExtendedConfig
     [Description("Proxy")]
     [Tooltip("Proxy is used to route all requests through a proxy server. Can be used for debug purposes, i.e. to use Fiddler. Sample: http://host.docker.internal:8888")]
     public string Proxy => GetValue<string>("Proxy");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
+    [Description("Base API URL")]
+    [Tooltip("The root URL for the Soroban Security Portal API (e.g., http://localhost:7878/api/v1)")]
+    public string AppUrl => GetValue<string>("AppUrl", "http://localhost:7878/api/v1");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]

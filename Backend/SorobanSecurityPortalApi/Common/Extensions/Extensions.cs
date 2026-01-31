@@ -91,7 +91,7 @@ public static class Extensions
 
     public static string Sha256(this string input)
     {
-        var hashString = new SHA256Managed();
+        var hashString = SHA256.Create();
         var bytes = Encoding.Default.GetBytes(input);
         var hash = hashString.ComputeHash(bytes);
         var sixteenBytes = new Byte[16];

@@ -5,6 +5,18 @@ namespace SorobanSecurityPortalApi.Common.Extensions
 {
     public static class ServiceCollectionExtensions
     {
+        public static IServiceCollection AddHttpClients(this IServiceCollection services)
+        {   
+            services.AddHttpClient("SorobanClient", (sp, client) =>
+            {
+                var ec = sp.GetRequiredService<ExtendedConfig>();
+                
+                client.BaseAddress = new Uri(ec.AppUrl); 
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            });
+
+            return services;
+        }
         public static IRegistrationOfAssemblies ForInterfacesMatching(this IServiceCollection serviceCollection, string regex) => new Registration(serviceCollection) { Regex = regex };
     }
 

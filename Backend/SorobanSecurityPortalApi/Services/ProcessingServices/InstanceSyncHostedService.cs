@@ -1,40 +1,43 @@
 using SorobanSecurityPortalApi.Common;
+using Microsoft.Extensions.DependencyInjection; 
+
 
 namespace SorobanSecurityPortalApi.Services.ProcessingServices
 {
     internal class InstanceSyncHostedService : IHostedService, IDisposable
     {
-        private readonly IInstanceSync _instanceSync;
-        
+        private readonly IServiceScopeFactory _scopeFactory; // Use the Factory
         private Timer? _timer;
-        private bool _isMainInstance;
 
-        public InstanceSyncHostedService(
-            IInstanceSync instanceSync)
+        public InstanceSyncHostedService(IServiceScopeFactory scopeFactory)
         {
-            _instanceSync = instanceSync;
-            _isMainInstance = _instanceSync.IsMainInstance;
+            _scopeFactory = scopeFactory;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
             var period = TimeSpan.FromSeconds(InstanceSync.TtlInSeconds - 5);
-            _timer = new Timer(Process, null, period, period);
+            _timer = new Timer(async _ => await Process(), null, period, period); // Safer async handling
             return Task.CompletedTask;
         }
 
-        public async void Process(object? state)
+        private async Task Process() // Changed from async void to async Task
         {
-            _instanceSync.SendHeartbeat();
-            if(_instanceSync.IsRestartNeeded())
+            using (var scope = _scopeFactory.CreateScope()) //Create temporary scope
             {
-                Environment.Exit(0);
+                var instanceSync = scope.ServiceProvider.GetRequiredService<IInstanceSync>();
+                
+                instanceSync.SendHeartbeat();
+                if (instanceSync.IsRestartNeeded())
+                {
+                    Environment.Exit(0);
+                }
             }
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _timer?.Change(Timeout.Infinite, Timeout.Infinite);
             return Task.CompletedTask;
         }
 
@@ -44,3 +47,4 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
         }
     }
 }
+
