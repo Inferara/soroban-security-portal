@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -14,9 +15,11 @@ using SorobanSecurityPortalApi.Models.DbModels;
 namespace SorobanSecurityPortalApi.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20260130202948_AddWatchModel")]
+    partial class AddWatchModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -392,7 +395,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2026, 1, 30, 20, 39, 0, 337, DateTimeKind.Utc).AddTicks(2777),
+                            Created = new DateTime(2026, 1, 30, 20, 29, 46, 796, DateTimeKind.Utc).AddTicks(3571),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -404,38 +407,6 @@ namespace SorobanSecurityPortalApi.Migrations
                             PersonalInfo = "",
                             Role = 1000
                         });
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.NotificationModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_read");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("message");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_notification");
-
-                    b.ToTable("notification");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProtocolModel", b =>
@@ -615,61 +586,6 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("subscription");
                 });
 
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Bio")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("bio");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<List<string>>("ExpertiseTags")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("expertise_tags");
-
-                    b.Property<string>("Location")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("location");
-
-                    b.Property<int>("LoginId")
-                        .HasColumnType("integer")
-                        .HasColumnName("login_id");
-
-                    b.Property<int>("ReputationScore")
-                        .HasColumnType("integer")
-                        .HasColumnName("reputation_score");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("Website")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("website");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_profiles");
-
-                    b.HasIndex("LoginId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_user_profiles_login_id");
-
-                    b.ToTable("user_profiles");
-                });
-
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.VulnerabilityModel", b =>
                 {
                     b.Property<int>("Id")
@@ -809,18 +725,6 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.Navigation("Protocol");
                 });
 
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", b =>
-                {
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Login")
-                        .WithOne("UserProfile")
-                        .HasForeignKey("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", "LoginId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_profiles_login_login_id");
-
-                    b.Navigation("Login");
-                });
-
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.VulnerabilityModel", b =>
                 {
                     b.HasOne("SorobanSecurityPortalApi.Models.DbModels.ReportModel", "Report")
@@ -839,11 +743,6 @@ namespace SorobanSecurityPortalApi.Migrations
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.CompanyModel", b =>
                 {
                     b.Navigation("Protocols");
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.LoginModel", b =>
-                {
-                    b.Navigation("UserProfile");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProtocolModel", b =>

@@ -28,6 +28,27 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             auditorModel.CreatedBy = await _userContextAccessor.GetLoginIdAsync();
             auditorModel.Date = DateTime.UtcNow;
             auditorModel = await _auditorProcessor.Add(auditorModel);
+
+            // In-app notification for auditor watchers
+            using (var db = new Common.Data.Db(null, null, null)) // Replace with DI if possible
+            {
+                var watcherIds = await db.Watch
+                    .Where(w => w.EntityId == auditorModel.Id && w.EntityType == "Auditor")
+                    .Select(w => w.UserId)
+                    .ToListAsync();
+                foreach (var userId in watcherIds)
+                {
+                    db.Notification.Add(new NotificationModel
+                    {
+                        UserId = userId,
+                        Message = $"Auditor {auditorModel.Name} published a new update.",
+                        CreatedAt = DateTime.UtcNow,
+                        IsRead = false
+                    });
+                }
+                await db.SaveChangesAsync();
+            }
+
             return _mapper.Map<AuditorViewModel>(auditorModel);
         }
 
