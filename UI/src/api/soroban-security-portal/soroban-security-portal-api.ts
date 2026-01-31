@@ -12,6 +12,7 @@ import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
+import { ProfileClaimRequest } from './models/profile-claim';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -179,6 +180,36 @@ export const getCompanyByIdCall = async (companyId: number): Promise<CompanyItem
     const response = await client.request(`api/v1/companies/${companyId}`, 'GET');
     return response.data as CompanyItem;
 };
+
+// --- PROFILE CLAIMS ---
+export const submitProtocolClaimCall = async (protocolId: number, verificationMethod: string, verificationData?: string | null): Promise<ProfileClaimRequest> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/protocols/${protocolId}/claim-request`, 'POST', { verificationMethod, verificationData });
+    return response.data as ProfileClaimRequest;
+};
+
+export const submitAuditorClaimCall = async (auditorId: number, verificationMethod: string, verificationData?: string | null): Promise<ProfileClaimRequest> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/auditors/${auditorId}/claim-request`, 'POST', { verificationMethod, verificationData });
+    return response.data as ProfileClaimRequest;
+};
+
+export const getPendingClaimsCall = async (): Promise<ProfileClaimRequest[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/admin/claims', 'GET');
+    return response.data as ProfileClaimRequest[];
+};
+
+export const approveClaimCall = async (claimId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/admin/claims/${claimId}/approve`, 'PUT');
+};
+
+export const rejectClaimCall = async (claimId: number, reason?: string): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/admin/claims/${claimId}/reject`, 'PUT', { reason });
+};
+
 
 // --- REPORTS ---
 export const addReportCall = async (report: AddReport | FormData): Promise<boolean> => {

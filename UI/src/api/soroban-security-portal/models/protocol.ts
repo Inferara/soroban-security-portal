@@ -7,4 +7,7 @@ export interface ProtocolItem {
   date: Date;
   companyId?: number;
   createdBy: string;
+  isVerified?: boolean;
+  verificationMethod?: string;
+  verificationDate?: Date | null;
 }
