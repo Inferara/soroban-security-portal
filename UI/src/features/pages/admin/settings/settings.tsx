@@ -195,6 +195,19 @@ export const Settings: React.FC = () => {
         return setting.value
           ? <Box component="a" sx={settingsControlStyle} href={setting.value} target="_blank" rel="noreferrer">{setting.description}</Box>
           : <></>
+      case DateType.Multiline:
+        return <TextField
+          sx={settingsControlStyle}
+          label={setting.description}
+          value={setting.value}
+          onChange={(e) => setSettingValue(setting, e.target.value)}
+          type="text"
+          multiline
+          minRows={6}
+          maxRows={15}
+          placeholder="Enter one word per line"
+          >
+        </TextField>
       default:
         return <TextField
           sx={settingsControlStyle}
