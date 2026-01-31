@@ -29,3 +29,10 @@ export class UserItem extends CreateUserItem {
     loginId: number = 0;
     loginType: LoginType = LoginType.GoogleSSO;
 }
+
+export class UserSearchResult {
+    loginId: number = 0;
+    login: string = '';
+    fullName: string = '';
+    image?: string;
+}

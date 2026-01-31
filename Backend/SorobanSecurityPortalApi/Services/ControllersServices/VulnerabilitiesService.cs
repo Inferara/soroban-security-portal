@@ -15,6 +15,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IFileProcessor _fileProcessor;
         private readonly IGeminiEmbeddingService _embeddingService;
         private readonly UserContextAccessor _userContextAccessor;
+        private readonly IMentionService _mentionService;
 
         public VulnerabilityService(
             IMapper mapper,
@@ -22,7 +23,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IReportProcessor reportProcessor,
             IFileProcessor fileProcessor,
             IGeminiEmbeddingService embeddingService,
-            UserContextAccessor userContextAccessor)
+            UserContextAccessor userContextAccessor,
+            IMentionService mentionService)
         {
             _mapper = mapper;
             _vulnerabilityProcessor = vulnerabilityProcessor;
@@ -30,6 +32,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _fileProcessor = fileProcessor;
             _embeddingService = embeddingService;
             _userContextAccessor = userContextAccessor;
+            _mentionService = mentionService;
         }
 
         public async Task<List<IdValue>> ListSeverities()
@@ -109,6 +112,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
             vulnerabilityModel.CreatedBy = loginId;
             var addedVulnerability = await _vulnerabilityProcessor.Add(vulnerabilityModel);
+
+            // Process mentions in the vulnerability description
+            if (!string.IsNullOrEmpty(addedVulnerability.Description))
+            {
+                await _mentionService.ParseAndCreateMentions(
+                    addedVulnerability.Description,
+                    "vulnerability",
+                    addedVulnerability.Id,
+                    loginId);
+            }
+
             return _mapper.Map<VulnerabilityViewModel>(addedVulnerability);
         }
 

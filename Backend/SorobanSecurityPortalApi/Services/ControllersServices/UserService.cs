@@ -128,6 +128,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var loginsViewModel = _mapper.Map<List<LoginSummaryViewModel>>(logins);
             return loginsViewModel;
         }
+
+        public async Task<List<UserSearchResultViewModel>> SearchUsers(string query, int limit)
+        {
+            var logins = await _loginProcessor.SearchUsers(query, limit);
+            var usersViewModel = _mapper.Map<List<UserSearchResultViewModel>>(logins);
+            return usersViewModel;
+        }
     }
 
     public interface IUserService
@@ -140,5 +147,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<bool?> Delete(int loginId);
         Task<bool> ChangePassword(string login, ChangePasswordViewModel changePasswordViewModel);
         Task<List<LoginSummaryViewModel>> List();
+        Task<List<UserSearchResultViewModel>> SearchUsers(string query, int limit);
     }
 }

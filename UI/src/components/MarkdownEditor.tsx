@@ -1,8 +1,12 @@
-import { FC, useState } from 'react';
+import { FC, useState, useRef, useCallback } from 'react';
 import { Box, Typography, Tabs, Tab, useTheme } from '@mui/material';
 import { Editor } from '@monaco-editor/react';
 import { useTheme as useThemeContext } from '../contexts/ThemeContext';
 import { MarkdownView } from './MarkdownView';
+import { searchUsersCall } from '../api/soroban-security-portal/soroban-security-portal-api';
+import { UserSearchResult } from '../api/soroban-security-portal/models/user';
+import { debounce } from 'lodash';
+import type { editor } from 'monaco-editor';
 
 interface MarkdownEditorProps {
   value: string;
@@ -22,6 +26,73 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
   const { themeMode } = useThemeContext();
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+
+  // Debounced user search function
+  const debouncedSearchUsers = useCallback(
+    (query: string): Promise<UserSearchResult[]> => {
+      return new Promise((resolve) => {
+        debounce(async (q: string) => {
+          if (q.length < 2) {
+            resolve([]);
+            return;
+          }
+          try {
+            const result = await searchUsersCall(q, 5);
+            resolve(result);
+          } catch (error) {
+            console.error('Error searching users:', error);
+            resolve([]);
+          }
+        }, 300)(query);
+      });
+    },
+    []
+  );
+
+  // Handle editor mount
+  const handleEditorDidMount = useCallback((editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
+    editorRef.current = editor;
+
+    // Register completion provider for @ mentions
+    monaco.languages.registerCompletionItemProvider('markdown', {
+      triggerCharacters: ['@'],
+      provideCompletionItems: async (model: editor.ITextModel, position: unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pos = position as any;
+        const lineContent = model.getLineContent(pos.lineNumber);
+        const textBeforeCursor = lineContent.substring(0, pos.column - 1);
+
+        // Check if we're in an @ mention
+        const atIndex = textBeforeCursor.lastIndexOf('@');
+        if (atIndex === -1) return { suggestions: [] };
+
+        const query = textBeforeCursor.substring(atIndex + 1);
+        if (query.length === 0) return { suggestions: [] };
+
+        const users = await debouncedSearchUsers(query);
+
+        const suggestions = users.map((user, index) => ({
+          label: `@${user.login}`,
+          kind: monaco.languages.CompletionItemKind.User,
+          detail: user.fullName,
+          insertText: `@${user.login} `,
+          range: {
+            startLineNumber: pos.lineNumber,
+            endLineNumber: pos.lineNumber,
+            startColumn: atIndex + 1,
+            endColumn: pos.column
+          },
+          sortText: `${index.toString().padStart(3, '0')}`,
+          documentation: {
+            value: `**${user.fullName}**\n@${user.login}`
+          }
+        }));
+
+        return { suggestions };
+      }
+    });
+  }, [debouncedSearchUsers]);
 
   return (
     <Box>
@@ -44,12 +115,13 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
         overflow: 'hidden'
       }}>
         {activeTab === 0 ? (
-          <Editor              
+          <Editor
             height={height}
-            language="markdown"          
+            language="markdown"
             value={value}
-            theme={themeMode === 'light' ? 'vs' : 'vs-dark'} 
+            theme={themeMode === 'light' ? 'vs' : 'vs-dark'}
             onChange={(newValue) => onChange(newValue ?? '')}
+            onMount={handleEditorDidMount}
             options={{
               wordWrap: 'on',
               wrappingIndent: 'indent',

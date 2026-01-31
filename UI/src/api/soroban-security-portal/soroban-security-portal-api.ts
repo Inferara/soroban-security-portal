@@ -1,5 +1,5 @@
 import RestApi from '../rest-api';
-import { UserItem, CreateUserItem, EditUserItem, SelfEditUserItem } from './models/user';
+import { UserItem, CreateUserItem, EditUserItem, SelfEditUserItem, UserSearchResult } from './models/user';
 import { SettingsItem } from './models/settings';
 import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
@@ -364,6 +364,11 @@ export const changePasswordCall = async (oldPassword: string, newPassword: strin
     const client = await getRestClient();
     const response = await client.request('api/v1/user/changePassword', 'POST', {oldPassword, newPassword});
     return response.data as boolean;
+};
+export const searchUsersCall = async (query: string, limit: number = 5): Promise<UserSearchResult[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/user/search?query=${encodeURIComponent(query)}&limit=${limit}`, 'GET');
+    return response.data as UserSearchResult[];
 };
 export const getUserByIdCall = async (loginId: number): Promise<UserItem | null | undefined> => {
     const client = await getRestClient();
