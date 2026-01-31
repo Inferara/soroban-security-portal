@@ -12,6 +12,7 @@ export interface ShareButtonsProps {
 export const ShareButtons: FC<ShareButtonsProps> = ({ title, url }) => {
     const shareUrl = url || window.location.href;
     const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [shareError, setShareError] = useState(false);
 
     const handleTwitterShare = () => {
         const text = `Check out "${title}" on Soroban Security Portal`;
@@ -29,7 +30,8 @@ export const ShareButtons: FC<ShareButtonsProps> = ({ title, url }) => {
             setSnackbarOpen(true);
         }).catch(() => {
             console.error('Failed to copy link');
-            alert('Failed to copy link');
+            setSnackbarOpen(true);
+            setShareError(true);
         });
     };
 
@@ -61,9 +63,15 @@ export const ShareButtons: FC<ShareButtonsProps> = ({ title, url }) => {
                 onClose={() => setSnackbarOpen(false)}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
-                <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{ width: '100%' }}>
-                    Link copied to clipboard!
-                </Alert>
+                {shareError ? (
+                    <Alert onClose={() => setSnackbarOpen(false)} severity="error" sx={{ width: '100%' }}>
+                        Failed to copy link
+                    </Alert>
+                ) : (
+                    <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{ width: '100%' }}>
+                        Link copied to clipboard!
+                    </Alert>
+                )}
             </Snackbar>
         </>
     );

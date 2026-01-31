@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { LOGO_URL } from '../../utils/constants';
 
 export interface SeoHeadProps {
   title: string;
@@ -19,7 +20,7 @@ export const SeoHead: FC<SeoHeadProps> = ({
   const metaDescription = description || 'Soroban security portal - audits, reports, and vulnerabilities.';
   const metaUrl = url || window.location.href;
   // Fallback image could be a generic logo if not provided
-  const metaImage = image || `${window.location.origin}/static/images/logo.png`;
+  const metaImage = image || LOGO_URL;
 
   return (
     <Helmet>
