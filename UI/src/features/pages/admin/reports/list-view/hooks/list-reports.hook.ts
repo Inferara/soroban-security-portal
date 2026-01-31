@@ -47,7 +47,12 @@ export const useListReports = (props: UseListReportsProps) => {
             // Clean up blob URL after a delay to ensure it loads
             setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
         } catch (error) {
+            const errorMessage =
+                error instanceof Error && error.message
+                    ? error.message
+                    : 'An unexpected error occurred while downloading the report.';
             console.error('Failed to download report:', error);
+            window.alert(`Failed to download report. ${errorMessage}`);
         }
     }, []);
 
