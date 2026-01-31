@@ -25,78 +25,71 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
 
         public async Task ProcessDigestsAsync()
         {
-            // 1. Find users who want the digest
+            // 1. Fetch Global Content (New in the last 7 days)
+            var oneWeekAgo = DateTime.UtcNow.AddDays(-7);
+
+            var newReports = await _db.Report
+                .Where(r => r.Date > oneWeekAgo)
+                .OrderByDescending(r => r.Date)
+                .Take(5)
+                .ToListAsync();
+
+            // Fetch new Vulnerabilities
+            var newVulns = await _db.Vulnerability
+                .Where(v => v.Date > oneWeekAgo) 
+                .OrderByDescending(v => v.Date)
+                .Take(5)
+                .ToListAsync();
+
+            // Fetch Top Forum Threads
+            var topThreads = await _db.ForumThread
+                .Where(t => t.CreatedAt > oneWeekAgo)
+                .OrderByDescending(t => t.ViewCount)
+                .Take(3)
+                .ToListAsync();
+
+            // 2. If no new content, stop (save resources)
+            if (!newReports.Any() && !newVulns.Any() && !topThreads.Any())
+            {
+                _logger.LogInformation("Weekly Digest: No new content to send.");
+                return;
+            }
+
+            // 3. Get Users who opted-in
             var users = await _db.UserProfiles
                 .Include(u => u.Login)
                 .Where(u => u.ReceiveWeeklyDigest && u.Login.IsEnabled)
                 .ToListAsync();
 
-            var oneWeekAgo = DateTime.UtcNow.AddDays(-7);
-
+            // 4. Send Emails
             foreach (var user in users)
             {
-                // Skip if sent recently (within 6 days) to avoid duplicate sends if service restarts
+                // Skip if sent recently (prevents spam on restart)
                 if (user.LastDigestSentAt.HasValue && user.LastDigestSentAt.Value > DateTime.UtcNow.AddDays(-6))
                     continue;
 
-                await ProcessSingleUserDigest(user, oneWeekAgo);
+                await SendDigestToUser(user, newReports, newVulns, topThreads);
             }
         }
 
-        private async Task ProcessSingleUserDigest(UserProfileModel user, DateTime since)
+        private async Task SendDigestToUser(UserProfileModel user, List<ReportModel> reports, List<VulnerabilityModel> vulns, List<ForumThreadModel> threads)
         {
             try
             {
-                // 2. Get Subscriptions
-                var subscriptions = await _db.Subscription
-                    .Where(s => s.UserId == user.LoginId)
-                    .ToListAsync();
+                string body = BuildEmailHtml(user.Login.FullName ?? "User", reports, vulns, threads);
 
-                if (!subscriptions.Any()) return;
-                var followedCompanyIds = subscriptions
-                    .Where(s => s.EntityType == EntityType.Company) 
-                    .Select(s => s.EntityId)
-                    .ToList();
+                await _emailService.SendEmailAsync(user.Login.Email, "Weekly Soroban Security Update", body);
 
-                // 3. Aggregate Data
+                if (_db.Entry(user).State == EntityState.Detached) 
+                    _db.UserProfiles.Attach(user);
                 
-                var newReports = await _db.Report
-                    .Where(r => followedCompanyIds.Contains(r.CompanyId) && r.Created > since)
-                    .OrderByDescending(r => r.Created)
-                    .Take(5)
-                    .ToListAsync();
-
-                var newVulns = await _db.Vulnerability
-                    .Where(v => followedCompanyIds.Contains(v.CompanyId) && v.Created > since)
-                    .OrderByDescending(v => v.Created)
-                    .Take(5)
-                    .ToListAsync();
-
-                var topThreads = await _db.ForumThread
-                    .Where(t => t.CreatedAt > since)
-                    .OrderByDescending(t => t.ViewCount)
-                    .Take(3)
-                    .ToListAsync();
-
-                // 4. Check if content exists
-                if (!newReports.Any() && !newVulns.Any() && !topThreads.Any())
-                    return;
-
-                // 5. Build HTML
-                string body = BuildEmailHtml(user.Login.FullName ?? "User", newReports, newVulns, topThreads);
-
-                // 6. Send
-                await _emailService.SendEmailAsync(user.Login.Email, "Your Weekly Soroban Security Digest", body);
-
-                // 7. Update User Profile 
-                _db.UserProfiles.Attach(user);
                 user.LastDigestSentAt = DateTime.UtcNow;
                 user.UpdatedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to process digest for user {user.LoginId}");
+                _logger.LogError(ex, $"Failed to send digest to user {user.LoginId}");
             }
         }
 
@@ -104,13 +97,13 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
         {
             var sb = new StringBuilder();
             sb.Append($"<h2>Hello {name},</h2>");
-            sb.Append("<p>Here is your weekly summary of activity on the Soroban Security Portal.</p>");
+            sb.Append("<p>Here is what happened this week on the Soroban Security Portal.</p>");
 
             if (reports.Any())
             {
                 sb.Append("<h3> New Audit Reports</h3><ul>");
                 foreach (var r in reports)
-                    sb.Append($"<li><strong>{r.Title}</strong> ({r.Created:MMM dd})</li>");
+                    sb.Append($"<li><strong>{r.Name}</strong> ({r.Date:MMM dd})</li>");
                 sb.Append("</ul>");
             }
 
@@ -130,7 +123,7 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
                 sb.Append("</ul>");
             }
 
-            sb.Append("<hr/><p><small>To unsubscribe, visit your profile settings.</small></p>");
+            sb.Append("<hr/><p><small>To unsubscribe, update your profile settings.</small></p>");
             return sb.ToString();
         }
     }
