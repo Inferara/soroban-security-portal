@@ -16,17 +16,20 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IReportProcessor _reportProcessor;
         private readonly UserContextAccessor _userContextAccessor;
         private readonly IGeminiEmbeddingService _embeddingService;
+        private readonly IReputationService _reputationService;
 
         public ReportService(
             IMapper mapper,
             IReportProcessor reportProcessor,
             UserContextAccessor userContextAccessor,
-            IGeminiEmbeddingService embeddingService)
+            IGeminiEmbeddingService embeddingService,
+            IReputationService reputationService)
         {
             _mapper = mapper;
             _reportProcessor = reportProcessor;
             _userContextAccessor = userContextAccessor;
             _embeddingService = embeddingService;
+            _reputationService = reputationService;
         }
 
         public async Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearchViewModel)
@@ -99,7 +102,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var loginId = await _userContextAccessor.GetLoginIdAsync();
             if (!await CanApproveReport(reportModel, loginId))
                 return new Result<bool, string>.Err("You cannot approve this report.");
+            
+            // Check if report was already approved to avoid duplicate reputation awards
+            var wasAlreadyApproved = reportModel.Status == ReportModelStatus.Approved;
+            
             await _reportProcessor.Approve(reportModel, loginId);
+            
+            // Award reputation to the report creator (only if newly approved)
+            if (!wasAlreadyApproved)
+            {
+                await _reputationService.AwardReportApprovalAsync(reportModel.CreatedBy);
+            }
+            
             return new Result<bool, string>.Ok(true);
         }
 

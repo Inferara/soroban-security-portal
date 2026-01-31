@@ -3,6 +3,7 @@ using Pgvector;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Data.Processors;
+using SorobanSecurityPortalApi.Services.ControllersServices;
 
 namespace SorobanSecurityPortalApi.Services.ProcessingServices
 {
@@ -12,16 +13,20 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
         private readonly IReportProcessor _reportProcessor;
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
         private readonly IGeminiEmbeddingService _embeddingService;
+        private readonly IReputationService _reputationService;
+        private DateTime _lastReputationRecalculation = DateTime.MinValue;
 
         public BackgroundWorkingHostedService(
             IReportProcessor reportProcessor,
             IVulnerabilityProcessor vulnerabilityProcessor,
             IGeminiEmbeddingService embeddingService,
+            IReputationService reputationService,
             Config config)
         {
             _reportProcessor = reportProcessor;
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _embeddingService = embeddingService;
+            _reputationService = reputationService;
             _config = config;
         }
 
@@ -33,6 +38,14 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
                 await DoReportsFix();
                 await DoReportsEmbedding();
                 await DoVulnerabilitiesEmbedding();
+                
+                // Run reputation recalculation once per day (data integrity check)
+                if (DateTime.UtcNow - _lastReputationRecalculation > TimeSpan.FromHours(24))
+                {
+                    await DoReputationRecalculation();
+                    _lastReputationRecalculation = DateTime.UtcNow;
+                }
+                
                 await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
 
             }
@@ -99,6 +112,18 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
                 {
                     Console.WriteLine($"Error during vulnerability ({vulnerability.Title} / {vulnerability.Id}) embedding: {ex.Message}");
                 }
+            }
+        }
+
+        private async Task DoReputationRecalculation()
+        {
+            try
+            {
+                await _reputationService.RecalculateAllUsersReputationAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during reputation recalculation: {ex.Message}");
             }
         }
 
