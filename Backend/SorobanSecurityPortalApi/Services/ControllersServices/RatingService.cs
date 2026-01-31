@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using SorobanSecurityPortalApi.Common;
@@ -25,12 +26,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly Db _db;
         private readonly IDistributedCache _cache;
         private readonly UserContextAccessor _userContext;
+        private readonly IMapper _mapper;
 
-        public RatingService(Db db, IDistributedCache cache, UserContextAccessor userContext)
+        public RatingService(Db db, IDistributedCache cache, UserContextAccessor userContext, IMapper mapper)
         {
             _db = db;
             _cache = cache;
             _userContext = userContext;
+            _mapper = mapper;
         }
 
         public async Task<RatingSummaryViewModel> GetSummary(EntityType entityType, int entityId)
@@ -88,19 +91,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var ratings = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(r => new RatingViewModel
-                {
-                    Id = r.Id,
-                    UserId = r.UserId,
-                    EntityType = r.EntityType,
-                    EntityId = r.EntityId,
-                    Score = r.Score,
-                    Review = r.Review,
-                    CreatedAt = r.CreatedAt
-                })
                 .ToListAsync();
 
-            return ratings;
+            return _mapper.Map<List<RatingViewModel>>(ratings);
         }
 
         public async Task<RatingViewModel> AddOrUpdateRating(CreateRatingRequest request)
@@ -113,37 +106,22 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             if (existing != null)
             {
-                existing.Score = request.Score;
-                existing.Review = request.Review;
+                _mapper.Map(request, existing);
                 existing.UpdatedAt = DateTime.UtcNow;
             }
             else
             {
-                existing = new RatingModel
-                {
-                    UserId = userId,
-                    EntityType = request.EntityType,
-                    EntityId = request.EntityId,
-                    Score = request.Score,
-                    Review = request.Review,
-                    CreatedAt = DateTime.UtcNow
-                };
+                existing = _mapper.Map<RatingModel>(request);
+                existing.UserId = userId;
+                existing.CreatedAt = DateTime.UtcNow;
+                
                 _db.Rating.Add(existing);
             }
 
             await _db.SaveChangesAsync();
             await InvalidateSummaryCache(request.EntityType, request.EntityId);
 
-            return new RatingViewModel
-            {
-                Id = existing.Id,
-                UserId = existing.UserId,
-                EntityType = existing.EntityType,
-                EntityId = existing.EntityId,
-                Score = existing.Score,
-                Review = existing.Review,
-                CreatedAt = existing.CreatedAt
-            };
+            return _mapper.Map<RatingViewModel>(existing);
         }
 
         public async Task DeleteRating(int id)
