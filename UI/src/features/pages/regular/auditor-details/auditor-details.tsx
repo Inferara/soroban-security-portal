@@ -41,6 +41,8 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong, formatMonthYear } from '../../../../utils';
+import VerifiedBadge from '../../../../components/common/VerifiedBadge';
+import ClaimProfileButton from '../../../../components/claim/ClaimProfileButton';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
@@ -141,6 +143,12 @@ export const AuditorDetails: FC = () => {
             subtitle="Security Auditor"
             description={`Since ${formatDateLong(auditor.date)}`}
             websiteUrl={auditor.url}
+            headerExtra={(
+              <>
+                <VerifiedBadge verified={auditor.isVerified} method={auditor.verificationMethod} />
+                <ClaimProfileButton entityType="auditor" entityId={auditor.id} />
+              </>
+            )}
             actions={
               canAddReport && (
                 <Button
