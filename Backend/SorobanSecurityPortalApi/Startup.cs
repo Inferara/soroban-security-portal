@@ -9,6 +9,9 @@ using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Common.Data;
 using AspNetCore.Authentication.Basic;
 using Microsoft.OpenApi.Models;
+using SorobanSecurityPortalApi.Services;
+using SorobanSecurityPortalApi.Services.ControllersServices;
+using SorobanSecurityPortalApi.Services.ProcessingServices;
 
 namespace SorobanSecurityPortalApi;
 
@@ -37,6 +40,10 @@ public class Startup
                 .AllowAnyHeader()
             );
         });
+
+        services.AddSingleton<IEmailService, ConsoleEmailService>();
+        services.AddScoped<IDigestService, DigestService>();
+        services.AddHostedService<DigestHostedService>();
 
         services.AddSingleton(_config);
         services.AddSingleton<IDataSourceProvider, DataSourceProvider>(e => new DataSourceProvider(_config));
