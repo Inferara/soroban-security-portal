@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -14,9 +15,11 @@ using SorobanSecurityPortalApi.Models.DbModels;
 namespace SorobanSecurityPortalApi.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20260124161106_AddUserProfileEntity")]
+    partial class AddUserProfileEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -392,7 +395,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2026, 1, 27, 5, 40, 58, 575, DateTimeKind.Utc).AddTicks(7690),
+                            Created = new DateTime(2026, 1, 24, 16, 11, 5, 692, DateTimeKind.Utc).AddTicks(7700),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -606,6 +609,11 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("expertise_tags");
 
+                    b.Property<string>("GithubHandle")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("github_handle");
+
                     b.Property<string>("Location")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -618,6 +626,11 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.Property<int>("ReputationScore")
                         .HasColumnType("integer")
                         .HasColumnName("reputation_score");
+
+                    b.Property<string>("TwitterHandle")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("twitter_handle");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
