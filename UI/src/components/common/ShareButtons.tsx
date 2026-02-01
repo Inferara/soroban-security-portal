@@ -60,15 +60,32 @@ export const ShareButtons: FC<ShareButtonsProps> = ({ title, url }) => {
             <Snackbar
                 open={snackbarOpen}
                 autoHideDuration={3000}
-                onClose={() => setSnackbarOpen(false)}
+                onClose={() => {
+                    setSnackbarOpen(false);
+                    setShareError(false);
+                }}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
                 {shareError ? (
-                    <Alert onClose={() => setSnackbarOpen(false)} severity="error" sx={{ width: '100%' }}>
+                    <Alert
+                        onClose={() => {
+                            setSnackbarOpen(false);
+                            setShareError(false);
+                        }}
+                        severity="error"
+                        sx={{ width: '100%' }}
+                    >
                         Failed to copy link
                     </Alert>
                 ) : (
-                    <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{ width: '100%' }}>
+                    <Alert
+                        onClose={() => {
+                            setSnackbarOpen(false);
+                            setShareError(false);
+                        }}
+                        severity="success"
+                        sx={{ width: '100%' }}
+                    >
                         Link copied to clipboard!
                     </Alert>
                 )}
