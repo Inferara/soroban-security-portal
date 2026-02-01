@@ -457,6 +457,11 @@ export const Vulnerabilities: FC = () => {
     });
   };
 
+  const handleSearch = () => {
+    setCurrentPage(1); // Reset to first page when searching
+    callSearch();
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ padding: '24px' }}>
@@ -478,7 +483,8 @@ export const Vulnerabilities: FC = () => {
             onChange={e => setSearch(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') {
-                callSearch();
+                e.preventDefault();
+                handleSearch();
               }
             }}
             placeholder="Search"
@@ -550,8 +556,7 @@ export const Vulnerabilities: FC = () => {
             variant="contained"
             disabled={isLoading}
             onClick={() => {
-              setCurrentPage(1); // Reset to first page when searching
-              callSearch();
+              handleSearch();
             }}
           >
             {isLoading ? (
