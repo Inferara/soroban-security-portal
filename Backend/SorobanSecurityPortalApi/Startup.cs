@@ -9,6 +9,9 @@ using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Common.Data;
 using AspNetCore.Authentication.Basic;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
+using SorobanSecurityPortalApi.Hubs;
+using SorobanSecurityPortalApi.Services;
 
 namespace SorobanSecurityPortalApi;
 
@@ -55,6 +58,31 @@ public class Startup
                 Password = _config.DistributedCachePassword,
             };
         });
+
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var config = sp.GetRequiredService<Config>();
+            var configurationOptions = new StackExchange.Redis.ConfigurationOptions
+            {
+                EndPoints = { config.DistributedCacheUrl },
+                Password = config.DistributedCachePassword,
+                AbortOnConnectFail = false
+            };
+            return ConnectionMultiplexer.Connect(configurationOptions);
+        });
+
+        services.AddSignalR()
+            .AddStackExchangeRedis(options =>
+            {
+                options.Configuration = new StackExchange.Redis.ConfigurationOptions
+                {
+                    EndPoints = { _config.DistributedCacheUrl },
+                    Password = _config.DistributedCachePassword,
+                    AbortOnConnectFail = false
+                };
+            });
+
+        services.AddSingleton<INotificationDispatcher, NotificationDispatcher>();
         services.AddScoped<Db>();
         services.AddDbContextFactory<Db>();
         services.AddHttpContextAccessor();
@@ -102,7 +130,24 @@ public class Startup
                     return JwtBearerDefaults.AuthenticationScheme;
                 };
             })
-            .AddJwtBearer(options => { options.TokenValidationParameters = tokenValidationParameters; })
+            .AddJwtBearer(options => 
+            { 
+                options.TokenValidationParameters = tokenValidationParameters;
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            (path.StartsWithSegments("/hubs/notifications")))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
+            })
             .AddBasic<BasicUserValidationService>(options => { options.SuppressWWWAuthenticateHeader = true; });
 
         services.AddAutoMapper(typeof(Startup));
@@ -179,6 +224,7 @@ public class Startup
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
+            endpoints.MapHub<NotificationHub>("/hubs/notifications");
             endpoints.MapHealthChecks("/health", new HealthCheckOptions
             {
                 ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
