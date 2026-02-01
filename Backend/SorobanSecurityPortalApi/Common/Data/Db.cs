@@ -25,12 +25,11 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<ForumCategoryModel> ForumCategory { get; set; }
         public DbSet<ForumThreadModel> ForumThread { get; set; }
         public DbSet<ForumPostModel> ForumPost { get; set; }
-        public DbSet<RatingModel> Rating { get; set; }
-
-
+        public virtual DbSet<RatingModel> Rating { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
+        public Db(DbContextOptions<Db> options) : base(options) { }
 
         public Db(IDbQuery dbQuery, ILogger<Db> logger, IDataSourceProvider dataSourceProvider)
         {
