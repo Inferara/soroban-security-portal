@@ -6,4 +6,7 @@ export interface AuditorItem {
   url: string;
   date: Date;
   createdBy: string;
+  isVerified?: boolean;
+  verificationMethod?: string;
+  verificationDate?: Date | null;
 }

@@ -41,6 +41,8 @@ import {
   transformSeverityBreakdown,
   transformCategoryBreakdown,
 } from '../../../../components/details';
+import VerifiedBadge from '../../../../components/common/VerifiedBadge';
+import ClaimProfileButton from '../../../../components/claim/ClaimProfileButton';
 import { formatDateLong } from '../../../../utils';
 
 export const ProtocolDetails: FC = () => {
@@ -56,6 +58,7 @@ export const ProtocolDetails: FC = () => {
     loading,
     error
   } = useProtocolDetails();
+  console.log("Protocol details: ", protocol, company)
 
   const { tabValue, tabProps } = useDetailTabs(0);
 
@@ -175,6 +178,12 @@ export const ProtocolDetails: FC = () => {
               title={protocol.name}
               subtitle={company ? `by ${company.name}` : undefined}
               websiteUrl={protocol.url}
+              headerExtra={(
+                <>
+                  <VerifiedBadge verified={protocol.isVerified} method={protocol.verificationMethod} />
+                  <ClaimProfileButton entityType="protocol" entityId={protocol.id} />
+                </>
+              )}
               actions={
                 <>
                   {company?.url && (
