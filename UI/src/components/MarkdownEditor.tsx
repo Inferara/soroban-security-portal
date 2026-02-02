@@ -29,7 +29,7 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   // Debounced user search function
-  const debouncedSearchUsers = useCallback(
+const debouncedSearchUsers = useCallback(
     (query: string): Promise<UserSearchResult[]> => {
       return new Promise((resolve) => {
         debounce(async (q: string) => {
