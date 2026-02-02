@@ -199,11 +199,6 @@ export const MarkdownView: FC<MarkdownViewProps> = ({
                 </CodeBlock>
               );
             }) as React.ComponentType,
-            p: ({ children, ...props }) => (
-              <p {...props}>
-                {children}
-              </p>
-            ),
             span: ({ className, children, ...props }) => {
               if (className && className.includes('math')) {
                 return <span className={className} {...props}>{children}</span>;
