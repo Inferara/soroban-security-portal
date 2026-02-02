@@ -73,9 +73,6 @@ interface MarkdownViewProps {
   background?: SxProps<Theme>;
   sx?: SxProps<Theme>;
 }
-
-
-
 export const MarkdownView: FC<MarkdownViewProps> = ({ 
   content, 
   emptyMessage = 'No content to preview',
