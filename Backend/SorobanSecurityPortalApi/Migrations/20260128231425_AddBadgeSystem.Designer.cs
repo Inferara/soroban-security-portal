@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -14,9 +15,11 @@ using SorobanSecurityPortalApi.Models.DbModels;
 namespace SorobanSecurityPortalApi.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20260128231425_AddBadgeSystem")]
+    partial class AddBadgeSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -268,83 +271,6 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("client_sso");
                 });
 
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.CommentModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AuthorId")
-                        .HasColumnType("integer")
-                        .HasColumnName("author_id");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("content");
-
-                    b.Property<string>("ContentHtml")
-                        .HasColumnType("text")
-                        .HasColumnName("content_html");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<int>("DownvoteCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("downvote_count");
-
-                    b.Property<int>("EntityId")
-                        .HasColumnType("integer")
-                        .HasColumnName("entity_id");
-
-                    b.Property<string>("EntityType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("entity_type");
-
-                    b.Property<int?>("ParentCommentId")
-                        .HasColumnType("integer")
-                        .HasColumnName("parent_comment_id");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<int>("UpvoteCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("upvote_count");
-
-                    b.HasKey("Id")
-                        .HasName("pk_comments");
-
-                    b.HasIndex("AuthorId")
-                        .HasDatabaseName("ix_comments_author");
-
-                    b.HasIndex("ParentCommentId")
-                        .HasDatabaseName("ix_comments_parent_comment_id");
-
-                    b.HasIndex("EntityType", "EntityId")
-                        .HasDatabaseName("ix_comments_entity");
-
-                    b.ToTable("comments");
-                });
-
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.CompanyModel", b =>
                 {
                     b.Property<int>("Id")
@@ -562,7 +488,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2026, 1, 29, 14, 40, 12, 120, DateTimeKind.Utc).AddTicks(9158),
+                            Created = new DateTime(2026, 1, 28, 23, 14, 18, 430, DateTimeKind.Utc).AddTicks(7509),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -574,43 +500,6 @@ namespace SorobanSecurityPortalApi.Migrations
                             PersonalInfo = "",
                             Role = 1000
                         });
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.MentionModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("integer")
-                        .HasColumnName("comment_id");
-
-                    b.Property<int>("Length")
-                        .HasColumnType("integer")
-                        .HasColumnName("length");
-
-                    b.Property<int>("MentionedUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("mentioned_user_id");
-
-                    b.Property<int>("StartIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("start_index");
-
-                    b.HasKey("Id")
-                        .HasName("pk_mentions");
-
-                    b.HasIndex("CommentId")
-                        .HasDatabaseName("ix_mentions_comment_id");
-
-                    b.HasIndex("MentionedUserId")
-                        .HasDatabaseName("ix_mentions_mentioned_user_id");
-
-                    b.ToTable("mentions");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ModerationLogModel", b =>
@@ -841,6 +730,35 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("subscription");
                 });
 
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserBadgeModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("AwardedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("awarded_at");
+
+                    b.Property<Guid>("BadgeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("badge_id");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_user_badges");
+
+                    b.HasIndex("BadgeId")
+                        .HasDatabaseName("ix_user_badges_badge_id");
+
+                    b.ToTable("user_badges");
+                });
+
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", b =>
                 {
                     b.Property<int>("Id")
@@ -976,78 +894,6 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("vulnerability");
                 });
 
-            modelBuilder.Entity("UserBadgeModel", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("AwardedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("awarded_at");
-
-                    b.Property<Guid>("BadgeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("badge_id");
-
-                    b.Property<int>("UserProfileId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_profile_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_user_badges");
-
-                    b.HasIndex("BadgeId")
-                        .HasDatabaseName("ix_user_badges_badge_id");
-
-                    b.HasIndex("UserProfileId")
-                        .HasDatabaseName("ix_user_badges_user_profile_id");
-
-                    b.ToTable("user_badges");
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.CommentModel", b =>
-                {
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_comments_login_author_id");
-
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.CommentModel", "ParentComment")
-                        .WithMany("Replies")
-                        .HasForeignKey("ParentCommentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_comments_comments_parent_comment_id");
-
-                    b.Navigation("Author");
-
-                    b.Navigation("ParentComment");
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.MentionModel", b =>
-                {
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.CommentModel", "Comment")
-                        .WithMany("Mentions")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_mentions_comments_comment_id");
-
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "MentionedUser")
-                        .WithMany()
-                        .HasForeignKey("MentionedUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_mentions_login_mentioned_user_id");
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("MentionedUser");
-                });
-
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProtocolModel", b =>
                 {
                     b.HasOne("SorobanSecurityPortalApi.Models.DbModels.CompanyModel", "Company")
@@ -1075,6 +921,18 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.Navigation("Protocol");
                 });
 
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserBadgeModel", b =>
+                {
+                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.BadgeDefinitionModel", "Badge")
+                        .WithMany()
+                        .HasForeignKey("BadgeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_badges_badge_definitions_badge_id");
+
+                    b.Navigation("Badge");
+                });
+
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", b =>
                 {
                     b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Login")
@@ -1097,37 +955,9 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("UserBadgeModel", b =>
-                {
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.BadgeDefinitionModel", "Badge")
-                        .WithMany()
-                        .HasForeignKey("BadgeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_badges_badge_definitions_badge_id");
-
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", "UserProfile")
-                        .WithMany()
-                        .HasForeignKey("UserProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_badges_user_profiles_user_profile_id");
-
-                    b.Navigation("Badge");
-
-                    b.Navigation("UserProfile");
-                });
-
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.AuditorModel", b =>
                 {
                     b.Navigation("Reports");
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.CommentModel", b =>
-                {
-                    b.Navigation("Mentions");
-
-                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.CompanyModel", b =>
