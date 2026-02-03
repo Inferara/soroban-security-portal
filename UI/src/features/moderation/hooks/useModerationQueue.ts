@@ -108,7 +108,7 @@ export const useModerationQueue = () => {
         if (!loading && stats) {
             const pendingCount = items.filter(i => i.status === 'pending').length;
             const processedCount = items.filter(i => i.status !== 'pending').length;
-            
+
             setStats(prev => {
                 if (!prev) return null;
                 return {
@@ -120,7 +120,7 @@ export const useModerationQueue = () => {
                 };
             });
         }
-    }, [items, loading, stats]);
+    }, [items, loading]);
 
     return { items, stats, loading, handleAction };
 };

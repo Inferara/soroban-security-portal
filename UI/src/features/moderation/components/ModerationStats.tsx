@@ -27,7 +27,7 @@ export const ModerationStats = ({ stats }: StatsProps) => {
                 <StatCard
                     title="Queue Size"
                     value={stats.queueSize}
-                    icon={<Flag />}
+                    icon={<Flag aria-label="Queue size indicator" />}
                     color={theme.palette.warning.main}
                 />
             </Grid>
@@ -35,7 +35,7 @@ export const ModerationStats = ({ stats }: StatsProps) => {
                 <StatCard
                     title="Actions Today"
                     value={stats.actionsToday}
-                    icon={<AssignmentTurnedIn />}
+                    icon={<AssignmentTurnedIn aria-label="Actions completed today" />}
                     color={theme.palette.primary.main}
                 />
             </Grid>
@@ -43,7 +43,7 @@ export const ModerationStats = ({ stats }: StatsProps) => {
                 <StatCard
                     title="Weekly Actions"
                     value={stats.actionsThisWeek}
-                    icon={<VisibilityOff />}
+                    icon={<VisibilityOff aria-label="Weekly moderation actions" />}
                     color={theme.palette.info.main}
                 />
             </Grid>
@@ -51,7 +51,7 @@ export const ModerationStats = ({ stats }: StatsProps) => {
                 <StatCard
                     title="Monthly Actions"
                     value={stats.actionsThisMonth}
-                    icon={<Delete />}
+                    icon={<Delete aria-label="Monthly moderation actions" />}
                     color={theme.palette.error.main}
                 />
             </Grid>
