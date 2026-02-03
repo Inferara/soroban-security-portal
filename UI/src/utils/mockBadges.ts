@@ -48,7 +48,7 @@ export const MOCK_BADGES: UserBadge[] = [
     {
         id: '5',
         name: 'Code Reviewer',
-        description: 'Review 25 audit reports',
+        description: 'Reviewed 25 audit reports',
         category: BadgeCategory.CONTRIBUTION,
         rarity: BadgeRarity.RARE,
         icon: '📝',
