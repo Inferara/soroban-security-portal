@@ -29,7 +29,6 @@ namespace SorobanSecurityPortalApi.Common.Data
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
-        public Db(DbContextOptions<Db> options) : base(options) { }
 
         public Db(IDbQuery dbQuery, ILogger<Db> logger, IDataSourceProvider dataSourceProvider)
         {
