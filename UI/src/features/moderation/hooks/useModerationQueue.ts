@@ -16,7 +16,7 @@ const MOCK_DATA: FlaggedContent[] = [
             avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Angry'
         },
         flagCount: 5,
-        reasons: { spam: 1, misinformation: 3, harassment: 1 } as any,
+        reasons: { spam: 1, misinformation: 3, harassment: 1, inappropriate: 0, other: 0 },
         firstFlaggedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
         lastFlaggedAt: new Date(Date.now() - 3600000).toISOString(),
         status: 'pending',
@@ -36,7 +36,7 @@ const MOCK_DATA: FlaggedContent[] = [
             avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sec'
         },
         flagCount: 1,
-        reasons: { spam: 1 } as any,
+        reasons: { spam: 1, misinformation: 0, harassment: 0, inappropriate: 0, other: 0 },
         firstFlaggedAt: new Date(Date.now() - 86400000).toISOString(),
         lastFlaggedAt: new Date(Date.now() - 86400000).toISOString(),
         status: 'pending',
@@ -55,7 +55,7 @@ const MOCK_DATA: FlaggedContent[] = [
             reputationScore: 0,
         },
         flagCount: 15,
-        reasons: { spam: 15 } as any,
+        reasons: { spam: 15, misinformation: 0, harassment: 0, inappropriate: 0, other: 0 },
         firstFlaggedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
         lastFlaggedAt: new Date(Date.now() - 10000).toISOString(),
         status: 'pending',

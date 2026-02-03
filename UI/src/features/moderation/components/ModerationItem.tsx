@@ -92,7 +92,7 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                         key={reason}
                         label={`${reason} (${count})`}
                         size="small"
-                        color={getReasonColor(reason as FlagReason) as any}
+                        color={getReasonColor(reason as FlagReason)}
                         variant="outlined"
                     />
                 ))}

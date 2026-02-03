@@ -6,10 +6,12 @@ interface StatsProps {
     stats: StatsType;
 }
 
-export const ModerationStats = ({ stats }: StatsProps) => {
+
+
+const StatCard = ({ title, value, icon, color }: { title: string, value: number, icon: React.ReactNode, color: string }) => {
     const theme = useTheme();
 
-    const StatCard = ({ title, value, icon, color }: { title: string, value: number, icon: React.ReactNode, color: string }) => (
+    return (
         <Paper elevation={0} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${theme.palette.divider}` }}>
             <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: color + '20', color: color }}>
                 {icon}
@@ -20,6 +22,10 @@ export const ModerationStats = ({ stats }: StatsProps) => {
             </Box>
         </Paper>
     );
+};
+
+export const ModerationStats = ({ stats }: StatsProps) => {
+    const theme = useTheme();
 
     return (
         <Grid container spacing={3} sx={{ mb: 4 }}>
