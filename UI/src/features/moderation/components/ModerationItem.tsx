@@ -87,15 +87,17 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                 <Typography variant="body2" fontWeight="bold" sx={{ mr: 1, alignSelf: 'center' }}>
                     Flags ({item.flagCount}):
                 </Typography>
-                {Object.entries(item.reasons).map(([reason, count]) => (
-                    <Chip
-                        key={reason}
-                        label={`${reason} (${count})`}
-                        size="small"
-                        color={getReasonColor(reason as FlagReason)}
-                        variant="outlined"
-                    />
-                ))}
+                {Object.entries(item.reasons)
+                    .filter(([, count]) => count > 0)
+                    .map(([reason, count]) => (
+                        <Chip
+                            key={reason}
+                            label={`${reason} (${count})`}
+                            size="small"
+                            color={getReasonColor(reason as FlagReason)}
+                            variant="outlined"
+                        />
+                    ))}
             </Stack>
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
