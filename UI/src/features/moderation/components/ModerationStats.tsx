@@ -1,6 +1,6 @@
 import { Box, Paper, Grid, Typography, useTheme } from '@mui/material';
 import { ModerationStats as StatsType } from '../types';
-import { AssignmentTurnedIn, Flag, Delete, VisibilityOff } from '@mui/icons-material';
+import { AssignmentTurnedIn, Flag, CalendarToday, Timeline } from '@mui/icons-material';
 
 interface StatsProps {
     stats: StatsType;
@@ -49,7 +49,7 @@ export const ModerationStats = ({ stats }: StatsProps) => {
                 <StatCard
                     title="Weekly Actions"
                     value={stats.actionsThisWeek}
-                    icon={<VisibilityOff aria-label="Weekly moderation actions" />}
+                    icon={<Timeline aria-label="Weekly moderation actions" />}
                     color={theme.palette.info.main}
                 />
             </Grid>
@@ -57,7 +57,7 @@ export const ModerationStats = ({ stats }: StatsProps) => {
                 <StatCard
                     title="Monthly Actions"
                     value={stats.actionsThisMonth}
-                    icon={<Delete aria-label="Monthly moderation actions" />}
+                    icon={<CalendarToday aria-label="Monthly moderation actions" />}
                     color={theme.palette.error.main}
                 />
             </Grid>
