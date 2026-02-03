@@ -64,7 +64,7 @@ export const ModerationDashboard = () => {
                                 <MenuItem value="comment">Comments</MenuItem>
                                 <MenuItem value="report">Reports</MenuItem>
                                 <MenuItem value="user_profile">User Profiles</MenuItem>
-                                <MenuItem value="vulnerability">Vulnerability</MenuItem>
+                                <MenuItem value="vulnerability">Vulnerabilities</MenuItem>
                             </Select>
                         </FormControl>
                     </Box>
