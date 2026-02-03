@@ -37,7 +37,7 @@ export function BadgeShowcase({ badges }: BadgeShowcaseProps) {
                 </Typography>
                 <LinearProgress
                     variant="determinate"
-                    value={(earnedBadges.length / badges.length) * 100}
+                    value={badges.length > 0 ? (earnedBadges.length / badges.length) * 100 : 0}
                     sx={{ height: 8, borderRadius: 4 }}
                 />
             </Box>
