@@ -31,7 +31,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
             var authorId = 1;
             var entityType = "Vulnerability";
             var entityId = 101;
-            var content = "Hey @Georgii, check this **bug** out!";
+            var content = "Check this **bug** out!";
 
             _mockProcessor.Setup(p => p.AddComment(It.IsAny<CommentModel>()))
                 .ReturnsAsync((CommentModel c) => { c.Id = 55; return c; });
