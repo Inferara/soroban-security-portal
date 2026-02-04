@@ -113,7 +113,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 existing = _mapper.Map<RatingModel>(request);
                 existing.UserId = userId;
-                existing.CreatedAt = DateTime.UtcNow;
                 
                 _db.Rating.Add(existing);
             }
