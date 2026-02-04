@@ -25,6 +25,8 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<ForumCategoryModel> ForumCategory { get; set; }
         public DbSet<ForumThreadModel> ForumThread { get; set; }
         public DbSet<ForumPostModel> ForumPost { get; set; }
+
+
         public virtual DbSet<RatingModel> Rating { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
@@ -39,7 +41,7 @@ namespace SorobanSecurityPortalApi.Common.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-             /* 
+            /* 
             After updating to EF Core version: 9.0.0, the error "The model for context 'Db' has pending changes." occurs.
             To avoid this error we suppress the corresponding warning
             Reference: https://github.com/dotnet/efcore/issues/34431
