@@ -1,8 +1,11 @@
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using SorobanSecurityPortalApi.Common;
 
 namespace SorobanSecurityPortalApi.Services.ProcessingServices
 {
-    public class DigestHostedService : IHostedService
+    public class DigestHostedService : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly Config _config;
@@ -15,59 +18,65 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
             _logger = logger;
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Digest Hosted Service started.");
-            
-            _ = ExecuteLoopAsync(cancellationToken);
-            
-            await Task.CompletedTask;
-        }
 
-        private async Task ExecuteLoopAsync(CancellationToken cancellationToken)
-        {
-            while (!cancellationToken.IsCancellationRequested)
+            while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    var now = DateTime.UtcNow;
+                    // Calculate delay until next Friday at 09:00 UTC
+                    var delay = CalculateDelayUntilNextRun(DayOfWeek.Friday, 9);
+                    
+                    _logger.LogInformation($"Next Weekly Digest run scheduled in: {delay.TotalHours:F2} hours.");
 
-                    // Run every Friday at 09:00 UTC
-                    if (now.DayOfWeek == DayOfWeek.Friday && now.Hour == 9)
-                    {
-                        _logger.LogInformation("Starting Weekly Digest Job...");
-                        
-                        using (var scope = _serviceProvider.CreateScope())
-                        {
-                            var digestService = scope.ServiceProvider.GetRequiredService<IDigestService>();
-                            await digestService.ProcessDigestsAsync();
-                        }
+                    await Task.Delay(delay, stoppingToken);
 
-                        // Sleep for 65 minutes to ensure we don't trigger again this hour
-                        await Task.Delay(TimeSpan.FromMinutes(65), cancellationToken);
-                    }
-                    else
+                    // Execution Time
+                    _logger.LogInformation("Starting Weekly Digest Job...");
+                    
+                    using (var scope = _serviceProvider.CreateScope())
                     {
-                        // Check again in 30 minutes
-                        await Task.Delay(TimeSpan.FromMinutes(30), cancellationToken);
+                        var digestService = scope.ServiceProvider.GetRequiredService<IDigestService>();
+                        await digestService.ProcessDigestsAsync();
                     }
                 }
-                catch (TaskCanceledException) 
+                catch (TaskCanceledException)
                 {
                     break;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error in DigestHostedService loop.");
-                    // Retry after 5 minutes on error
-                    await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+                    _logger.LogError(ex, "Error in DigestHostedService loop. Retrying in 1 hour.");
+                    // Prevent tight loop on crash
+                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
                 }
             }
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        private TimeSpan CalculateDelayUntilNextRun(DayOfWeek targetDay, int targetHour)
         {
-            return Task.CompletedTask;
+            var now = DateTime.UtcNow;
+            var today = now.Date;
+            var nextRun = today;
+
+            // Advance days until we hit the target day of week
+            while (nextRun.DayOfWeek != targetDay)
+            {
+                nextRun = nextRun.AddDays(1);
+            }
+
+            // Set the specific hour
+            nextRun = nextRun.AddHours(targetHour);
+
+            // If the time has already passed for today (e.g., it's Friday 10am), schedule for next week
+            if (nextRun <= now)
+            {
+                nextRun = nextRun.AddDays(7);
+            }
+
+            return nextRun - now;
         }
     }
 }

@@ -41,14 +41,13 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
                 .Take(5)
                 .ToListAsync();
 
-            // Fetch Top Forum Threads
             var topThreads = await _db.ForumThread
                 .Where(t => t.CreatedAt > oneWeekAgo)
                 .OrderByDescending(t => t.ViewCount)
                 .Take(3)
                 .ToListAsync();
 
-            // 2. If no new content, stop (save resources)
+            // 2. If no new content, stop
             if (!newReports.Any() && !newVulns.Any() && !topThreads.Any())
             {
                 _logger.LogInformation("Weekly Digest: No new content to send.");
@@ -64,7 +63,7 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
             // 4. Send Emails
             foreach (var user in users)
             {
-                // Skip if sent recently (prevents spam on restart)
+                // Skip if sent recently (prevent spam if service restarts)
                 if (user.LastDigestSentAt.HasValue && user.LastDigestSentAt.Value > DateTime.UtcNow.AddDays(-6))
                     continue;
 
@@ -80,8 +79,6 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
 
                 await _emailService.SendEmailAsync(user.Login.Email, "Weekly Soroban Security Update", body);
 
-                if (_db.Entry(user).State == EntityState.Detached) 
-                    _db.UserProfiles.Attach(user);
                 
                 user.LastDigestSentAt = DateTime.UtcNow;
                 user.UpdatedAt = DateTime.UtcNow;
@@ -101,7 +98,7 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
 
             if (reports.Any())
             {
-                sb.Append("<h3> New Audit Reports</h3><ul>");
+                sb.Append("<h3>New Audit Reports</h3><ul>");
                 foreach (var r in reports)
                     sb.Append($"<li><strong>{r.Name}</strong> ({r.Date:MMM dd})</li>");
                 sb.Append("</ul>");
@@ -109,7 +106,7 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
 
             if (vulns.Any())
             {
-                sb.Append("<h3> New Vulnerabilities</h3><ul>");
+                sb.Append("<h3>New Vulnerabilities</h3><ul>");
                 foreach (var v in vulns)
                     sb.Append($"<li><strong>{v.Title}</strong> - Severity: {v.Severity}</li>");
                 sb.Append("</ul>");
@@ -117,7 +114,7 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
 
             if (threads.Any())
             {
-                sb.Append("<h3> Trending Discussions</h3><ul>");
+                sb.Append("<h3>Trending Discussions</h3><ul>");
                 foreach (var t in threads)
                     sb.Append($"<li><strong>{t.Title}</strong></li>");
                 sb.Append("</ul>");
