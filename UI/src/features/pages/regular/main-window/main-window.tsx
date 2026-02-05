@@ -37,6 +37,7 @@ import { ProtocolDetails } from '../protocol-details/protocol-details';
 import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
 import { CompanyDetails } from '../company-details/company-details';
+import { Forum, CategoryThreads } from '../forum';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
@@ -95,6 +96,7 @@ export const MainWindow: FC = () => {
     { label: 'Home', path: '/' },
     { label: 'Reports', path: '/reports' },
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
+    { label: 'Forum', path: '/forum' },
     { label: 'About', path: '/about' },
   ];
   const isAdminUser =
@@ -358,6 +360,8 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
             <Route path={`${environment.basePath}/auditor/:id`} element={<AuditorDetails />} />
             <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
+            <Route path={`${environment.basePath}/forum`} element={<Forum />} />
+            <Route path={`${environment.basePath}/forum/c/:slug`} element={<CategoryThreads />} />
           </Routes>
         </Box>
       </Box>
