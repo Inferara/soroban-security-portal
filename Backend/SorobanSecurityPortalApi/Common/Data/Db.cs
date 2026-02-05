@@ -20,6 +20,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<FileModel> File { get; set; }
         public DbSet<CompanyModel> Company { get; set; }
         public DbSet<BookmarkModel> Bookmark { get; set; }
+        public DbSet<CommentModel> Comments { get; set; }
         public DbSet<ModerationLogModel> ModerationLog { get; set; }
         public DbSet<UserProfileModel> UserProfiles { get; set; }
         public DbSet<ForumCategoryModel> ForumCategory { get; set; }
