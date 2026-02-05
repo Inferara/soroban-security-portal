@@ -53,6 +53,9 @@ public class Startup
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddTransients();
+
+        services.AddScoped<IRatingService, RatingService>();
+
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = _config.DistributedCacheUrl;
