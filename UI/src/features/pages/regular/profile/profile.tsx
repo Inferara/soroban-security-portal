@@ -16,6 +16,7 @@ import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
+import { WatchedSection } from '../../../../components/WatchedSection';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -286,6 +287,8 @@ export const Profile: React.FC = () => {
                   {userId == 0 ? 'Fill your info in Edit Profile page' : ''}
                 </PlaceholderText>
               )}
+                 {/* Watched Section */}
+                 <WatchedSection userId={userId} />
             </Box>
 
             {/* Connected Accounts */}
@@ -511,4 +514,4 @@ export const Profile: React.FC = () => {
       </Box>
     </ProfileContainer>
   );
-} 
+}

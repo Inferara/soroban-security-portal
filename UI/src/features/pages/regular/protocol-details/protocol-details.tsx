@@ -42,11 +42,12 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
+import { WatchButton } from '../../../../components/WatchButton';
 
 export const ProtocolDetails: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { canAddReport } = useAppAuth();
+  const { canAddReport, user } = useAppAuth();
 
   const {
     protocol,
@@ -177,6 +178,7 @@ export const ProtocolDetails: FC = () => {
               websiteUrl={protocol.url}
               actions={
                 <>
+                  <WatchButton userId={user?.id} entityId={protocol.id} entityType="Protocol" />
                   {company?.url && (
                     <Button
                       variant="contained"

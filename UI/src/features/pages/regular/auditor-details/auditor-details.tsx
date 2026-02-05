@@ -41,11 +41,12 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong, formatMonthYear } from '../../../../utils';
+import { WatchButton } from '../../../../components/WatchButton';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { canAddReport } = useAppAuth();
+  const { canAddReport, user } = useAppAuth();
 
   const {
     auditor,
@@ -142,16 +143,19 @@ export const AuditorDetails: FC = () => {
             description={`Since ${formatDateLong(auditor.date)}`}
             websiteUrl={auditor.url}
             actions={
-              canAddReport && (
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  startIcon={<Assessment />}
-                  onClick={() => navigate(`/reports/add?auditor=${encodeURIComponent(auditor.name)}`)}
-                >
-                  Add Report
-                </Button>
-              )
+                <>
+                  <WatchButton userId={user?.id} entityId={auditor.id} entityType="Auditor" />
+                  {canAddReport && (
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      startIcon={<Assessment />}
+                      onClick={() => navigate(`/reports/add?auditor=${encodeURIComponent(auditor.name)}`)}
+                    >
+                      Add Report
+                    </Button>
+                  )}
+                </>
             }
           />
 
