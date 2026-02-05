@@ -32,6 +32,7 @@ import { AddReport } from '../reports-add/reports-add';
 import { About } from '../about/about';
 import { Profile } from '../profile/profile';
 import { EditProfile } from '../profile/edit-profile';
+import { UserProfile } from '../user-profile/user-profile';
 import { VulnerabilityDetails } from '../vulnerability-details/vulnerability-details';
 import { ProtocolDetails } from '../protocol-details/protocol-details';
 import { ReportDetails } from '../report-details/report-details';
@@ -353,6 +354,7 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/about`} element={<About />} />
             <Route path={`${environment.basePath}/profile`} element={<Profile />} />
             <Route path={`${environment.basePath}/profile/edit`} element={<EditProfile />} />
+            <Route path={`${environment.basePath}/user/:id`} element={<UserProfile />} />
             <Route path={`${environment.basePath}/vulnerability/:id`} element={<VulnerabilityDetails />} />
             <Route path={`${environment.basePath}/protocol/:id`} element={<ProtocolDetails />} />
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
