@@ -1,4 +1,4 @@
-import { FC, useState, useRef, useCallback } from 'react';
+import { FC, useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Box, Typography, Tabs, Tab, useTheme } from '@mui/material';
 import { Editor } from '@monaco-editor/react';
 import { useTheme as useThemeContext } from '../contexts/ThemeContext';
@@ -28,31 +28,39 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
   const [activeTab, setActiveTab] = useState(0);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-  // Debounced user search function
-const debouncedSearchUsers = useCallback(
-    (query: string): Promise<UserSearchResult[]> => {
-      return new Promise((resolve) => {
-        debounce(async (q: string) => {
-          if (q.length < 2) {
-            resolve([]);
-            return;
-          }
-          try {
-            const result = await searchUsersCall(q, 5);
-            resolve(result);
-          } catch (error) {
-            console.error('Error searching users:', error);
-            resolve([]);
-          }
-        }, 300)(query);
-      });
-    },
+  const debouncedSearchFn = useMemo(
+    () =>
+      debounce(async (q: string): Promise<UserSearchResult[]> => {
+        if (q.length < 2) {
+          return [];
+        }
+        try {
+          return await searchUsersCall(q, 5);
+        } catch (error) {
+          console.error('Error searching users:', error);
+          return [];
+        }
+      }, 300),
     []
   );
 
+  useEffect(() => {
+    return () => {
+      debouncedSearchFn.cancel();
+    };
+  }, [debouncedSearchFn]);
+
+  const debouncedSearchUsers = useCallback(
+    (query: string): Promise<UserSearchResult[]> => {
+      const result = debouncedSearchFn(query);
+      return result ?? Promise.resolve([]);
+    },
+    [debouncedSearchFn]
+  );
+
   // Handle editor mount
-  const handleEditorDidMount = useCallback((editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
-    editorRef.current = editor;
+  const handleEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor, monaco: any) => {
+    editorRef.current = editorInstance;
 
     // Register completion provider for @ mentions
     monaco.languages.registerCompletionItemProvider('markdown', {
