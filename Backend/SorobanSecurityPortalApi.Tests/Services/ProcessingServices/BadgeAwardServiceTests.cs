@@ -6,6 +6,7 @@ using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SorobanSecurityPortalApi.Tests.Services
@@ -26,22 +27,22 @@ namespace SorobanSecurityPortalApi.Tests.Services
         [Fact]
         public async Task CheckAndAwardReputationBadges_ShouldAward_WhenReputationThresholdMet()
         {
-            // Arrange
             int userId = 1;
             int userReputation = 500;
-            var badgeId = Guid.NewGuid();
+            int goldBadgeId = 10;
+            int eliteBadgeId = 11; 
 
             var badgeDefinitions = new List<BadgeDefinitionModel>
             {
                 new BadgeDefinitionModel 
                 { 
-                    Id = badgeId, 
+                    Id = goldBadgeId, 
                     Name = "Gold Contributor", 
                     Criteria = "reputation:400" 
                 },
                 new BadgeDefinitionModel 
                 { 
-                    Id = Guid.NewGuid(), 
+                    Id = eliteBadgeId, 
                     Name = "Elite Contributor", 
                     Criteria = "reputation:1000" 
                 }
@@ -50,18 +51,14 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _mockProcessor.Setup(p => p.GetAllBadgeDefinitions())
                 .ReturnsAsync(badgeDefinitions);
 
-            _mockProcessor.Setup(p => p.AwardBadge(userId, badgeId))
+            _mockProcessor.Setup(p => p.AwardBadge(userId, goldBadgeId))
                 .ReturnsAsync(true);
 
-            // Act
             await _service.CheckAndAwardReputationBadges(userId, userReputation);
 
-            // Assert
-            // Should award the "reputation:400" badge because 500 >= 400
-            _mockProcessor.Verify(p => p.AwardBadge(userId, badgeId), Times.Once);
+            _mockProcessor.Verify(p => p.AwardBadge(userId, goldBadgeId), Times.Once);
             
-            // Should NOT award the "reputation:1000" badge
-            _mockProcessor.Verify(p => p.AwardBadge(userId, It.Is<Guid>(g => g != badgeId)), Times.Never);
+            _mockProcessor.Verify(p => p.AwardBadge(userId, eliteBadgeId), Times.Never);
         }
 
         [Fact]
@@ -69,7 +66,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
         {
             int userId = 1;
             string criteria = "first_comment";
-            var badgeId = Guid.NewGuid();
+            int badgeId = 1; 
 
             var badgeDefinitions = new List<BadgeDefinitionModel>
             {
@@ -90,7 +87,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
             int userId = 1;
             var badgeDefinitions = new List<BadgeDefinitionModel>
             {
-                new BadgeDefinitionModel { Id = Guid.NewGuid(), Criteria = "reputation:abc" }
+                new BadgeDefinitionModel { Id = 99, Criteria = "reputation:abc" }
             };
 
             _mockProcessor.Setup(p => p.GetAllBadgeDefinitions())
@@ -98,7 +95,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             await _service.CheckAndAwardReputationBadges(userId, 100);
 
-            _mockProcessor.Verify(p => p.AwardBadge(It.IsAny<int>(), It.IsAny<Guid>()), Times.Never);
+            _mockProcessor.Verify(p => p.AwardBadge(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
     }
 }
