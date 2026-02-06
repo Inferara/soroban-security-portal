@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useState } from 'react';
 import React from 'react';
 import {
   Box,
@@ -14,6 +14,12 @@ import {
   ListItemAvatar,
   Link as MuiLink,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Rating as MuiRating,
 } from '@mui/material';
 import {
   Business,
@@ -25,12 +31,15 @@ import {
   Grading,
 } from '@mui/icons-material';
 import { LineChart } from '@mui/x-charts/LineChart';
+import { BarChart } from '@mui/x-charts/BarChart';
 import { useNavigate } from 'react-router-dom';
 import { useProtocolDetails } from './hooks/protocol-details.hook';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { useAppAuth } from '../../../../features/authentication/useAppAuth';
 import { EntityAvatar } from '../../../../components/EntityAvatar';
+import { createOrUpdateRatingCall, RatingEntityType } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import type { Report } from '../../../../api/soroban-security-portal/models/report';
 import {
   DetailPageLayout,
   DetailPageHeader,
@@ -43,16 +52,36 @@ import {
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 
+interface AuditTimelineItem {
+  month: string;
+  audits: number;
+  auditors: number;
+}
+
+interface UniqueAuditorItem {
+  id: number;
+  name: string;
+}
+
 export const ProtocolDetails: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { canAddReport } = useAppAuth();
+
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [ratingScore, setRatingScore] = useState<number | null>(null);
+  const [ratingReview, setRatingReview] = useState('');
+  const [ratingSaving, setRatingSaving] = useState(false);
 
   const {
     protocol,
     company,
     reports,
     statistics,
+    ratingSummary,
+    recentReviews,
+    myRating,
+    refreshRatings,
     loading,
     error
   } = useProtocolDetails();
@@ -74,12 +103,12 @@ export const ProtocolDetails: FC = () => {
   );
 
   // Prepare audit timeline data (memoized for performance)
-  const auditTimelineData = useMemo(() => {
+  const auditTimelineData = useMemo<AuditTimelineItem[]>(() => {
     if (reports.length === 0) return [];
 
     const timelineMap = new Map<string, { month: string; audits: number; auditors: Set<string> }>();
 
-    reports.forEach(report => {
+    reports.forEach((report: Report) => {
       const date = new Date(report.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
@@ -106,11 +135,44 @@ export const ProtocolDetails: FC = () => {
       }));
   }, [reports]);
 
+  const ratingDistribution = useMemo(() => {
+    const dist = ratingSummary?.distribution;
+    return [1, 2, 3, 4, 5].map(star => ({
+      star,
+      count: dist ? (dist[star] ?? 0) : 0,
+    }));
+  }, [ratingSummary?.distribution]);
+
+  const openRatingDialog = () => {
+    setRatingScore(myRating?.score ?? null);
+    setRatingReview(myRating?.review ?? '');
+    setRatingDialogOpen(true);
+  };
+
+  const submitRating = async () => {
+    if (!protocol) return;
+    if (!ratingScore) return;
+
+    try {
+      setRatingSaving(true);
+      await createOrUpdateRatingCall({
+        entityType: RatingEntityType.Protocol,
+        entityId: protocol.id,
+        score: ratingScore,
+        review: ratingReview,
+      });
+      await refreshRatings(RatingEntityType.Protocol, protocol.id);
+      setRatingDialogOpen(false);
+    } finally {
+      setRatingSaving(false);
+    }
+  };
+
   // Get unique auditors for easy access (deduplicate by auditorId)
-  const uniqueAuditors = useMemo(() => {
+  const uniqueAuditors = useMemo<UniqueAuditorItem[]>(() => {
     if (reports.length === 0) return [];
     const auditorMap = new Map<number, { id: number; name: string }>();
-    reports.forEach(r => {
+    reports.forEach((r: Report) => {
       if (!auditorMap.has(r.auditorId)) {
         auditorMap.set(r.auditorId, { id: r.auditorId, name: r.auditorName });
       }
@@ -336,6 +398,91 @@ export const ProtocolDetails: FC = () => {
                   </CardContent>
                 </Card>
 
+                {/* Ratings */}
+                <Card sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        <Grading sx={{ mr: 1, verticalAlign: 'middle' }} />
+                        Ratings
+                      </Typography>
+                      <Button variant="outlined" size="small" onClick={openRatingDialog}>
+                        {myRating ? 'Update rating' : 'Rate'}
+                      </Button>
+                    </Stack>
+
+                    {ratingSummary ? (
+                      <Stack spacing={2}>
+                        <Box>
+                          <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                            {ratingSummary.weightedAverageScore?.toFixed(1) ?? ratingSummary.averageScore.toFixed(1)}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Average rating ({ratingSummary.totalReviews} total)
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ height: 160 }}>
+                          <BarChart
+                            xAxis={[{ data: ratingDistribution.map((d: { star: number; count: number }) => `${d.star}`), scaleType: 'band' }]}
+                            series={[{ data: ratingDistribution.map((d: { star: number; count: number }) => d.count), label: 'Ratings', color: theme.palette.primary.main }]}
+                            height={160}
+                            margin={{ left: 40, right: 10, top: 10, bottom: 30 }}
+                          />
+                        </Box>
+
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                            Recent reviews
+                          </Typography>
+                          {recentReviews.length > 0 ? (
+                            <List sx={{ px: 0 }}>
+                              {recentReviews.slice(0, 5).map((r, idx: number) => (
+                                <React.Fragment key={r.id}>
+                                  <ListItem sx={{ px: 0, alignItems: 'flex-start' }}>
+                                    <ListItemText
+                                      primary={
+                                        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+                                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                            {r.author.fullName}
+                                            <Typography component="span" variant="caption" color="text.secondary">&nbsp;(rep {r.author.reputationScore})</Typography>
+                                          </Typography>
+                                          <Typography variant="caption" color="text.secondary">
+                                            {formatDateLong(r.createdAt)}
+                                          </Typography>
+                                        </Stack>
+                                      }
+                                      secondary={
+                                        <Box sx={{ mt: 0.5 }}>
+                                          <MuiRating value={r.score} readOnly size="small" />
+                                          {r.review && (
+                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                                              {r.review}
+                                            </Typography>
+                                          )}
+                                        </Box>
+                                      }
+                                    />
+                                  </ListItem>
+                                  {idx < Math.min(recentReviews.length, 5) - 1 && <Divider />}
+                                </React.Fragment>
+                              ))}
+                            </List>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              No reviews yet
+                            </Typography>
+                          )}
+                        </Box>
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Ratings unavailable
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Auditors Overview */}
                 <Card sx={{ mb: 3 }}>
                   <CardContent>
@@ -454,6 +601,39 @@ export const ProtocolDetails: FC = () => {
               </Box>
             </Box>
           )}
+
+          <Dialog open={ratingDialogOpen} onClose={() => setRatingDialogOpen(false)} maxWidth="sm" fullWidth>
+            <DialogTitle>{myRating ? 'Update your rating' : 'Rate this protocol'}</DialogTitle>
+            <DialogContent>
+              <Stack spacing={2} sx={{ mt: 1 }}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Stars
+                  </Typography>
+                  <MuiRating
+                    value={ratingScore}
+                    onChange={(_: React.SyntheticEvent, value: number | null) => setRatingScore(value)}
+                    size="large"
+                  />
+                </Box>
+                <TextField
+                  label="Review (optional)"
+                  value={ratingReview}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRatingReview(e.target.value)}
+                  multiline
+                  minRows={3}
+                  inputProps={{ maxLength: 2000 }}
+                  fullWidth
+                />
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setRatingDialogOpen(false)} disabled={ratingSaving}>Cancel</Button>
+              <Button onClick={submitRating} variant="contained" disabled={ratingSaving || !ratingScore}>
+                {ratingSaving ? 'Saving…' : 'Save'}
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* Audit History Tab Content */}
           {tabValue === 1 && (

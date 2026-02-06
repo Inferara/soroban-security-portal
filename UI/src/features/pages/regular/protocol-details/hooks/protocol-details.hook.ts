@@ -4,7 +4,14 @@ import {
   getProtocolByIdCall,
   getCompanyByIdCall,
   getReportsCall,
-  getVulnerabilitiesCall
+  getVulnerabilitiesCall,
+  getRatingSummaryWeightedCall,
+  getRatingsWithAuthorCall,
+  getMyRatingCall,
+  RatingEntityType,
+  RatingSummaryWeighted,
+  RatingWithAuthor,
+  Rating
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
@@ -22,15 +29,29 @@ interface ProtocolStatistics {
 
 export const useProtocolDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const protocolId = parseInt(id ?? '0');
+  const protocolId = Number.parseInt(id ?? '0');
   
   const [protocol, setProtocol] = useState<ProtocolItem | null>(null);
   const [company, setCompany] = useState<CompanyItem | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [statistics, setStatistics] = useState<ProtocolStatistics | null>(null);
+  const [ratingSummary, setRatingSummary] = useState<RatingSummaryWeighted | null>(null);
+  const [recentReviews, setRecentReviews] = useState<RatingWithAuthor[]>([]);
+  const [myRating, setMyRating] = useState<Rating | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const refreshRatings = async (entityType: RatingEntityType, entityId: number) => {
+    const [summary, reviews, mine] = await Promise.all([
+      getRatingSummaryWeightedCall(entityType, entityId),
+      getRatingsWithAuthorCall(entityType, entityId, 1, true),
+      getMyRatingCall(entityType, entityId),
+    ]);
+    setRatingSummary(summary);
+    setRecentReviews(reviews);
+    setMyRating(mine);
+  };
 
   const calculateStatistics = (reports: Report[], vulnerabilities: Vulnerability[]): ProtocolStatistics => {
     const severityBreakdown: { [key: string]: number } = {};
@@ -104,6 +125,15 @@ export const useProtocolDetails = () => {
       const stats = calculateStatistics(reportsData, vulnerabilitiesData);
       setStatistics(stats);
 
+      // Fetch rating summary + recent reviews + my rating (best-effort)
+      try {
+        await refreshRatings(RatingEntityType.Protocol, protocolId);
+      } catch {
+        setRatingSummary(null);
+        setRecentReviews([]);
+        setMyRating(null);
+      }
+
     } catch (err) {
       console.error('Error fetching protocol details:', err);
       setError('Failed to load protocol details');
@@ -124,6 +154,11 @@ export const useProtocolDetails = () => {
     reports,
     vulnerabilities,
     statistics,
+    ratingSummary,
+    recentReviews,
+    myRating,
+    setMyRating,
+    refreshRatings,
     loading,
     error,
     protocolId
