@@ -65,9 +65,8 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
     // Register completion provider for @ mentions
     monaco.languages.registerCompletionItemProvider('markdown', {
       triggerCharacters: ['@'],
-      provideCompletionItems: async (model: editor.ITextModel, position: unknown) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pos = position as any;
+      provideCompletionItems: async (model: editor.ITextModel, position: editor.IPosition) => {
+        const pos = position;
         const lineContent = model.getLineContent(pos.lineNumber);
         const textBeforeCursor = lineContent.substring(0, pos.column - 1);
 
