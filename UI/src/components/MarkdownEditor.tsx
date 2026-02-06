@@ -1,6 +1,6 @@
 import { FC, useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Box, Typography, Tabs, Tab, useTheme } from '@mui/material';
-import { Editor } from '@monaco-editor/react';
+import { Editor, type Monaco } from '@monaco-editor/react';
 import { useTheme as useThemeContext } from '../contexts/ThemeContext';
 import { MarkdownView } from './MarkdownView';
 import { searchUsersCall } from '../api/soroban-security-portal/soroban-security-portal-api';
@@ -59,7 +59,7 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
   );
 
   // Handle editor mount
-  const handleEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor, monaco: any) => {
+  const handleEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
     editorRef.current = editorInstance;
 
     // Register completion provider for @ mentions
