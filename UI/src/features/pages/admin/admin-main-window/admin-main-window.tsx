@@ -49,6 +49,7 @@ import { EditTag } from '../tag/edit-item/edit-tag.tsx';
 import { Layout, AccentColors } from '../../../../theme';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { useResponsive } from '../../../../hooks';
+import { ModerationDashboard } from '../../../moderation/pages/ModerationDashboard';
 
 const drawerWidth = Layout.drawerWidth;
 const drawerMarginLeft = Layout.drawerMarginLeft;
@@ -160,7 +161,7 @@ export const AdminMainWindow: FC = () => {
           >
             <MenuIcon />
           </IconButton>
-          <Grid container spacing={1} sx={{width: '100%'}}>
+          <Grid container spacing={1} sx={{ width: '100%' }}>
             <Grid>
               <Typography variant="h5" noWrap component="div">
                 {currentPage.pageName}
@@ -273,7 +274,7 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/reports/edit`} element={<EditReport />} />
 
           <Route path={`${environment.basePath}/admin/subscriptions`} element={<Subscriptions />} />
-          
+
           <Route path={`${environment.basePath}/admin/auditors`} element={<ListAuditors />} />
           <Route path={`${environment.basePath}/admin/auditors/add`} element={<AddAuditor />} />
           <Route path={`${environment.basePath}/admin/auditors/edit`} element={<EditAuditor />} />
@@ -289,6 +290,8 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/tags`} element={<ListTags />} />
           <Route path={`${environment.basePath}/admin/tags/add`} element={<AddTag />} />
           <Route path={`${environment.basePath}/admin/tags/edit`} element={<EditTag />} />
+
+          <Route path={`${environment.basePath}/admin/moderation`} element={<ModerationDashboard />} />
 
           <Route path={`${environment.basePath}/*`} element={<NoPage />} />
         </Routes>

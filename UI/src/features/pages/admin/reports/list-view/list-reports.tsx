@@ -184,7 +184,7 @@ export const ReportManagement: FC = () => {
       width: 220,
       mobileWidth: 100,
       priority: 'important',
-    renderCell: (params: GridRenderCellParams<Report>) => (
+      renderCell: (params: GridRenderCellParams<Report>) => (
         <span style={{ color: getStatusColor(params.row.status ?? ''), fontWeight: 'bold' }}>
           {params.row.status}
         </span>
