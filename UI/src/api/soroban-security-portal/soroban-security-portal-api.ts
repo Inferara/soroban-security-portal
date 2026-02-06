@@ -13,6 +13,58 @@ import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
 
+export enum RatingEntityType {
+    Protocol = 0,
+    Auditor = 1,
+}
+
+export interface RatingSummary {
+    entityType: RatingEntityType;
+    entityId: number;
+    averageScore: number;
+    totalReviews: number;
+    distribution: Record<number, number>;
+}
+
+export interface RatingSummaryWeighted extends RatingSummary {
+    weightedAverageScore: number;
+    weightedTotalReviews: number;
+}
+
+export interface RatingAuthor {
+    loginId: number;
+    fullName: string;
+    reputationScore: number;
+}
+
+export interface Rating {
+    id: number;
+    userId: number;
+    entityType: RatingEntityType;
+    entityId: number;
+    score: number;
+    review: string;
+    createdAt: string;
+}
+
+export interface RatingWithAuthor {
+    id: number;
+    userId: number;
+    entityType: RatingEntityType;
+    entityId: number;
+    score: number;
+    review: string;
+    createdAt: string;
+    author: RatingAuthor;
+}
+
+export interface CreateRatingRequest {
+    entityType: RatingEntityType;
+    entityId: number;
+    score: number;
+    review: string;
+}
+
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
     const client = await getRestClient();
@@ -139,6 +191,45 @@ export const getProtocolStatisticsChanges = async (): Promise<StatisticsChanges>
     const client = await getRestClient();
     const response = await client.request('api/v1/protocols/statistics/changes', 'GET');
     return response.data as StatisticsChanges;
+};
+
+// --- RATINGS ---
+export const getRatingSummaryCall = async (entityType: RatingEntityType, entityId: number): Promise<RatingSummary> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings/summary?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as RatingSummary;
+};
+
+export const getRatingSummaryWeightedCall = async (entityType: RatingEntityType, entityId: number): Promise<RatingSummaryWeighted> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings/summary/weighted?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as RatingSummaryWeighted;
+};
+
+export const getRatingsWithAuthorCall = async (
+    entityType: RatingEntityType,
+    entityId: number,
+    page: number = 1,
+    reviewsOnly: boolean = false
+): Promise<RatingWithAuthor[]> => {
+    const client = await getRestClient();
+    const response = await client.request(
+        `api/v1/ratings/with-author?entityType=${entityType}&entityId=${entityId}&page=${page}&reviewsOnly=${reviewsOnly}`,
+        'GET'
+    );
+    return response.data as RatingWithAuthor[];
+};
+
+export const getMyRatingCall = async (entityType: RatingEntityType, entityId: number): Promise<Rating | null> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings/mine?entityType=${entityType}&entityId=${entityId}`, 'GET', undefined, true);
+    return (response?.data ?? null) as Rating | null;
+};
+
+export const createOrUpdateRatingCall = async (request: CreateRatingRequest): Promise<Rating> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/ratings', 'POST', request);
+    return response.data as Rating;
 };
 
 // --- COMPANIES ---
