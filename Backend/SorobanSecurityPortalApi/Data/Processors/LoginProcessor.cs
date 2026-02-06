@@ -99,9 +99,12 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<List<LoginModel>> SearchUsers(string query, int limit)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
+            var pattern = $"%{query}%";
+
             return await db.Login.AsNoTracking()
                 .Where(l => l.IsEnabled &&
-                           (l.Login.Contains(query) || l.FullName.Contains(query)))
+                            (EF.Functions.ILike(l.Login, pattern) ||
+                             EF.Functions.ILike(l.FullName, pattern)))
                 .OrderBy(l => l.Login)
                 .Take(limit)
                 .ToListAsync();
