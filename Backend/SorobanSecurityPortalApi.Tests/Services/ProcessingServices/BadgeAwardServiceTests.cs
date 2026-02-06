@@ -1,12 +1,11 @@
 using Moq;
 using Xunit;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using SorobanSecurityPortalApi.Services.ProcessingServices;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace SorobanSecurityPortalApi.Tests.Services
@@ -24,59 +23,37 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _service = new BadgeAwardService(_mockProcessor.Object, _mockLogger.Object);
         }
 
+
         [Fact]
         public async Task CheckAndAwardReputationBadges_ShouldAward_WhenReputationThresholdMet()
         {
             int userId = 1;
             int userReputation = 500;
             int goldBadgeId = 10;
-            int eliteBadgeId = 11; 
 
-            var badgeDefinitions = new List<BadgeDefinitionModel>
-            {
-                new BadgeDefinitionModel 
-                { 
-                    Id = goldBadgeId, 
-                    Name = "Gold Contributor", 
-                    Criteria = "reputation:400" 
-                },
-                new BadgeDefinitionModel 
-                { 
-                    Id = eliteBadgeId, 
-                    Name = "Elite Contributor", 
-                    Criteria = "reputation:1000" 
-                }
+            var badges = new List<BadgeDefinitionModel> {
+                new BadgeDefinitionModel { Id = goldBadgeId, Name = "Gold", Criteria = "reputation:400" }
             };
 
-            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions())
-                .ReturnsAsync(badgeDefinitions);
-
-            _mockProcessor.Setup(p => p.AwardBadge(userId, goldBadgeId))
-                .ReturnsAsync(true);
+            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions()).ReturnsAsync(badges);
+            _mockProcessor.Setup(p => p.AwardBadge(userId, goldBadgeId)).ReturnsAsync(true);
 
             await _service.CheckAndAwardReputationBadges(userId, userReputation);
 
             _mockProcessor.Verify(p => p.AwardBadge(userId, goldBadgeId), Times.Once);
-            
-            _mockProcessor.Verify(p => p.AwardBadge(userId, eliteBadgeId), Times.Never);
         }
 
         [Fact]
         public async Task AwardSpecificBadge_ShouldInvokeProcessor_WhenCriteriaMatches()
         {
-            int userId = 1;
-            string criteria = "first_comment";
-            int badgeId = 1; 
-
-            var badgeDefinitions = new List<BadgeDefinitionModel>
-            {
+            int userId = 1, badgeId = 1;
+            var badges = new List<BadgeDefinitionModel> {
                 new BadgeDefinitionModel { Id = badgeId, Criteria = "first_comment" }
             };
 
-            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions())
-                .ReturnsAsync(badgeDefinitions);
+            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions()).ReturnsAsync(badges);
 
-            await _service.AwardSpecificBadge(userId, criteria);
+            await _service.AwardSpecificBadge(userId, "first_comment");
 
             _mockProcessor.Verify(p => p.AwardBadge(userId, badgeId), Times.Once);
         }
@@ -84,18 +61,65 @@ namespace SorobanSecurityPortalApi.Tests.Services
         [Fact]
         public async Task CheckAndAwardReputationBadges_ShouldHandleInvalidCriteriaGracefully()
         {
-            int userId = 1;
-            var badgeDefinitions = new List<BadgeDefinitionModel>
-            {
+            var badges = new List<BadgeDefinitionModel> {
                 new BadgeDefinitionModel { Id = 99, Criteria = "reputation:abc" }
             };
 
-            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions())
-                .ReturnsAsync(badgeDefinitions);
+            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions()).ReturnsAsync(badges);
 
-            await _service.CheckAndAwardReputationBadges(userId, 100);
+            await _service.CheckAndAwardReputationBadges(1, 100);
 
             _mockProcessor.Verify(p => p.AwardBadge(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        }
+
+
+        [Theory]
+        [InlineData(399, false)] 
+        [InlineData(400, true)]  
+        public async Task CheckAndAward_BoundaryTests(int reputation, bool shouldAward)
+        {
+            int userId = 1, badgeId = 10;
+            var badges = new List<BadgeDefinitionModel> { 
+                new BadgeDefinitionModel { Id = badgeId, Criteria = "reputation:400" } 
+            };
+            
+            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions()).ReturnsAsync(badges);
+
+            await _service.CheckAndAwardReputationBadges(userId, reputation);
+
+            _mockProcessor.Verify(p => p.AwardBadge(userId, badgeId), shouldAward ? Times.Once() : Times.Never());
+        }
+
+        [Fact]
+        public async Task CheckAndAward_ShouldAwardMultipleBadges_WhenUserClearsMultipleThresholds()
+        {
+            int userId = 1;
+            var badges = new List<BadgeDefinitionModel> {
+                new BadgeDefinitionModel { Id = 1, Criteria = "reputation:100" },
+                new BadgeDefinitionModel { Id = 2, Criteria = "reputation:500" }
+            };
+
+            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions()).ReturnsAsync(badges);
+
+            await _service.CheckAndAwardReputationBadges(userId, 600);
+
+            _mockProcessor.Verify(p => p.AwardBadge(userId, 1), Times.Once);
+            _mockProcessor.Verify(p => p.AwardBadge(userId, 2), Times.Once);
+        }
+
+        [Fact]
+        public async Task AwardSpecificBadge_ShouldBeCaseInsensitive()
+        {
+            int userId = 1, badgeId = 5;
+            var badges = new List<BadgeDefinitionModel> { 
+                new BadgeDefinitionModel { Id = badgeId, Criteria = "FIRST_COMMENT" } 
+            };
+
+            _mockProcessor.Setup(p => p.GetAllBadgeDefinitions()).ReturnsAsync(badges);
+
+            await _service.AwardSpecificBadge(userId, "first_comment");
+
+            _mockProcessor.Verify(p => p.AwardBadge(userId, badgeId), Times.Once);
         }
     }
 }
