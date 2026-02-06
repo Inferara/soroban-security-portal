@@ -6,7 +6,7 @@ using SorobanSecurityPortalApi.Models.DbModels;
 
 #nullable disable
 
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+#pragma warning disable CA1814
 
 namespace SorobanSecurityPortalApi.Migrations
 {
@@ -20,7 +20,8 @@ namespace SorobanSecurityPortalApi.Migrations
                 name: "badge_definitions",
                 columns: table => new
                 {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     name = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
                     icon = table.Column<string>(type: "text", nullable: false),
@@ -56,9 +57,10 @@ namespace SorobanSecurityPortalApi.Migrations
                 name: "user_badges",
                 columns: table => new
                 {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
-                    user_id = table.Column<string>(type: "text", nullable: false),
-                    badge_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    user_id = table.Column<int>(type: "integer", nullable: false),
+                    badge_id = table.Column<int>(type: "integer", nullable: false),
                     awarded_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -77,12 +79,12 @@ namespace SorobanSecurityPortalApi.Migrations
                 columns: new[] { "id", "category", "criteria", "description", "icon", "name" },
                 values: new object[,]
                 {
-                    { new Guid("00000000-0000-0000-0000-000000000001"), 0, "first_comment", "Posted first comment", "🎉", "First Comment" },
-                    { new Guid("00000000-0000-0000-0000-000000000002"), 1, "first_report", "Submitted first report", "📝", "Reporter" },
-                    { new Guid("00000000-0000-0000-0000-000000000003"), 1, "first_vulnerability", "Added first vulnerability", "🔍", "Bug Hunter" },
-                    { new Guid("00000000-0000-0000-0000-000000000004"), 2, "reputation:100", "Reached 100 reputation", "⭐", "Rising Star" },
-                    { new Guid("00000000-0000-0000-0000-000000000005"), 2, "reputation:1000", "Reached 1000 reputation", "🏆", "Top Contributor" },
-                    { new Guid("00000000-0000-0000-0000-000000000006"), 3, "upvoted_comments:10", "10 upvoted comments", "💬", "Helpful" }
+                    { 1, 0, "first_comment", "Posted first comment", "🎉", "First Comment" },
+                    { 2, 1, "first_report", "Submitted first report", "📝", "Reporter" },
+                    { 3, 1, "first_vulnerability", "Added first vulnerability", "🔍", "Bug Hunter" },
+                    { 4, 2, "reputation:100", "Reached 100 reputation", "⭐", "Rising Star" },
+                    { 5, 2, "reputation:1000", "Reached 1000 reputation", "🏆", "Top Contributor" },
+                    { 6, 3, "upvoted_comments:10", "10 upvoted comments", "💬", "Helpful" }
                 });
 
             migrationBuilder.UpdateData(
