@@ -9,6 +9,9 @@ using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Common.Data;
 using AspNetCore.Authentication.Basic;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Options;
+using SorobanSecurityPortalApi.Data.Processors;
+using SorobanSecurityPortalApi.Services.ProcessingServices; 
 using SorobanSecurityPortalApi.Services.ControllersServices;
 
 namespace SorobanSecurityPortalApi;
@@ -16,10 +19,10 @@ namespace SorobanSecurityPortalApi;
 public class Startup
 {
     private readonly Config _config;
-    private static ILogger<Startup>? _logger;
+
     public Startup(IConfiguration configuration)
     {
-        _config = new Config();
+        _config = new Config(); 
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -41,9 +44,11 @@ public class Startup
 
         services.AddSingleton(_config);
         services.AddSingleton<IDataSourceProvider, DataSourceProvider>(e => new DataSourceProvider(_config));
+        
         services.ForInterfacesMatching("^I.*Processor$")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddScoped();
+
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddTransients();
@@ -59,35 +64,20 @@ public class Startup
                 Password = _config.DistributedCachePassword,
             };
         });
+
         services.AddScoped<Db>();
         services.AddDbContextFactory<Db>();
         services.AddHttpContextAccessor();
-        services.AddSingleton(sp => sp);
+        
         services.AddScoped<UserContextAccessor>();
         services.AddScoped<IUserContextAccessor>(sp => sp.GetRequiredService<UserContextAccessor>());
+        
         services.AddSingleton<ExtendedConfig>();
         services.AddSingleton<IExtendedConfig>(sp => sp.GetRequiredService<ExtendedConfig>());
-        var serviceProvider = services.BuildServiceProvider();
-        _logger = serviceProvider.GetRequiredService<ILogger<Startup>>();
-        var extendedConfig = serviceProvider.GetRequiredService<ExtendedConfig>();
 
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateAudience = true,
-            ValidateIssuer = true,
-            ValidateLifetime = true,
-            LifetimeValidator = (notBefore, expires, _, _) => notBefore <= DateTime.UtcNow && expires > DateTime.UtcNow,
-            ValidateIssuerSigningKey = true,
-            ValidAudience = extendedConfig.AuthAudience,
-            ValidIssuer = extendedConfig.AuthIssuer,
-            IssuerSigningKey = extendedConfig.AuthSecurityKey.GetSymmetricSecurityKey(),
-            ClockSkew = TimeSpan.Zero,
-        };
-        services.AddSingleton(tokenValidationParameters);
-        services.AddHttpContextAccessor();
-        services.AddScoped<HttpCallHandler>();
-        services.AddHttpClients(extendedConfig, _logger);
-        
+        services.AddScoped<IBadgeProcessor, BadgeProcessor>();
+        services.AddScoped<IBadgeAwardService, BadgeAwardService>();
+
         var combinedAuthenticationScheme = "Combined";
         services.AddAuthentication(options =>
         {
@@ -95,24 +85,46 @@ public class Startup
             options.DefaultChallengeScheme = combinedAuthenticationScheme;
             options.DefaultScheme = combinedAuthenticationScheme;
         })
-            .AddPolicyScheme(combinedAuthenticationScheme, "Bearer / Basic", options =>
+        .AddPolicyScheme(combinedAuthenticationScheme, "Bearer / Basic", options =>
+        {
+            options.ForwardDefaultSelector = context =>
             {
-                options.ForwardDefaultSelector = context =>
+                var isCombinedAuthorize = context.GetEndpoint()?.Metadata.FirstOrDefault(x => x.GetType() == typeof(CombinedAuthorizeAttribute)) != null;
+                var header = (string?)context.Request.Headers.Authorization ?? "";
+                if (header.StartsWith("Basic") && isCombinedAuthorize)
+                    return BasicDefaults.AuthenticationScheme;
+                return JwtBearerDefaults.AuthenticationScheme;
+            };
+        })
+        .AddJwtBearer()
+        .AddBasic<BasicUserValidationService>(options => { options.SuppressWWWAuthenticateHeader = true; });
+
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IExtendedConfig>((options, extendedConfig) =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    var isCombinedAuthorize = context.GetEndpoint()?.Metadata.FirstOrDefault(x => x.GetType() == typeof(CombinedAuthorizeAttribute)) != null;
-                    var header = (string?)context.Request.Headers.Authorization ?? "";
-                    if (header.StartsWith("Basic") && isCombinedAuthorize)
-                        return BasicDefaults.AuthenticationScheme;
-                    return JwtBearerDefaults.AuthenticationScheme;
+                    ValidateAudience = true,
+                    ValidateIssuer = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidAudience = extendedConfig.AuthAudience,
+                    ValidIssuer = extendedConfig.AuthIssuer,
+                    IssuerSigningKey = extendedConfig.AuthSecurityKey.GetSymmetricSecurityKey(),
+                    ClockSkew = TimeSpan.Zero,
+                    LifetimeValidator = (notBefore, expires, _, _) => notBefore <= DateTime.UtcNow && expires > DateTime.UtcNow,
                 };
-            })
-            .AddJwtBearer(options => { options.TokenValidationParameters = tokenValidationParameters; })
-            .AddBasic<BasicUserValidationService>(options => { options.SuppressWWWAuthenticateHeader = true; });
+            });
+
+        services.AddScoped<HttpCallHandler>();
+
+        services.AddHttpClients();
 
         services.AddAutoMapper(typeof(Startup));
         services.AddHealthChecks();
         services.AddControllers().AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
         services.AddEndpointsApiExplorer();
+        
         services.AddSwaggerGen(options =>
         {
             options.SwaggerDoc("v1", new OpenApiInfo
@@ -156,6 +168,9 @@ public class Startup
                 }
             });
         });
+
+
+       
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -167,19 +182,11 @@ public class Startup
         });
         app.UseCors("CorsPolicy");
         app.UseRouting();
-        app.UseSwagger(options =>
-        {
-            options.RouteTemplate = "/api/swagger/{documentName}/swagger.json";
-        });
-        app.UseSwaggerUI(options =>
-        {
-            options.RoutePrefix = "api/swagger";
-        });
+        app.UseSwagger(options => { options.RouteTemplate = "/api/swagger/{documentName}/swagger.json"; });
+        app.UseSwaggerUI(options => { options.RoutePrefix = "api/swagger"; });
         app.UseAuthentication();
         app.UseAuthorization();
-
         app.UseMiddleware<ExceptionHandlingMiddleware>();
-
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
@@ -189,6 +196,5 @@ public class Startup
             });
         });
     }
-
-
 }
+

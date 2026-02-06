@@ -2,6 +2,7 @@ using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using SorobanSecurityPortalApi.Common;
 
 namespace SorobanSecurityPortalApi.Common.Data
 {
@@ -26,6 +27,8 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<ForumThreadModel> ForumThread { get; set; }
         public DbSet<ForumPostModel> ForumPost { get; set; }
 
+        public DbSet<BadgeDefinitionModel> BadgeDefinitions { get; set; }
+        public DbSet<UserBadgeModel> UserBadges { get; set; }
 
         public virtual DbSet<RatingModel> Rating { get; set; }
         private readonly IDbQuery _dbQuery;
@@ -41,8 +44,7 @@ namespace SorobanSecurityPortalApi.Common.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            /* 
-            After updating to EF Core version: 9.0.0, the error "The model for context 'Db' has pending changes." occurs.
+            /* After updating to EF Core version: 9.0.0, the error "The model for context 'Db' has pending changes." occurs.
             To avoid this error we suppress the corresponding warning
             Reference: https://github.com/dotnet/efcore/issues/34431
             */
@@ -131,7 +133,8 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .HasIndex(r => new { r.EntityType, r.EntityId });
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
-                .HasName("similarity"); // PostgreSQL built-in function
+                .HasName("similarity"); 
+
             foreach (var entity in builder.Model.GetEntityTypes())
             {
                 var tableName = entity.GetTableName();
@@ -164,6 +167,15 @@ namespace SorobanSecurityPortalApi.Common.Data
                         index.SetDatabaseName(dbName.ToSnakeCase());
                 }
             }
+
+            builder.Entity<BadgeDefinitionModel>().HasData(
+                new BadgeDefinitionModel { Id = 1, Name = "First Comment", Description = "Posted first comment", Icon = "🎉", Category = BadgeCategory.Participation, Criteria = "first_comment" },
+                new BadgeDefinitionModel { Id = 2, Name = "Reporter", Description = "Submitted first report", Icon = "📝", Category = BadgeCategory.Contribution, Criteria = "first_report" },
+                new BadgeDefinitionModel { Id = 3, Name = "Bug Hunter", Description = "Added first vulnerability", Icon = "🔍", Category = BadgeCategory.Contribution, Criteria = "first_vulnerability" },
+                new BadgeDefinitionModel { Id = 4, Name = "Rising Star", Description = "Reached 100 reputation", Icon = "⭐", Category = BadgeCategory.Expertise, Criteria = "reputation:100" },
+                new BadgeDefinitionModel { Id = 5, Name = "Top Contributor", Description = "Reached 1000 reputation", Icon = "🏆", Category = BadgeCategory.Expertise, Criteria = "reputation:1000" },
+                new BadgeDefinitionModel { Id = 6, Name = "Helpful", Description = "10 upvoted comments", Icon = "💬", Category = BadgeCategory.Community, Criteria = "upvoted_comments:10" }
+            );
 
             builder.Entity<LoginModel>().HasData(
                 new LoginModel

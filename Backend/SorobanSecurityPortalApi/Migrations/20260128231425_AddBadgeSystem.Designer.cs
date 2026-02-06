@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -14,9 +15,11 @@ using SorobanSecurityPortalApi.Models.DbModels;
 namespace SorobanSecurityPortalApi.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20260128231425_AddBadgeSystem")]
+    partial class AddBadgeSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,12 +77,10 @@ namespace SorobanSecurityPortalApi.Migrations
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.BadgeDefinitionModel", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Category")
                         .HasColumnType("integer")
@@ -113,7 +114,7 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 1,
+                            Id = new Guid("00000000-0000-0000-0000-000000000001"),
                             Category = 0,
                             Criteria = "first_comment",
                             Description = "Posted first comment",
@@ -122,7 +123,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         },
                         new
                         {
-                            Id = 2,
+                            Id = new Guid("00000000-0000-0000-0000-000000000002"),
                             Category = 1,
                             Criteria = "first_report",
                             Description = "Submitted first report",
@@ -131,7 +132,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         },
                         new
                         {
-                            Id = 3,
+                            Id = new Guid("00000000-0000-0000-0000-000000000003"),
                             Category = 1,
                             Criteria = "first_vulnerability",
                             Description = "Added first vulnerability",
@@ -140,7 +141,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         },
                         new
                         {
-                            Id = 4,
+                            Id = new Guid("00000000-0000-0000-0000-000000000004"),
                             Category = 2,
                             Criteria = "reputation:100",
                             Description = "Reached 100 reputation",
@@ -149,7 +150,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         },
                         new
                         {
-                            Id = 5,
+                            Id = new Guid("00000000-0000-0000-0000-000000000005"),
                             Category = 2,
                             Criteria = "reputation:1000",
                             Description = "Reached 1000 reputation",
@@ -158,7 +159,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         },
                         new
                         {
-                            Id = 6,
+                            Id = new Guid("00000000-0000-0000-0000-000000000006"),
                             Category = 3,
                             Criteria = "upvoted_comments:10",
                             Description = "10 upvoted comments",
@@ -358,212 +359,6 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("file");
                 });
 
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ForumCategoryModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
-                    b.Property<bool>("IsLocked")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_locked");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("Slug")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("slug");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer")
-                        .HasColumnName("sort_order");
-
-                    b.HasKey("Id")
-                        .HasName("pk_forum_category");
-
-                    b.HasIndex("Slug")
-                        .IsUnique()
-                        .HasDatabaseName("ix_forum_category_slug");
-
-                    b.ToTable("forum_category");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "General discussions about the portal.",
-                            IsLocked = false,
-                            Name = "General",
-                            Slug = "general",
-                            SortOrder = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Discussions about smart contract development.",
-                            IsLocked = false,
-                            Name = "Soroban Development",
-                            Slug = "soroban-development",
-                            SortOrder = 2
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Sharing security tips and patterns.",
-                            IsLocked = false,
-                            Name = "Security Best Practices",
-                            Slug = "security-best-practices",
-                            SortOrder = 3
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Deep dives into specific vulnerabilities.",
-                            IsLocked = false,
-                            Name = "Vulnerability Discussions",
-                            Slug = "vulnerability-discussions",
-                            SortOrder = 4
-                        });
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ForumPostModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AuthorId")
-                        .HasColumnType("integer")
-                        .HasColumnName("author_id");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("content");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("IsFirstPost")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_first_post");
-
-                    b.Property<int>("ThreadId")
-                        .HasColumnType("integer")
-                        .HasColumnName("thread_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<int>("Votes")
-                        .HasColumnType("integer")
-                        .HasColumnName("votes");
-
-                    b.HasKey("Id")
-                        .HasName("pk_forum_post");
-
-                    b.HasIndex("AuthorId")
-                        .HasDatabaseName("ix_forum_post_author_id");
-
-                    b.HasIndex("ThreadId", "CreatedAt")
-                        .HasDatabaseName("ix_forum_post_thread_id_created_at");
-
-                    b.ToTable("forum_post");
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ForumThreadModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AuthorId")
-                        .HasColumnType("integer")
-                        .HasColumnName("author_id");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("integer")
-                        .HasColumnName("category_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("IsLocked")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_locked");
-
-                    b.Property<bool>("IsPinned")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_pinned");
-
-                    b.Property<string>("Slug")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("slug");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("title");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<int>("ViewCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("view_count");
-
-                    b.HasKey("Id")
-                        .HasName("pk_forum_thread");
-
-                    b.HasIndex("AuthorId")
-                        .HasDatabaseName("ix_forum_thread_author_id");
-
-                    b.HasIndex("Slug")
-                        .IsUnique()
-                        .HasDatabaseName("ix_forum_thread_slug");
-
-                    b.HasIndex("CategoryId", "IsPinned", "CreatedAt")
-                        .HasDatabaseName("ix_forum_thread_category_id_is_pinned_created_at");
-
-                    b.ToTable("forum_thread");
-                });
-
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.LoginHistoryModel", b =>
                 {
                     b.Property<int>("LoginHistoryId")
@@ -693,7 +488,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2026, 2, 6, 11, 37, 57, 84, DateTimeKind.Utc).AddTicks(1777),
+                            Created = new DateTime(2026, 1, 28, 23, 14, 18, 430, DateTimeKind.Utc).AddTicks(7509),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -809,58 +604,6 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasDatabaseName("ix_protocol_company_id");
 
                     b.ToTable("protocol");
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.RatingModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<int>("EntityId")
-                        .HasColumnType("integer")
-                        .HasColumnName("entity_id");
-
-                    b.Property<int>("EntityType")
-                        .HasColumnType("integer")
-                        .HasColumnName("entity_type");
-
-                    b.Property<string>("Review")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("review");
-
-                    b.Property<int>("Score")
-                        .HasColumnType("integer")
-                        .HasColumnName("score");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_rating");
-
-                    b.HasIndex("EntityType", "EntityId")
-                        .HasDatabaseName("ix_rating_entity_type_entity_id");
-
-                    b.HasIndex("UserId", "EntityType", "EntityId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_rating_user_id_entity_type_entity_id");
-
-                    b.ToTable("rating");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ReportModel", b =>
@@ -989,33 +732,29 @@ namespace SorobanSecurityPortalApi.Migrations
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserBadgeModel", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("AwardedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("awarded_at");
 
-                    b.Property<int>("BadgeId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("BadgeId")
+                        .HasColumnType("uuid")
                         .HasColumnName("badge_id");
 
-                    b.Property<int>("UserProfileId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_profile_id");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id")
                         .HasName("pk_user_badges");
 
                     b.HasIndex("BadgeId")
                         .HasDatabaseName("ix_user_badges_badge_id");
-
-                    b.HasIndex("UserProfileId")
-                        .HasDatabaseName("ix_user_badges_user_profile_id");
 
                     b.ToTable("user_badges");
                 });
@@ -1155,48 +894,6 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("vulnerability");
                 });
 
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ForumPostModel", b =>
-                {
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_forum_post_login_author_id");
-
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.ForumThreadModel", "Thread")
-                        .WithMany()
-                        .HasForeignKey("ThreadId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_forum_post_forum_thread_thread_id");
-
-                    b.Navigation("Author");
-
-                    b.Navigation("Thread");
-                });
-
-            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ForumThreadModel", b =>
-                {
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_forum_thread_login_author_id");
-
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.ForumCategoryModel", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_forum_thread_forum_category_category_id");
-
-                    b.Navigation("Author");
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProtocolModel", b =>
                 {
                     b.HasOne("SorobanSecurityPortalApi.Models.DbModels.CompanyModel", "Company")
@@ -1233,16 +930,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_user_badges_badge_definitions_badge_id");
 
-                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", "UserProfile")
-                        .WithMany()
-                        .HasForeignKey("UserProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_badges_user_profiles_user_profile_id");
-
                     b.Navigation("Badge");
-
-                    b.Navigation("UserProfile");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.UserProfileModel", b =>

@@ -3,39 +3,52 @@ using Pgvector;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Data.Processors;
+using Microsoft.Extensions.DependencyInjection; 
 
 namespace SorobanSecurityPortalApi.Services.ProcessingServices
 {
     public class BackgroundWorkingHostedService : IHostedService
     {
         private readonly Config _config;
-        private readonly IReportProcessor _reportProcessor;
-        private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
-        private readonly IGeminiEmbeddingService _embeddingService;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         public BackgroundWorkingHostedService(
-            IReportProcessor reportProcessor,
-            IVulnerabilityProcessor vulnerabilityProcessor,
-            IGeminiEmbeddingService embeddingService,
+            IServiceScopeFactory scopeFactory,
             Config config)
         {
-            _reportProcessor = reportProcessor;
-            _vulnerabilityProcessor = vulnerabilityProcessor;
-            _embeddingService = embeddingService;
+            _scopeFactory = scopeFactory;
             _config = config;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            while (!cancellationToken.IsCancellationRequested)
+            // Note: Don't await the loop itself, or it will block the app from starting
+            _ = Task.Run(async () =>
             {
-                await Task.Run(AutoCompactLargeObjectHeap, cancellationToken);
-                await DoReportsFix();
-                await DoReportsEmbedding();
-                await DoVulnerabilitiesEmbedding();
-                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    try 
+                    {
+                        using (var scope = _scopeFactory.CreateScope())
+                        {
+                            var reportProcessor = scope.ServiceProvider.GetRequiredService<IReportProcessor>();
+                            var vulnerabilityProcessor = scope.ServiceProvider.GetRequiredService<IVulnerabilityProcessor>();
+                            var embeddingService = scope.ServiceProvider.GetRequiredService<IGeminiEmbeddingService>();
 
-            }
+                            AutoCompactLargeObjectHeap();
+                            await DoReportsFix(reportProcessor);
+                            await DoReportsEmbedding(reportProcessor, embeddingService);
+                            await DoVulnerabilitiesEmbedding(vulnerabilityProcessor, embeddingService);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Background worker error: {ex.Message}");
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                }
+            }, cancellationToken);
         }
 
         private void AutoCompactLargeObjectHeap()
@@ -47,64 +60,60 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
             }
         }
 
-        private async Task DoReportsFix()
+        private async Task DoReportsFix(IReportProcessor reportProcessor)
         {
-            var reports = await _reportProcessor.GetListForFix();
+            var reports = await reportProcessor.GetListForFix();
             foreach (var reportModel in reports)
             {
                 try
                 {
-                    if(reportModel.BinFile == null)
-                        continue;
+                    if (reportModel.BinFile == null) continue;
                     reportModel.MdFile = PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile);
-                    await _reportProcessor.UpdateMdFile(reportModel.Id, reportModel.MdFile);
+                    await reportProcessor.UpdateMdFile(reportModel.Id, reportModel.MdFile);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during report ({reportModel.Name} / {reportModel.Id}) fix: {ex.Message}");
+                    Console.WriteLine($"Error during report fix: {ex.Message}");
                 }
             }
         }
 
-        private async Task DoReportsEmbedding()
+        private async Task DoReportsEmbedding(IReportProcessor reportProcessor, IGeminiEmbeddingService embeddingService)
         {
-            var reports = await _reportProcessor.GetListForEmbedding();
+            var reports = await reportProcessor.GetListForEmbedding();
             foreach (var reportModel in reports)
             {
                 try
                 {
-                    var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
+                    var embeddingArray = await embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
                     reportModel.Embedding = new Vector(embeddingArray);
-                    await _reportProcessor.UpdateEmbedding(reportModel.Id, reportModel.Embedding);
+                    await reportProcessor.UpdateEmbedding(reportModel.Id, reportModel.Embedding);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during report ({reportModel.Name} / {reportModel.Id}) embedding: {ex.Message}");
+                    Console.WriteLine($"Error during report embedding: {ex.Message}");
                 }
             }
         }
 
-        private async Task DoVulnerabilitiesEmbedding()
+        private async Task DoVulnerabilitiesEmbedding(IVulnerabilityProcessor vulnerabilityProcessor, IGeminiEmbeddingService embeddingService)
         {
-            var vulnerabilities = await _vulnerabilityProcessor.GetListForEmbedding();
+            var vulnerabilities = await vulnerabilityProcessor.GetListForEmbedding();
             foreach (var vulnerability in vulnerabilities)
             {
                 try
                 {
-                    var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(vulnerability.Description);
+                    var embeddingArray = await embeddingService.GenerateEmbeddingForDocumentAsync(vulnerability.Description);
                     vulnerability.Embedding = new Vector(embeddingArray);
-                    await _vulnerabilityProcessor.UpdateEmbedding(vulnerability.Id, vulnerability.Embedding);
+                    await vulnerabilityProcessor.UpdateEmbedding(vulnerability.Id, vulnerability.Embedding);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during vulnerability ({vulnerability.Title} / {vulnerability.Id}) embedding: {ex.Message}");
+                    Console.WriteLine($"Error during vulnerability embedding: {ex.Message}");
                 }
             }
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }
