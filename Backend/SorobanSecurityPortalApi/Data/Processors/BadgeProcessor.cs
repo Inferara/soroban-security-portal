@@ -1,22 +1,19 @@
 using Microsoft.EntityFrameworkCore;
-using SorobanSecurityPortalApi.Common.Data;
+using SorobanSecurityPortalApi.Common.Data; 
 using SorobanSecurityPortalApi.Models.DbModels;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class BadgeProcessor : IBadgeProcessor
     {
         private readonly Db _db;
+        public BadgeProcessor(Db db) => _db = db;
 
-        public BadgeProcessor(Db db)
-        {
-            _db = db;
-        }
-
-        public async Task<List<BadgeDefinitionModel>> GetAllBadgeDefinitions()
-        {
-            return await _db.BadgeDefinitions.ToListAsync();
-        }
+        public async Task<List<BadgeDefinitionModel>> GetAllBadgeDefinitions() 
+            => await _db.BadgeDefinitions.ToListAsync();
 
         public async Task<List<UserBadgeModel>> GetUserBadges(int userProfileId)
         {
@@ -26,31 +23,25 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .ToListAsync();
         }
 
-        public async Task<bool> HasBadge(int userProfileId, Guid badgeId)
+        public async Task<bool> HasBadge(int userProfileId, int badgeId) 
         {
             return await _db.UserBadges
                 .AnyAsync(x => x.UserProfileId == userProfileId && x.BadgeId == badgeId);
         }
 
-        public async Task<bool> AwardBadge(int userProfileId, Guid badgeId)
+        public async Task<bool> AwardBadge(int userProfileId, int badgeId)
         {
-            if (await HasBadge(userProfileId, badgeId)) 
-            {
-                return false;
-            }
+            if (await HasBadge(userProfileId, badgeId)) return false;
 
             var userBadge = new UserBadgeModel
             {
-                Id = Guid.NewGuid(),
                 UserProfileId = userProfileId, 
                 BadgeId = badgeId,
                 AwardedAt = DateTime.UtcNow
             };
 
             _db.UserBadges.Add(userBadge);
-            await _db.SaveChangesAsync();
-            return true;
+            return await _db.SaveChangesAsync() > 0;
         }
     }
 }
-
