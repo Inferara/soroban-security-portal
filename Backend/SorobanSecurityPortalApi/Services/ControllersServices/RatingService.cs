@@ -16,7 +16,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public interface IRatingService
     {
         Task<RatingSummaryViewModel> GetSummary(EntityType entityType, int entityId);
+        Task<RatingSummaryWeightedViewModel> GetSummaryWeighted(EntityType entityType, int entityId);
         Task<List<RatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10);
+        Task<List<RatingWithAuthorViewModel>> GetRatingsWithAuthor(EntityType entityType, int entityId, int page, int pageSize = 10, bool withReviewsOnly = false);
+        Task<RatingViewModel?> GetMyRating(EntityType entityType, int entityId);
         Task<RatingViewModel> AddOrUpdateRating(CreateRatingRequest request);
         Task DeleteRating(int id);
     }
@@ -39,7 +42,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<RatingSummaryViewModel> GetSummary(EntityType entityType, int entityId)
         {
             string cacheKey = $"ratings_summary_{entityType}_{entityId}";
-            
+
             // Try get from Cache (Using helper method)
             var cached = await GetCachedAsync<RatingSummaryViewModel>(cacheKey);
             if (cached != null) return cached;
@@ -81,6 +84,56 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return summary;
         }
 
+        public async Task<RatingSummaryWeightedViewModel> GetSummaryWeighted(EntityType entityType, int entityId)
+        {
+            string cacheKey = $"ratings_summary_weighted_{entityType}_{entityId}";
+
+            var cached = await GetCachedAsync<RatingSummaryWeightedViewModel>(cacheKey);
+            if (cached != null) return cached;
+
+            var baseSummary = await GetSummary(entityType, entityId);
+
+            var ratingRows = await (
+                from r in _db.Rating.AsNoTracking()
+                join up in _db.UserProfiles.AsNoTracking() on r.UserId equals up.LoginId into upj
+                from up in upj.DefaultIfEmpty()
+                where r.EntityType == entityType && r.EntityId == entityId
+                select new
+                {
+                    r.Score,
+                    Reputation = (int?)up.ReputationScore
+                }
+            ).ToListAsync();
+
+            double weightedSum = 0;
+            double weightTotal = 0;
+
+            foreach (var row in ratingRows)
+            {
+                var reputation = row.Reputation ?? 0;
+                // Weight function: 1..10 based on reputation buckets of 100
+                var weight = 1 + Math.Min(9, Math.Max(0, reputation / 100));
+                weightedSum += row.Score * weight;
+                weightTotal += weight;
+            }
+
+            var weightedAverage = weightTotal > 0 ? (float)Math.Round(weightedSum / weightTotal, 1) : 0f;
+
+            var summary = new RatingSummaryWeightedViewModel
+            {
+                EntityType = baseSummary.EntityType,
+                EntityId = baseSummary.EntityId,
+                AverageScore = baseSummary.AverageScore,
+                TotalReviews = baseSummary.TotalReviews,
+                Distribution = baseSummary.Distribution,
+                WeightedAverageScore = weightedAverage,
+                WeightedTotalReviews = baseSummary.TotalReviews
+            };
+
+            await SetCachedAsync(cacheKey, summary, TimeSpan.FromMinutes(10));
+            return summary;
+        }
+
         public async Task<List<RatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10)
         {
             var query = _db.Rating
@@ -94,6 +147,52 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 .ToListAsync();
 
             return _mapper.Map<List<RatingViewModel>>(ratings);
+        }
+
+        public async Task<List<RatingWithAuthorViewModel>> GetRatingsWithAuthor(EntityType entityType, int entityId, int page, int pageSize = 10, bool withReviewsOnly = false)
+        {
+            var query =
+                from r in _db.Rating.AsNoTracking()
+                join l in _db.Login.AsNoTracking() on r.UserId equals l.LoginId
+                join up in _db.UserProfiles.AsNoTracking() on l.LoginId equals up.LoginId into upj
+                from up in upj.DefaultIfEmpty()
+                where r.EntityType == entityType
+                      && r.EntityId == entityId
+                      && (!withReviewsOnly || (r.Review != null && r.Review != ""))
+                orderby r.CreatedAt descending
+                select new RatingWithAuthorViewModel
+                {
+                    Id = r.Id,
+                    UserId = r.UserId,
+                    EntityType = r.EntityType,
+                    EntityId = r.EntityId,
+                    Score = r.Score,
+                    Review = r.Review ?? string.Empty,
+                    CreatedAt = r.CreatedAt,
+                    Author = new RatingAuthorViewModel
+                    {
+                        LoginId = l.LoginId,
+                        FullName = l.FullName,
+                        ReputationScore = up != null ? up.ReputationScore : 0
+                    }
+                };
+
+            return await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<RatingViewModel?> GetMyRating(EntityType entityType, int entityId)
+        {
+            var userId = await _userContext.GetLoginIdAsync();
+            if (userId == 0) throw new UnauthorizedAccessException("User not logged in.");
+
+            var rating = await _db.Rating
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.UserId == userId && r.EntityType == entityType && r.EntityId == entityId);
+
+            return rating == null ? null : _mapper.Map<RatingViewModel>(rating);
         }
 
         public async Task<RatingViewModel> AddOrUpdateRating(CreateRatingRequest request)
@@ -113,7 +212,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 existing = _mapper.Map<RatingModel>(request);
                 existing.UserId = userId;
-                
+
                 _db.Rating.Add(existing);
             }
 
@@ -130,9 +229,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             if (rating == null)
                 throw new KeyNotFoundException($"Rating with id {id} not found.");
-            
+
             // Allow deletion if user owns it OR user is Admin
-            if (rating.UserId != userId && !await _userContext.IsLoginIdAdmin(userId)) 
+            if (rating.UserId != userId && !await _userContext.IsLoginIdAdmin(userId))
                 throw new UnauthorizedAccessException("You can only delete your own ratings.");
 
             _db.Rating.Remove(rating);
@@ -145,6 +244,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             string cacheKey = $"ratings_summary_{type}_{id}";
             await _cache.RemoveAsync(cacheKey);
+
+            string weightedCacheKey = $"ratings_summary_weighted_{type}_{id}";
+            await _cache.RemoveAsync(weightedCacheKey);
         }
 
         // --- HELPER METHODS FOR CACHING ---
