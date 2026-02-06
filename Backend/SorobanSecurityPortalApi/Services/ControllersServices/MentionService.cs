@@ -32,25 +32,35 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 // Validate that mentioned users exist
                 var usernames = mentions.Select(m => m.MentionedUsername).Distinct().ToList();
-                var existingUsers = await _loginProcessor.SearchUsers(string.Join(" ", usernames), 100);
+
+                // Build a mapping from username to user ID by searching each username individually
+                var usernameToUserId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var username in usernames)
+                {
+                    var users = await _loginProcessor.SearchUsers(username, 100);
+                    var exactUser = users.FirstOrDefault(u => u.Login == username);
+                    if (exactUser != null && !usernameToUserId.ContainsKey(username))
+                    {
+                        usernameToUserId[username] = exactUser.LoginId;
+                    }
+                }
 
                 // Filter mentions to only include existing users
-                var validUsernames = existingUsers.Select(u => u.Login).ToHashSet();
+                var validUsernames = usernameToUserId.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
                 mentions = mentions.Where(m => validUsernames.Contains(m.MentionedUsername)).ToList();
 
                 // Set the actual user IDs and create notifications
                 var notifications = new List<NotificationModel>();
                 foreach (var mention in mentions)
                 {
-                    var user = existingUsers.FirstOrDefault(u => u.Login == mention.MentionedUsername);
-                    if (user != null)
+                    if (usernameToUserId.TryGetValue(mention.MentionedUsername, out var mentionedUserId))
                     {
-                        mention.MentionedUserId = user.LoginId;
+                        mention.MentionedUserId = mentionedUserId;
 
                         // Create notification for the mentioned user
                         var notification = new NotificationModel
                         {
-                            RecipientUserId = user.LoginId,
+                            RecipientUserId = mentionedUserId,
                             SenderUserId = mentionedByUserId,
                             Type = "mention",
                             Title = "You were mentioned",
