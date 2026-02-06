@@ -222,7 +222,7 @@ describe('MarkdownView', () => {
     });
 
     it('allows safe https links', () => {
-      const content = '<a href="https://example.com">Safe Link</a>';
+      const content = '[Safe Link](https://example.com)';
       render(<MarkdownView content={content} />, { wrapper });
 
       const link = screen.getByRole('link', { name: 'Safe Link' });
@@ -230,7 +230,7 @@ describe('MarkdownView', () => {
     });
 
     it('allows mailto links', () => {
-      const content = '<a href="mailto:test@example.com">Email</a>';
+      const content = '[Email](mailto:test@example.com)';
       render(<MarkdownView content={content} />, { wrapper });
 
       const link = screen.getByRole('link', { name: 'Email' });

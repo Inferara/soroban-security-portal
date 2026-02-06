@@ -95,6 +95,20 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await db.SaveChangesAsync();
             return loginModel;
         }
+
+        public async Task<List<LoginModel>> SearchUsers(string query, int limit)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var pattern = $"%{query}%";
+
+            return await db.Login.AsNoTracking()
+                .Where(l => l.IsEnabled &&
+                            (EF.Functions.ILike(l.Login, pattern) ||
+                             EF.Functions.ILike(l.FullName, pattern)))
+                .OrderBy(l => l.Login)
+                .Take(limit)
+                .ToListAsync();
+        }
     }
 
     public interface ILoginProcessor
@@ -108,5 +122,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task Update(LoginModel login);
         Task Delete(int id);
         Task<LoginModel> Add(LoginModel login);
+        Task<List<LoginModel>> SearchUsers(string query, int limit);
     }
 }

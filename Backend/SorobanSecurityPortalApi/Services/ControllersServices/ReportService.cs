@@ -16,17 +16,20 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IReportProcessor _reportProcessor;
         private readonly UserContextAccessor _userContextAccessor;
         private readonly IGeminiEmbeddingService _embeddingService;
+        private readonly IMentionService _mentionService;
 
         public ReportService(
             IMapper mapper,
             IReportProcessor reportProcessor,
             UserContextAccessor userContextAccessor,
-            IGeminiEmbeddingService embeddingService)
+            IGeminiEmbeddingService embeddingService,
+            IMentionService mentionService)
         {
             _mapper = mapper;
             _reportProcessor = reportProcessor;
             _userContextAccessor = userContextAccessor;
             _embeddingService = embeddingService;
+            _mentionService = mentionService;
         }
 
         public async Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearchViewModel)
@@ -59,6 +62,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             reportModel.Embedding = new Vector(embeddingArray);
 
             var addedReport = await _reportProcessor.Add(reportModel);
+
+            // Process mentions in the markdown content
+            if (!string.IsNullOrEmpty(addedReport.MdFile))
+            {
+                await _mentionService.ParseAndCreateMentions(
+                    addedReport.MdFile,
+                    "report",
+                    addedReport.Id,
+                    addedReport.CreatedBy);
+            }
+
             return _mapper.Map<ReportViewModel>(addedReport);
         }
 
