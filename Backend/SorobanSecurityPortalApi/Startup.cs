@@ -12,6 +12,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Options;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Services.ProcessingServices; 
+using SorobanSecurityPortalApi.Services.ControllersServices;
 
 namespace SorobanSecurityPortalApi;
 
@@ -51,6 +52,8 @@ public class Startup
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddTransients();
+
+        services.AddScoped<IRatingService, RatingService>();
 
         services.AddStackExchangeRedisCache(options =>
         {
