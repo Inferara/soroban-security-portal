@@ -20,20 +20,17 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Digest Hosted Service started.");
+            _logger.LogInformation($"Digest Hosted Service started. Schedule: {_config.DigestDay} at {_config.DigestHour}:00 UTC.");
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    // Calculate delay until next Friday at 09:00 UTC
-                    var delay = CalculateDelayUntilNextRun(DayOfWeek.Friday, 9);
-                    
+                    var delay = CalculateDelayUntilNextRun(_config.DigestDay, _config.DigestHour);
                     _logger.LogInformation($"Next Weekly Digest run scheduled in: {delay.TotalHours:F2} hours.");
 
                     await Task.Delay(delay, stoppingToken);
 
-                    // Execution Time
                     _logger.LogInformation("Starting Weekly Digest Job...");
                     
                     using (var scope = _serviceProvider.CreateScope())
@@ -49,7 +46,6 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error in DigestHostedService loop. Retrying in 1 hour.");
-                    // Prevent tight loop on crash
                     await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
                 }
             }
@@ -61,16 +57,13 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
             var today = now.Date;
             var nextRun = today;
 
-            // Advance days until we hit the target day of week
             while (nextRun.DayOfWeek != targetDay)
             {
                 nextRun = nextRun.AddDays(1);
             }
 
-            // Set the specific hour
             nextRun = nextRun.AddHours(targetHour);
 
-            // If the time has already passed for today (e.g., it's Friday 10am), schedule for next week
             if (nextRun <= now)
             {
                 nextRun = nextRun.AddDays(7);

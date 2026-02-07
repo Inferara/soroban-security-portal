@@ -21,6 +21,14 @@ public class Config
         DistributedCacheUrl = GetValue<string>(appSettings, "DistributedCacheUrl");
         DistributedCachePassword = GetValue<string>(appSettings, "DistributedCachePassword");
         AppUrl = GetValue<string>(appSettings, "AppUrl");
+
+        // --- Weekly Digest Configuration ---
+        var dayStr = GetValueOrDefault<string>(appSettings, "DigestDayOfWeek", "Friday");
+        DigestDay = Enum.TryParse<DayOfWeek>(dayStr, true, out var d) ? d : DayOfWeek.Friday;
+
+        DigestHour = GetValueOrDefault<int>(appSettings, "DigestHourUtc", 9); 
+        
+        FrontendUrl = GetValueOrDefault<string>(appSettings, "FrontendUrl", "https://portal.soroban.com");
     }
 
     private T GetValue<T>(string config, string key)
@@ -36,6 +44,18 @@ public class Config
         return (T) Convert.ChangeType(environmentValue, typeof(T));
     }
 
+    private T GetValueOrDefault<T>(string config, string key, T defaultValue)
+    {
+        try
+        {
+            return GetValue<T>(config, key);
+        }
+        catch
+        {
+            return defaultValue;
+        }
+    }
+
     public Version ProductVersion { get; set; }
     public string DbServer { get; set; }
     public int DbPort { get; set; }
@@ -49,4 +69,7 @@ public class Config
     public string DistributedCacheUrl { get; set; }
     public string DistributedCachePassword { get; set; }
     public string AppUrl { get; set; }
+    public DayOfWeek DigestDay { get; set; }
+    public int DigestHour { get; set; }
+    public string FrontendUrl { get; set; }
 }

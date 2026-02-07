@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Models.DbModels;
 
@@ -14,60 +15,95 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
     {
         private readonly Db _db;
         private readonly IEmailService _emailService;
+        private readonly Config _config;
         private readonly ILogger<DigestService> _logger;
 
-        public DigestService(Db db, IEmailService emailService, ILogger<DigestService> logger)
+        public DigestService(Db db, IEmailService emailService, Config config, ILogger<DigestService> logger)
         {
             _db = db;
             _emailService = emailService;
+            _config = config;
             _logger = logger;
         }
 
         public async Task ProcessDigestsAsync()
         {
-            // 1. Fetch Global Content (New in the last 7 days)
             var oneWeekAgo = DateTime.UtcNow.AddDays(-7);
 
-            var newReports = await _db.Report
-                .Where(r => r.Date > oneWeekAgo)
-                .OrderByDescending(r => r.Date)
-                .Take(5)
-                .ToListAsync();
-
-            // Fetch new Vulnerabilities
-            var newVulns = await _db.Vulnerability
-                .Where(v => v.Date > oneWeekAgo) 
-                .OrderByDescending(v => v.Date)
-                .Take(5)
-                .ToListAsync();
-
-            var topThreads = await _db.ForumThread
-                .Where(t => t.CreatedAt > oneWeekAgo)
-                .OrderByDescending(t => t.ViewCount)
-                .Take(3)
-                .ToListAsync();
-
-            // 2. If no new content, stop
-            if (!newReports.Any() && !newVulns.Any() && !topThreads.Any())
-            {
-                _logger.LogInformation("Weekly Digest: No new content to send.");
-                return;
-            }
-
-            // 3. Get Users who opted-in
             var users = await _db.UserProfiles
                 .Include(u => u.Login)
                 .Where(u => u.ReceiveWeeklyDigest && u.Login.IsEnabled)
                 .ToListAsync();
 
-            // 4. Send Emails
             foreach (var user in users)
             {
-                // Skip if sent recently (prevent spam if service restarts)
                 if (user.LastDigestSentAt.HasValue && user.LastDigestSentAt.Value > DateTime.UtcNow.AddDays(-6))
                     continue;
 
-                await SendDigestToUser(user, newReports, newVulns, topThreads);
+                var userId = user.Login?.LoginId ?? 0; 
+                if (userId == 0) continue;
+
+                var userSubs = await _db.Subscription
+                    .Where(s => s.UserId == userId)
+                    .ToListAsync();
+
+                if (!userSubs.Any()) 
+                    continue;
+
+                // Explicit IDs
+                var followedProtocolIds = userSubs
+                    .Where(s => s.ProtocolId.HasValue)
+                    .Select(s => s.ProtocolId.Value)
+                    .ToList();
+
+                var followedCategoryIds = userSubs
+                    .Where(s => s.CategoryId.HasValue)
+                    .Select(s => s.CategoryId.Value)
+                    .ToList();
+
+                // --- FETCH CONTENT ---
+
+                var newReports = new List<ReportModel>();
+                if (followedProtocolIds.Any())
+                {
+                    newReports = await _db.Report
+                        .Where(r => r.Date > oneWeekAgo 
+                                    && r.ProtocolId.HasValue 
+                                    && followedProtocolIds.Contains(r.ProtocolId.Value))
+                        .OrderByDescending(r => r.Date)
+                        .Take(5)
+                        .ToListAsync();
+                }
+
+                var newVulns = new List<VulnerabilityModel>();
+                if (followedProtocolIds.Any())
+                {
+                    newVulns = await _db.Vulnerability
+                        .Include(v => v.Report)
+                        .Where(v => v.Date > oneWeekAgo 
+                                    && v.Report != null 
+                                    && v.Report.ProtocolId.HasValue
+                                    && followedProtocolIds.Contains(v.Report.ProtocolId.Value))
+                        .OrderByDescending(v => v.Date)
+                        .Take(5)
+                        .ToListAsync();
+                }
+
+                var newThreads = new List<ForumThreadModel>();
+                if (followedCategoryIds.Any())
+                {
+                    newThreads = await _db.ForumThread
+                        .Where(t => t.CreatedAt > oneWeekAgo 
+                                    && followedCategoryIds.Contains(t.CategoryId))
+                        .OrderByDescending(t => t.ViewCount)
+                        .Take(3)
+                        .ToListAsync();
+                }
+
+                if (!newReports.Any() && !newVulns.Any() && !newThreads.Any()) 
+                    continue;
+
+                await SendDigestToUser(user, newReports, newVulns, newThreads);
             }
         }
 
@@ -75,10 +111,10 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
         {
             try
             {
-                string body = BuildEmailHtml(user.Login.FullName ?? "User", reports, vulns, threads);
-
+                string displayName = !string.IsNullOrEmpty(user.Login.FullName) ? user.Login.FullName : "User";
+                
+                string body = BuildEmailHtml(displayName, reports, vulns, threads);
                 await _emailService.SendEmailAsync(user.Login.Email, "Weekly Soroban Security Update", body);
-
                 
                 user.LastDigestSentAt = DateTime.UtcNow;
                 user.UpdatedAt = DateTime.UtcNow;
@@ -86,7 +122,8 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to send digest to user {user.LoginId}");
+                // Isolate errors per user
+                _logger.LogError(ex, $"Failed to send digest to user {user.Login?.LoginId}");
             }
         }
 
@@ -94,7 +131,7 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
         {
             var sb = new StringBuilder();
             sb.Append($"<h2>Hello {name},</h2>");
-            sb.Append("<p>Here is what happened this week on the Soroban Security Portal.</p>");
+            sb.Append("<p>Here are the updates for the entities you follow.</p>");
 
             if (reports.Any())
             {
@@ -114,13 +151,16 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
 
             if (threads.Any())
             {
-                sb.Append("<h3>Trending Discussions</h3><ul>");
+                sb.Append("<h3>Top Discussions</h3><ul>");
                 foreach (var t in threads)
-                    sb.Append($"<li><strong>{t.Title}</strong></li>");
+                    sb.Append($"<li><strong>{t.Title}</strong> ({t.ViewCount} views)</li>");
                 sb.Append("</ul>");
             }
 
-            sb.Append("<hr/><p><small>To unsubscribe, update your profile settings.</small></p>");
+            var settingsUrl = $"{_config.FrontendUrl}/settings/notifications";
+            sb.Append("<hr/>");
+            sb.Append($"<p><small>You are receiving this because you subscribed to updates. <a href='{settingsUrl}'>Unsubscribe here</a>.</small></p>");
+            
             return sb.ToString();
         }
     }
