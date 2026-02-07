@@ -33,5 +33,8 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         [Required]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        
+        public bool ReceiveWeeklyDigest { get; set; } = true;
+        public DateTime? LastDigestSentAt { get; set; }
     }
 }
