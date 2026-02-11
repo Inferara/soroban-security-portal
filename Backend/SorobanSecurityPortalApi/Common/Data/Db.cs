@@ -22,6 +22,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<BookmarkModel> Bookmark { get; set; }
         public DbSet<ModerationLogModel> ModerationLog { get; set; }
         public DbSet<UserProfileModel> UserProfiles { get; set; }
+        public DbSet<ReputationHistoryModel> ReputationHistory { get; set; }
         public DbSet<ForumCategoryModel> ForumCategory { get; set; }
         public DbSet<ForumThreadModel> ForumThread { get; set; }
         public DbSet<ForumPostModel> ForumPost { get; set; }

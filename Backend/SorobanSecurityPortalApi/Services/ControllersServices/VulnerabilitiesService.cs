@@ -15,6 +15,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IFileProcessor _fileProcessor;
         private readonly IGeminiEmbeddingService _embeddingService;
         private readonly UserContextAccessor _userContextAccessor;
+        private readonly IReputationService _reputationService;
 
         public VulnerabilityService(
             IMapper mapper,
@@ -22,7 +23,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IReportProcessor reportProcessor,
             IFileProcessor fileProcessor,
             IGeminiEmbeddingService embeddingService,
-            UserContextAccessor userContextAccessor)
+            UserContextAccessor userContextAccessor,
+            IReputationService reputationService)
         {
             _mapper = mapper;
             _vulnerabilityProcessor = vulnerabilityProcessor;
@@ -30,6 +32,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _fileProcessor = fileProcessor;
             _embeddingService = embeddingService;
             _userContextAccessor = userContextAccessor;
+            _reputationService = reputationService;
         }
 
         public async Task<List<IdValue>> ListSeverities()
@@ -120,7 +123,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var loginId = await _userContextAccessor.GetLoginIdAsync();
             if (! await CanApproveVulnerability(vulnerabilityModel, loginId))
                 return new Result<bool, string>.Err("You cannot approve this vulnerability.");
+            
+            // Check if vulnerability was already approved to avoid duplicate reputation awards
+            var wasAlreadyApproved = vulnerabilityModel.Status == VulnerabilityModelStatus.Approved;
+            
             await _vulnerabilityProcessor.Approve(vulnerabilityModel, loginId);
+            
+            // Award reputation to the vulnerability creator (only if newly approved)
+            if (!wasAlreadyApproved)
+            {
+                await _reputationService.AwardVulnerabilityAddedAsync(vulnerabilityModel.CreatedBy, vulnerabilityModel.Severity);
+            }
+            
             return new Result<bool, string>.Ok(true);
         }
 
