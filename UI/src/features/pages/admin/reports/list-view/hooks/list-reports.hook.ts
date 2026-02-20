@@ -6,10 +6,10 @@ import {
     rejectReportCall,
     extractVulnerabilitiesFromReportCall,
     VulnerabilityExtractionResult,
+    downloadReportPDFCall,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { CurrentPageState } from '../../../admin-main-window/current-page-slice';
 import { Report } from '../../../../../../api/soroban-security-portal/models/report';
-import { environment } from '../../../../../../environments/environment';
 import { useAdminList } from '../../../../../../hooks/admin';
 
 type UseListReportsProps = {
@@ -36,10 +36,24 @@ export const useListReports = (props: UseListReportsProps) => {
         customOperations,
     });
 
-    // downloadReport is a client-side action (no API call, just opens URL)
     const downloadReport = useCallback(async (reportId: number): Promise<void> => {
-        const url = `${environment.apiUrl}/api/v1/reports/${reportId}/download`;
-        window.open(url, '_blank');
+        try {
+            const blob = await downloadReportPDFCall(reportId);
+
+            // Create blob URL and open in new tab
+            const blobUrl = window.URL.createObjectURL(blob);
+            window.open(blobUrl, '_blank');
+
+            // Clean up blob URL after a delay to ensure it loads
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error && error.message
+                    ? error.message
+                    : 'An unexpected error occurred while downloading the report.';
+            console.error('Failed to download report:', error);
+            window.alert(`Failed to download report. ${errorMessage}`);
+        }
     }, []);
 
     // Extract vulnerabilities from a report using AI

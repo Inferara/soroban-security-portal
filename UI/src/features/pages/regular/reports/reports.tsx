@@ -81,6 +81,19 @@ export const Reports: FC = () => {
     setLoadingImages(prev => ({ ...prev, ...initialLoadingState }));
   }, [reportsList]);
 
+  const handleSearch = () => {
+    searchReports({
+      searchText,
+      protocolName: protocol?.name || '',
+      companyName: company?.name || '',
+      auditorName: auditor?.name || '',
+      from: startDate?.toISOString().split('T')[0] || '',
+      to: endDate?.toISOString().split('T')[0] || '',
+      sortBy: 'date',
+      sortDirection: sortDir,
+    });
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ padding: '24px' }}>
@@ -101,16 +114,8 @@ export const Reports: FC = () => {
             onChange={e => setSearchText(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') {
-                searchReports({
-                  searchText,
-                  protocolName: protocol?.name || '',
-                  companyName: company?.name || '',
-                  auditorName: auditor?.name || '',
-                  from: startDate?.toISOString().split('T')[0] || '',
-                  to: endDate?.toISOString().split('T')[0] || '',
-                  sortBy: 'date',
-                  sortDirection: sortDir,
-                });
+                e.preventDefault();
+                handleSearch();
               }
             }}
             placeholder="Search"
@@ -234,17 +239,7 @@ export const Reports: FC = () => {
           </span>
           <Button
             variant="contained"
-            onClick={() => searchReports(
-              {
-                searchText,
-                protocolName: protocol?.name || '',
-                companyName: company?.name || '',
-                auditorName: auditor?.name || '',
-                from: startDate?.toISOString().split('T')[0] || '',
-                to: endDate?.toISOString().split('T')[0] || '',
-                sortBy: 'date',
-                sortDirection: sortDir,
-              })}
+            onClick={handleSearch}
           >
             Search
           </Button>

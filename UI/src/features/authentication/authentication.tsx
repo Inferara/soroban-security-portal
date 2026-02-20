@@ -52,11 +52,12 @@ export const Authentication: FC<Props> = (props: Props) => {
   };
 
   return (
-    <Box 
-      sx={{ 
+    <Box
+      sx={{
         width: '100vw',
         height: '100vh',
         display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
         position: 'fixed',
         top: 0,
         left: 0,
@@ -65,13 +66,16 @@ export const Authentication: FC<Props> = (props: Props) => {
       {/* Left Column - Login Form */}
       <Box
         sx={{
-          width: '40%',
+          width: { xs: '100%', sm: '50%', md: '40%' },
+          height: { xs: '90vh', sm: '100%' },
           backgroundColor: 'white',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: '40px',
+          padding: { xs: 2.5, sm: '40px' },
+          boxSizing: 'border-box',
+          overflowY: { xs: 'auto', sm: 'visible' },
         }}
       >
         {props.isLoading ? (
@@ -85,16 +89,16 @@ export const Authentication: FC<Props> = (props: Props) => {
               height: '100%',
             }}
           >
-            <CircularProgress 
-              size={60} 
-              sx={{ 
+            <CircularProgress
+              size={60}
+              sx={{
                 color: '#1976d2',
                 marginBottom: '20px',
-              }} 
+              }}
             />
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 color: 'grey.600',
                 textAlign: 'center',
               }}
@@ -107,14 +111,15 @@ export const Authentication: FC<Props> = (props: Props) => {
           <Box
             sx={{
               width: '100%',
-              maxWidth: '400px',
+              maxWidth: { xs: '100%', sm: '400px' },
+              boxSizing: 'border-box',
             }}
           >
             {/* Title */}
-            <Typography 
-              variant="h3" 
-              component="h1" 
-              sx={{ 
+            <Typography
+              variant="h3"
+              component="h1"
+              sx={{
                 fontWeight: 'bold',
                 color: 'black',
                 marginBottom: '40px',
@@ -125,7 +130,7 @@ export const Authentication: FC<Props> = (props: Props) => {
             </Typography>
 
             {/* Username Field */}
-            <Box sx={{ marginBottom: '20px' }}>             
+            <Box sx={{ marginBottom: '20px' }}>
               <TextField
                 fullWidth
                 value={username}
@@ -219,9 +224,9 @@ export const Authentication: FC<Props> = (props: Props) => {
 
             {/* Error Text */}
             {props.errorText && (
-              <Typography 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                sx={{
                   color: 'error.main',
                   fontSize: '0.8rem',
                   marginBottom: '20px',
@@ -258,9 +263,9 @@ export const Authentication: FC<Props> = (props: Props) => {
             {/* Divider */}
             <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
               <Divider sx={{ flex: 1, backgroundColor: 'grey.300' }} />
-              <Typography 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                sx={{
                   color: 'grey.600',
                   margin: '0 15px',
                   fontSize: '0.875rem',
@@ -296,11 +301,7 @@ export const Authentication: FC<Props> = (props: Props) => {
               }}
             >
               Sign in with Google &nbsp;
-              <img
-                src="/static/images/google.svg"
-                alt="Google Logo"
-                style={{ marginRight: '10px', height: '20px' }}
-              />
+              <img src="/static/images/google.svg" alt="Google Logo" style={{ marginRight: '10px', height: '20px' }} />
             </Button>
 
             <Button
@@ -339,17 +340,19 @@ export const Authentication: FC<Props> = (props: Props) => {
       {/* Right Column - Visual Element */}
       <Box
         sx={{
-          width: '60%',
+          width: { xs: '100%', sm: '50%', md: '60%' },
+          height: { xs: '10vh', sm: '100%' },
           backgroundColor: '#2c2c2c',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          order: { xs: -1, sm: 0 },
         }}
       >
         <Box
           sx={{
-            width: '300px',
-            height: '300px',
+            width: { xs: '12vh', sm: '300px' },
+            height: { xs: '12vh', sm: '300px' },
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

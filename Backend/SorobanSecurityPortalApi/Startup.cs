@@ -9,6 +9,7 @@ using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Common.Data;
 using AspNetCore.Authentication.Basic;
 using Microsoft.OpenApi.Models;
+using SorobanSecurityPortalApi.Services.ControllersServices;
 
 namespace SorobanSecurityPortalApi;
 
@@ -46,6 +47,9 @@ public class Startup
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddTransients();
+
+        services.AddScoped<IRatingService, RatingService>();
+
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = _config.DistributedCacheUrl;

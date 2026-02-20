@@ -28,6 +28,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<NotificationModel> Notification { get; set; }
 
 
+        public virtual DbSet<RatingModel> Rating { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
@@ -70,6 +71,13 @@ namespace SorobanSecurityPortalApi.Common.Data
             builder.Entity<UserProfileModel>()
                 .HasIndex(up => up.LoginId)
                 .IsUnique();
+
+            builder.Entity<RatingModel>()
+                .HasIndex(r => new { r.UserId, r.EntityType, r.EntityId })
+                .IsUnique();
+
+            builder.Entity<RatingModel>()
+                .HasIndex(r => new { r.EntityType, r.EntityId });
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function
