@@ -22,16 +22,27 @@ export const useEditProfile = () => {
     login: string;
     personalInfo: string;
     image?: string;
+    website?: string;
+    twitter?: string;
+    github?: string;
+    discord?: string;
+    expertiseTags?: string[];
   }): Promise<boolean> => {
     if (!user) return false;
 
     setIsLoading(true);
     try {
-      const selfEditUserItem: SelfEditUserItem  = {
+      const selfEditUserItem: SelfEditUserItem = {
         fullName: profileData.fullName,
         image: profileData.image || '',
         personalInfo: profileData.personalInfo,
         connectedAccounts: user.connectedAccounts,
+        website: profileData.website || '',
+        twitter: profileData.twitter || '',
+        github: profileData.github || '',
+        discord: profileData.discord || '',
+        expertiseTags: profileData.expertiseTags || [],
+        bio: ''
       };
 
       const response = await selfEditUserCall(user.loginId, selfEditUserItem);
@@ -59,4 +70,4 @@ export const useEditProfile = () => {
     updateProfile,
     isLoading,
   };
-}; 
+};

@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
+import { Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction, Chip, Stack, Tooltip } from '@mui/material';
 import { useProfile } from './hooks';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
-// import LockIcon from '@mui/icons-material/Lock'; // For password change section (commented out)
 import EditIcon from '@mui/icons-material/Edit';
 import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import DeleteIcon from '@mui/icons-material/Delete';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import XIcon from '@mui/icons-material/X';
+import ChatIcon from '@mui/icons-material/Chat';
+import LanguageIcon from '@mui/icons-material/Language';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import { MarkdownView } from '../../../../components/MarkdownView';
 import { useNavigate } from 'react-router-dom';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
@@ -36,8 +40,6 @@ const AvatarContainer = styled(Box)(() => ({
   display: 'flex',
   alignItems: 'center',
 }));
-
-// Using shared StyledAvatar from components/common/StyledAvatar.tsx
 
 const UserInfo = styled(Box)(() => ({
   display: 'flex',
@@ -89,16 +91,9 @@ const MarkdownContainer = styled(Paper)(({ theme }) => ({
       marginTop: theme.spacing(2),
       marginBottom: theme.spacing(1),
     },
-    '& p': {
-      marginBottom: theme.spacing(1),
-    },
-    '& ul, & ol': {
-      marginBottom: theme.spacing(1),
-      paddingLeft: theme.spacing(3),
-    },
-    '& li': {
-      marginBottom: theme.spacing(0.5),
-    },
+    '& p': { marginBottom: theme.spacing(1) },
+    '& ul, & ol': { marginBottom: theme.spacing(1), paddingLeft: theme.spacing(3) },
+    '& li': { marginBottom: theme.spacing(0.5) },
     '& code': {
       backgroundColor: theme.palette.action.hover,
       padding: '2px 4px',
@@ -120,9 +115,7 @@ const MarkdownContainer = styled(Paper)(({ theme }) => ({
     '& a': {
       color: theme.palette.primary.main,
       textDecoration: 'none',
-      '&:hover': {
-        textDecoration: 'underline',
-      },
+      '&:hover': { textDecoration: 'underline' },
     },
   }
 }));
@@ -135,7 +128,6 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
-
   return (
     <div
       role="tabpanel"
@@ -144,11 +136,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`profile-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 0 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ p: 0 }}>{children}</Box>}
     </div>
   );
 }
@@ -164,11 +152,7 @@ export const Profile: React.FC = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
 
-  const {
-    user,
-    userId
-  } = useProfile();
-  
+  const { user, userId } = useProfile();
   const { bookmarks, removeBookmark } = useBookmarks();
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
@@ -194,16 +178,21 @@ export const Profile: React.FC = () => {
 
   const getBookmarkIcon = (type: BookmarkType) => {
     switch (type) {
-      case BookmarkType.Report:
-        return <AssessmentIcon />;
-      case BookmarkType.Vulnerability:
-        return <BugReportIcon />;
-      default:
-        return <BookmarksIcon />;
+      case BookmarkType.Report:       return <AssessmentIcon />;
+      case BookmarkType.Vulnerability: return <BugReportIcon />;
+      default:                        return <BookmarksIcon />;
     }
   };
 
-  // Using shared getUserInitials from utils/user-utils.ts
+  // [NEW #70] Build social links array from the flat user fields, filtering empties
+  const socialLinks = [
+    { key: 'github',  icon: <GitHubIcon fontSize="small" />,   label: 'GitHub',      url: user?.github },
+    { key: 'twitter', icon: <XIcon fontSize="small" />,        label: 'Twitter / X', url: user?.twitter },
+    { key: 'discord', icon: <ChatIcon fontSize="small" />,     label: user?.discord ? `Discord: ${user.discord}` : 'Discord', url: user?.discord ? `https://discord.com/users/${user.discord}` : undefined },
+    { key: 'website', icon: <LanguageIcon fontSize="small" />, label: 'Website',     url: user?.website },
+  ].filter((s) => s.url);
+
+  const hasTags = (user?.expertiseTags?.length ?? 0) > 0;
 
   return (
     <ProfileContainer>
@@ -223,30 +212,47 @@ export const Profile: React.FC = () => {
               )}
             </StyledAvatar>
             <UserInfo>
-              <UserName>
-                {user?.fullName}
-              </UserName>
+              <UserName>{user?.fullName}</UserName>
               <UserDetails>
                 Joined {user?.created ? new Date(user.created).toLocaleDateString() : ''}
               </UserDetails>
-              <UserDetails>
-                Role: {user?.role ?? 'user'}
-              </UserDetails>
+              <UserDetails>Role: {user?.role ?? 'user'}</UserDetails>
+
+              {/* [NEW #70] Social icon buttons beneath the user meta */}
+              {socialLinks.length > 0 && (
+                <Stack direction="row" spacing={0.5} mt={0.5}>
+                  {socialLinks.map((s) => (
+                    <Tooltip key={s.key} title={s.label} arrow>
+                      <IconButton
+                        component="a"
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        size="small"
+                        aria-label={s.label}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main' },
+                        }}
+                      >
+                        {s.icon}
+                      </IconButton>
+                    </Tooltip>
+                  ))}
+                </Stack>
+              )}
             </UserInfo>
           </AvatarContainer>
-          {
-            userId == 0 && (
-              <Button
-                variant="contained"
-                startIcon={<EditIcon />}
-                onClick={() => {
-                  navigate('/profile/edit');
-                }}
-              >
-                Edit Profile
-              </Button>
-            )
-          }
+
+          {userId == 0 && (
+            <Button
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={() => navigate('/profile/edit')}
+            >
+              Edit Profile
+            </Button>
+          )}
         </ProfileHeader>
 
         {/* Tabs Navigation */}
@@ -260,7 +266,7 @@ export const Profile: React.FC = () => {
                 textTransform: 'none',
                 fontSize: '1rem',
                 fontWeight: 600,
-                minHeight: 64
+                minHeight: 64,
               }
             }}
           >
@@ -274,9 +280,7 @@ export const Profile: React.FC = () => {
           <TabPanel value={tabValue} index={0}>
             {/* Personal Information */}
             <Box sx={{ mb: 3 }}>
-              <SectionTitle>
-                Personal Information
-              </SectionTitle>
+              <SectionTitle>Personal Information</SectionTitle>
               {user?.personalInfo ? (
                 <MarkdownContainer>
                   <MarkdownView content={user.personalInfo} sx={{ p: 0 }} />
@@ -288,26 +292,50 @@ export const Profile: React.FC = () => {
               )}
             </Box>
 
+            {/* [NEW #70] Expertise Tags */}
+            {hasTags && (
+              <Box sx={{ mb: 3 }}>
+                <Stack direction="row" alignItems="center" spacing={0.75} mb={1.5}>
+                  <LocalOfferIcon fontSize="small" color="action" />
+                  <SectionTitle sx={{ mb: 0 }}>Expertise</SectionTitle>
+                </Stack>
+                <Stack direction="row" flexWrap="wrap" gap={1}>
+                  {user!.expertiseTags!.map((tag) => (
+                    <Chip
+                      key={tag}
+                      label={tag}
+                      size="small"
+                      sx={{
+                        backgroundColor: 'primary.main',
+                        color: 'primary.contrastText',
+                        fontWeight: 500,
+                        fontSize: '0.8125rem',
+                        '&:hover': { backgroundColor: 'primary.dark' },
+                      }}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            )}
+
             {/* Connected Accounts */}
             <Box>
-              <SectionTitle>
-                Connected accounts
-              </SectionTitle>
+              <SectionTitle>Connected accounts</SectionTitle>
               <PlaceholderText>
-                {user?.connectedAccounts && user?.connectedAccounts.length > 0 ? user?.connectedAccounts.map(account => (
-                  <div key={account.serviceName}>
-                    {account.serviceName}: {account.accountId}
-                  </div>
-                )) : (userId == 0 ? 'You can connect accounts in Edit Profile page' : '')}
+                {user?.connectedAccounts && user.connectedAccounts.length > 0
+                  ? user.connectedAccounts.map((account) => (
+                      <div key={account.serviceName}>
+                        {account.serviceName}: {account.accountId}
+                      </div>
+                    ))
+                  : (userId == 0 ? 'You can connect accounts in Edit Profile page' : '')}
               </PlaceholderText>
             </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
             {/* Bookmarks */}
-            <SectionTitle>
-              My Bookmarks
-            </SectionTitle>
+            <SectionTitle>My Bookmarks</SectionTitle>
             {bookmarks.length === 0 ? (
               <PlaceholderText>
                 No bookmarks yet. Bookmark reports and vulnerabilities to see them here.
@@ -323,9 +351,7 @@ export const Profile: React.FC = () => {
                       borderRadius: 2,
                       mb: 2,
                       backgroundColor: 'background.paper',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      },
+                      '&:hover': { backgroundColor: 'action.hover' },
                     }}
                   >
                     <ListItemIcon sx={{ color: 'primary.main' }}>
@@ -336,30 +362,25 @@ export const Profile: React.FC = () => {
                         {bookmark.title}
                       </Typography>
                       {bookmark.description && (
-                        <MarkdownView 
-                          content={bookmark.description.length > 200 
-                            ? bookmark.description.substring(0, 200) + '...' 
+                        <MarkdownView
+                          content={bookmark.description.length > 200
+                            ? bookmark.description.substring(0, 200) + '...'
                             : bookmark.description
-                          } 
+                          }
                           sx={{
                             p: 0,
                             '& .markdown-content': {
                               fontSize: '0.875rem',
                               color: 'text.secondary',
                               '& p': { margin: 0 },
-                              '& h1, & h2, & h3, & h4, & h5, & h6': { 
+                              '& h1, & h2, & h3, & h4, & h5, & h6': {
                                 fontSize: '0.875rem',
                                 fontWeight: 'normal',
-                                margin: 0
-                              },
-                              '& ul, & ol': { 
                                 margin: 0,
-                                paddingLeft: 16
                               },
+                              '& ul, & ol': { margin: 0, paddingLeft: 16 },
                               '& li': { margin: 0 },
-                              '& code': {
-                                fontSize: '0.8125rem'
-                              }
+                              '& code': { fontSize: '0.8125rem' },
                             }
                           }}
                         />
@@ -389,126 +410,7 @@ export const Profile: React.FC = () => {
             )}
           </TabPanel>
         </ContentSection>
-
-        {/* Password Change Section - Hidden by default, can be shown in Edit Profile
-        {user?.loginType === "Password" && (
-          <ContentSection>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <LockIcon sx={{ mr: 1, color: '#3B82F6' }} />
-              <SectionTitle sx={{ mb: 0 }}>
-                Change Password
-              </SectionTitle>
-            </Box>
-            <Grid container spacing={2}>
-              <Grid size={12}>
-                <TextField 
-                  fullWidth
-                  id="old-password" 
-                  label="Current Password" 
-                  autoComplete="current-password"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  type="password"
-                  size="small"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#374151',
-                      '& fieldset': {
-                        borderColor: '#6B7280',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#9CA3AF',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#3B82F6',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: '#9CA3AF',
-                    },
-                    '& .MuiInputBase-input': {
-                      color: '#ffffff',
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid size={12}>
-                <TextField 
-                  fullWidth
-                  id="new-password" 
-                  label="New Password" 
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  type="password"
-                  size="small"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#374151',
-                      '& fieldset': {
-                        borderColor: '#6B7280',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#9CA3AF',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#3B82F6',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: '#9CA3AF',
-                    },
-                    '& .MuiInputBase-input': {
-                      color: '#ffffff',
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid size={12}>
-                <TextField 
-                  fullWidth
-                  id="confirm-password" 
-                  label="Confirm New Password" 
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  type="password"
-                  size="small"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#374151',
-                      '& fieldset': {
-                        borderColor: '#6B7280',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#9CA3AF',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#3B82F6',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: '#9CA3AF',
-                    },
-                    '& .MuiInputBase-input': {
-                      color: '#ffffff',
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid size={12}>
-                <Button 
-                  variant="contained" 
-                  onClick={handleChangePassword}
-                >
-                  Update Password
-                </Button>
-              </Grid>
-            </Grid>
-          </ContentSection>
-        )}
-        */}
       </Box>
     </ProfileContainer>
   );
-} 
+};
