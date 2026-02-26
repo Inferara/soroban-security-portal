@@ -55,17 +55,23 @@ export const PREDEFINED_EXPERTISE_TAGS: string[] = [
     'Auditor', 'Protocol Designer', 'Educator',
 ];
 
+// Fix: added /i flag so HTTPS://Twitter.com/... and mixed-case variants pass
 export function isValidTwitterUrl(url: string): boolean {
     if (!url) return true;
-    return /^https?:\/\/(www\.)?(twitter\.com|x\.com)\/[A-Za-z0-9_]{1,15}\/?$/.test(url);
+    return /^https?:\/\/(www\.)?(twitter\.com|x\.com)\/[A-Za-z0-9_]{1,15}\/?$/i.test(url);
 }
 
+// Fix: added /i flag so HTTPS://GitHub.com/... and mixed-case variants pass
 export function isValidGitHubUrl(url: string): boolean {
     if (!url) return true;
-    return /^https?:\/\/(www\.)?github\.com\/[A-Za-z0-9_-]+\/?$/.test(url);
+    return /^https?:\/\/(www\.)?github\.com\/[A-Za-z0-9_-]+\/?$/i.test(url);
 }
 
+// Fix: check protocol explicitly — rejects javascript:, data:, vbscript: (XSS vectors)
 export function isValidWebsiteUrl(url: string): boolean {
     if (!url) return true;
-    try { new URL(url); return true; } catch { return false; }
+    try {
+        const parsed = new URL(url.trim());
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch { return false; }
 }

@@ -1,73 +1,73 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { selfEditUserCall, getUserByIdCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { UserItem, SelfEditUserItem  } from '../../../../../api/soroban-security-portal/models/user';
+import { UserItem, SelfEditUserItem } from '../../../../../api/soroban-security-portal/models/user';
 
 export const useEditProfile = () => {
-  const auth = useAuth();
-  const [user, setUser] = useState<UserItem | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+    const auth = useAuth();
+    const [user, setUser] = useState<UserItem | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-  const getUserData = async (): Promise<void> => {
-    if (auth.user?.profile.sub) {
-      const userResponse = await getUserByIdCall(0);
-      if (userResponse) {
-        setUser(userResponse);
-      }
-    }
-  };
+    const getUserData = async (): Promise<void> => {
+        if (auth.user?.profile.sub) {
+            const userResponse = await getUserByIdCall(0);
+            if (userResponse) {
+                setUser(userResponse);
+            }
+        }
+    };
 
-  const updateProfile = async (profileData: {
-    fullName: string;
-    login: string;
-    personalInfo: string;
-    image?: string;
-    website?: string;
-    twitter?: string;
-    github?: string;
-    discord?: string;
-    expertiseTags?: string[];
-  }): Promise<boolean> => {
-    if (!user) return false;
+    const updateProfile = async (profileData: {
+        fullName: string;
+        login: string;
+        personalInfo: string;
+        image?: string;
+        bio?: string;
+        website?: string;
+        twitter?: string;
+        github?: string;
+        discord?: string;
+        expertiseTags?: string[];
+    }): Promise<boolean> => {
+        if (!user) return false;
 
-    setIsLoading(true);
-    try {
-      const selfEditUserItem: SelfEditUserItem = {
-        fullName: profileData.fullName,
-        image: profileData.image || '',
-        personalInfo: profileData.personalInfo,
-        connectedAccounts: user.connectedAccounts,
-        website: profileData.website || '',
-        twitter: profileData.twitter || '',
-        github: profileData.github || '',
-        discord: profileData.discord || '',
-        expertiseTags: profileData.expertiseTags || [],
-        bio: ''
-      };
+        setIsLoading(true);
+        try {
+            const selfEditUserItem: SelfEditUserItem = {
+                fullName: profileData.fullName,
+                image: profileData.image || '',
+                personalInfo: profileData.personalInfo,
+                connectedAccounts: user.connectedAccounts,
+                bio: profileData.bio ?? user.bio,
+                website: profileData.website ?? user.website,
+                twitter: profileData.twitter ?? user.twitter,
+                github: profileData.github ?? user.github,
+                discord: profileData.discord ?? user.discord,
+                expertiseTags: profileData.expertiseTags ?? user.expertiseTags,
+            };
 
-      const response = await selfEditUserCall(user.loginId, selfEditUserItem);
-      
-      if (response) {
-        // Refresh user data after successful update
-        await getUserData();
-      }
-      
-      return response;
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            const response = await selfEditUserCall(user.loginId, selfEditUserItem);
 
-  useEffect(() => {
-    void getUserData();
-  }, [auth.user]);
+            if (response) {
+                await getUserData();
+            }
 
-  return {
-    user,
-    updateProfile,
-    isLoading,
-  };
+            return response;
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        void getUserData();
+    }, [auth.user]);
+
+    return {
+        user,
+        updateProfile,
+        isLoading,
+    };
 };
