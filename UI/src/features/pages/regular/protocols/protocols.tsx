@@ -49,7 +49,20 @@ export const Protocols: FC = () => {
         error
     } = useProtocols();
     const [showFilters, setShowFilters] = useState(false);
-    const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
+    // null/undefined = loading, false = done (loaded or errored)
+    const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean | undefined }>({});
+
+    // Initialise all visible protocols as loading when the list changes
+    useEffect(() => {
+        if (protocols.length === 0) return;
+        setLoadingImages(prev => {
+            const next = { ...prev };
+            protocols.forEach(p => {
+                if (next[p.id] === undefined) next[p.id] = true;
+            });
+            return next;
+        });
+    }, [protocols]);
 
     const handleImageLoad = (id: number) => {
         setLoadingImages(prev => ({ ...prev, [id]: false }));
@@ -57,10 +70,6 @@ export const Protocols: FC = () => {
 
     const handleImageError = (id: number) => {
         setLoadingImages(prev => ({ ...prev, [id]: false }));
-    };
-
-    const startImageLoading = (id: number) => {
-        setLoadingImages(prev => ({ ...prev, [id]: true }));
     };
 
     useEffect(() => {
@@ -223,15 +232,14 @@ export const Protocols: FC = () => {
                                                 height: '100%',
                                                 objectFit: 'contain',
                                                 p: 3,
-                                                display: loadingImages[protocol.id] ? 'none' : 'block'
+                                                display: loadingImages[protocol.id] === false ? 'block' : 'none'
                                             }}
                                             image={`${environment.apiUrl}/api/v1/protocols/${protocol.id}/image.png`}
                                             alt={protocol.name}
                                             onLoad={() => handleImageLoad(protocol.id)}
                                             onError={() => handleImageError(protocol.id)}
-                                            onLoadStart={() => startImageLoading(protocol.id)}
                                         />
-                                        {loadingImages[protocol.id] && (
+                                        {loadingImages[protocol.id] !== false && (
                                             <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
                                                 <CircularProgress size={30} />
                                             </Box>
@@ -239,8 +247,11 @@ export const Protocols: FC = () => {
                                     </Box>
 
                                     <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
-                                        <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {protocol.name}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {metrics.companyName !== 'N/A' ? metrics.companyName : ''}
                                         </Typography>
 
                                         <Divider sx={{ mb: 2 }} />

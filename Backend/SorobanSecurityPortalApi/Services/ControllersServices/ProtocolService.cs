@@ -80,23 +80,39 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var protocolsViewModel = _mapper.Map<List<ProtocolViewModel>>(protocols);
 
             var reports = await _reportProcessor.GetList(false); // only approved
-            var vulnerabilities = await _vulnerabilityProcessor.GetList();
+
+            // Filter to approved vulnerabilities only, excluding Invalid and NA categories
+            // to keep metrics consistent with what is shown on the vulnerabilities page
+            var vulnerabilities = (await _vulnerabilityProcessor.GetList())
+                .Where(v => v.Status == VulnerabilityModelStatus.Approved
+                         && v.Category != VulnerabilityCategory.Invalid
+                         && v.Category != VulnerabilityCategory.NA)
+                .ToList();
+
+            // Pre-group by protocol ID once (O(R+V)) rather than scanning inside the loop (O(P*(R+V)))
+            var reportsByProtocol = reports
+                .Where(r => r.Protocol != null)
+                .ToLookup(r => r.Protocol!.Id);
+
+            var vulnerabilitiesByProtocol = vulnerabilities
+                .Where(v => v.Report?.Protocol != null)
+                .ToLookup(v => v.Report!.Protocol!.Id);
 
             var result = new List<ProtocolWithMetricsViewModel>();
 
             foreach (var protocol in protocolsViewModel)
             {
-                var protocolReports = reports.Where(r => r.Protocol != null && r.Protocol.Id == protocol.Id).ToList();
-                var protocolVulnerabilities = vulnerabilities.Where(v => v.Report != null && v.Report.Protocol != null && v.Report.Protocol.Id == protocol.Id).ToList();
+                var protocolReports = reportsByProtocol[protocol.Id];
+                var protocolVulnerabilities = vulnerabilitiesByProtocol[protocol.Id];
 
-                var totalVulnerabilities = protocolVulnerabilities.Count;
+                var totalVulnerabilities = protocolVulnerabilities.Count();
                 var fixedVulnerabilities = protocolVulnerabilities.Count(v => v.Category == VulnerabilityCategory.Valid);
                 var fixRate = totalVulnerabilities > 0 ? (int)Math.Round((double)fixedVulnerabilities / totalVulnerabilities * 100) : 0;
 
                 result.Add(new ProtocolWithMetricsViewModel
                 {
                     Protocol = protocol,
-                    ReportsCount = protocolReports.Count,
+                    ReportsCount = protocolReports.Count(),
                     VulnerabilitiesCount = totalVulnerabilities,
                     FixedCount = fixedVulnerabilities,
                     FixRate = fixRate,
