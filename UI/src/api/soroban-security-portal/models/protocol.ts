@@ -8,3 +8,13 @@ export interface ProtocolItem {
   companyId?: number;
   createdBy: string;
 }
+
+export interface ProtocolWithMetrics {
+  protocol: ProtocolItem;
+  reportsCount: number;
+  vulnerabilitiesCount: number;
+  fixedCount: number;
+  fixRate: number;
+  companyName: string;
+  auditors: string[];
+}

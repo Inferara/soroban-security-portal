@@ -111,5 +111,12 @@ namespace SorobanSecurityPortalApi.Controllers
             var result = await _protocolService.GetStatisticsChanges();
             return Ok(result);
         }
+
+        [HttpGet("with-metrics")]
+        public async Task<IActionResult> ListWithMetrics()
+        {
+            var result = await _protocolService.ListWithMetrics();
+            return Ok(result);
+        }
     }
 }

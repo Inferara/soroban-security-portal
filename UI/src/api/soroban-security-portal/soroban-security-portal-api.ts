@@ -8,7 +8,7 @@ import { User } from "oidc-client-ts"
 import { Vulnerability, VulnerabilitySearch, VulnerabilitySeverity, VulnerabilitySource, VulnerabilityStatistics, StatisticsChanges } from './models/vulnerability';
 import { AddReport, Report, ReportSearch } from './models/report';
 import { AuditorItem } from './models/auditor';
-import { ProtocolItem } from './models/protocol';
+import { ProtocolItem, ProtocolWithMetrics } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
@@ -101,7 +101,7 @@ export const getProtocolListDataCall = async (): Promise<ProtocolItem[]> => {
     const response = await client.request('api/v1/protocols', 'GET');
     return response.data as ProtocolItem[];
 };
-export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {   
+export const removeProtocolCall = async (protocolId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/protocols/${protocolId}`, 'DELETE');
     return response.data as boolean;
@@ -140,6 +140,11 @@ export const getProtocolStatisticsChanges = async (): Promise<StatisticsChanges>
     const response = await client.request('api/v1/protocols/statistics/changes', 'GET');
     return response.data as StatisticsChanges;
 };
+export const getProtocolsWithMetricsCall = async (): Promise<ProtocolWithMetrics[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/protocols/with-metrics', 'GET');
+    return response.data as ProtocolWithMetrics[];
+};
 
 // --- COMPANIES ---
 export const getCompanyListDataCall = async (): Promise<CompanyItem[]> => {
@@ -147,7 +152,7 @@ export const getCompanyListDataCall = async (): Promise<CompanyItem[]> => {
     const response = await client.request('api/v1/companies', 'GET');
     return response.data as CompanyItem[];
 };
-export const removeCompanyCall = async (companyId: number): Promise<boolean> => {   
+export const removeCompanyCall = async (companyId: number): Promise<boolean> => {
     const client = await getRestClient();
     const response = await client.request(`api/v1/companies/${companyId}`, 'DELETE');
     return response.data as boolean;
@@ -260,18 +265,18 @@ export const extractVulnerabilitiesFromReportCall = async (
 
 export const downloadReportPDF = async (reportName: string, reportId: number): Promise<void> => {
     const blob = await downloadReportPDFCall(reportId);
-    
+
     // Create blob URL and trigger download
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = `${reportName}.pdf`;
     link.style.display = 'none';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Clean up blob URL
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
 };
@@ -362,7 +367,7 @@ export const editVulnerabilityCall = async (vulnerability: Vulnerability | FormD
 // --- USERS ---
 export const changePasswordCall = async (oldPassword: string, newPassword: string): Promise<boolean> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/user/changePassword', 'POST', {oldPassword, newPassword});
+    const response = await client.request('api/v1/user/changePassword', 'POST', { oldPassword, newPassword });
     return response.data as boolean;
 };
 export const getUserByIdCall = async (loginId: number): Promise<UserItem | null | undefined> => {
@@ -511,11 +516,11 @@ const getAccessToken = (): string | null => {
     try {
         const oidcStorageKey = `oidc.user:${environment.apiUrl}/api/v1/connect:${environment.clientId}`;
         const oidcStorage = localStorage.getItem(oidcStorageKey);
-        
+
         if (!oidcStorage) {
             return null;
         }
-        
+
         const user = User.fromStorageString(oidcStorage);
         return user.access_token || null;
     } catch (error) {
