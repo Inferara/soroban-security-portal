@@ -31,6 +31,7 @@ import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { getCategoryColor, getCategoryLabel } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { useAppAuth } from '../../../../features/authentication/useAppAuth';
 import { EntityAvatar } from '../../../../components/EntityAvatar';
+import { AuditorRatingBadge } from '../../../../components/rating/AuditorRatingBadge';
 import {
   DetailPageLayout,
   DetailPageHeader,
@@ -365,7 +366,12 @@ export const ProtocolDetails: FC = () => {
                               </ListItemAvatar>
                               <ListItemText
                                 primary={auditor.name}
-                                secondary={`${reports.filter(r => r.auditorName === auditor.name).length} reports`}
+                                secondary={
+                                  <>
+                                    <span>{reports.filter(r => r.auditorName === auditor.name).length} reports</span>
+                                    <AuditorRatingBadge auditorId={auditor.id} />
+                                  </>
+                                }
                               />
                             </ListItem>
                             {index < uniqueAuditors.length - 1 && <Divider />}
