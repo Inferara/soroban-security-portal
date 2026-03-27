@@ -12,6 +12,7 @@ import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
+import { RatingItem, RatingSummary, CreateRatingRequest, EntityType } from './models/rating';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -478,6 +479,27 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
     const client = await getRestClient();
     const response = await client.request(`api/v1/bookmarks/${bookmarkId}`, 'GET');
     return response.data as Bookmark;
+};
+
+// --- RATINGS ---
+export const getRatingSummaryCall = async (entityType: EntityType, entityId: number): Promise<RatingSummary> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings/summary?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as RatingSummary;
+};
+export const getRatingsCall = async (entityType: EntityType, entityId: number, page: number = 1): Promise<RatingItem[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings?entityType=${entityType}&entityId=${entityId}&page=${page}`, 'GET');
+    return response.data as RatingItem[];
+};
+export const createOrUpdateRatingCall = async (request: CreateRatingRequest): Promise<RatingItem> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/ratings', 'POST', request);
+    return response.data as RatingItem;
+};
+export const deleteRatingCall = async (ratingId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/ratings/${ratingId}`, 'DELETE');
 };
 
 // Helper function to create FormData for entity operations with image support
