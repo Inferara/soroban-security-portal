@@ -21,6 +21,7 @@ import {
   Person,
   Timeline as TimelineIcon,
   Dashboard,
+  StarRate,
 } from '@mui/icons-material';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +41,9 @@ import {
   transformSeverityBreakdown,
   transformCategoryBreakdown,
 } from '../../../../components/details';
+import { RatingSection } from '../../../../components/rating/RatingSection';
+import { AuditorRatingBadge } from '../../../../components/rating/AuditorRatingBadge';
+import { EntityType } from '../../../../api/soroban-security-portal/models/rating';
 import { formatDateLong, formatMonthYear } from '../../../../utils';
 
 export const AuditorDetails: FC = () => {
@@ -122,6 +126,7 @@ export const AuditorDetails: FC = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
     { id: 'activity', label: 'Activity', icon: <TimelineIcon /> },
+    { id: 'reviews', label: 'Reviews', icon: <StarRate /> },
   ];
 
   return (
@@ -248,6 +253,13 @@ export const AuditorDetails: FC = () => {
                         </Typography>
                       </Box>
 
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          Rating
+                        </Typography>
+                        <AuditorRatingBadge auditorId={auditor.id} />
+                      </Box>
+
                       {auditor.description && (
                         <Box>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -369,6 +381,17 @@ export const AuditorDetails: FC = () => {
                   )}
                 </CardContent>
               </Card>
+            </Box>
+          )}
+
+          {/* Reviews Tab Content */}
+          {tabValue === 2 && (
+            <Box>
+              <RatingSection
+                entityType={EntityType.Auditor}
+                entityId={auditor.id}
+                entityName={auditor.name}
+              />
             </Box>
           )}
         </>
