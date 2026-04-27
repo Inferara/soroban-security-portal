@@ -40,3 +40,11 @@ Contributions are welcome!
 ## 📄 License
 
 This project is licensed under # Apache License 2.0. See [LICENSE](./LICENSE) for details.
+
+## 💰 Bounty Contribution
+
+- **Task:** Spiko Create individual vulnerability submissions for Report
+- **Reward:** $1
+- **Source:** GitHub-Paid
+- **Date:** 2026-04-27
+
