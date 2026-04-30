@@ -69,13 +69,24 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task UpdateComment(CommentModel comment)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            db.Comment.Update(comment);
+            var existingComment = await db.Comment.FirstOrDefaultAsync(c => c.Id == comment.Id);
+            if (existingComment == null)
+            {
+                return;
+            }
+            db.Entry(existingComment).CurrentValues.SetValues(comment);
             await db.SaveChangesAsync();
         }
 
         public async Task Vote(int commentId, int userId, VoteType voteType)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
+            var commentExists = await db.Comment.AnyAsync(c => c.Id == commentId);
+            if (!commentExists)
+            {
+                throw new KeyNotFoundException("Comment not found");
+            }
+
             var existingVote = await db.CommentVote
                 .FirstOrDefaultAsync(v => v.CommentId == commentId && v.UserId == userId);
 
@@ -111,6 +122,15 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .FirstOrDefaultAsync(v => v.CommentId == commentId && v.UserId == userId);
             return vote?.Vote ?? VoteType.None;
         }
+
+        public async Task<Dictionary<int, VoteType>> GetUserVotes(IEnumerable<int> commentIds, int userId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var votes = await db.CommentVote
+                .Where(v => v.UserId == userId && commentIds.Contains(v.CommentId))
+                .ToListAsync();
+            return votes.ToDictionary(v => v.CommentId, v => v.Vote);
+        }
     }
 
     public interface ICommentProcessor
@@ -122,5 +142,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task UpdateComment(CommentModel comment);
         Task Vote(int commentId, int userId, VoteType voteType);
         Task<VoteType> GetUserVote(int commentId, int userId);
+        Task<Dictionary<int, VoteType>> GetUserVotes(IEnumerable<int> commentIds, int userId);
     }
 }
