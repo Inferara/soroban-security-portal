@@ -25,13 +25,16 @@ namespace SorobanSecurityPortalApi.Models.Mapping
                 .ForMember(dest => dest.ReputationScore, opt => opt.MapFrom(src => src.UserProfile != null ? src.UserProfile.ReputationScore : 0));
 
             CreateMap<CommentCreateViewModel, CommentModel>()
+                .ForMember(dest => dest.ContentHtml, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.IsEdited, opt => opt.MapFrom(_ => false))
                 .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(_ => false));
 
             CreateMap<CommentUpdateViewModel, CommentModel>()
+                .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.IsEdited, opt => opt.MapFrom(_ => true));
+                .ForMember(dest => dest.IsEdited, opt => opt.MapFrom(_ => true))
+                .ForAllOtherMembers(opt => opt.Ignore());
         }
     }
 }

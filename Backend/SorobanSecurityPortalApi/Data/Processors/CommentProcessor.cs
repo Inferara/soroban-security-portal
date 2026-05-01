@@ -19,6 +19,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task<List<CommentModel>> GetComments(CommentEntityType entityType, int entityId, int page, int pageSize)
         {
+            page = Math.Max(1, page);
+            pageSize = Math.Max(1, pageSize);
+
             await using var db = await _dbFactory.CreateDbContextAsync();
             return await db.Comment
                 .Include(c => c.Author)
@@ -81,7 +84,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task Vote(int commentId, int userId, VoteType voteType)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var commentExists = await db.Comment.AnyAsync(c => c.Id == commentId);
+            var commentExists = await db.Comment.AnyAsync(c => c.Id == commentId && !c.IsDeleted);
             if (!commentExists)
             {
                 throw new KeyNotFoundException("Comment not found");
