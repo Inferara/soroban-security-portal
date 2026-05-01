@@ -24,6 +24,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
             await using var db = await _dbFactory.CreateDbContextAsync();
             return await db.Comment
+                .AsNoTracking()
                 .Include(c => c.Author)
                     .ThenInclude(a => a.UserProfile)
                 .Include(c => c.Votes)
@@ -32,6 +33,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                         .ThenInclude(a => a.UserProfile)
                 .Include(c => c.Replies.Where(r => !r.IsDeleted))
                     .ThenInclude(r => r.Votes)
+                .AsSplitQuery()
                 .Where(c => c.EntityType == entityType && c.EntityId == entityId && c.ParentId == null && !c.IsDeleted)
                 .OrderByDescending(c => c.CreatedAt)
                 .Skip((page - 1) * pageSize)
@@ -50,6 +52,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             return await db.Comment
+                .AsNoTracking()
                 .Include(c => c.Author)
                     .ThenInclude(a => a.UserProfile)
                 .Include(c => c.Votes)
@@ -72,12 +75,20 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task UpdateComment(CommentModel comment)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var existingComment = await db.Comment.FirstOrDefaultAsync(c => c.Id == comment.Id);
+            var existingComment = await db.Comment.FirstOrDefaultAsync(c => c.Id == comment.Id && !c.IsDeleted);
             if (existingComment == null)
             {
                 throw new KeyNotFoundException("Comment not found");
             }
-            db.Entry(existingComment).CurrentValues.SetValues(comment);
+
+            existingComment.Content = comment.Content;
+            if (!string.IsNullOrWhiteSpace(comment.ContentHtml))
+            {
+                existingComment.ContentHtml = comment.ContentHtml;
+            }
+            existingComment.UpdatedAt = comment.UpdatedAt;
+            existingComment.IsEdited = comment.IsEdited;
+
             await db.SaveChangesAsync();
         }
 
