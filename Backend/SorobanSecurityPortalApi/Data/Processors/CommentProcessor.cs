@@ -75,7 +75,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var existingComment = await db.Comment.FirstOrDefaultAsync(c => c.Id == comment.Id);
             if (existingComment == null)
             {
-                return;
+                throw new KeyNotFoundException("Comment not found");
             }
             db.Entry(existingComment).CurrentValues.SetValues(comment);
             await db.SaveChangesAsync();
