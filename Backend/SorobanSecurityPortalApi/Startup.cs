@@ -49,6 +49,7 @@ public class Startup
             .AddTransients();
 
         services.AddScoped<IRatingService, RatingService>();
+        services.AddScoped<CommentService>();
 
         services.AddStackExchangeRedisCache(options =>
         {
