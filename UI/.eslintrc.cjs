@@ -4,9 +4,7 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
-    'plugin:react/recommended',
     'plugin:react-hooks/recommended',
-    'plugin:react/jsx-runtime',
     'prettier',
   ],
   ignorePatterns: ['dist', '.eslintrc.cjs', 'e2e', 'coverage'],
@@ -25,14 +23,11 @@ module.exports = {
       'error',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
-    // Disable prop-types since we use TypeScript
-    'react/prop-types': 'off',
     // Disable strict React Compiler rules that are too restrictive for this codebase
     'react-hooks/set-state-in-effect': 'off',
     'react-hooks/purity': 'off',
     'react-hooks/immutability': 'off',
-    // Disable display-name for test files and inline components
-    'react/display-name': 'off',
+    'react-hooks/static-components': 'off',
     // Allow lexical declarations in case blocks (common pattern)
     'no-case-declarations': 'off',
     // Allow components defined during render (used for derived components like NavButtons)

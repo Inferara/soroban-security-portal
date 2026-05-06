@@ -331,7 +331,7 @@ export function EntityForm<T>({
       <Grid container spacing={2}>
         {fields.map(renderField)}
       </Grid>
-      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+      <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', marginTop: 2 }}>
         <Button type="button" variant="contained" onClick={onSubmit}>{finalSubmitText}</Button>
         <Button type="button" variant="outlined" onClick={handleCancel}>{cancelButtonText}</Button>
       </Stack>

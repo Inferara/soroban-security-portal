@@ -44,7 +44,7 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                     <Avatar src={item.author.avatarUrl} alt={item.author.name} />
                     <Box>
-                        <Typography variant="subtitle1" fontWeight="bold">
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                             {item.author.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -84,7 +84,7 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
             </Box>
 
             <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
-                <Typography variant="body2" fontWeight="bold" sx={{ mr: 1, alignSelf: 'center' }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, alignSelf: 'center' }}>
                     Flags ({item.flagCount}):
                 </Typography>
                 {Object.entries(item.reasons)

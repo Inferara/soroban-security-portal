@@ -18,6 +18,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly HashSet<string> _defaultProfanityWords;
 
         private static readonly string[] AllowedTags = { "p", "br", "strong", "em", "code", "pre", "a", "ul", "ol", "li", "blockquote" };
+        private static readonly Regex AnchorHrefRegex = new(@"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex MarkdownLinkRegex = new(@"(?<!!)\[[^\]\r\n]+\]\(([^)\r\n]+)\)", RegexOptions.Compiled);
         private const int MaxLinksAllowed = 5;
         private const int RateLimitPerMinute = 10;
         private const string RateLimitKeyPrefix = "content_filter_rate_limit:";
@@ -128,9 +130,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             CheckProfanity(result, originalContent);
 
-            CheckLinkFlooding(result, sanitizedHtml);
+            CheckLinkFlooding(result, markdownHtml);
 
-            ValidateUrls(result, sanitizedHtml);
+            ValidateUrls(result, ExtractLinkTargets(markdownHtml, originalContent));
 
             if (result.IsBlocked || result.RequiresModeration)
             {
@@ -175,7 +177,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         private void CheckLinkFlooding(ContentFilterResult result, string html)
         {
-            var linkMatches = Regex.Matches(html, @"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase);
+            var linkMatches = AnchorHrefRegex.Matches(html);
             if (linkMatches.Count > MaxLinksAllowed)
             {
                 result.IsBlocked = true;
@@ -184,43 +186,96 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
         }
 
-        private void ValidateUrls(ContentFilterResult result, string html)
+        private static IEnumerable<string> ExtractLinkTargets(string html, string markdown)
         {
-            var linkMatches = Regex.Matches(html, @"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase);
+            var seenTargets = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (Match match in AnchorHrefRegex.Matches(html))
+            {
+                if (match.Groups.Count <= 1)
+                {
+                    continue;
+                }
+
+                var target = System.Net.WebUtility.HtmlDecode(match.Groups[1].Value).Trim();
+                if (!string.IsNullOrWhiteSpace(target) && seenTargets.Add(target))
+                {
+                    yield return target;
+                }
+            }
+
+            foreach (Match match in MarkdownLinkRegex.Matches(markdown))
+            {
+                if (match.Groups.Count <= 1)
+                {
+                    continue;
+                }
+
+                var target = NormalizeMarkdownLinkTarget(match.Groups[1].Value);
+                if (!string.IsNullOrWhiteSpace(target) && seenTargets.Add(target))
+                {
+                    yield return target;
+                }
+            }
+        }
+
+        private static string NormalizeMarkdownLinkTarget(string rawTarget)
+        {
+            var target = rawTarget.Trim();
+            if (target.StartsWith("<", StringComparison.Ordinal))
+            {
+                var closingAngleIndex = target.IndexOf('>');
+                if (closingAngleIndex > 1)
+                {
+                    return target[1..closingAngleIndex].Trim();
+                }
+            }
+
+            var whitespaceIndex = target.IndexOfAny(new[] { ' ', '\t', '\r', '\n' });
+            if (whitespaceIndex > 0)
+            {
+                var firstToken = target[..whitespaceIndex];
+                if (Uri.TryCreate(firstToken, UriKind.Absolute, out _))
+                {
+                    return firstToken;
+                }
+            }
+
+            return target.Trim('"', '\'');
+        }
+
+        private void ValidateUrls(ContentFilterResult result, IEnumerable<string> urls)
+        {
             var trustedDomains = _config.TrustedDomains;
 
-            foreach (Match match in linkMatches)
+            foreach (var url in urls)
             {
-                if (match.Groups.Count > 1)
+                if (!string.IsNullOrWhiteSpace(url))
                 {
-                    var url = match.Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(url))
+                    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
                     {
-                        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                        result.RequiresModeration = true;
+                        result.Warnings.Add($"Invalid URL detected: {url}");
+                        continue;
+                    }
+
+                    if (uri.Scheme != "http" && uri.Scheme != "https")
+                    {
+                        result.IsBlocked = true;
+                        result.Warnings.Add($"Non-HTTP(S) URL detected: {url}");
+                        continue;
+                    }
+
+                    if (trustedDomains.Count > 0)
+                    {
+                        var isDomainTrusted = trustedDomains.Any(domain =>
+                            uri.Host.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
+                            uri.Host.EndsWith($".{domain}", StringComparison.OrdinalIgnoreCase));
+
+                        if (!isDomainTrusted)
                         {
                             result.RequiresModeration = true;
-                            result.Warnings.Add($"Invalid URL detected: {url}");
-                            continue;
-                        }
-
-                        if (uri.Scheme != "http" && uri.Scheme != "https")
-                        {
-                            result.IsBlocked = true;
-                            result.Warnings.Add($"Non-HTTP(S) URL detected: {url}");
-                            continue;
-                        }
-
-                        if (trustedDomains.Count > 0)
-                        {
-                            var isDomainTrusted = trustedDomains.Any(domain =>
-                                uri.Host.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
-                                uri.Host.EndsWith($".{domain}", StringComparison.OrdinalIgnoreCase));
-
-                            if (!isDomainTrusted)
-                            {
-                                result.RequiresModeration = true;
-                                result.Warnings.Add($"Untrusted domain detected: {uri.Host}");
-                            }
+                            result.Warnings.Add($"Untrusted domain detected: {uri.Host}");
                         }
                     }
                 }

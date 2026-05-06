@@ -226,8 +226,10 @@ export const AdminMainWindow: FC = () => {
               anchorEl={anchorEl}
               open={open}
               onClose={handleUserMenuClose}
-              MenuListProps={{
-                'aria-labelledby': 'basic-button',
+              slotProps={{
+                list: {
+                  'aria-labelledby': 'basic-button',
+                },
               }}
             >
               <MenuItem onClick={() => navigate(`/profile`)}>My Profile</MenuItem>

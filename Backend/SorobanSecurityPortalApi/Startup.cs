@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Common.Data;
 using AspNetCore.Authentication.Basic;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using SorobanSecurityPortalApi.Services.ControllersServices;
 
 namespace SorobanSecurityPortalApi;
@@ -109,7 +109,7 @@ public class Startup
             .AddJwtBearer(options => { options.TokenValidationParameters = tokenValidationParameters; })
             .AddBasic<BasicUserValidationService>(options => { options.SuppressWWWAuthenticateHeader = true; });
 
-        services.AddAutoMapper(typeof(Startup));
+        services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
         services.AddHealthChecks();
         services.AddControllers().AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
         services.AddEndpointsApiExplorer();
@@ -141,18 +141,11 @@ public class Startup
                 In = ParameterLocation.Header,
                 Description = "Basic Authorization header, login:password encoded with Base64."
             });
-            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
             {
                 {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Basic"
-                        }
-                    },
-                    new string[] {}
+                    new OpenApiSecuritySchemeReference("Basic", document, null),
+                    new List<string>()
                 }
             });
         });

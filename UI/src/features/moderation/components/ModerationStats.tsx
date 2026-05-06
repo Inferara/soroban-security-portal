@@ -17,7 +17,7 @@ const StatCard = ({ title, value, icon, color }: { title: string, value: number,
                 {icon}
             </Box>
             <Box>
-                <Typography variant="h4" fontWeight="bold">{value}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{value}</Typography>
                 <Typography variant="body2" color="text.secondary">{title}</Typography>
             </Box>
         </Paper>

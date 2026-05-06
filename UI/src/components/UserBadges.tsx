@@ -22,7 +22,7 @@ export function UserBadges({ badges, mode = 'compact', maxBadges, size = 'small'
 
     if (mode === 'compact') {
         return (
-            <Stack direction="row" spacing={0.5} alignItems="center">
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                 {displayBadges.map((badge) => (
                     <BadgeIcon key={badge.id} badge={badge} size={size} />
                 ))}

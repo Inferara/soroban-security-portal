@@ -17,7 +17,7 @@ export const StatisticsChanges: FC<StatisticsChangeProps> = () => {
     <Grid
       container
       spacing={{ xs: 5, md: 15 }}
-      alignItems="center"
+      sx={{ alignItems: 'center' }}
     >
       <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { xs: "center", md: "right" } }}>
         <AnimatedSuperscriptCounter

@@ -31,7 +31,7 @@ export const ModerationDashboard = () => {
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}>
             <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" fontWeight="bold" gutterBottom>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>
                     Moderation Dashboard
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
