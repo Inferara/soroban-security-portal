@@ -4,7 +4,7 @@ EXPOSE 8080
 EXPOSE 8081
 
 RUN apt-get update && \
-    apt-get install -y python3.11 python3-pip ffmpeg curl gnupg && \
+    apt-get install -y python3 python3-pip ffmpeg curl gnupg && \
     rm -rf /var/lib/apt/lists/*
 	
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
