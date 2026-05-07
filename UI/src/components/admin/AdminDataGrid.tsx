@@ -7,7 +7,7 @@ import { useAuth } from 'react-oidc-context';
 
 import { CustomToolbar } from '../../features/components/custom-toolbar';
 import { ConfirmDialog } from '../../features/pages/admin/admin-main-window/confirm-dialog';
-import { Role } from '../../api/soroban-security-portal/models/role';
+import { isAdmin as hasAdminRole } from '../../features/authentication/authPermissions';
 import { listAreaStyle, dataGridContainerStyle, TouchTargets } from '../../theme';
 import { useResponsive } from '../../hooks';
 import { ResponsiveColumn, getResponsiveColumns } from './responsive-columns';
@@ -169,7 +169,7 @@ export function AdminDataGrid<T extends GridValidRowModel>({
     }
   }, [isControlled, onItemIdToRemoveChange]);
 
-  const isAdmin = auth.user?.profile.role === Role.Admin;
+  const isAdmin = hasAdminRole(auth);
   const { breakpoint } = useResponsive();
 
   const handleRemoveConfirmed = async () => {

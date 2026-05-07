@@ -14,6 +14,7 @@ vi.mock('../../../../../../../api/soroban-security-portal/soroban-security-porta
     approveReportCall: vi.fn(),
     rejectReportCall: vi.fn(),
     extractVulnerabilitiesFromReportCall: vi.fn(),
+    downloadReportPDFCall: vi.fn(),
 }));
 
 // Create test store
@@ -69,6 +70,53 @@ describe('useListReports', () => {
         (api.removeReportCall as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
         (api.approveReportCall as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
         (api.rejectReportCall as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+        (api.downloadReportPDFCall as ReturnType<typeof vi.fn>).mockResolvedValue(new Blob(['pdf'], { type: 'application/pdf' }));
+    });
+
+    describe('downloadReport callback', () => {
+        it('opens a blank tab synchronously before waiting for the PDF blob', async () => {
+            // Arrange
+            let resolveDownload: (blob: Blob) => void;
+            const downloadPromise = new Promise<Blob>((resolve) => {
+                resolveDownload = resolve;
+            });
+            (api.downloadReportPDFCall as ReturnType<typeof vi.fn>).mockReturnValue(downloadPromise);
+
+            const openedWindow = {
+                location: { href: '' },
+                close: vi.fn(),
+            } as unknown as Window;
+            const openSpy = vi.spyOn(window, 'open').mockReturnValue(openedWindow);
+
+            const wrapper = createWrapper();
+            const { result } = renderHook(
+                () => useListReports({ currentPageState: mockCurrentPageState }),
+                { wrapper }
+            );
+
+            await waitFor(() => {
+                expect(result.current.reportListData).toBeDefined();
+            });
+
+            // Act
+            let downloadTask: Promise<void>;
+            act(() => {
+                downloadTask = result.current.downloadReport(42);
+            });
+
+            // Assert
+            expect(openSpy).toHaveBeenCalledWith('', '_blank');
+
+            await act(async () => {
+                resolveDownload!(new Blob(['pdf'], { type: 'application/pdf' }));
+                await downloadTask!;
+            });
+
+            expect(openedWindow.location.href).toBe('blob:test-url');
+            expect(api.downloadReportPDFCall).toHaveBeenCalledWith(42);
+
+            openSpy.mockRestore();
+        });
     });
 
     describe('extractVulnerabilities callback', () => {

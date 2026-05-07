@@ -50,11 +50,27 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> GetFile(int reportId)
         {
             var result = await _reportService.Get(reportId);
+            if (!CanDownloadReport(result))
+            {
+                return Forbid();
+            }
+
             if (result.BinFile == null || result.BinFile.Length == 0)
             {
                 return BadRequest("Report is not found.");
             }
             return File(result.BinFile, "application/pdf", $"{result.Name}.pdf");
+        }
+
+        private bool CanDownloadReport(ReportViewModel report)
+        {
+            return report.Status == ReportModelStatus.Approved
+                || UserHasAnyRole(Role.Admin, Role.Moderator, Role.Contributor);
+        }
+
+        private bool UserHasAnyRole(params Role[] roles)
+        {
+            return roles.Any(role => User.IsInRole(role.ToString()));
         }
 
         [HttpGet("{reportId}/image.png")]

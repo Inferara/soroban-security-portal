@@ -37,16 +37,29 @@ export const useListReports = (props: UseListReportsProps) => {
     });
 
     const downloadReport = useCallback(async (reportId: number): Promise<void> => {
+        const openedWindow = window.open('', '_blank');
+
         try {
             const blob = await downloadReportPDFCall(reportId);
 
-            // Create blob URL and open in new tab
             const blobUrl = window.URL.createObjectURL(blob);
-            window.open(blobUrl, '_blank');
+            if (openedWindow) {
+                openedWindow.location.href = blobUrl;
+            } else {
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
 
             // Clean up blob URL after a delay to ensure it loads
             setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
         } catch (error) {
+            openedWindow?.close();
             const errorMessage =
                 error instanceof Error && error.message
                     ? error.message

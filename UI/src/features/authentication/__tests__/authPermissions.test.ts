@@ -3,6 +3,7 @@ import { AuthContextProps } from 'react-oidc-context';
 import {
   isValidRole,
   getUserRole,
+  hasAnyRole,
   isAdmin,
   isModerator,
   isContributor,
@@ -164,6 +165,33 @@ describe('authPermissions', () => {
     });
   });
 
+  describe('hasAnyRole', () => {
+    it('returns true when user has one of the requested roles', () => {
+      const auth = createAuthenticatedMock(Role.Moderator);
+      expect(hasAnyRole(auth, Role.Admin, Role.Moderator)).toBe(true);
+    });
+
+    it('returns false when user has none of the requested roles', () => {
+      const auth = createAuthenticatedMock(Role.User);
+      expect(hasAnyRole(auth, Role.Admin, Role.Moderator, Role.Contributor)).toBe(false);
+    });
+
+    it('returns false for invalid stored role', () => {
+      const auth = createMockAuth({
+        isAuthenticated: true,
+        user: {
+          access_token: 'test-token',
+          profile: {
+            sub: '1',
+            role: 'InvalidRole',
+          },
+        } as AuthContextProps['user'],
+      });
+
+      expect(hasAnyRole(auth, Role.Admin)).toBe(false);
+    });
+  });
+
   describe('isModerator', () => {
     it('returns true for moderator user', () => {
       const auth = createAuthenticatedMock(Role.Moderator);
@@ -300,6 +328,20 @@ describe('authPermissions', () => {
           profile: {
             sub: '1',
             // No role
+          },
+        } as AuthContextProps['user'],
+      });
+      expect(isAuthorized(auth)).toBe(false);
+    });
+
+    it('returns false for authenticated user with invalid role', () => {
+      const auth = createMockAuth({
+        isAuthenticated: true,
+        user: {
+          access_token: 'test-token',
+          profile: {
+            sub: '1',
+            role: 'InvalidRole',
           },
         } as AuthContextProps['user'],
       });
