@@ -42,7 +42,7 @@ import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import MailOutlinedIcon from '@mui/icons-material/MailOutlined';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import TelegramIcon from '@mui/icons-material/Telegram';
 import TwitterIcon from '@mui/icons-material/X';
@@ -275,7 +275,7 @@ export const MainWindow: FC = () => {
         <Box role="presentation" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
             <Box component="img" src="/static/images/logo.png" alt="Logo" sx={{ height: 40, mr: 1 }} />
-            <Typography variant="h6" fontWeight={700}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Menu
             </Typography>
           </Box>
@@ -302,7 +302,7 @@ export const MainWindow: FC = () => {
                     primary={item.label}
                     slotProps={{
                       primary: {
-                        fontWeight: isActive ? 700 : 500,
+                        sx: { fontWeight: isActive ? 700 : 500 },
                       },
                     }}
                   />
@@ -367,12 +367,11 @@ export const MainWindow: FC = () => {
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             spacing={{ xs: 3, md: 4 }}
-            alignItems={{ xs: 'stretch', md: 'flex-start' }}
-            justifyContent="space-between"
+            sx={{ alignItems: { xs: 'stretch', md: 'flex-start' }, justifyContent: 'space-between' }}
           >
             {/* Subscribe Section */}
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'secondary.main' }}>
                 Subscribe to updates
               </Typography>
 
@@ -428,7 +427,7 @@ export const MainWindow: FC = () => {
                 '& .MuiButtonBase-root': { '&:hover': { color: '#2D4EFF' } },
               }}
             >
-              <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'secondary.main' }}>
                 &nbsp;
               </Typography>
               <Stack direction="row" spacing={2}>
@@ -441,7 +440,7 @@ export const MainWindow: FC = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <MailOutlineIcon />
+                    <MailOutlinedIcon />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Follow us on X (Twitter)" arrow>

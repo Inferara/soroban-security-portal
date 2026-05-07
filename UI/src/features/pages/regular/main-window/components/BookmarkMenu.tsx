@@ -113,7 +113,7 @@ export const BookmarkMenu: FC<BookmarkMenuProps> = ({ bookmarks }) => {
 
             >
                 <Box sx={{ px: 2, py: 1 }}>
-                    <Typography variant="h6" fontWeight={600}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         Bookmarks
                     </Typography>
                 </Box>

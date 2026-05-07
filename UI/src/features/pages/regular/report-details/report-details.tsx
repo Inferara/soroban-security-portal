@@ -667,7 +667,7 @@ export const ReportDetails: FC = () => {
                             <Typography color="text.secondary" sx={{ mb: 3 }}>
                               The PDF viewer encountered an authentication error. You can still download the report.
                             </Typography>
-                            <Stack direction="row" spacing={2} justifyContent="center">
+                            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
                               <Button
                                 variant="contained"
                                 color="primary"

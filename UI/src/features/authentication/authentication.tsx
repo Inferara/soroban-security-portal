@@ -203,21 +203,23 @@ export const Authentication: FC<Props> = (props: Props) => {
                     opacity: 1,
                   },
                 }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() => togglePasswordVisibility()}
-                        edge="end"
-                        sx={{
-                          color: 'black',
-                        }}
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={() => togglePasswordVisibility()}
+                          edge="end"
+                          sx={{
+                            color: 'black',
+                          }}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Box>

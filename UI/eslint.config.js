@@ -3,7 +3,6 @@ import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
-import react from 'eslint-plugin-react';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default tseslint.config(
@@ -20,7 +19,6 @@ export default tseslint.config(
       globals: globals.browser,
     },
     plugins: {
-      'react': react,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
@@ -30,8 +28,6 @@ export default tseslint.config(
       },
     },
     rules: {
-      ...react.configs.recommended.rules,
-      ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
       // Disable react-refresh warning for files exporting non-components
       'react-refresh/only-export-components': 'off',
@@ -40,10 +36,6 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      // Disable prop-types since we use TypeScript
-      'react/prop-types': 'off',
-      // Disable display-name for inline components
-      'react/display-name': 'off',
       // Allow lexical declarations in case blocks
       'no-case-declarations': 'off',
       // Allow components defined during render
@@ -54,6 +46,7 @@ export default tseslint.config(
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/immutability': 'off',
+      'react-hooks/static-components': 'off',
     },
   },
   {

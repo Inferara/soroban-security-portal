@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SorobanSecurityPortalApi.Authorization;
 using SorobanSecurityPortalApi.Common;
@@ -62,7 +63,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             _dbMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-            var mappingConfig = new MapperConfiguration(mc => mc.AddProfile(new RatingModelProfile()));
+            var mappingConfig = new MapperConfiguration(mc => mc.AddProfile(new RatingModelProfile()), NullLoggerFactory.Instance);
             _mapper = mappingConfig.CreateMapper();
             _cacheMock = new Mock<IDistributedCache>();
 

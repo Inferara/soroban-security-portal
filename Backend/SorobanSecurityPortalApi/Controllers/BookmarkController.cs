@@ -47,13 +47,15 @@ namespace SorobanSecurityPortalApi.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var bookmarks = await _bookmarkService.List();
-            var bookmark = bookmarks.FirstOrDefault(a => a.Id == id);
-            if (bookmark == null)
+            try
             {
-                return NotFound($"Bookmark with ID {id} not found.");
+                var bookmark = await _bookmarkService.Get(id);
+                return Ok(bookmark);
             }
-            return Ok(bookmark);
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
     }
 }

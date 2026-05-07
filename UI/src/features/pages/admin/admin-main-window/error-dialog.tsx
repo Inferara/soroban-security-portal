@@ -57,7 +57,7 @@ export default function ErrorDialog() {
     <React.Fragment>
       <Dialog
           open={!currentError.isClosed}
-          TransitionComponent={Transition}
+          slots={{ transition: Transition }}
           keepMounted
           onClose={handleClose}
           aria-describedby="alert-dialog-slide-description"

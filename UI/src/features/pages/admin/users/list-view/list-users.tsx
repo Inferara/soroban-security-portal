@@ -32,7 +32,7 @@ export const UserManagement: FC = () => {
         <Switch
           checked={params.row.isEnabled}
           onChange={(e) => userEnabledChange(params.row.loginId, e.target.checked)}
-          inputProps={{ 'aria-label': 'Enable toggle' }}
+          slotProps={{ input: { 'aria-label': 'Enable toggle' } }}
         />
       ),
     },

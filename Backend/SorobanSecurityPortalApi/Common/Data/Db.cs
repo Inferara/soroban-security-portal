@@ -55,7 +55,23 @@ namespace SorobanSecurityPortalApi.Common.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.HasPostgresExtension("vector");
+            builder.Entity<AuditorModel>()
+                .Property(x => x.Embedding)
+                .HasColumnType("vector(3072)");
+
+            builder.Entity<CompanyModel>()
+                .Property(x => x.Embedding)
+                .HasColumnType("vector(3072)");
+
+            builder.Entity<ProtocolModel>()
+                .Property(x => x.Embedding)
+                .HasColumnType("vector(3072)");
+
             builder.Entity<ReportModel>()
+                .Property(x => x.Embedding)
+                .HasColumnType("vector(3072)");
+
+            builder.Entity<VulnerabilityModel>()
                 .Property(x => x.Embedding)
                 .HasColumnType("vector(3072)");
 
