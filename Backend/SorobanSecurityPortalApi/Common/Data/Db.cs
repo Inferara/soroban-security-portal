@@ -25,6 +25,8 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<ForumCategoryModel> ForumCategory { get; set; }
         public DbSet<ForumThreadModel> ForumThread { get; set; }
         public DbSet<ForumPostModel> ForumPost { get; set; }
+        public DbSet<CommentModel> Comment { get; set; }
+        public DbSet<CommentVoteModel> CommentVote { get; set; }
 
 
         public virtual DbSet<RatingModel> Rating { get; set; }
@@ -145,6 +147,19 @@ namespace SorobanSecurityPortalApi.Common.Data
 
             builder.Entity<RatingModel>()
                 .HasIndex(r => new { r.EntityType, r.EntityId });
+
+            builder.Entity<CommentModel>()
+                .HasIndex(c => new { c.EntityType, c.EntityId });
+
+            builder.Entity<CommentModel>()
+                .HasOne(c => c.Parent)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(c => c.ParentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CommentVoteModel>()
+                .HasIndex(cv => new { cv.CommentId, cv.UserId })
+                .IsUnique();
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function

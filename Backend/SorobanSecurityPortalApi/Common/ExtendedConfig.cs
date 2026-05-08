@@ -31,6 +31,7 @@ public interface IExtendedConfig
     bool ProfanityFilterEnabled { get; }
     List<string> ProfanityWords { get; }
     List<string> TrustedDomains { get; }
+    int CommentEditWindowMinutes { get; }
     void Reset();
 }
 
@@ -98,7 +99,7 @@ public class ExtendedConfig : IExtendedConfig
     [Description("Permanent Refresh Token expiration time in days")]
     [Tooltip("The permanent refresh token expiration time determines the number of days before a permanent refresh token becomes invalid. This is used in scenarios requiring long-lived tokens, such as external applications using OIDC for login. Each time the new access token generated, the refresh token lifetime is extended.")]
     public int PermanentTokenExpirationTimeDays => GetValue<int>("PermanentTokenExpirationTimeDays", 365);
-    
+
     [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
     [Description("Auth Issuer")]
     [Tooltip("The Auth Issuer is used to specify the issuer of the authentication token. This is used to verify the token.")]
@@ -228,6 +229,12 @@ public class ExtendedConfig : IExtendedConfig
                 : domains.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(d => d.Trim()).ToList();
         }
     }
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Comment Edit Window (minutes)")]
+    [Tooltip("The time window in minutes during which users can edit their comments after creation. Set to 0 to disable editing.")]
+    public int CommentEditWindowMinutes => GetValue<int>("CommentEditWindowMinutes", 15);
 
 }
 
