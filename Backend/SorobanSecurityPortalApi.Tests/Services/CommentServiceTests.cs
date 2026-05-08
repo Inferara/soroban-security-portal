@@ -16,6 +16,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private readonly Mock<ICommentProcessor> _commentProcessorMock;
         private readonly Mock<IMapper> _mapperMock;
         private readonly Mock<IUserContextAccessor> _userContextAccessorMock;
+        private readonly Mock<IContentFilterService> _contentFilterServiceMock;
+        private readonly Mock<IExtendedConfig> _configMock;
         private readonly CommentService _commentService;
 
         public CommentServiceTests()
@@ -23,7 +25,14 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _commentProcessorMock = new Mock<ICommentProcessor>();
             _mapperMock = new Mock<IMapper>();
             _userContextAccessorMock = new Mock<IUserContextAccessor>();
-            _commentService = new CommentService(_commentProcessorMock.Object, _mapperMock.Object, _userContextAccessorMock.Object);
+            _contentFilterServiceMock = new Mock<IContentFilterService>();
+            _configMock = new Mock<IExtendedConfig>();
+            _commentService = new CommentService(
+                _commentProcessorMock.Object,
+                _mapperMock.Object,
+                _userContextAccessorMock.Object,
+                _contentFilterServiceMock.Object,
+                _configMock.Object);
         }
 
         [Fact]
@@ -41,7 +50,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _commentProcessorMock.Setup(p => p.GetComments(entityType, entityId, page, pageSize)).ReturnsAsync(comments);
             _mapperMock.Setup(m => m.Map<List<CommentViewModel>>(comments)).Returns(viewModels);
             _commentProcessorMock.Setup(p => p.GetUserVotes(It.IsAny<IEnumerable<int>>(), It.IsAny<int>())).ReturnsAsync(userVotes);
-            _userContextAccessorMock.Setup(u => u.UserId).Returns(1);
+            _userContextAccessorMock.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(1);
 
             // Act
             var result = await _commentService.GetComments(entityType, entityId, page, pageSize);
@@ -59,10 +68,12 @@ namespace SorobanSecurityPortalApi.Tests.Services
             var commentModel = new CommentModel { Id = 1, Content = "Test" };
             var createdComment = new CommentModel { Id = 1 };
             var viewModel = new CommentViewModel { Id = 1 };
+            var filterResult = new ContentFilterResult { SanitizedContent = "<p>Test</p>" };
 
             _mapperMock.Setup(m => m.Map<CommentModel>(createModel)).Returns(commentModel);
-            _userContextAccessorMock.Setup(u => u.UserId).Returns(1);
-            _commentProcessorMock.Setup(p => p.AddComment(commentModel)).ReturnsAsync(createdComment);
+            _userContextAccessorMock.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(1);
+            _contentFilterServiceMock.Setup(c => c.FilterContentAsync("Test", 1)).ReturnsAsync(filterResult);
+            _commentProcessorMock.Setup(p => p.AddComment(It.IsAny<CommentModel>())).ReturnsAsync(createdComment);
             _commentProcessorMock.Setup(p => p.GetComment(1)).ReturnsAsync(createdComment);
             _mapperMock.Setup(m => m.Map<CommentViewModel>(createdComment)).Returns(viewModel);
 

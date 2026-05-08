@@ -10,13 +10,13 @@ using System.Threading.Tasks;
 namespace SorobanSecurityPortalApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/v1/comments")]
     [Authorize]
     public class CommentsController : ControllerBase
     {
-        private readonly CommentService _commentService;
+        private readonly ICommentService _commentService;
 
-        public CommentsController(CommentService commentService)
+        public CommentsController(ICommentService commentService)
         {
             _commentService = commentService;
         }
@@ -35,7 +35,7 @@ namespace SorobanSecurityPortalApi.Controllers
             var comment = await _commentService.GetComment(id);
             if (comment == null)
             {
-                return NotFound();
+                return NotFound($"Comment with id {id} not found.");
             }
             return Ok(comment);
         }
@@ -53,9 +53,13 @@ namespace SorobanSecurityPortalApi.Controllers
                 var comment = await _commentService.CreateComment(model);
                 return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, comment);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "An error occurred while creating the comment.");
             }
         }
 
@@ -72,13 +76,21 @@ namespace SorobanSecurityPortalApi.Controllers
                 await _commentService.UpdateComment(id, model);
                 return NoContent();
             }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Comment with id {id} not found.");
+            }
             catch (UnauthorizedAccessException)
             {
                 return Forbid();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "An error occurred while updating the comment.");
             }
         }
 
@@ -90,38 +102,44 @@ namespace SorobanSecurityPortalApi.Controllers
                 await _commentService.DeleteComment(id);
                 return NoContent();
             }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Comment with id {id} not found.");
+            }
             catch (UnauthorizedAccessException)
             {
                 return Forbid();
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return StatusCode(500, "An error occurred while deleting the comment.");
             }
         }
 
         [HttpPost("{id}/vote")]
         public async Task<IActionResult> Vote(int id, [FromBody] VoteRequest request)
         {
-            if (!Enum.TryParse<VoteType>(request.Vote, true, out var voteType))
-            {
-                return BadRequest("Invalid vote type");
-            }
-
             try
             {
-                await _commentService.Vote(id, voteType);
+                await _commentService.Vote(id, request);
                 return NoContent();
             }
-            catch (Exception ex)
+            catch (ArgumentNullException ex)
             {
                 return BadRequest(ex.Message);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Comment with id {id} not found.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "An error occurred while processing the vote.");
+            }
         }
-    }
-
-    public class VoteRequest
-    {
-        public string Vote { get; set; } = string.Empty; // "upvote", "downvote", "none"
     }
 }

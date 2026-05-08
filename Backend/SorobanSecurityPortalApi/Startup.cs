@@ -49,7 +49,7 @@ public class Startup
             .AddTransients();
 
         services.AddScoped<IRatingService, RatingService>();
-        services.AddScoped<CommentService>();
+        services.AddScoped<ICommentService, CommentService>();
 
         services.AddStackExchangeRedisCache(options =>
         {
@@ -88,7 +88,7 @@ public class Startup
         services.AddHttpContextAccessor();
         services.AddScoped<HttpCallHandler>();
         services.AddHttpClients(extendedConfig, _logger);
-        
+
         var combinedAuthenticationScheme = "Combined";
         services.AddAuthentication(options =>
         {

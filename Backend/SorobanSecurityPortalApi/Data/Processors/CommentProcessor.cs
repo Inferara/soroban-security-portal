@@ -64,7 +64,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await using var db = await _dbFactory.CreateDbContextAsync();
             db.Comment.Add(comment);
             await db.SaveChangesAsync();
-            
+
             // Reload to get relations for the return DTO
             return await db.Comment
                 .Include(c => c.Author)
@@ -89,6 +89,19 @@ namespace SorobanSecurityPortalApi.Data.Processors
             existingComment.UpdatedAt = comment.UpdatedAt;
             existingComment.IsEdited = comment.IsEdited;
 
+            await db.SaveChangesAsync();
+        }
+
+        public async Task SoftDeleteComment(int id)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var comment = await db.Comment.FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
+            if (comment == null)
+            {
+                throw new KeyNotFoundException("Comment not found");
+            }
+
+            comment.IsDeleted = true;
             await db.SaveChangesAsync();
         }
 
@@ -154,6 +167,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<CommentModel?> GetComment(int id);
         Task<CommentModel> AddComment(CommentModel comment);
         Task UpdateComment(CommentModel comment);
+        Task SoftDeleteComment(int id);
         Task Vote(int commentId, int userId, VoteType voteType);
         Task<VoteType> GetUserVote(int commentId, int userId);
         Task<Dictionary<int, VoteType>> GetUserVotes(IEnumerable<int> commentIds, int userId);
