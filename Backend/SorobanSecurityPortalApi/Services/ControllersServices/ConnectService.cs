@@ -115,10 +115,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (login == null)
             {
                 login = await _loginProcessor.GetByEmail(extendedTokenModel.Email);
-                var userRole = GetRoleFromDiscordGuild(extendedTokenModel);
                 if (login != null)
                 {
-                    var updated = false;
                     if (!login.ConnectedAccounts!.Any(ca => ca.ServiceName == "Discord" && ca.AccountId == extendedTokenModel.Email))
                     {
                         login.ConnectedAccounts!.Add(new ConnectedAccountModel
@@ -126,15 +124,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                             ServiceName = "Discord",
                             AccountId = extendedTokenModel.Email
                         });
-                        updated = true;
-                    }
-                    if (userRole > login.Role)
-                    {
-                        login.Role = userRole;
-                        updated = true;
-                    }
-                    if (updated)
-                    {
                         await _loginProcessor.Update(login);
                     }
                 }
@@ -145,7 +134,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                         Login = extendedTokenModel.Email,
                         Email = extendedTokenModel.Email,
                         FullName = extendedTokenModel.Name,
-                        Role = userRole,
+                        Role = RoleEnum.User,
                         LoginType = LoginTypeEnum.SsoDiscord,
                         IsEnabled = true,
                         Created = DateTime.UtcNow,
@@ -155,6 +144,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                             : null
                     });
                 }
+            }
+
+            // Sync role from Discord on every login
+            var userRole = GetRoleFromDiscordGuild(extendedTokenModel);
+            if (userRole > login.Role)
+            {
+                login.Role = userRole;
+                await _loginProcessor.Update(login);
             }
 
             // Sync avatar from SSO on every login, unless user has manually set their avatar
@@ -484,18 +481,22 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 return RoleEnum.User;
             }
+
+            if (extendedTokenModel.GuildMemberInfo.IsPilot())
+            {
+                return RoleEnum.Moderator;
+            }
+
+            if (extendedTokenModel.GuildMemberInfo.IsNavigator())
+            {
+                return RoleEnum.Contributor;
+            }
+
             if (extendedTokenModel.GuildMemberInfo.IsPathfinder())
             {
                 return RoleEnum.User;
             }
-            else if (extendedTokenModel.GuildMemberInfo.IsNavigator())
-            {
-                return RoleEnum.Contributor;
-            }
-            else if (extendedTokenModel.GuildMemberInfo.IsPilot())
-            {
-                return RoleEnum.Moderator;
-            }
+
             return RoleEnum.User;
         }
 
