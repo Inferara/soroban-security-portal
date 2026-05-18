@@ -12,28 +12,28 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
   const navigate = useNavigate();
   const { isAuthenticated, userName, isAdmin, isModerator, isContributor } = useAppAuth();
 
-    const rolesData = [
-        {
-            name: "Guest",
-            permissions: ["read"],
-            description: "Readonly access is available for everyone"
-        },
-        {
-            name: "User (logged in)",
-            permissions: ["read", "download"],
-            description: "Authorized users can download reports in the PDF format"
-        },
-        {
-            name: "Contributor",
-            permissions: ["read", "download", "create"],
-            description: "Contributors are SCF Navigators, Pilots and SCF Projects (see the handbook) or those who expressed interest in contributing"
-        },
-        {
-            name: "Moderator",
-            permissions: ["read", "download", "create", "approve"],
-            description: "Granted manually to active community members who are looking after the content integrity and quality"
-        }
-    ];
+  const rolesData = [
+    {
+      name: "Guest",
+      permissions: ["read"],
+      description: "Readonly access is available for everyone",
+    },
+    {
+      name: "User (logged in)",
+      permissions: ["read", "download"],
+      description: "Authorized users can download reports in the PDF format",
+    },
+    {
+      name: "Contributor",
+      permissions: ["read", "download", "create"],
+      description: "Contributors are SCF Navigators and SCF Projects (see the handbook) or those who expressed interest in contributing",
+    },
+    {
+      name: "Moderator",
+      permissions: ["read", "download", "create", "approve"],
+      description: "Granted to SCF Pilots and active community members who are looking after the content integrity and quality",
+    },
+  ];
 
   const getUserPermissions = () => {
     if (isAdmin || isModerator) {

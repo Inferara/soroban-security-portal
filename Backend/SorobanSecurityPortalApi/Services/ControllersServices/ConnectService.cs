@@ -111,6 +111,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             bool isOfflineMode,
             LoginProcessViewModel loginProcessViewModel)
         {
+            var userRole = GetRoleFromDiscordGuild(extendedTokenModel);
             var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, LoginTypeEnum.SsoDiscord);
             if (login == null)
             {
@@ -134,7 +135,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                         Login = extendedTokenModel.Email,
                         Email = extendedTokenModel.Email,
                         FullName = extendedTokenModel.Name,
-                        Role = RoleEnum.User,
+                        Role = userRole,
                         LoginType = LoginTypeEnum.SsoDiscord,
                         IsEnabled = true,
                         Created = DateTime.UtcNow,
@@ -146,8 +147,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 }
             }
 
-            // Sync role from Discord on every login
-            var userRole = GetRoleFromDiscordGuild(extendedTokenModel);
+            // Sync role from Discord on every login if it's higher
             if (userRole > login.Role)
             {
                 login.Role = userRole;
@@ -481,15 +481,16 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 return RoleEnum.User;
             }
-            if (extendedTokenModel.GuildMemberInfo.IsPilot() || 
-                extendedTokenModel.GuildMemberInfo.IsNavigator() || 
+
+            if (extendedTokenModel.GuildMemberInfo.IsPilot())
+            {
+                return RoleEnum.Moderator;
+            }
+
+            if (extendedTokenModel.GuildMemberInfo.IsNavigator() ||
                 extendedTokenModel.GuildMemberInfo.IsScfProject())
             {
                 return RoleEnum.Contributor;
-            }
-            else if (extendedTokenModel.GuildMemberInfo.IsPathfinder())
-            {
-                return RoleEnum.User;
             }
 
             return RoleEnum.User;
