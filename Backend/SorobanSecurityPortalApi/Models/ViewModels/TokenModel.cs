@@ -45,11 +45,15 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public bool IsNavigator() => this.IsActive() && this.Roles.Contains("1082353855041392731");
         // Tier 1
         public bool IsPathfinder() => this.IsActive() && this.Roles.Contains("1082357854926807111");
+        // SCF Project
+        public bool IsScfProject() => this.IsActive() && this.Roles.Contains("1082358910805090367");
+
         public StellarDevelopersGuildRole GetRole()
         {
             if (this.IsPilot()) return StellarDevelopersGuildRole.Pilot;
             if (this.IsNavigator()) return StellarDevelopersGuildRole.Navigator;
             if (this.IsPathfinder()) return StellarDevelopersGuildRole.Pathfinder;
+            if (this.IsScfProject()) return StellarDevelopersGuildRole.ScfProject;
             return StellarDevelopersGuildRole.None; // Default role
         }
     }
@@ -59,6 +63,7 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         None = 0,
         Pilot = 1,
         Navigator = 2,
-        Pathfinder = 3
+        Pathfinder = 3,
+        ScfProject = 4
     }
 }

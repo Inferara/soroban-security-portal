@@ -481,18 +481,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 return RoleEnum.User;
             }
-
-            if (extendedTokenModel.GuildMemberInfo.IsPilot())
-            {
-                return RoleEnum.Moderator;
-            }
-
-            if (extendedTokenModel.GuildMemberInfo.IsNavigator())
+            if (extendedTokenModel.GuildMemberInfo.IsPilot() || 
+                extendedTokenModel.GuildMemberInfo.IsNavigator() || 
+                extendedTokenModel.GuildMemberInfo.IsScfProject())
             {
                 return RoleEnum.Contributor;
             }
-
-            if (extendedTokenModel.GuildMemberInfo.IsPathfinder())
+            else if (extendedTokenModel.GuildMemberInfo.IsPathfinder())
             {
                 return RoleEnum.User;
             }
