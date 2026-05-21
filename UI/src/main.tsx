@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AuthContextProps, AuthProvider, useAuth } from 'react-oidc-context';
+import { AuthProvider, useAuth } from 'react-oidc-context';
 import { WebStorageStateStore } from 'oidc-client-ts';
 import { Provider } from 'react-redux';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
@@ -11,7 +11,6 @@ import { Authentication } from './features/authentication/authentication';
 import { AdminMainWindow } from './features/pages/admin/admin-main-window/admin-main-window';
 import "@fontsource/rubik/index.css";
 import "@fontsource/roboto/index.css";
-import { Role } from './api/soroban-security-portal/models/role';
 import { MainWindow } from './features/pages/regular/main-window/main-window';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { BookmarkProvider } from './contexts/BookmarkContext';
@@ -19,6 +18,7 @@ import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import ReactGA from 'react-ga4';
 import { AUTH_FAILURE_EVENT } from './api/rest-api';
 import { SessionExpirationWarning } from './components/SessionExpirationWarning';
+import { isAdminOrModerator } from './features/authentication/authPermissions';
 
 if (environment.gaId) {
   ReactGA.initialize(environment.gaId);
@@ -39,8 +39,6 @@ export function AppWrapper() {
   const navigate = useNavigate();
   const auth = useAuth();
   const { theme } = useTheme();
-  const isAdminOrModerator = (auth: AuthContextProps) => 
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
 
   // Validate session on mount and when user changes
   useEffect(() => {
@@ -114,24 +112,21 @@ export function AppWrapper() {
     
     if (path.startsWith(`${environment.basePath}/login`)) {
       if (auth.isAuthenticated) {
-        const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
-        if (isAdmin) {
+        if (isAdminOrModerator(auth)) {
           navigate(`${environment.basePath}/admin`);
         } else {
           navigate('/');
         }
       }
     } else if (path.startsWith(`${environment.basePath}/admin`)) {
-      const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
-      if (auth.isAuthenticated && !isAdmin) {
+      if (auth.isAuthenticated && !isAdminOrModerator(auth)) {
         navigate('/');
       } else if (!auth.isAuthenticated) {
         navigate('/login');
       }
     } else if (path.startsWith(`${environment.basePath}/callback`)) {
       if (auth.isAuthenticated) {
-        const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
-        if (isAdmin) {
+        if (isAdminOrModerator(auth)) {
           navigate(`${environment.basePath}/admin`);
         } else {
           navigate('/');

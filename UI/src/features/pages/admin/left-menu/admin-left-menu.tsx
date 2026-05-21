@@ -15,11 +15,11 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import { useTheme } from '@mui/material/styles';
 import { FC } from 'react';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { useAuth } from 'react-oidc-context';
 import './admin-left-menu.css';
 import { environment } from '../../../../environments/environment';
 import { useNavigate } from 'react-router-dom';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
+import { isAdmin, isAdminOrModerator } from '../../../authentication/authPermissions';
 
 interface AdminLeftMenuProps {
   /** Callback when a menu item is clicked (for closing drawer on mobile) */
@@ -35,9 +35,6 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
     navigate(`${environment.basePath}/${path}`);
     onNavigate?.(); // Close drawer on mobile
   };
-  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
-  const isAdminOrModerator = (auth: AuthContextProps) =>
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
 
   const menuStructure = [
     {

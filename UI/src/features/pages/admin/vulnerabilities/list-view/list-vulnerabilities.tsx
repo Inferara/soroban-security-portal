@@ -12,7 +12,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
 import { Vulnerability } from '../../../../../api/soroban-security-portal/models/vulnerability';
-import { Role } from '../../../../../api/soroban-security-portal/models/role';
 import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
 import { useListVulnerabilities } from './hooks/index';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
@@ -20,6 +19,7 @@ import { MarkdownView } from '../../../../../components/MarkdownView';
 import { getStatusColor } from '../../../../../utils/status-utils';
 import { ConfirmDialog } from '../../admin-main-window/confirm-dialog';
 import { TouchTargets } from '../../../../../theme';
+import { isAdmin as hasAdminRole } from '../../../../authentication/authPermissions';
 
 export const VulnerabilityManagement: FC = () => {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ export const VulnerabilityManagement: FC = () => {
 
   const { vulnerabilityListData, vulnerabilityApprove, vulnerabilityRemove, vulnerabilityReject } = useListVulnerabilities({ currentPageState });
 
-  const isAdmin = auth.user?.profile.role === Role.Admin;
+  const isAdmin = hasAdminRole(auth);
 
   useEffect(() => {
     setCollapsedDescriptions(new Set(vulnerabilityListData.map(vuln => vuln.id.toString())));

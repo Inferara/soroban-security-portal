@@ -27,7 +27,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
-import { Role } from '../../../../../api/soroban-security-portal/models/role';
 import { AdminDataGrid, ResponsiveColumn } from '../../../../../components/admin';
 import { useListReports } from './hooks/index';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
@@ -35,6 +34,7 @@ import { environment } from '../../../../../environments/environment';
 import { getStatusColor } from '../../../../../utils/status-utils';
 import { ConfirmDialog } from '../../admin-main-window/confirm-dialog';
 import { TouchTargets } from '../../../../../theme';
+import { isAdmin, isAdminOrModerator } from '../../../../authentication/authPermissions';
 
 export const ReportManagement: FC = () => {
   const navigate = useNavigate();
@@ -64,9 +64,8 @@ export const ReportManagement: FC = () => {
     clearExtractionResult,
   } = useListReports({ currentPageState });
 
-  const isAdmin = auth.user?.profile.role === Role.Admin;
-  const isModerator = auth.user?.profile.role === Role.Moderator;
-  const canExtract = isAdmin || isModerator;
+  const canRemove = isAdmin(auth);
+  const canExtract = isAdminOrModerator(auth);
 
   // Extraction dialog state
   const [extractConfirmId, setExtractConfirmId] = useState(0);
@@ -129,7 +128,7 @@ export const ReportManagement: FC = () => {
               <EditIcon sx={{ color: 'green' }} />
             </IconButton>
           </Tooltip>
-          {isAdmin && (
+          {canRemove && (
             <Tooltip title="Remove Report">
               <IconButton
                 onClick={() => setRemoveId(params.row.id)}
@@ -218,7 +217,7 @@ export const ReportManagement: FC = () => {
         );
       },
     },
-  ], [isAdmin, canExtract, downloadReport, navigate, handleImageClick, extractingReportId]);
+  ], [canRemove, canExtract, downloadReport, navigate, handleImageClick, extractingReportId]);
 
   const handleApproveConfirmed = useCallback(async () => {
     await reportApprove(approveId);

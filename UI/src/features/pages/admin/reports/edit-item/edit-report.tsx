@@ -13,8 +13,7 @@ import {
   Autocomplete,
   Grid,
 } from '@mui/material';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
-import { Role } from '../../../../../api/soroban-security-portal/models/role';
+import { useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
 import { useEditReport } from './hooks';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
@@ -27,6 +26,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
+import { isAdminOrModerator } from '../../../../authentication/authPermissions';
 
 export const EditReport: FC = () => {
   const [name, setName] = useState('');
@@ -57,11 +57,7 @@ export const EditReport: FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  // Check if user has permission to edit reports
-  const canEditReport = (auth: AuthContextProps) => 
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
-
-  if (!canEditReport(auth)) {
+  if (!isAdminOrModerator(auth)) {
     navigate('/admin/reports');
   }
 
@@ -312,4 +308,4 @@ export const EditReport: FC = () => {
       </Box>
     </LocalizationProvider>
   );
-}; 
+};

@@ -50,10 +50,10 @@ import ChatIcon from '@mui/icons-material/Chat';
 import { useMainWindow } from './hooks';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { BookmarkMenu } from './components/BookmarkMenu';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { AccentColors } from '../../../../theme';
+import { isAdminOrModerator } from '../../../authentication/authPermissions';
 
 export const MainWindow: FC = () => {
   const navigate = useNavigate();
@@ -97,10 +97,7 @@ export const MainWindow: FC = () => {
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
     { label: 'About', path: '/about' },
   ];
-  const isAdminUser =
-    auth.isAuthenticated &&
-    auth.user &&
-    (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator);
+  const isAdminUser = isAdminOrModerator(auth);
   const navigationItems = isAdminUser
     ? [...baseNavigationItems, { label: 'Admin', path: '/admin' }]
     : baseNavigationItems;
