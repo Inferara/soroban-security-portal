@@ -11,8 +11,8 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<LoginModel> Login { get; set; }
         public DbSet<LoginHistoryModel> LoginHistory { get; set; }
         public DbSet<ClientSsoModel> ClientSso { get; set; }
-        public DbSet<VulnerabilityModel> Vulnerability { get; set; }
-        public DbSet<ReportModel> Report { get; set; }
+        public virtual DbSet<VulnerabilityModel> Vulnerability { get; set; }
+        public virtual DbSet<ReportModel> Report { get; set; }
         public DbSet<SubscriptionModel> Subscription { get; set; }
         public DbSet<ProtocolModel> Protocol { get; set; }
         public DbSet<AuditorModel> Auditor { get; set; }

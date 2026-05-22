@@ -10,6 +10,7 @@ using SorobanSecurityPortalApi.Common.Data;
 using AspNetCore.Authentication.Basic;
 using Microsoft.OpenApi;
 using SorobanSecurityPortalApi.Services.ControllersServices;
+using SorobanSecurityPortalApi.Services.Moderation;
 
 namespace SorobanSecurityPortalApi;
 
@@ -53,6 +54,12 @@ public class Startup
         // Explicit Scoped registration before the convention scan so the scan skips IRatingService.
         // Scoped is correct: RatingService depends on Db (DbContext) which is Scoped.
         services.AddScoped<IRatingService, RatingService>();
+
+        // Moderation target resolvers registered before the convention scan so the scan skips them.
+        // Multiple IModerationTarget registrations are intentional: ModerationTargetRegistry collects all via IEnumerable<IModerationTarget>.
+        services.AddScoped<IModerationTarget, VulnerabilityModerationTarget>();
+        services.AddScoped<IModerationTarget, ReportModerationTarget>();
+        services.AddScoped<IModerationTargetRegistry, ModerationTargetRegistry>();
 
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
