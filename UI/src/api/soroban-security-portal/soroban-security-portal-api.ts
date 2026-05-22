@@ -12,6 +12,7 @@ import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
+import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -478,6 +479,35 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
     const client = await getRestClient();
     const response = await client.request(`api/v1/bookmarks/${bookmarkId}`, 'GET');
     return response.data as Bookmark;
+};
+
+// --- MODERATION ---
+export const flagContentCall = async (contentType: string, contentId: number, reason: string, comment?: string): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/content-flags', 'POST', { contentType, contentId, reason, comment });
+    return response.data as boolean;
+};
+
+export const getModerationQueueCall = async (status?: string, contentType?: string, page = 1): Promise<FlaggedContent[]> => {
+    const client = await getRestClient();
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (contentType) qs.set('contentType', contentType);
+    qs.set('page', String(page));
+    const response = await client.request(`api/v1/moderation/queue?${qs.toString()}`, 'GET');
+    return response.data as FlaggedContent[];
+};
+
+export const takeModerationActionCall = async (contentType: string, contentId: number, action: string, reason?: string): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/moderation/action', 'POST', { contentType, contentId, action, reason });
+    return response.data as boolean;
+};
+
+export const getModerationStatsCall = async (): Promise<ModerationStats> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/moderation/stats', 'GET');
+    return response.data as ModerationStats;
 };
 
 // Helper function to create FormData for entity operations with image support

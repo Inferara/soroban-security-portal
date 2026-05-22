@@ -96,11 +96,6 @@ describe('ModerationDashboard - filtering', () => {
         vi.clearAllMocks();
     });
 
-    it('shows the demo-data banner', () => {
-        renderComponent();
-        expect(screen.getByText(/Demo data/i)).toBeInTheDocument();
-    });
-
     it('default pending tab shows both pending items and hides the hidden one', () => {
         renderComponent();
         expect(screen.getByText('CommentAuthor')).toBeInTheDocument();

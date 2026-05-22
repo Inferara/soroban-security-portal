@@ -1,25 +1,91 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useModerationQueue } from '../useModerationQueue';
+import type { FlaggedContent, ModerationStats } from '../../types';
 
-// Use fake timers to control the simulated API timeout
+vi.mock('../../../../api/soroban-security-portal/soroban-security-portal-api', () => ({
+    getModerationQueueCall: vi.fn(),
+    getModerationStatsCall: vi.fn(),
+    takeModerationActionCall: vi.fn(),
+}));
+
+// Also mock the dialog handler so showError doesn't try to dispatch to a real Redux store
+vi.mock('../../../dialog-handler/dialog-handler', () => ({
+    showError: vi.fn(),
+}));
+
+import {
+    getModerationQueueCall,
+    getModerationStatsCall,
+    takeModerationActionCall,
+} from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { showError } from '../../../dialog-handler/dialog-handler';
+
+const mockGetQueue = getModerationQueueCall as ReturnType<typeof vi.fn>;
+const mockGetStats = getModerationStatsCall as ReturnType<typeof vi.fn>;
+const mockTakeAction = takeModerationActionCall as ReturnType<typeof vi.fn>;
+const mockShowError = showError as ReturnType<typeof vi.fn>;
+
+const MOCK_ITEMS: FlaggedContent[] = [
+    {
+        id: 'vulnerability:5',
+        contentType: 'vulnerability',
+        contentId: '5',
+        contentPreview: 'A flagged vulnerability',
+        fullContent: 'Full content here',
+        author: {
+            id: 'u1',
+            name: 'TestUser',
+            email: 'test@example.com',
+            reputationScore: 50,
+            avatarUrl: '',
+        },
+        flagCount: 3,
+        reasons: { spam: 1, harassment: 0, inappropriate: 0, misinformation: 2, other: 0 },
+        firstFlaggedAt: new Date().toISOString(),
+        lastFlaggedAt: new Date().toISOString(),
+        status: 'pending',
+        moderationHistory: [],
+    },
+    {
+        id: 'report:10',
+        contentType: 'report',
+        contentId: '10',
+        contentPreview: 'A flagged report',
+        fullContent: 'Full report content',
+        author: {
+            id: 'u2',
+            name: 'AnotherUser',
+            email: 'another@example.com',
+            reputationScore: 20,
+            avatarUrl: '',
+        },
+        flagCount: 1,
+        reasons: { spam: 1, harassment: 0, inappropriate: 0, misinformation: 0, other: 0 },
+        firstFlaggedAt: new Date().toISOString(),
+        lastFlaggedAt: new Date().toISOString(),
+        status: 'pending',
+        moderationHistory: [],
+    },
+];
+
+const MOCK_STATS: ModerationStats = {
+    queueSize: 2,
+    actionsToday: 5,
+    actionsThisWeek: 20,
+    actionsThisMonth: 80,
+};
+
 beforeEach(() => {
-    vi.useFakeTimers();
+    vi.clearAllMocks();
+    mockGetQueue.mockResolvedValue(MOCK_ITEMS);
+    mockGetStats.mockResolvedValue(MOCK_STATS);
+    mockTakeAction.mockResolvedValue(true);
 });
 
 afterEach(() => {
-    vi.useRealTimers();
+    vi.restoreAllMocks();
 });
-
-/** Helper: render the hook and advance past the 1-second mock delay. */
-async function renderAndLoad() {
-    const hook = renderHook(() => useModerationQueue());
-    // Advance the simulated setTimeout(…, 1000) to resolve the mock load
-    await act(async () => {
-        vi.advanceTimersByTime(1000);
-    });
-    return hook;
-}
 
 describe('useModerationQueue', () => {
     describe('initial state', () => {
@@ -30,198 +96,88 @@ describe('useModerationQueue', () => {
             expect(result.current.stats).toBeNull();
         });
 
-        it('loads mock data after the simulated delay', async () => {
-            const { result } = await renderAndLoad();
-            expect(result.current.loading).toBe(false);
-            expect(result.current.items.length).toBeGreaterThan(0);
-            expect(result.current.stats).not.toBeNull();
+        it('loads items from getModerationQueueCall on mount', async () => {
+            const { result } = renderHook(() => useModerationQueue());
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            expect(mockGetQueue).toHaveBeenCalledTimes(1);
+            expect(result.current.items).toHaveLength(MOCK_ITEMS.length);
+            expect(result.current.items[0].id).toBe('vulnerability:5');
         });
 
-        it('all initial items have pending status', async () => {
-            const { result } = await renderAndLoad();
-            expect(result.current.items.every(i => i.status === 'pending')).toBe(true);
-        });
-    });
-
-    describe('handleAction — status transitions', () => {
-        it('approve: moves item from pending to approved', async () => {
-            const { result } = await renderAndLoad();
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'approve');
-            });
-
-            const updated = result.current.items.find(i => i.id === targetId)!;
-            expect(updated.status).toBe('approved');
-        });
-
-        it('hide: moves item from pending to hidden', async () => {
-            const { result } = await renderAndLoad();
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'hide', 'spam');
-            });
-
-            const updated = result.current.items.find(i => i.id === targetId)!;
-            expect(updated.status).toBe('hidden');
-        });
-
-        it('delete: moves item from pending to deleted', async () => {
-            const { result } = await renderAndLoad();
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'delete', 'harassment');
-            });
-
-            const updated = result.current.items.find(i => i.id === targetId)!;
-            expect(updated.status).toBe('deleted');
-        });
-
-        it('only affects the targeted item; others remain pending', async () => {
-            const { result } = await renderAndLoad();
-            const allIds = result.current.items.map(i => i.id);
-            const targetId = allIds[0];
-            const otherIds = allIds.slice(1);
-
-            act(() => {
-                result.current.handleAction(targetId, 'approve');
-            });
-
-            otherIds.forEach(id => {
-                const item = result.current.items.find(i => i.id === id)!;
-                expect(item.status).toBe('pending');
-            });
-        });
-    });
-
-    describe('handleAction — reason stored in lastAction', () => {
-        it('stores the reason on the item when hiding', async () => {
-            const { result } = await renderAndLoad();
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'hide', 'spam');
-            });
-
-            const updated = result.current.items.find(i => i.id === targetId)!;
-            expect(updated.lastAction?.action).toBe('hide');
-            expect(updated.lastAction?.reason).toBe('spam');
-        });
-
-        it('stores the reason on the item when deleting', async () => {
-            const { result } = await renderAndLoad();
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'delete', 'misinformation');
-            });
-
-            const updated = result.current.items.find(i => i.id === targetId)!;
-            expect(updated.lastAction?.action).toBe('delete');
-            expect(updated.lastAction?.reason).toBe('misinformation');
-        });
-
-        it('stores action without reason for approve', async () => {
-            const { result } = await renderAndLoad();
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'approve');
-            });
-
-            const updated = result.current.items.find(i => i.id === targetId)!;
-            expect(updated.lastAction?.action).toBe('approve');
-            expect(updated.lastAction?.reason).toBeUndefined();
-        });
-    });
-
-    describe('status transitions remove items from the pending set', () => {
-        it('after hiding one item, the hidden item no longer has pending status', async () => {
-            const { result } = await renderAndLoad();
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'hide', 'spam');
-            });
-
-            const pendingItems = result.current.items.filter(i => i.status === 'pending');
-            expect(pendingItems.find(i => i.id === targetId)).toBeUndefined();
-        });
-
-        it('after approving all items, zero remain pending', async () => {
-            const { result } = await renderAndLoad();
-            const ids = result.current.items.map(i => i.id);
-
-            act(() => {
-                ids.forEach(id => result.current.handleAction(id, 'approve'));
-            });
-
-            const pending = result.current.items.filter(i => i.status === 'pending');
-            expect(pending.length).toBe(0);
-        });
-    });
-
-    describe('stats recalculation', () => {
-        it('stats.queueSize equals number of pending items initially', async () => {
-            const { result } = await renderAndLoad();
-            const pendingCount = result.current.items.filter(i => i.status === 'pending').length;
-            expect(result.current.stats!.queueSize).toBe(pendingCount);
-        });
-
-        it('stats.queueSize decrements after approving one item', async () => {
-            const { result } = await renderAndLoad();
-            const initialQueue = result.current.stats!.queueSize;
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'approve');
-            });
-
-            expect(result.current.stats!.queueSize).toBe(initialQueue - 1);
-        });
-
-        it('actionsToday increments after each action', async () => {
-            const { result } = await renderAndLoad();
-            const baseline = result.current.stats!.actionsToday;
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'hide', 'spam');
-            });
-
-            expect(result.current.stats!.actionsToday).toBe(baseline + 1);
-        });
-
-        it('actionsThisWeek and actionsThisMonth also increment after an action', async () => {
-            const { result } = await renderAndLoad();
-            const baseWeek = result.current.stats!.actionsThisWeek;
-            const baseMonth = result.current.stats!.actionsThisMonth;
-            const targetId = result.current.items[0].id;
-
-            act(() => {
-                result.current.handleAction(targetId, 'delete', 'spam');
-            });
-
-            expect(result.current.stats!.actionsThisWeek).toBe(baseWeek + 1);
-            expect(result.current.stats!.actionsThisMonth).toBe(baseMonth + 1);
+        it('loads stats from getModerationStatsCall on mount', async () => {
+            const { result } = renderHook(() => useModerationQueue());
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            expect(mockGetStats).toHaveBeenCalledTimes(1);
+            expect(result.current.stats).toEqual(MOCK_STATS);
         });
 
         it('stats are null while loading', () => {
+            // Delay resolution so loading stays true during check
+            mockGetQueue.mockReturnValue(new Promise(() => {}));
+            mockGetStats.mockReturnValue(new Promise(() => {}));
             const { result } = renderHook(() => useModerationQueue());
             expect(result.current.stats).toBeNull();
         });
     });
 
-    describe('mock avatar URLs (L-7)', () => {
-        it('no item author has a third-party avatar URL', async () => {
-            const { result } = await renderAndLoad();
-            result.current.items.forEach(item => {
-                const url = item.author.avatarUrl ?? '';
-                expect(url).not.toMatch(/^https?:\/\//);
+    describe('handleAction', () => {
+        it('calls takeModerationActionCall with split contentType and numeric contentId', async () => {
+            const { result } = renderHook(() => useModerationQueue());
+            await waitFor(() => expect(result.current.loading).toBe(false));
+
+            await act(async () => {
+                await result.current.handleAction('vulnerability:5', 'hide', 'spam');
             });
+
+            expect(mockTakeAction).toHaveBeenCalledWith('vulnerability', 5, 'hide', 'spam');
+        });
+
+        it('refetches queue after a successful action', async () => {
+            const { result } = renderHook(() => useModerationQueue());
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            // At this point queue was called once (mount)
+            expect(mockGetQueue).toHaveBeenCalledTimes(1);
+
+            await act(async () => {
+                await result.current.handleAction('vulnerability:5', 'approve');
+            });
+
+            // Should have been called again after the action
+            expect(mockGetQueue).toHaveBeenCalledTimes(2);
+        });
+
+        it('passes reason=undefined when not provided', async () => {
+            const { result } = renderHook(() => useModerationQueue());
+            await waitFor(() => expect(result.current.loading).toBe(false));
+
+            await act(async () => {
+                await result.current.handleAction('report:10', 'approve');
+            });
+
+            expect(mockTakeAction).toHaveBeenCalledWith('report', 10, 'approve', undefined);
+        });
+
+        it('rejects a malformed id without calling the API', async () => {
+            const { result } = renderHook(() => useModerationQueue());
+            await waitFor(() => expect(result.current.loading).toBe(false));
+
+            await act(async () => {
+                await result.current.handleAction('not-a-valid-id', 'hide', 'spam');
+            });
+
+            expect(mockTakeAction).not.toHaveBeenCalled();
+            expect(mockShowError).toHaveBeenCalledWith('Invalid moderation item');
+        });
+    });
+
+    describe('error handling', () => {
+        it('stops loading and shows an error when the queue fetch fails', async () => {
+            mockGetQueue.mockRejectedValue(new Error('boom'));
+            const { result } = renderHook(() => useModerationQueue());
+
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            expect(result.current.loading).toBe(false);
+            expect(mockShowError).toHaveBeenCalled();
         });
     });
 });
