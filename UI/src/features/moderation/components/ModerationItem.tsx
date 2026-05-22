@@ -71,7 +71,7 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                 <Typography variant="body1">
                     {expanded ? item.fullContent : item.contentPreview}
                 </Typography>
-                {item.fullContent.length > item.contentPreview.length && (
+                {item.fullContent !== item.contentPreview && (
                     <Button
                         size="small"
                         onClick={() => setExpanded(!expanded)}
@@ -100,57 +100,69 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                     ))}
             </Stack>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                <Button
-                    startIcon={<Check />}
-                    variant="outlined"
-                    color="success"
-                    onClick={() => onAction(item.id, 'approve')}
-                >
-                    Approve
-                </Button>
-                <Button
-                    startIcon={<VisibilityOff />}
-                    variant="outlined"
-                    color="warning"
-                    onClick={() => setShowReasonInput(showReasonInput === 'hide' ? null : 'hide')}
-                >
-                    Hide
-                </Button>
-                <Button
-                    startIcon={<Delete />}
-                    variant="outlined"
-                    color="error"
-                    onClick={() => setShowReasonInput(showReasonInput === 'delete' ? null : 'delete')}
-                >
-                    Delete
-                </Button>
-            </Box>
-
-            <Collapse in={!!showReasonInput}>
-                <Box sx={{ mt: 2, pt: 2, borderTop: `1px dashed ${theme.palette.divider}` }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Reason for {showReasonInput === 'hide' ? 'hiding' : 'deleting'} content:
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField
-                            fullWidth
-                            size="small"
-                            placeholder="Enter moderation reason..."
-                            value={actionReason}
-                            onChange={(e) => setActionReason(e.target.value)}
-                        />
+            {item.status === 'pending' ? (
+                <>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                         <Button
-                            variant="contained"
-                            color={showReasonInput === 'delete' ? 'error' : 'warning'}
-                            disabled={!actionReason}
-                            onClick={handleConfirmAction}
+                            startIcon={<Check />}
+                            variant="outlined"
+                            color="success"
+                            onClick={() => onAction(item.id, 'approve')}
                         >
-                            Confirm
+                            Approve
+                        </Button>
+                        <Button
+                            startIcon={<VisibilityOff />}
+                            variant="outlined"
+                            color="warning"
+                            onClick={() => setShowReasonInput(showReasonInput === 'hide' ? null : 'hide')}
+                        >
+                            Hide
+                        </Button>
+                        <Button
+                            startIcon={<Delete />}
+                            variant="outlined"
+                            color="error"
+                            onClick={() => setShowReasonInput(showReasonInput === 'delete' ? null : 'delete')}
+                        >
+                            Delete
                         </Button>
                     </Box>
+
+                    <Collapse in={!!showReasonInput}>
+                        <Box sx={{ mt: 2, pt: 2, borderTop: `1px dashed ${theme.palette.divider}` }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                Reason for {showReasonInput === 'hide' ? 'hiding' : 'deleting'} content:
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    placeholder="Enter moderation reason..."
+                                    value={actionReason}
+                                    onChange={(e) => setActionReason(e.target.value)}
+                                />
+                                <Button
+                                    variant="contained"
+                                    color={showReasonInput === 'delete' ? 'error' : 'warning'}
+                                    disabled={!actionReason}
+                                    onClick={handleConfirmAction}
+                                >
+                                    Confirm
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Collapse>
+                </>
+            ) : (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                        label={`${item.status.charAt(0).toUpperCase() + item.status.slice(1)}${item.lastAction?.reason ? ` — ${item.lastAction.reason}` : ''}`}
+                        color={item.status === 'approved' ? 'success' : item.status === 'hidden' ? 'warning' : 'error'}
+                        variant="outlined"
+                    />
                 </Box>
-            </Collapse>
+            )}
         </Paper>
     );
 };

@@ -25,6 +25,7 @@ export interface FlaggedContent {
     lastFlaggedAt: string; // ISO Date
     status: ModerationStatus;
     moderationHistory: ModerationAction[];
+    lastAction?: { action: 'approve' | 'hide' | 'delete'; reason?: string };
 }
 
 export interface ModerationAction {
@@ -41,7 +42,6 @@ export interface ModerationStats {
     actionsToday: number;
     actionsThisWeek: number;
     actionsThisMonth: number;
-    flagBreakdown: Record<FlagReason, number>;
 }
 
 export interface ModerationFilters {

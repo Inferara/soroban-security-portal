@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FlaggedContent, ModerationStats } from '../types';
 
 const MOCK_DATA: FlaggedContent[] = [
@@ -13,7 +13,7 @@ const MOCK_DATA: FlaggedContent[] = [
             name: 'AngryUser99',
             email: 'angry@example.com',
             reputationScore: 12,
-            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Angry'
+            avatarUrl: ''
         },
         flagCount: 5,
         reasons: { spam: 1, misinformation: 3, harassment: 1, inappropriate: 0, other: 0 },
@@ -33,7 +33,7 @@ const MOCK_DATA: FlaggedContent[] = [
             name: 'SecurityResearcher',
             email: 'sec@research.com',
             reputationScore: 150,
-            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sec'
+            avatarUrl: ''
         },
         flagCount: 1,
         reasons: { spam: 1, misinformation: 0, harassment: 0, inappropriate: 0, other: 0 },
@@ -63,24 +63,20 @@ const MOCK_DATA: FlaggedContent[] = [
     }
 ];
 
-const MOCK_STATS: ModerationStats = {
-    queueSize: 3,
+const BASE_STATS = {
     actionsToday: 12,
     actionsThisWeek: 45,
     actionsThisMonth: 128,
-    flagBreakdown: { spam: 65, harassment: 12, inappropriate: 15, misinformation: 8, other: 5 }
 };
 
 export const useModerationQueue = () => {
     const [items, setItems] = useState<FlaggedContent[]>([]);
-    const [stats, setStats] = useState<ModerationStats | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // Simulate API call
         setTimeout(() => {
             setItems(MOCK_DATA);
-            setStats(MOCK_STATS);
             setLoading(false);
         }, 1000);
     }, []);
@@ -94,32 +90,25 @@ export const useModerationQueue = () => {
                     case 'hide': newStatus = 'hidden'; break;
                     case 'delete': newStatus = 'deleted'; break;
                 }
-                return { ...item, status: newStatus };
+                return { ...item, status: newStatus, lastAction: { action, reason } };
             }
             return item;
         }));
         // TODO: Backend Integration (Issue #87)
         // This will be replaced with: await api.moderation.takeAction(id, action, reason);
-        void reason; // Suppress unused var check for mock
     };
 
-    // Update stats when items change
-    useEffect(() => {
-        if (!loading && stats) {
-            const pendingCount = items.filter(i => i.status === 'pending').length;
-            const processedCount = items.filter(i => i.status !== 'pending').length;
-
-            setStats(prev => {
-                if (!prev) return null;
-                return {
-                    ...prev,
-                    queueSize: pendingCount,
-                    actionsToday: MOCK_STATS.actionsToday + processedCount,
-                    actionsThisWeek: MOCK_STATS.actionsThisWeek + processedCount,
-                    actionsThisMonth: MOCK_STATS.actionsThisMonth + processedCount
-                };
-            });
-        }
+    // Derive stats purely from items — no stale-closure risk
+    const stats: ModerationStats | null = useMemo(() => {
+        if (loading) return null;
+        const pendingCount = items.filter(i => i.status === 'pending').length;
+        const processedCount = items.filter(i => i.status !== 'pending').length;
+        return {
+            queueSize: pendingCount,
+            actionsToday: BASE_STATS.actionsToday + processedCount,
+            actionsThisWeek: BASE_STATS.actionsThisWeek + processedCount,
+            actionsThisMonth: BASE_STATS.actionsThisMonth + processedCount,
+        };
     }, [items, loading]);
 
     return { items, stats, loading, handleAction };

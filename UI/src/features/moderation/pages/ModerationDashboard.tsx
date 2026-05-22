@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
     Box, Container, Typography, Tab, Tabs,
     FormControl, InputLabel, Select, MenuItem, Paper,
-    CircularProgress
+    CircularProgress, Alert
 } from '@mui/material';
 import { useModerationQueue } from '../hooks/useModerationQueue';
 import { ModerationStats } from '../components/ModerationStats';
@@ -30,6 +30,9 @@ export const ModerationDashboard = () => {
 
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Alert severity="info" sx={{ mb: 3 }}>
+                Demo data — moderation backend pending. Actions are not yet persisted.
+            </Alert>
             <Box sx={{ mb: 4 }}>
                 <Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>
                     Moderation Dashboard
