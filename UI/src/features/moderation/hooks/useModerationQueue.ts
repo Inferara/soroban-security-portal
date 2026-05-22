@@ -20,7 +20,7 @@ export const useModerationQueue = () => {
             ]);
             setItems(queueItems);
             setStats(queueStats);
-        } catch (error) {
+        } catch {
             showError('Failed to load moderation queue. Please try again.');
         } finally {
             setLoading(false);
@@ -41,7 +41,7 @@ export const useModerationQueue = () => {
         try {
             await takeModerationActionCall(contentType, contentId, action, reason);
             await refetch();
-        } catch (error) {
+        } catch {
             showError('Failed to perform moderation action. Please try again.');
         }
     };
