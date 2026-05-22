@@ -167,9 +167,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _vulnerabilityProcessor.Remove(vulnerabilityId);
         }
 
+        // Public detail endpoint (anonymous GET /{vulnerabilityId}). Must not serve hidden/soft-deleted
+        // content, so it goes through GetPublic. Approve/Reject use the unfiltered processor.Get directly.
         public async Task<VulnerabilityViewModel> Get(int vulnerabilityId)
         {
-            var vulnerability = await _vulnerabilityProcessor.Get(vulnerabilityId);
+            var vulnerability = await _vulnerabilityProcessor.GetPublic(vulnerabilityId);
             return _mapper.Map<VulnerabilityViewModel>(vulnerability);
         }
 

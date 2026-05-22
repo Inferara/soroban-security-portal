@@ -76,7 +76,11 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpGet("{reportId}/image.png")]
         public async Task<IActionResult> GetImage(int reportId)
         {
-            var result = await _reportService.Get(reportId);
+            var result = await _reportService.GetPublic(reportId);
+            if (result == null)
+            {
+                return NotFound();
+            }
             if (result.Image == null || result.Image.Length == 0)
             {
                 return BadRequest("Report is not found.");
@@ -242,7 +246,9 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpGet("{reportId}")]
         public async Task<IActionResult> Get(int reportId)
         {
-            var result = await _reportService.Get(reportId);
+            var result = await _reportService.GetPublic(reportId);
+            if (result == null)
+                return NotFound();
             result.Image = null;
             result.BinFile = null;
             return Ok(result);
@@ -263,6 +269,9 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        // Returns ALL reports including hidden/deleted/unapproved — admin/moderator dashboard only.
+        // The public site browses via the Search endpoint and the filtered GetList, never this one.
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpGet("all")]
         public async Task<IActionResult> GetListAll()
         {

@@ -135,6 +135,8 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> Get(int vulnerabilityId)
         {
             var result = await _vulnerabilityService.Get(vulnerabilityId);
+            if (result == null)
+                return NotFound();
             return Ok(result);
         }
 
@@ -183,6 +185,9 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        // Returns ALL vulnerabilities including hidden/deleted/unapproved — admin/moderator dashboard only.
+        // The public site browses via the Search endpoint, never this one.
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpGet]
         public async Task<IActionResult> GetList()
         {
