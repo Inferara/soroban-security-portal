@@ -32,12 +32,13 @@ export function BadgeShowcase({ badges }: BadgeShowcaseProps) {
             </Typography>
 
             <Box sx={{ mb: 3 }}>
+                {/* L-6: denominator uses filteredBadges.length (respects category filter) */}
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    {earnedBadges.length} / {badges.length} Badges Earned
+                    {earnedBadges.length} / {filteredBadges.length} Badges Earned
                 </Typography>
                 <LinearProgress
                     variant="determinate"
-                    value={badges.length > 0 ? (earnedBadges.length / badges.length) * 100 : 0}
+                    value={filteredBadges.length > 0 ? (earnedBadges.length / filteredBadges.length) * 100 : 0}
                     sx={{ height: 8, borderRadius: 4 }}
                 />
             </Box>
@@ -120,9 +121,10 @@ export function BadgeShowcase({ badges }: BadgeShowcaseProps) {
                                 }}
                             >
                                 <BadgeIcon badge={badge} size="large" />
+                                {/* M-3: replaced hardcoded #999 with theme token */}
                                 <Typography
                                     variant="body2"
-                                    sx={{ fontWeight: 'bold', textAlign: 'center', color: '#999' }}
+                                    sx={{ fontWeight: 'bold', textAlign: 'center', color: 'text.disabled' }}
                                 >
                                     {badge.name}
                                 </Typography>

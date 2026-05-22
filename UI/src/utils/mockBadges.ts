@@ -9,7 +9,7 @@ export const MOCK_BADGES: UserBadge[] = [
         rarity: BadgeRarity.COMMON,
         icon: '💬',
         color: '#4CAF50',
-        awardedAt: new Date('2024-01-15'),
+        awardedAt: '2024-01-15T00:00:00.000Z',
         isLocked: false,
     },
     {
@@ -20,7 +20,7 @@ export const MOCK_BADGES: UserBadge[] = [
         rarity: BadgeRarity.RARE,
         icon: '🔍',
         color: '#2196F3',
-        awardedAt: new Date('2024-02-20'),
+        awardedAt: '2024-02-20T00:00:00.000Z',
         isLocked: false,
     },
     {
@@ -31,7 +31,7 @@ export const MOCK_BADGES: UserBadge[] = [
         rarity: BadgeRarity.EPIC,
         icon: '🛡️',
         color: '#9C27B0',
-        awardedAt: new Date('2024-03-10'),
+        awardedAt: '2024-03-10T00:00:00.000Z',
         isLocked: false,
     },
     {
@@ -42,7 +42,7 @@ export const MOCK_BADGES: UserBadge[] = [
         rarity: BadgeRarity.LEGENDARY,
         icon: '👑',
         color: '#FF9800',
-        awardedAt: new Date('2024-04-05'),
+        awardedAt: '2024-04-05T00:00:00.000Z',
         isLocked: false,
     },
     {
@@ -53,7 +53,7 @@ export const MOCK_BADGES: UserBadge[] = [
         rarity: BadgeRarity.RARE,
         icon: '📝',
         color: '#2196F3',
-        awardedAt: new Date(),
+        awardedAt: '2024-05-01T00:00:00.000Z',
         isLocked: true,
         progress: 60,
     },
@@ -65,7 +65,7 @@ export const MOCK_BADGES: UserBadge[] = [
         rarity: BadgeRarity.EPIC,
         icon: '🐛',
         color: '#9C27B0',
-        awardedAt: new Date(),
+        awardedAt: '2024-05-01T00:00:00.000Z',
         isLocked: true,
         progress: 40,
     },

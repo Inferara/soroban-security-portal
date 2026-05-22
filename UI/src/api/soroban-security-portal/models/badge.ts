@@ -24,7 +24,7 @@ export interface Badge {
 }
 
 export interface UserBadge extends Badge {
-    awardedAt: Date;
+    awardedAt: string; // ISO date string from JSON API; parse with new Date(awardedAt) before display
     progress?: number; // 0-100 for in-progress badges
     isLocked?: boolean; // true if not yet earned
 }
