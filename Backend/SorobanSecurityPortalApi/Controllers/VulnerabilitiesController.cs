@@ -89,7 +89,12 @@ namespace SorobanSecurityPortalApi.Controllers
                 }
             }
             var result = await _vulnerabilityService.Add(vulnerabilityModel, files);
-            return Ok(result);
+            return result switch
+            {
+                Result<VulnerabilityViewModel, string>.Ok ok => Ok(ok.Value),
+                Result<VulnerabilityViewModel, string>.Err err => BadRequest(err.Error),
+                _ => throw new InvalidOperationException("Unexpected result type")
+            };
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]

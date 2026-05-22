@@ -44,6 +44,12 @@ public class Startup
         services.ForInterfacesMatching("^I.*Processor$")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddScoped();
+        // ContentFilterService is registered before the convention scan so the scan skips it (sees it already registered).
+        // Singleton is safe: ModerationLogProcessor uses IDbContextFactory (creates its own DbContext per call),
+        // IExtendedConfig and ICacheAccessor are also singleton-safe. The expensive file I/O and sanitizer
+        // construction are handled by static Lazy fields inside the service.
+        services.AddSingleton<IContentFilterService, ContentFilterService>();
+
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddTransients();
