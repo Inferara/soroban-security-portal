@@ -33,9 +33,9 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         // Relationships
         [ForeignKey("CategoryId")]
-        public virtual ForumCategoryModel Category { get; set; }
+        public virtual ForumCategoryModel Category { get; set; } = null!;
 
         [ForeignKey("AuthorId")]
-        public virtual LoginModel Author { get; set; }
+        public virtual LoginModel Author { get; set; } = null!;
     }
 }

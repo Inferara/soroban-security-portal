@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -6,8 +6,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace SorobanSecurityPortalApi.Migrations
 {
+    /// <inheritdoc />
     public partial class AddRatings : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -20,7 +22,7 @@ namespace SorobanSecurityPortalApi.Migrations
                     entity_type = table.Column<int>(type: "integer", nullable: false),
                     entity_id = table.Column<int>(type: "integer", nullable: false),
                     score = table.Column<int>(type: "integer", nullable: false),
-                    review = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    review = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -39,12 +41,11 @@ namespace SorobanSecurityPortalApi.Migrations
                 table: "rating",
                 columns: new[] { "user_id", "entity_type", "entity_id" },
                 unique: true);
-
         }
 
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            
             migrationBuilder.DropTable(
                 name: "rating");
         }

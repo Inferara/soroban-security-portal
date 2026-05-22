@@ -27,9 +27,9 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         // Relationships
         [ForeignKey("ThreadId")]
-        public virtual ForumThreadModel Thread { get; set; }
+        public virtual ForumThreadModel Thread { get; set; } = null!;
 
         [ForeignKey("AuthorId")]
-        public virtual LoginModel Author { get; set; }
+        public virtual LoginModel Author { get; set; } = null!;
     }
 }

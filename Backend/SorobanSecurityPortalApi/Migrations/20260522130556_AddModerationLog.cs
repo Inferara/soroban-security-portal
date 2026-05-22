@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using SorobanSecurityPortalApi.Models.DbModels;
 
 #nullable disable
 
@@ -33,23 +31,6 @@ namespace SorobanSecurityPortalApi.Migrations
                 {
                     table.PrimaryKey("pk_moderation_log", x => x.id);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "ix_moderation_log_user_id",
-                table: "moderation_log",
-                column: "user_id");
-
-            migrationBuilder.CreateIndex(
-                name: "ix_moderation_log_created_at",
-                table: "moderation_log",
-                column: "created_at");
-
-            migrationBuilder.UpdateData(
-                table: "login",
-                keyColumn: "login_id",
-                keyValue: 1,
-                columns: new[] { "connected_accounts", "created" },
-                values: new object[] { new List<ConnectedAccountModel>(), new DateTime(2026, 1, 22, 0, 0, 0, 0, DateTimeKind.Utc) });
         }
 
         /// <inheritdoc />
@@ -57,13 +38,6 @@ namespace SorobanSecurityPortalApi.Migrations
         {
             migrationBuilder.DropTable(
                 name: "moderation_log");
-
-            migrationBuilder.UpdateData(
-                table: "login",
-                keyColumn: "login_id",
-                keyValue: 1,
-                columns: new[] { "connected_accounts", "created" },
-                values: new object[] { new List<ConnectedAccountModel>(), new DateTime(2025, 11, 30, 2, 29, 25, 139, DateTimeKind.Utc).AddTicks(1314) });
         }
     }
 }

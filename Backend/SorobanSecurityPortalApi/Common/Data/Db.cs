@@ -98,6 +98,21 @@ namespace SorobanSecurityPortalApi.Common.Data
 
             builder.Entity<ForumPostModel>()
                 .HasIndex(p => new { p.ThreadId, p.CreatedAt });
+
+            // #134-L3: deleting a user (login) must NOT cascade-delete their forum
+            // threads/posts (would wipe whole discussions). Use Restrict for author FKs.
+            builder.Entity<ForumThreadModel>()
+                .HasOne(t => t.Author)
+                .WithMany()
+                .HasForeignKey(t => t.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ForumPostModel>()
+                .HasOne(p => p.Author)
+                .WithMany()
+                .HasForeignKey(p => p.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
             builder.Entity<ForumCategoryModel>().HasData(
@@ -135,7 +150,7 @@ namespace SorobanSecurityPortalApi.Common.Data
                     Slug = "vulnerability-discussions", 
                     Description = "Deep dives into specific vulnerabilities.", 
                     SortOrder = 4, 
-                    CreatedAt = seedDate 
+                    CreatedAt = seedDate
                 }
             );
 
