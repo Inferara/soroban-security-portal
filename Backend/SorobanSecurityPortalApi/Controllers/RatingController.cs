@@ -64,6 +64,9 @@ namespace SorobanSecurityPortalApi.Controllers
                 return BadRequest("Review must not exceed 2000 characters.");
             }
 
+            // Review is stored in a NOT NULL column; treat an omitted/null review as empty.
+            request.Review ??= string.Empty;
+
             var result = await _ratingService.AddOrUpdateRating(request);
             return Ok(result);
         }

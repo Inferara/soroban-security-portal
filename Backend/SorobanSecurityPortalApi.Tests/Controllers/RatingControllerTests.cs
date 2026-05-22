@@ -74,5 +74,27 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             result.Should().BeOfType<BadRequestObjectResult>();
             _ratingServiceMock.Verify(s => s.AddOrUpdateRating(It.IsAny<CreateRatingRequest>()), Times.Never);
         }
+
+        [Fact]
+        public async Task CreateOrUpdate_Should_NormalizeNullReviewToEmpty_AndNotFail()
+        {
+            var request = new CreateRatingRequest
+            {
+                EntityType = EntityType.Protocol,
+                EntityId = 1,
+                Score = 4,
+                Review = null!
+            };
+
+            _ratingServiceMock
+                .Setup(s => s.AddOrUpdateRating(It.IsAny<CreateRatingRequest>()))
+                .ReturnsAsync(new RatingViewModel { Id = 1, Score = 4 });
+
+            var result = await _controller.CreateOrUpdate(request);
+
+            result.Should().BeOfType<OkObjectResult>();
+            // A null review must be coerced to empty string before reaching the NOT NULL column.
+            _ratingServiceMock.Verify(s => s.AddOrUpdateRating(It.Is<CreateRatingRequest>(r => r.Review == string.Empty)), Times.Once);
+        }
     }
 }
