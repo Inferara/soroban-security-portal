@@ -50,11 +50,13 @@ public class Startup
         // construction are handled by static Lazy fields inside the service.
         services.AddSingleton<IContentFilterService, ContentFilterService>();
 
+        // Explicit Scoped registration before the convention scan so the scan skips IRatingService.
+        // Scoped is correct: RatingService depends on Db (DbContext) which is Scoped.
+        services.AddScoped<IRatingService, RatingService>();
+
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddTransients();
-
-        services.AddScoped<IRatingService, RatingService>();
 
         services.AddStackExchangeRedisCache(options =>
         {
