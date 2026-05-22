@@ -1,3 +1,4 @@
+import axios from 'axios';
 import RestApi from '../rest-api';
 import { UserItem, CreateUserItem, EditUserItem, SelfEditUserItem } from './models/user';
 import { SettingsItem } from './models/settings';
@@ -483,8 +484,18 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
 
 // --- MODERATION ---
 export const flagContentCall = async (contentType: string, contentId: number, reason: string, comment?: string): Promise<boolean> => {
-    const client = await getRestClient();
-    const response = await client.request('api/v1/content-flags', 'POST', { contentType, contentId, reason, comment });
+    // Calls axios directly (bypassing RestApi) ONLY so the caller can read error.response.status —
+    // RestApi.request swallows the HTTP status, which the 409 "already reported" handling needs.
+    const authHeader = getAuthHeader();
+    const response = await axios.request({
+        url: `${environment.apiUrl}/api/v1/content-flags`,
+        method: 'POST',
+        data: { contentType, contentId, reason, comment },
+        headers: {
+            'Content-Type': 'application/json',
+            ...(authHeader ? { Authorization: authHeader } : {}),
+        },
+    });
     return response.data as boolean;
 };
 
@@ -529,11 +540,16 @@ const createEntityFormData = (dataFieldName: string, entityData: object, imageBa
     return formData;
 };
 
+// Builds the Authorization header value from the stored access token.
+// Single source of truth for the auth scheme used by all API calls.
+const getAuthHeader = (): string => {
+    const accessToken = getAccessToken();
+    return accessToken ? `Bearer ${accessToken}` : '';
+};
+
 // Rest client
 const getRestClient = async (): Promise<RestApi> => {
-    const accessToken = getAccessToken();
-    const authHeader = accessToken ? `Bearer ${accessToken}` : '';
-    const restClient = new RestApi(environment.apiUrl, authHeader);
+    const restClient = new RestApi(environment.apiUrl, getAuthHeader());
     return restClient;
 };
 
