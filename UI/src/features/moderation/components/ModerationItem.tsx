@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
     Box, Paper, Typography, Button, Avatar, Chip,
-    Collapse, TextField, Stack, useTheme
+    Collapse, TextField, Stack, Link, useTheme
 } from '@mui/material';
 import {
     Check, Delete, VisibilityOff, AccessTime, OpenInNew
@@ -41,120 +41,121 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
         }
     };
 
+    // The global theme forces every Button to a heavy blue; override per-action so the
+    // three moderation choices read as distinct (positive / neutral / destructive).
+    const baseBtn = { fontWeight: 600, fontSize: '0.8125rem', boxShadow: 'none' };
+    const approveSx = {
+        ...baseBtn, bgcolor: 'success.main', color: '#fff',
+        '&:hover': { bgcolor: 'success.dark', boxShadow: 'none' },
+    };
+    const hideSx = {
+        ...baseBtn, bgcolor: 'transparent', color: 'text.secondary', border: '1px solid', borderColor: 'divider',
+        '&:hover': { bgcolor: 'action.hover', borderColor: 'text.secondary', color: 'text.primary' },
+    };
+    const deleteSx = {
+        ...baseBtn, bgcolor: 'transparent', color: 'error.main', border: '1px solid', borderColor: 'error.main',
+        '&:hover': { bgcolor: 'error.main', color: '#fff' },
+    };
+    const confirmSx = showReasonInput === 'delete'
+        ? { ...baseBtn, bgcolor: 'error.main', color: '#fff', '&:hover': { bgcolor: 'error.dark' } }
+        : { ...baseBtn, bgcolor: 'warning.main', color: '#fff', '&:hover': { bgcolor: 'warning.dark' } };
+
     return (
-        <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <Avatar src={item.author.avatarUrl} alt={item.author.name} />
-                    <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+        <Paper elevation={0} sx={{ p: 2.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, mb: 2 }}>
+            {/* Header: who is involved + when/what — compact and muted */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 1.5 }}>
+                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', minWidth: 0 }}>
+                    <Avatar src={item.author.avatarUrl} alt={item.author.name} sx={{ width: 40, height: 40 }} />
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
                             {item.author.name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            Reputation: {item.author.reputationScore}
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                            Reputation {item.author.reputationScore}
                         </Typography>
                     </Box>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip
-                        icon={<AccessTime sx={{ fontSize: 16 }} />}
-                        label={formatDistance(new Date(item.lastFlaggedAt), new Date(), { addSuffix: true })}
-                        size="small"
-                        variant="outlined"
-                    />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0 }}>
                     <Chip
                         label={item.contentType}
                         size="small"
-                        color="primary"
+                        sx={{ textTransform: 'capitalize', bgcolor: 'action.selected', color: 'text.secondary', fontWeight: 600 }}
                     />
-                    <Button
-                        component={RouterLink}
-                        to={detailPath}
-                        target="_blank"
-                        rel="noopener"
-                        size="small"
-                        variant="outlined"
-                        endIcon={<OpenInNew sx={{ fontSize: 16 }} />}
-                    >
-                        View {item.contentType}
-                    </Button>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                        <AccessTime sx={{ fontSize: 14 }} />
+                        <Typography variant="caption" noWrap>
+                            {formatDistance(new Date(item.lastFlaggedAt), new Date(), { addSuffix: true })}
+                        </Typography>
+                    </Box>
                 </Box>
             </Box>
 
-            <Box sx={{ mb: 2, p: 2, bgcolor: theme.palette.action.hover, borderRadius: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    {item.contentPreview}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                    Use "View {item.contentType}" above to open the full content.
-                </Typography>
-            </Box>
+            {/* The flagged content — the title is the link that opens it in context */}
+            <Link
+                component={RouterLink}
+                to={detailPath}
+                target="_blank"
+                rel="noopener"
+                underline="hover"
+                sx={{
+                    display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                    color: 'text.primary', fontWeight: 600, fontSize: '1.05rem', lineHeight: 1.35,
+                    '&:hover': { color: 'secondary.main' },
+                }}
+            >
+                {item.contentPreview}
+                <OpenInNew sx={{ fontSize: 16, opacity: 0.7, flexShrink: 0 }} />
+            </Link>
 
-            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, alignSelf: 'center' }}>
-                    Flags ({item.flagCount}):
+            {/* Flag summary */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {item.flagCount} {item.flagCount === 1 ? 'report' : 'reports'}
                 </Typography>
                 {Object.entries(item.reasons)
                     .filter(([, count]) => count > 0)
                     .map(([reason, count]) => (
                         <Chip
                             key={reason}
-                            label={`${reason} (${count})`}
+                            label={`${reason} ${count}`}
                             size="small"
                             color={getReasonColor(reason as FlagReason)}
                             variant="outlined"
+                            sx={{ textTransform: 'capitalize' }}
                         />
                     ))}
-            </Stack>
+            </Box>
 
+            {/* Each report: reason + the note the flagger wrote */}
             {item.flags && item.flags.length > 0 && (
-                <Box sx={{ mb: 3 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        Reports:
-                    </Typography>
-                    <Stack spacing={1}>
-                        {item.flags.map((f, i) => (
-                            <Box key={i} sx={{ pl: 1.5, borderLeft: `3px solid ${theme.palette.divider}` }}>
-                                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                                    {f.reason}
-                                </Typography>
-                                <Typography
-                                    variant="body2"
-                                    sx={{ fontStyle: f.comment ? 'normal' : 'italic', color: f.comment ? 'text.primary' : 'text.secondary' }}
-                                >
-                                    {f.comment || 'No note provided'}
-                                </Typography>
-                            </Box>
-                        ))}
-                    </Stack>
-                </Box>
+                <Stack spacing={1.25} sx={{ mb: 2.5 }}>
+                    {item.flags.map((f, i) => (
+                        <Box key={i} sx={{ pl: 1.5, borderLeft: `2px solid ${theme.palette.divider}` }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'capitalize' }}>
+                                {f.reason}
+                            </Typography>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: f.comment ? 'text.primary' : 'text.disabled', fontStyle: f.comment ? 'normal' : 'italic' }}
+                            >
+                                {f.comment || 'No note provided'}
+                            </Typography>
+                        </Box>
+                    ))}
+                </Stack>
             )}
 
+            {/* Actions (pending) or the resolution chip (history) */}
             {item.status === 'pending' ? (
                 <>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                        <Button
-                            startIcon={<Check />}
-                            variant="outlined"
-                            color="success"
-                            onClick={() => onAction(item.id, 'approve')}
-                        >
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+                        <Button size="small" startIcon={<Check />} onClick={() => onAction(item.id, 'approve')} sx={approveSx}>
                             Approve
                         </Button>
-                        <Button
-                            startIcon={<VisibilityOff />}
-                            variant="outlined"
-                            color="warning"
-                            onClick={() => setShowReasonInput(showReasonInput === 'hide' ? null : 'hide')}
-                        >
+                        <Button size="small" startIcon={<VisibilityOff />} onClick={() => setShowReasonInput(showReasonInput === 'hide' ? null : 'hide')} sx={hideSx}>
                             Hide
                         </Button>
-                        <Button
-                            startIcon={<Delete />}
-                            variant="outlined"
-                            color="error"
-                            onClick={() => setShowReasonInput(showReasonInput === 'delete' ? null : 'delete')}
-                        >
+                        <Button size="small" startIcon={<Delete />} onClick={() => setShowReasonInput(showReasonInput === 'delete' ? null : 'delete')} sx={deleteSx}>
                             Delete
                         </Button>
                     </Box>
@@ -162,9 +163,9 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                     <Collapse in={!!showReasonInput}>
                         <Box sx={{ mt: 2, pt: 2, borderTop: `1px dashed ${theme.palette.divider}` }}>
                             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                Reason for {showReasonInput === 'hide' ? 'hiding' : 'deleting'} content:
+                                Reason for {showReasonInput === 'hide' ? 'hiding' : 'deleting'} this content:
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 2 }}>
+                            <Box sx={{ display: 'flex', gap: 1.5 }}>
                                 <TextField
                                     fullWidth
                                     size="small"
@@ -172,12 +173,7 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                                     value={actionReason}
                                     onChange={(e) => setActionReason(e.target.value)}
                                 />
-                                <Button
-                                    variant="contained"
-                                    color={showReasonInput === 'delete' ? 'error' : 'warning'}
-                                    disabled={!actionReason}
-                                    onClick={handleConfirmAction}
-                                >
+                                <Button disabled={!actionReason} onClick={handleConfirmAction} sx={confirmSx}>
                                     Confirm
                                 </Button>
                             </Box>
@@ -185,11 +181,12 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                     </Collapse>
                 </>
             ) : (
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <Chip
                         label={`${item.status.charAt(0).toUpperCase() + item.status.slice(1)}${item.lastAction?.reason ? ` — ${item.lastAction.reason}` : ''}`}
                         color={item.status === 'approved' ? 'success' : item.status === 'hidden' ? 'warning' : 'error'}
                         variant="outlined"
+                        size="small"
                     />
                 </Box>
             )}

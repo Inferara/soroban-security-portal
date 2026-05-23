@@ -56,9 +56,17 @@ export const ModerationDashboard = () => {
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, mb: 3 }}>
                         <Button
                             size="small"
-                            variant="outlined"
                             startIcon={<RefreshIcon />}
                             onClick={() => refetch()}
+                            sx={{
+                                fontWeight: 600,
+                                bgcolor: 'transparent',
+                                color: 'text.secondary',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: 'none',
+                                '&:hover': { bgcolor: 'action.hover', borderColor: 'text.secondary', color: 'text.primary' },
+                            }}
                         >
                             Refresh
                         </Button>
