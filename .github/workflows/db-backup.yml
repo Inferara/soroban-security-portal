@@ -1,0 +1,95 @@
+name: DB Backup
+
+on:
+  schedule:
+    # Daily at 03:00 UTC (GitHub cron is UTC-only)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      NAMESPACE: sorobansecurityportal-ns
+      POD_SELECTOR: app=prod-sorobansecurityportal-postgres
+      RETAIN: '10'
+      BACKUP_REPO: AKercha1/sorobandb
+
+    steps:
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Write kubeconfig from secret
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG }}" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Dump database
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.POSTGRES_USER }}
+          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export KUBECONFIG="$HOME/.kube/config"
+
+          echo "Resolving postgres pod..."
+          POD=$(kubectl get pod -n "$NAMESPACE" -l "$POD_SELECTOR" \
+            -o jsonpath='{.items[0].metadata.name}')
+          if [ -z "$POD" ]; then
+            echo "::error::No postgres pod found for selector $POD_SELECTOR in $NAMESPACE"
+            exit 1
+          fi
+          echo "Using pod: $POD"
+
+          STAMP=$(date -u +'%Y%m%d-%H%M%S')
+          FILE="soroban-db-${STAMP}.dump"
+          echo "BACKUP_FILE=$FILE" >> "$GITHUB_ENV"
+
+          echo "Running pg_dump -> $FILE"
+          kubectl exec -n "$NAMESPACE" "$POD" -- \
+            env PGPASSWORD="$DB_PASSWORD" \
+            pg_dump -U "$DB_USER" -d "$DB_NAME" -Fc --no-owner --no-privileges \
+            > "$FILE"
+
+          if [ ! -s "$FILE" ]; then
+            echo "::error::pg_dump produced an empty file; aborting before commit"
+            exit 1
+          fi
+          echo "Backup size: $(du -h "$FILE" | cut -f1)"
+
+      - name: Checkout backup repo
+        uses: actions/checkout@v4.1.3
+        with:
+          repository: ${{ env.BACKUP_REPO }}
+          token: ${{ secrets.SOROBANDB_PAT }}
+          path: backup-repo
+          fetch-depth: 1
+
+      - name: Commit, prune and push
+        run: |
+          set -euo pipefail
+          mv "$BACKUP_FILE" "backup-repo/$BACKUP_FILE"
+          cd backup-repo
+
+          # Keep only the newest $RETAIN backups
+          ls -1t soroban-db-*.dump | tail -n +$((RETAIN + 1)) | xargs -r rm -f
+
+          git config user.name  "soroban-db-backup[bot]"
+          git config user.email "soroban-db-backup@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git commit -m "DB backup ${BACKUP_FILE}"
+          git push
