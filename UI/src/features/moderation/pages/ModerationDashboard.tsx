@@ -78,10 +78,8 @@ export const ModerationDashboard = () => {
                                 onChange={(e) => setContentTypeFilter(e.target.value as ContentType | 'all')}
                             >
                                 <MenuItem value="all">All Content</MenuItem>
-                                <MenuItem value="comment">Comments</MenuItem>
-                                <MenuItem value="report">Reports</MenuItem>
-                                <MenuItem value="user_profile">User Profiles</MenuItem>
                                 <MenuItem value="vulnerability">Vulnerabilities</MenuItem>
+                                <MenuItem value="report">Reports</MenuItem>
                             </Select>
                         </FormControl>
                     </Box>

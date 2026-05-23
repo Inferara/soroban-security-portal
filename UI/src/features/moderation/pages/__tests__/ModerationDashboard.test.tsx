@@ -24,11 +24,11 @@ const baseReasons = { spam: 1, harassment: 0, inappropriate: 0, misinformation: 
 const ITEMS: FlaggedContent[] = [
     {
         id: 'c1',
-        contentType: 'comment',
+        contentType: 'vulnerability',
         contentId: 'cid1',
-        contentPreview: 'A flagged comment',
-        fullContent: 'A flagged comment',
-        author: baseAuthor('CommentAuthor'),
+        contentPreview: 'A flagged vulnerability',
+        fullContent: 'A flagged vulnerability',
+        author: baseAuthor('VulnAuthor'),
         flagCount: 1,
         reasons: baseReasons,
         firstFlaggedAt: new Date().toISOString(),
@@ -52,10 +52,10 @@ const ITEMS: FlaggedContent[] = [
     },
     {
         id: 'h1',
-        contentType: 'comment',
+        contentType: 'vulnerability',
         contentId: 'cid2',
-        contentPreview: 'An already-hidden comment',
-        fullContent: 'An already-hidden comment',
+        contentPreview: 'An already-hidden vulnerability',
+        fullContent: 'An already-hidden vulnerability',
         author: baseAuthor('HiddenAuthor'),
         flagCount: 1,
         reasons: baseReasons,
@@ -102,17 +102,17 @@ describe('ModerationDashboard - filtering', () => {
 
     it('default pending tab shows both pending items and hides the hidden one', () => {
         renderComponent();
-        expect(screen.getByText('CommentAuthor')).toBeInTheDocument();
+        expect(screen.getByText('VulnAuthor')).toBeInTheDocument();
         expect(screen.getByText('ReportAuthor')).toBeInTheDocument();
         expect(screen.queryByText('HiddenAuthor')).not.toBeInTheDocument();
     });
 
-    it('content-type filter "Reports" shows the report item and hides the comment item', async () => {
+    it('content-type filter "Reports" shows the report item and hides the vulnerability item', async () => {
         const user = userEvent.setup();
         renderComponent();
 
         // Both pending items visible initially
-        expect(screen.getByText('CommentAuthor')).toBeInTheDocument();
+        expect(screen.getByText('VulnAuthor')).toBeInTheDocument();
         expect(screen.getByText('ReportAuthor')).toBeInTheDocument();
 
         // Open the Content Type select and choose Reports
@@ -124,10 +124,10 @@ describe('ModerationDashboard - filtering', () => {
 
         // Now only the report item should remain
         expect(screen.getByText('ReportAuthor')).toBeInTheDocument();
-        expect(screen.queryByText('CommentAuthor')).not.toBeInTheDocument();
+        expect(screen.queryByText('VulnAuthor')).not.toBeInTheDocument();
     });
 
-    it('content-type filter "Comments" shows the comment item and hides the report item', async () => {
+    it('content-type filter "Vulnerabilities" shows the vulnerability item and hides the report item', async () => {
         const user = userEvent.setup();
         renderComponent();
 
@@ -135,9 +135,9 @@ describe('ModerationDashboard - filtering', () => {
         // programmatically associated, so target it by role).
         await user.click(screen.getByRole('combobox'));
         const listbox = within(screen.getByRole('listbox'));
-        await user.click(listbox.getByText('Comments'));
+        await user.click(listbox.getByText('Vulnerabilities'));
 
-        expect(screen.getByText('CommentAuthor')).toBeInTheDocument();
+        expect(screen.getByText('VulnAuthor')).toBeInTheDocument();
         expect(screen.queryByText('ReportAuthor')).not.toBeInTheDocument();
     });
 
@@ -148,11 +148,11 @@ describe('ModerationDashboard - filtering', () => {
         await user.click(screen.getByRole('tab', { name: /History \(Hidden\)/i }));
 
         expect(screen.getByText('HiddenAuthor')).toBeInTheDocument();
-        expect(screen.queryByText('CommentAuthor')).not.toBeInTheDocument();
+        expect(screen.queryByText('VulnAuthor')).not.toBeInTheDocument();
         expect(screen.queryByText('ReportAuthor')).not.toBeInTheDocument();
     });
 
-    it('combining the Hidden tab with the Comments filter narrows to the hidden comment', async () => {
+    it('combining the Hidden tab with the Vulnerabilities filter narrows to the hidden vulnerability', async () => {
         const user = userEvent.setup();
         renderComponent();
 
@@ -161,9 +161,9 @@ describe('ModerationDashboard - filtering', () => {
         // programmatically associated, so target it by role).
         await user.click(screen.getByRole('combobox'));
         const listbox = within(screen.getByRole('listbox'));
-        await user.click(listbox.getByText('Comments'));
+        await user.click(listbox.getByText('Vulnerabilities'));
 
-        // The hidden item is a comment, so it remains
+        // The hidden item is a vulnerability, so it remains
         expect(screen.getByText('HiddenAuthor')).toBeInTheDocument();
     });
 

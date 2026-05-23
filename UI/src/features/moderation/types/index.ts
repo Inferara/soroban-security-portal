@@ -1,4 +1,6 @@
-export type ContentType = 'comment' | 'report' | 'user_profile' | 'vulnerability';
+// Only vulnerabilities and reports can be flagged/moderated today (no comment entity exists,
+// and there's no UI to view another user's profile). Keep this in sync with the backend.
+export type ContentType = 'report' | 'vulnerability';
 
 export type FlagReason = 'spam' | 'harassment' | 'inappropriate' | 'misinformation' | 'other';
 
