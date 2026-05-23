@@ -5,9 +5,11 @@ import {
 } from '@mui/material';
 import {
     Check, Delete, VisibilityOff, ExpandMore,
-    ExpandLess, AccessTime
+    ExpandLess, AccessTime, OpenInNew
 } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
 import { FlaggedContent, FlagReason } from '../types';
+import { environment } from '../../../environments/environment';
 import { formatDistance } from 'date-fns';
 
 interface ModerationItemProps {
@@ -20,6 +22,9 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
     const [expanded, setExpanded] = useState(false);
     const [actionReason, setActionReason] = useState('');
     const [showReasonInput, setShowReasonInput] = useState<'hide' | 'delete' | null>(null);
+
+    // Link to the actual flagged content so a moderator can open it in context.
+    const detailPath = `${environment.basePath}/${item.contentType === 'report' ? 'report' : 'vulnerability'}/${item.contentId}`;
 
     const handleConfirmAction = () => {
         if (showReasonInput && actionReason) {
@@ -64,6 +69,17 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                         size="small"
                         color="primary"
                     />
+                    <Button
+                        component={RouterLink}
+                        to={detailPath}
+                        target="_blank"
+                        rel="noopener"
+                        size="small"
+                        variant="outlined"
+                        endIcon={<OpenInNew sx={{ fontSize: 16 }} />}
+                    >
+                        View {item.contentType}
+                    </Button>
                 </Box>
             </Box>
 

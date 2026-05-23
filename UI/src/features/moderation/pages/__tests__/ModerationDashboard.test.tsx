@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { MemoryRouter } from 'react-router-dom';
 import { ModerationDashboard } from '../ModerationDashboard';
 import { FlaggedContent, ModerationStats } from '../../types';
 
@@ -79,6 +80,7 @@ vi.mock('../../hooks/useModerationQueue', () => ({
         stats: STATS,
         loading: false,
         handleAction: mockHandleAction,
+        refetch: vi.fn(),
     }),
 }));
 
@@ -86,9 +88,11 @@ const theme = createTheme();
 
 const renderComponent = () =>
     render(
-        <ThemeProvider theme={theme}>
-            <ModerationDashboard />
-        </ThemeProvider>
+        <MemoryRouter>
+            <ThemeProvider theme={theme}>
+                <ModerationDashboard />
+            </ThemeProvider>
+        </MemoryRouter>
     );
 
 describe('ModerationDashboard - filtering', () => {
