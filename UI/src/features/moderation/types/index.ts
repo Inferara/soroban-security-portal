@@ -12,6 +12,12 @@ export interface Author {
     reputationScore: number;
 }
 
+export interface ContentFlagDetail {
+    reason: string;
+    comment?: string;
+    createdAt: string;
+}
+
 export interface FlaggedContent {
     id: string;
     contentType: ContentType;
@@ -21,6 +27,7 @@ export interface FlaggedContent {
     author: Author;
     flagCount: number;
     reasons: Record<FlagReason, number>; // e.g. { spam: 2, harassment: 1 }
+    flags?: ContentFlagDetail[]; // individual reports: each flagger's reason + note
     firstFlaggedAt: string; // ISO Date
     lastFlaggedAt: string; // ISO Date
     status: ModerationStatus;

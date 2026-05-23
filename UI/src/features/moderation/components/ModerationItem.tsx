@@ -4,8 +4,7 @@ import {
     Collapse, TextField, Stack, useTheme
 } from '@mui/material';
 import {
-    Check, Delete, VisibilityOff, ExpandMore,
-    ExpandLess, AccessTime, OpenInNew
+    Check, Delete, VisibilityOff, AccessTime, OpenInNew
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import { FlaggedContent, FlagReason } from '../types';
@@ -19,7 +18,6 @@ interface ModerationItemProps {
 
 export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
     const theme = useTheme();
-    const [expanded, setExpanded] = useState(false);
     const [actionReason, setActionReason] = useState('');
     const [showReasonInput, setShowReasonInput] = useState<'hide' | 'delete' | null>(null);
 
@@ -84,22 +82,15 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
             </Box>
 
             <Box sx={{ mb: 2, p: 2, bgcolor: theme.palette.action.hover, borderRadius: 2 }}>
-                <Typography variant="body1">
-                    {expanded ? item.fullContent : item.contentPreview}
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    {item.contentPreview}
                 </Typography>
-                {item.fullContent !== item.contentPreview && (
-                    <Button
-                        size="small"
-                        onClick={() => setExpanded(!expanded)}
-                        endIcon={expanded ? <ExpandLess /> : <ExpandMore />}
-                        sx={{ mt: 1 }}
-                    >
-                        {expanded ? 'Show Less' : 'Show More'}
-                    </Button>
-                )}
+                <Typography variant="caption" color="text.secondary">
+                    Use "View {item.contentType}" above to open the full content.
+                </Typography>
             </Box>
 
-            <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, alignSelf: 'center' }}>
                     Flags ({item.flagCount}):
                 </Typography>
@@ -115,6 +106,29 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                         />
                     ))}
             </Stack>
+
+            {item.flags && item.flags.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        Reports:
+                    </Typography>
+                    <Stack spacing={1}>
+                        {item.flags.map((f, i) => (
+                            <Box key={i} sx={{ pl: 1.5, borderLeft: `3px solid ${theme.palette.divider}` }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                                    {f.reason}
+                                </Typography>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ fontStyle: f.comment ? 'normal' : 'italic', color: f.comment ? 'text.primary' : 'text.secondary' }}
+                                >
+                                    {f.comment || 'No note provided'}
+                                </Typography>
+                            </Box>
+                        ))}
+                    </Stack>
+                </Box>
+            )}
 
             {item.status === 'pending' ? (
                 <>

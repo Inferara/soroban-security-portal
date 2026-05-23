@@ -160,6 +160,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                         .ToDictionary(
                             g => ModerationParsing.ReasonString(g.Key),
                             g => g.Count()),
+                    Flags = group
+                        .OrderByDescending(f => f.CreatedAt)
+                        .Select(f => new ContentFlagDetailViewModel
+                        {
+                            Reason = ModerationParsing.ReasonString(f.Reason),
+                            Comment = f.Comment,
+                            CreatedAt = f.CreatedAt.ToString("o")
+                        })
+                        .ToList(),
                     FirstFlaggedAt = group.Min(f => f.CreatedAt).ToString("o"),
                     LastFlaggedAt = item.MaxFlagDate.ToString("o"),
                     Status = item.Status,

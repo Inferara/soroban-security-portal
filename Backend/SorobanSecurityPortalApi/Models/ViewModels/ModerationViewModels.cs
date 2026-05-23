@@ -35,6 +35,13 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string Timestamp { get; set; } = string.Empty;
     }
 
+    public class ContentFlagDetailViewModel
+    {
+        public string Reason { get; set; } = string.Empty;
+        public string? Comment { get; set; }
+        public string CreatedAt { get; set; } = string.Empty;
+    }
+
     public class FlaggedContentViewModel
     {
         public string Id { get; set; } = string.Empty;
@@ -45,6 +52,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public ModerationAuthorViewModel Author { get; set; } = new();
         public int FlagCount { get; set; }
         public Dictionary<string, int> Reasons { get; set; } = new();
+        // The individual reports against this content — each flagger's reason + the note they wrote.
+        public List<ContentFlagDetailViewModel> Flags { get; set; } = new();
         public string FirstFlaggedAt { get; set; } = string.Empty;
         public string LastFlaggedAt { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
