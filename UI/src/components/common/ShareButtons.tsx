@@ -27,11 +27,12 @@ export const ShareButtons: FC<ShareButtonsProps> = ({ title, url }) => {
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(shareUrl).then(() => {
+            setShareError(false);
             setSnackbarOpen(true);
         }).catch(() => {
             console.error('Failed to copy link');
-            setSnackbarOpen(true);
             setShareError(true);
+            setSnackbarOpen(true);
         });
     };
 
