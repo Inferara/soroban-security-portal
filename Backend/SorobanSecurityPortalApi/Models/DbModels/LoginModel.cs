@@ -25,6 +25,8 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public bool IsAvatarManuallySet { get; set; }
         [Column(TypeName = "jsonb")]
         public List<ConnectedAccountModel>? ConnectedAccounts { get; set; } = [];
+
+        public UserProfileModel? UserProfile { get; set; }
     }
 
     public class ConnectedAccountModel

@@ -29,24 +29,27 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<List<BookmarkViewModel>> List()
         {
-            return await _bookmarkProcessor.List();
+            var userId = await _userContextAccessor.GetLoginIdAsync();
+            return await _bookmarkProcessor.List(userId);
+        }
+
+        public async Task<BookmarkViewModel> Get(int id)
+        {
+            var userId = await _userContextAccessor.GetLoginIdAsync();
+            return await _bookmarkProcessor.GetViewModel(id, userId);
         }
 
         public async Task Delete(int id)
         {
             var userId = await _userContextAccessor.GetLoginIdAsync();
-            var bookmarkModel = await _bookmarkProcessor.Get(id);
-            if (userId != bookmarkModel.LoginId)
-            {
-                throw new UnauthorizedAccessException("You do not have permission to delete a bookmark for this user.");
-            }
-            await _bookmarkProcessor.Delete(id);
+            await _bookmarkProcessor.Delete(id, userId);
         }
     }
 
     public interface IBookmarkService
     {
         Task<BookmarkViewModel> Add(BookmarkModel bookmark);
+        Task<BookmarkViewModel> Get(int id);
         Task<List<BookmarkViewModel>> List();
         Task Delete(int id);
     }

@@ -8,7 +8,7 @@ import {
   Alert,
   AlertTitle,
 } from '@mui/material';
-import { ErrorOutline, Refresh } from '@mui/icons-material';
+import { ErrorOutlined, Refresh } from '@mui/icons-material';
 
 /**
  * Error information captured by the error boundary
@@ -236,7 +236,7 @@ export class ChartErrorBoundary extends Component<
         role="alert"
         aria-live="polite"
       >
-        <ErrorOutline
+        <ErrorOutlined
           sx={{
             fontSize: 48,
             color: 'error.main',

@@ -124,7 +124,7 @@ export const AddUser: FC = () => {
           />
         </Grid>
       </Grid>
-      <Stack direction="row" spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+      <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', marginTop: 2 }}>
         <Button onClick={handleCreateUser}>Create User</Button>
         <Button onClick={() => history.back()}>Cancel</Button>
       </Stack>

@@ -6,10 +6,10 @@ import {
     rejectReportCall,
     extractVulnerabilitiesFromReportCall,
     VulnerabilityExtractionResult,
+    downloadReportPDFCall,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { CurrentPageState } from '../../../admin-main-window/current-page-slice';
 import { Report } from '../../../../../../api/soroban-security-portal/models/report';
-import { environment } from '../../../../../../environments/environment';
 import { useAdminList } from '../../../../../../hooks/admin';
 
 type UseListReportsProps = {
@@ -36,10 +36,37 @@ export const useListReports = (props: UseListReportsProps) => {
         customOperations,
     });
 
-    // downloadReport is a client-side action (no API call, just opens URL)
     const downloadReport = useCallback(async (reportId: number): Promise<void> => {
-        const url = `${environment.apiUrl}/api/v1/reports/${reportId}/download`;
-        window.open(url, '_blank');
+        const openedWindow = window.open('', '_blank');
+
+        try {
+            const blob = await downloadReportPDFCall(reportId);
+
+            const blobUrl = window.URL.createObjectURL(blob);
+            if (openedWindow) {
+                openedWindow.location.href = blobUrl;
+            } else {
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // Clean up blob URL after a delay to ensure it loads
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+        } catch (error) {
+            openedWindow?.close();
+            const errorMessage =
+                error instanceof Error && error.message
+                    ? error.message
+                    : 'An unexpected error occurred while downloading the report.';
+            console.error('Failed to download report:', error);
+            window.alert(`Failed to download report. ${errorMessage}`);
+        }
     }, []);
 
     // Extract vulnerabilities from a report using AI

@@ -139,5 +139,6 @@ dist
 !.github
 !.dockerignore
 !.eslintrc.cjs
-*.MD
-!README.md
+
+# Local kubeconfig used for ad-hoc cluster access — never commit (contains credentials)
+kubeconfig.temp

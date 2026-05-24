@@ -1,0 +1,95 @@
+name: DB Backup
+
+on:
+  schedule:
+    # Daily at 03:00 UTC (GitHub cron is UTC-only)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      NAMESPACE: sorobansecurityportal-ns
+      POD_SELECTOR: app=prod-sorobansecurityportal-postgres
+      RETAIN: '10'
+      BACKUP_REPO: Inferara/sorobandb
+
+    steps:
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Write kubeconfig from secret
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG }}" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Dump database
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.POSTGRES_USER }}
+          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export KUBECONFIG="$HOME/.kube/config"
+
+          echo "Resolving postgres pod..."
+          POD=$(kubectl get pod -n "$NAMESPACE" -l "$POD_SELECTOR" \
+            -o jsonpath='{.items[0].metadata.name}')
+          if [ -z "$POD" ]; then
+            echo "::error::No postgres pod found for selector $POD_SELECTOR in $NAMESPACE"
+            exit 1
+          fi
+          echo "Using pod: $POD"
+
+          STAMP=$(date -u +'%Y%m%d-%H%M%S')
+          FILE="soroban-db-${STAMP}.dump"
+          echo "BACKUP_FILE=$FILE" >> "$GITHUB_ENV"
+          echo "BACKUP_TAG=backup-${STAMP}" >> "$GITHUB_ENV"
+
+          echo "Running pg_dump -> $FILE"
+          kubectl exec -n "$NAMESPACE" "$POD" -- \
+            env PGPASSWORD="$DB_PASSWORD" \
+            pg_dump -U "$DB_USER" -d "$DB_NAME" -Fc --no-owner --no-privileges \
+            > "$FILE"
+
+          if [ ! -s "$FILE" ]; then
+            echo "::error::pg_dump produced an empty file; aborting before upload"
+            exit 1
+          fi
+          echo "Backup size: $(du -h "$FILE" | cut -f1)"
+
+      - name: Upload backup and prune old releases
+        env:
+          # gh CLI authenticates against the backup repo with this token.
+          # Dumps exceed git's 100 MB limit, so they are stored as release
+          # assets (2 GB/file) instead of committed files.
+          GH_TOKEN: ${{ secrets.SOROBANDB_PAT }}
+        run: |
+          set -euo pipefail
+
+          echo "Creating release $BACKUP_TAG with asset $BACKUP_FILE"
+          gh release create "$BACKUP_TAG" "$BACKUP_FILE" \
+            --repo "$BACKUP_REPO" \
+            --title "$BACKUP_FILE" \
+            --notes "Automated database backup ($BACKUP_FILE)."
+
+          echo "Pruning to the newest $RETAIN backups..."
+          gh release list --repo "$BACKUP_REPO" --limit 1000 \
+            --json tagName,createdAt \
+            | jq -r --argjson keep "$RETAIN" \
+                'sort_by(.createdAt) | reverse | .[$keep:] | .[].tagName' \
+            | while read -r tag; do
+                [ -z "$tag" ] && continue
+                echo "Deleting old release $tag"
+                gh release delete "$tag" --repo "$BACKUP_REPO" --yes --cleanup-tag
+              done

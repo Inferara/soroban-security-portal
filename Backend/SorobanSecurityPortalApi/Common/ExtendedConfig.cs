@@ -28,6 +28,9 @@ public interface IExtendedConfig
     double TrigramContentWeight { get; }
     double VectorContentWeight { get; }
     double MinRelevanceForSearch { get; }
+    bool ProfanityFilterEnabled { get; }
+    List<string> ProfanityWords { get; }
+    List<string> TrustedDomains { get; }
     void Reset();
 }
 
@@ -182,6 +185,47 @@ public class ExtendedConfig : IExtendedConfig
     [Tooltip("The Min Relevance for Search is used to specify the minimum relevance score for search results. This is used to filter out low-relevance results from search queries.")]
     public double MinRelevanceForSearch => GetValue<double>("MinRelevanceForSearch", 6);
 
+    [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Enable Profanity Filter")]
+    [Tooltip("Enables the profanity filter for user-generated content. When enabled, content containing profane words will be flagged for moderation.")]
+    public bool ProfanityFilterEnabled => GetValue<bool>("ProfanityFilterEnabled", false);
+
+    // H-3: stored/displayed as a raw string so the settings UI never serialises a List<T>.
+    // The persisted setting key MUST remain "ProfanityWords" (the key PR #115 introduced and the
+    // settings screen reads/writes); the property is named accordingly so reflection keys it the same.
+    [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Multiline)]
+    [Description("Custom Profanity Words (one per line)")]
+    [Tooltip("Additional words to filter beyond the default dictionary. Enter one word per line. Words are matched case-insensitively. The system will notify you if a word already exists in the default dictionary.")]
+    public string ProfanityWords => GetValue<string>("ProfanityWords", "");
+
+    // Parsed list for ContentFilterService — exposed only via IExtendedConfig (explicit impl is
+    // invisible to the settings reflection), so the UI shows/saves the raw string above.
+    List<string> IExtendedConfig.ProfanityWords =>
+        ProfanityWords.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(w => w.Trim())
+                      .Where(w => !string.IsNullOrWhiteSpace(w))
+                      .ToList();
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Link)]
+    [Description("View Default Profanity Dictionary")]
+    [Tooltip("Click to view the built-in profanity words that are always active. These words cannot be modified, but you can add custom words above.")]
+    public string DefaultProfanityWordsLink => "/api/v1/settings/default-profanity-words";
+
+    // H-3: stored/displayed as a raw string; persisted key stays "TrustedDomains".
+    [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
+    [Description("Trusted Domains")]
+    [Tooltip("Comma-separated list of trusted domains for URLs in content (e.g., github.com,stellar.org). If empty, all HTTPS URLs are allowed but flagged for moderation.")]
+    public string TrustedDomains => GetValue<string>("TrustedDomains", "");
+
+    // Parsed list for ContentFilterService — exposed only via IExtendedConfig.
+    List<string> IExtendedConfig.TrustedDomains =>
+        TrustedDomains.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(d => d.Trim())
+                      .Where(d => !string.IsNullOrWhiteSpace(d))
+                      .ToList();
 
 }
 
@@ -218,7 +262,8 @@ public class DataTypeAttribute : Attribute, IAttributeHandler
         Color,
         Hidden,
         Link,
-        Dropdown
+        Dropdown,
+        Multiline
     }
 }
 
@@ -261,5 +306,7 @@ public class CategoryAttribute : Attribute, IAttributeHandler
         Authentication,
         [System.ComponentModel.Description("Search")]
         Search,
+        [System.ComponentModel.Description("Content Filter")]
+        ContentFilter,
     }
 }

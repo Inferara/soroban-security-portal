@@ -40,6 +40,7 @@ import {
   VulnerabilityCategory,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { BookmarkButton } from '../../../../components/BookmarkButton';
+import { FlagButton } from '../../../../components/FlagButton';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
@@ -58,8 +59,6 @@ import {
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
-import { SeoHead } from '../../../../components/common/SeoHead';
-import { ShareButtons } from '../../../../components/common/ShareButtons';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -193,14 +192,6 @@ export const ReportDetails: FC = () => {
   ];
 
   return (
-    <>
-    {report && (
-      <SeoHead
-      title={report.name}
-      description={`Security audit report for ${report.name}`}
-      url={window.location.href}
-    />
-    )}
     <DetailPageLayout
       loading={loading}
       error={error}
@@ -242,17 +233,17 @@ export const ReportDetails: FC = () => {
                 </>
               }
               headerExtra={
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <ShareButtons title={report.name} url={window.location.href} />
-                  {auth.isAuthenticated && (
+                auth.isAuthenticated && (
+                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                    <FlagButton contentType="report" contentId={report.id ?? 0} />
                     <BookmarkButton
                       itemId={report.id ?? 0}
                       bookmarkType={BookmarkType.Report}
                       isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
                       onToggle={toggleBookmark}
                     />
-                  )}
-                </Stack>
+                  </Stack>
+                )
               }
             />
           </Box>
@@ -680,7 +671,7 @@ export const ReportDetails: FC = () => {
                             <Typography color="text.secondary" sx={{ mb: 3 }}>
                               The PDF viewer encountered an authentication error. You can still download the report.
                             </Typography>
-                            <Stack direction="row" spacing={2} justifyContent="center">
+                            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
                               <Button
                                 variant="contained"
                                 color="primary"
@@ -747,6 +738,5 @@ export const ReportDetails: FC = () => {
         </>
       )}
     </DetailPageLayout>
-    </>
   );
 };

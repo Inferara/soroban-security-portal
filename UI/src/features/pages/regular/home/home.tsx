@@ -52,6 +52,7 @@ export const Home: FC = () => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          pt: { xs: '40px', sm: 0 },
           backdropFilter: 'blur(2px)',
           overflow: 'hidden',
         }}

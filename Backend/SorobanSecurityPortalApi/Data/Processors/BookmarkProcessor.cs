@@ -14,10 +14,23 @@ namespace SorobanSecurityPortalApi.Data.Processors
             _dbFactory = dbFactory;
         }
 
-        public async Task<BookmarkModel> Get(int bookmarkModelId)
+        public async Task<BookmarkModel> Get(int bookmarkModelId, int loginId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var bookmark = await db.Bookmark.FindAsync(bookmarkModelId);
+            var bookmark = await db.Bookmark
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == bookmarkModelId && x.LoginId == loginId);
+            if (bookmark == null)
+            {
+                throw new KeyNotFoundException($"Bookmark with ID {bookmarkModelId} not found");
+            }
+            return bookmark;
+        }
+
+        public async Task<BookmarkViewModel> GetViewModel(int bookmarkModelId, int loginId)
+        {
+            var bookmarks = await List(loginId, bookmarkModelId);
+            var bookmark = bookmarks.FirstOrDefault();
             if (bookmark == null)
             {
                 throw new KeyNotFoundException($"Bookmark with ID {bookmarkModelId} not found");
@@ -36,7 +49,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var description = "";
             if (bookmarkModel.BookmarkType == BookmarkTypeEnum.Report)
             {
-                var report = await db.Report.FindAsync(bookmarkModel.ItemId);
+                var report = await db.Report
+                    .AsNoTracking()
+                    .Where(x => x.Id == bookmarkModel.ItemId)
+                    .Select(x => new { x.Id, x.Name })
+                    .FirstOrDefaultAsync();
                 if (report == null)
                 {
                     throw new KeyNotFoundException($"Report with ID {bookmarkModel.ItemId} not found");
@@ -45,7 +62,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
             } 
             else if (bookmarkModel.BookmarkType == BookmarkTypeEnum.Vulnerability)
             {
-                var vulnerability = await db.Vulnerability.FindAsync(bookmarkModel.ItemId);
+                var vulnerability = await db.Vulnerability
+                    .AsNoTracking()
+                    .Where(x => x.Id == bookmarkModel.ItemId)
+                    .Select(x => new { x.Id, x.Title, x.Description })
+                    .FirstOrDefaultAsync();
                 if (vulnerability == null)
                 {
                     throw new KeyNotFoundException($"Vulnerability with ID {bookmarkModel.ItemId} not found");
@@ -69,10 +90,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
             };
         }
 
-        public async Task Delete(int bookmarkModelId)
+        public async Task Delete(int bookmarkModelId, int loginId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var bookmark = await db.Bookmark.FindAsync(bookmarkModelId);
+            var bookmark = await db.Bookmark
+                .FirstOrDefaultAsync(x => x.Id == bookmarkModelId && x.LoginId == loginId);
             if (bookmark == null)
             {
                 throw new KeyNotFoundException($"Bookmark with ID {bookmarkModelId} not found");
@@ -81,17 +103,49 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await db.SaveChangesAsync();
         }
 
-        public async Task<List<BookmarkViewModel>> List()
+        public async Task<List<BookmarkViewModel>> List(int loginId)
+        {
+            return await List(loginId, bookmarkId: null);
+        }
+
+        private async Task<List<BookmarkViewModel>> List(int loginId, int? bookmarkId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var bookmarks = await db.Bookmark.OrderByDescending(x => x.Id).ToListAsync();
+            var bookmarks = await db.Bookmark
+                .AsNoTracking()
+                .Where(x => x.LoginId == loginId)
+                .Where(x => bookmarkId == null || x.Id == bookmarkId)
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
+
+            var reportIds = bookmarks
+                .Where(x => x.BookmarkType == BookmarkTypeEnum.Report)
+                .Select(x => x.ItemId)
+                .Distinct()
+                .ToList();
+            var vulnerabilityIds = bookmarks
+                .Where(x => x.BookmarkType == BookmarkTypeEnum.Vulnerability)
+                .Select(x => x.ItemId)
+                .Distinct()
+                .ToList();
+
+            var reports = await db.Report
+                .AsNoTracking()
+                .Where(x => reportIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.Name })
+                .ToDictionaryAsync(x => x.Id);
+            var vulnerabilities = await db.Vulnerability
+                .AsNoTracking()
+                .Where(x => vulnerabilityIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.Title, x.Description })
+                .ToDictionaryAsync(x => x.Id);
+
             var res = new List<BookmarkViewModel>();
             foreach (var bookmark in bookmarks)
             {
                 if (bookmark.BookmarkType == BookmarkTypeEnum.Report)
                 {
-                    var report = await db.Report.FindAsync(bookmark.ItemId);
-                    if (report == null)
+                    if (!reports.TryGetValue(bookmark.ItemId, out var report))
                     {
                         throw new Exception($"Report with ID {bookmark.ItemId} not found for bookmark ID {bookmark.Id}");
                     }
@@ -103,10 +157,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
                         Title = report.Name,
                         Description = ""
                     });
-                } else
+                }
+                else if (bookmark.BookmarkType == BookmarkTypeEnum.Vulnerability)
                 {
-                    var vulnerability = await db.Vulnerability.FindAsync(bookmark.ItemId);
-                    if (vulnerability == null)
+                    if (!vulnerabilities.TryGetValue(bookmark.ItemId, out var vulnerability))
                     {
                         throw new Exception($"Vulnerability with ID {bookmark.ItemId} not found for bookmark ID {bookmark.Id}");
                     }
@@ -119,6 +173,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
                         Description = vulnerability.Description
                     });
                 }
+                else
+                {
+                    throw new Exception($"Invalid BookmarkType {bookmark.BookmarkType} for bookmark ID {bookmark.Id}");
+                }
             }
             return res;
         }
@@ -127,9 +185,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
     public interface IBookmarkProcessor
     {
-        Task<BookmarkModel> Get(int bookmarkModelId);
+        Task<BookmarkModel> Get(int bookmarkModelId, int loginId);
+        Task<BookmarkViewModel> GetViewModel(int bookmarkModelId, int loginId);
         Task<BookmarkViewModel> Add(BookmarkModel bookmarkModel);
-        Task Delete(int bookmarkModelId);
-        Task<List<BookmarkViewModel>> List();
+        Task Delete(int bookmarkModelId, int loginId);
+        Task<List<BookmarkViewModel>> List(int loginId);
     }
 }

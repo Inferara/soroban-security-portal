@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AuthContextProps, AuthProvider, useAuth } from 'react-oidc-context';
+import { AuthProvider, useAuth } from 'react-oidc-context';
 import { WebStorageStateStore } from 'oidc-client-ts';
-import { HelmetProvider } from 'react-helmet-async';
 import { Provider } from 'react-redux';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { store } from './app/store';
@@ -10,9 +9,8 @@ import { environment } from './environments/environment';
 import './index.css';
 import { Authentication } from './features/authentication/authentication';
 import { AdminMainWindow } from './features/pages/admin/admin-main-window/admin-main-window';
-import "@fontsource/rubik";
-import "@fontsource/roboto";
-import { Role } from './api/soroban-security-portal/models/role';
+import "@fontsource/rubik/index.css";
+import "@fontsource/roboto/index.css";
 import { MainWindow } from './features/pages/regular/main-window/main-window';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { BookmarkProvider } from './contexts/BookmarkContext';
@@ -20,6 +18,7 @@ import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import ReactGA from 'react-ga4';
 import { AUTH_FAILURE_EVENT } from './api/rest-api';
 import { SessionExpirationWarning } from './components/SessionExpirationWarning';
+import { isAdminOrModerator } from './features/authentication/authPermissions';
 
 if (environment.gaId) {
   ReactGA.initialize(environment.gaId);
@@ -40,13 +39,11 @@ export function AppWrapper() {
   const navigate = useNavigate();
   const auth = useAuth();
   const { theme } = useTheme();
-  const isAdminOrModerator = (auth: AuthContextProps) =>
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
 
   // Validate session on mount and when user changes
   useEffect(() => {
     if (!auth.user || auth.isLoading) return;
-
+    
     const expiresAt = auth.user.expires_at;
     if (expiresAt && expiresAt < Date.now() / 1000) {
       // Token has expired, remove user immediately
@@ -64,7 +61,7 @@ export function AppWrapper() {
     const unsubscribe = auth.events.addAccessTokenExpiring(() => {
       auth.signinSilent();
     });
-
+    
     return unsubscribe;
   }, []);
 
@@ -110,29 +107,26 @@ export function AppWrapper() {
   // Handle navigation based on auth state and route
   useEffect(() => {
     if (auth.isLoading) return; // Don't navigate while auth is loading
-
+    
     const path = window.location.pathname;
-
+    
     if (path.startsWith(`${environment.basePath}/login`)) {
       if (auth.isAuthenticated) {
-        const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
-        if (isAdmin) {
+        if (isAdminOrModerator(auth)) {
           navigate(`${environment.basePath}/admin`);
         } else {
           navigate('/');
         }
       }
     } else if (path.startsWith(`${environment.basePath}/admin`)) {
-      const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
-      if (auth.isAuthenticated && !isAdmin) {
+      if (auth.isAuthenticated && !isAdminOrModerator(auth)) {
         navigate('/');
       } else if (!auth.isAuthenticated) {
         navigate('/login');
       }
     } else if (path.startsWith(`${environment.basePath}/callback`)) {
       if (auth.isAuthenticated) {
-        const isAdmin = auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
-        if (isAdmin) {
+        if (isAdminOrModerator(auth)) {
           navigate(`${environment.basePath}/admin`);
         } else {
           navigate('/');
@@ -173,7 +167,7 @@ export function AppWrapper() {
         </MuiThemeProvider>
       );
     }
-
+    
     // Check authorization after loading is complete
     if (auth.isAuthenticated && !isAdminOrModerator(auth)) {
       // Non-admin authenticated user - will be redirected by useEffect
@@ -183,14 +177,14 @@ export function AppWrapper() {
         </MuiThemeProvider>
       );
     }
-
-    if (auth.isAuthenticated) {
+    
+    if (auth.isAuthenticated){
       return (
-        <MuiThemeProvider theme={theme}>
-          <AdminMainWindow />
-          <SessionExpirationWarning warningThresholdSeconds={120} />
-        </MuiThemeProvider>
-      );
+          <MuiThemeProvider theme={theme}>
+            <AdminMainWindow />
+            <SessionExpirationWarning warningThresholdSeconds={120} />
+          </MuiThemeProvider>
+        );
     }
     else {
       // Unauthenticated user - will be redirected to login by useEffect
@@ -201,12 +195,12 @@ export function AppWrapper() {
       );
     }
   } else if (window.location.pathname.startsWith(`${environment.basePath}/callback`)) {
-    // Show loading while callback is being processed
-    return (
-      <MuiThemeProvider theme={theme}>
-        <Authentication errorText="" isLoading={true} />
-      </MuiThemeProvider>
-    );
+      // Show loading while callback is being processed
+      return (
+        <MuiThemeProvider theme={theme}>
+          <Authentication errorText="" isLoading={true} />
+        </MuiThemeProvider>
+      );
   } else {
     return (
       <MuiThemeProvider theme={theme}>
@@ -221,16 +215,14 @@ const container = document.getElementById('root');
 const root = createRoot(container!);
 root.render(
   <AuthProvider {...oidcConfig}>
-    <HelmetProvider>
-      <BrowserRouter>
-        <Provider store={store}>
-          <ThemeProvider>
-            <BookmarkProvider>
-              <AppWrapper />
-            </BookmarkProvider>
-          </ThemeProvider>
-        </Provider>
-      </BrowserRouter>
-    </HelmetProvider>
+    <BrowserRouter>
+      <Provider store={store}>
+        <ThemeProvider>
+          <BookmarkProvider>
+            <AppWrapper />
+          </BookmarkProvider>
+        </ThemeProvider>
+      </Provider>
+    </BrowserRouter>
   </AuthProvider>,
 );
