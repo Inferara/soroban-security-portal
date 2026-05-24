@@ -24,6 +24,8 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         [ForeignKey("Auditor")]
         public int? AuditorId { get; set; }
         public AuditorModel? Auditor { get; set; } = null!;
+        public bool IsHidden { get; set; }
+        public bool IsDeleted { get; set; }
         [Column(TypeName = "vector(3072)")]
         public Vector? Embedding { get; set; }
         public List<VulnerabilityModel> Vulnerabilities { get; set; } = new();

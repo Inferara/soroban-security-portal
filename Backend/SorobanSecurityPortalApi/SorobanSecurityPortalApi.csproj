@@ -38,6 +38,16 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!--
+      Microsoft.EntityFrameworkCore.Tools 10.0.7 has a broken transitive dependency that
+      pins Microsoft.EntityFrameworkCore.Design to 8.0.0, which is binary-incompatible with
+      the 10.0.4 EF Core runtime and makes `dotnet ef` throw MissingMethodException.
+      Reference Design explicitly at the runtime version to override the bad resolution.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.7" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />

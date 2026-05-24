@@ -49,6 +49,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return reportViewModel;
         }
 
+        // Public detail/image path: excludes hidden/soft-deleted reports. Returns null when the
+        // report is missing/hidden/deleted so the controller can return NotFound. The unfiltered
+        // Get above is kept for the /download path (which has its own Approved check) and moderator flows.
+        public async Task<ReportViewModel?> GetPublic(int reportId)
+        {
+            var reportModel = await _reportProcessor.GetPublic(reportId);
+            if (reportModel == null)
+                return null;
+            return _mapper.Map<ReportViewModel>(reportModel);
+        }
+
         //TODO UI should send Protocol and Auditor as Ids, not names. Then need to update the mapping used at the line 55
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
         {
@@ -147,6 +158,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     {
         Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearch);
         Task<ReportViewModel> Get(int reportId);
+        Task<ReportViewModel?> GetPublic(int reportId);
         Task<ReportViewModel> Add(ReportViewModel report);
         Task<ReportViewModel> Update(ReportViewModel report);
         Task<Result<bool, string>> Approve(int reportId);

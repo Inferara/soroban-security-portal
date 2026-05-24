@@ -40,6 +40,7 @@ import {
   VulnerabilityCategory,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { BookmarkButton } from '../../../../components/BookmarkButton';
+import { FlagButton } from '../../../../components/FlagButton';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
@@ -233,12 +234,15 @@ export const ReportDetails: FC = () => {
               }
               headerExtra={
                 auth.isAuthenticated && (
-                  <BookmarkButton
-                    itemId={report.id ?? 0}
-                    bookmarkType={BookmarkType.Report}
-                    isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
-                    onToggle={toggleBookmark}
-                  />
+                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                    <FlagButton contentType="report" contentId={report.id ?? 0} />
+                    <BookmarkButton
+                      itemId={report.id ?? 0}
+                      bookmarkType={BookmarkType.Report}
+                      isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
+                      onToggle={toggleBookmark}
+                    />
+                  </Stack>
                 )
               }
             />

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import { BadgeIcon } from '../BadgeIcon';
 import { UserBadge, BadgeCategory, BadgeRarity } from '../../api/soroban-security-portal/models/badge';
@@ -12,7 +13,7 @@ describe('BadgeIcon', () => {
         rarity: BadgeRarity.RARE,
         icon: '🏆',
         color: '#2196F3',
-        awardedAt: new Date('2024-01-15'),
+        awardedAt: '2024-01-15T00:00:00.000Z',
         isLocked: false,
     };
 
@@ -21,10 +22,12 @@ describe('BadgeIcon', () => {
         expect(screen.getByText('🏆')).toBeInTheDocument();
     });
 
-    it('shows tooltip with badge name and description', async () => {
-        const { container } = render(<BadgeIcon badge={mockBadge} />);
-        const badgeElement = container.firstChild;
-        expect(badgeElement).toBeInTheDocument();
+    it('shows tooltip with badge name and description on hover', async () => {
+        const user = userEvent.setup();
+        render(<BadgeIcon badge={mockBadge} />);
+        await user.hover(screen.getByRole('img', { name: /Test Badge/ }));
+        expect(await screen.findByText('Test Badge')).toBeVisible();
+        expect(await screen.findByText('A test badge')).toBeVisible();
     });
 
     it('renders locked badge with reduced opacity', () => {
@@ -34,10 +37,12 @@ describe('BadgeIcon', () => {
         expect(badgeElement).toHaveStyle({ opacity: 0.5 });
     });
 
-    it('shows progress for locked badges', () => {
+    it('shows progress for locked badges in tooltip', async () => {
+        const user = userEvent.setup();
         const lockedBadge = { ...mockBadge, isLocked: true, progress: 75 };
         render(<BadgeIcon badge={lockedBadge} />);
-        // Tooltip content is tested via integration tests
+        await user.hover(screen.getByRole('img', { name: /Test Badge/ }));
+        expect(await screen.findByText('Progress: 75%')).toBeVisible();
     });
 
     it('renders different sizes correctly', () => {

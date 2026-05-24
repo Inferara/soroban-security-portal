@@ -9,6 +9,7 @@ namespace SorobanSecurityPortalApi.Models.Mapping
         public RatingModelProfile()
         {
             CreateMap<RatingModel, RatingViewModel>();
+            CreateMap<RatingModel, PublicRatingViewModel>();
 
             CreateMap<CreateRatingRequest, RatingModel>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())

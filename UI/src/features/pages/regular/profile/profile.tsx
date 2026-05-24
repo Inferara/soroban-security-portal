@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
+import { Alert, Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
 import { useProfile } from './hooks';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
@@ -16,6 +16,9 @@ import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
+import { BadgeShowcase } from '../../../../components/BadgeShowcase';
+// TODO: replace mockBadges with real badge API (no backend badge endpoint yet)
+import { MOCK_BADGES } from '../../../../utils/mockBadges';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -266,6 +269,7 @@ export const Profile: React.FC = () => {
           >
             <Tab label="Profile" {...a11yProps(0)} />
             <Tab label="Bookmarks" {...a11yProps(1)} />
+            <Tab label="Badges" {...a11yProps(2)} />
           </Tabs>
         </Box>
 
@@ -387,6 +391,14 @@ export const Profile: React.FC = () => {
                 ))}
               </List>
             )}
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={2}>
+            {/* Badges — TODO: replace mockBadges with real badge API (no backend badge endpoint yet) */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Badge preview — achievement tracking is coming soon. These are sample badges, not earned achievements.
+            </Alert>
+            <BadgeShowcase badges={MOCK_BADGES} />
           </TabPanel>
         </ContentSection>
 

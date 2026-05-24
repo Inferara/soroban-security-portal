@@ -1,4 +1,6 @@
-export type ContentType = 'comment' | 'report' | 'user_profile' | 'vulnerability';
+// Only vulnerabilities and reports can be flagged/moderated today (no comment entity exists,
+// and there's no UI to view another user's profile). Keep this in sync with the backend.
+export type ContentType = 'report' | 'vulnerability';
 
 export type FlagReason = 'spam' | 'harassment' | 'inappropriate' | 'misinformation' | 'other';
 
@@ -12,6 +14,12 @@ export interface Author {
     reputationScore: number;
 }
 
+export interface ContentFlagDetail {
+    reason: string;
+    comment?: string;
+    createdAt: string;
+}
+
 export interface FlaggedContent {
     id: string;
     contentType: ContentType;
@@ -21,10 +29,12 @@ export interface FlaggedContent {
     author: Author;
     flagCount: number;
     reasons: Record<FlagReason, number>; // e.g. { spam: 2, harassment: 1 }
+    flags?: ContentFlagDetail[]; // individual reports: each flagger's reason + note
     firstFlaggedAt: string; // ISO Date
     lastFlaggedAt: string; // ISO Date
     status: ModerationStatus;
     moderationHistory: ModerationAction[];
+    lastAction?: { action: 'approve' | 'hide' | 'delete'; reason?: string };
 }
 
 export interface ModerationAction {
@@ -41,7 +51,6 @@ export interface ModerationStats {
     actionsToday: number;
     actionsThisWeek: number;
     actionsThisMonth: number;
-    flagBreakdown: Record<FlagReason, number>;
 }
 
 export interface ModerationFilters {

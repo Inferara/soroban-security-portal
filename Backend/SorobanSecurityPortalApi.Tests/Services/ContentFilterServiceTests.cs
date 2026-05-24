@@ -396,7 +396,7 @@ public class ContentFilterServiceTests
 
         // Assert
         result.Should().BeTrue();
-        _cacheAccessorMock.Verify(x => x.SetCacheValue(It.IsAny<string>(), "1", 60), Times.Once);
+        _cacheAccessorMock.Verify(x => x.SetCacheValue(It.IsAny<string>(), "1", 120), Times.Once);
     }
 
     [Fact]
@@ -411,7 +411,7 @@ public class ContentFilterServiceTests
 
         // Assert
         result.Should().BeTrue();
-        _cacheAccessorMock.Verify(x => x.SetCacheValue(It.IsAny<string>(), "6", 60), Times.Once);
+        _cacheAccessorMock.Verify(x => x.SetCacheValue(It.IsAny<string>(), "6", 120), Times.Once);
     }
 
     [Fact]
@@ -440,7 +440,7 @@ public class ContentFilterServiceTests
 
         // Assert
         result.Should().BeTrue();
-        _cacheAccessorMock.Verify(x => x.SetCacheValue(It.IsAny<string>(), "1", 60), Times.Once);
+        _cacheAccessorMock.Verify(x => x.SetCacheValue(It.IsAny<string>(), "1", 120), Times.Once);
     }
 
     #endregion

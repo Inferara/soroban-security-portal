@@ -11,8 +11,8 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<LoginModel> Login { get; set; }
         public DbSet<LoginHistoryModel> LoginHistory { get; set; }
         public DbSet<ClientSsoModel> ClientSso { get; set; }
-        public DbSet<VulnerabilityModel> Vulnerability { get; set; }
-        public DbSet<ReportModel> Report { get; set; }
+        public virtual DbSet<VulnerabilityModel> Vulnerability { get; set; }
+        public virtual DbSet<ReportModel> Report { get; set; }
         public DbSet<SubscriptionModel> Subscription { get; set; }
         public DbSet<ProtocolModel> Protocol { get; set; }
         public DbSet<AuditorModel> Auditor { get; set; }
@@ -28,6 +28,8 @@ namespace SorobanSecurityPortalApi.Common.Data
 
 
         public virtual DbSet<RatingModel> Rating { get; set; }
+        public DbSet<ContentFlagModel> ContentFlag { get; set; }
+        public DbSet<ModerationActionModel> ModerationAction { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
@@ -98,6 +100,21 @@ namespace SorobanSecurityPortalApi.Common.Data
 
             builder.Entity<ForumPostModel>()
                 .HasIndex(p => new { p.ThreadId, p.CreatedAt });
+
+            // #134-L3: deleting a user (login) must NOT cascade-delete their forum
+            // threads/posts (would wipe whole discussions). Use Restrict for author FKs.
+            builder.Entity<ForumThreadModel>()
+                .HasOne(t => t.Author)
+                .WithMany()
+                .HasForeignKey(t => t.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ForumPostModel>()
+                .HasOne(p => p.Author)
+                .WithMany()
+                .HasForeignKey(p => p.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
             builder.Entity<ForumCategoryModel>().HasData(
@@ -135,7 +152,7 @@ namespace SorobanSecurityPortalApi.Common.Data
                     Slug = "vulnerability-discussions", 
                     Description = "Deep dives into specific vulnerabilities.", 
                     SortOrder = 4, 
-                    CreatedAt = seedDate 
+                    CreatedAt = seedDate
                 }
             );
 
@@ -145,6 +162,16 @@ namespace SorobanSecurityPortalApi.Common.Data
 
             builder.Entity<RatingModel>()
                 .HasIndex(r => new { r.EntityType, r.EntityId });
+
+            builder.Entity<ContentFlagModel>()
+                .HasIndex(f => new { f.ContentType, f.ContentId, f.FlaggedByUserId })
+                .IsUnique();
+            builder.Entity<ContentFlagModel>()
+                .HasIndex(f => new { f.ContentType, f.ContentId });
+            builder.Entity<ModerationActionModel>()
+                .HasIndex(a => new { a.ContentType, a.ContentId, a.CreatedAt });
+            builder.Entity<ModerationActionModel>()
+                .HasIndex(a => a.CreatedAt);
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function

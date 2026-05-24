@@ -49,7 +49,6 @@ namespace SorobanSecurityPortalApi.Controllers
         [Authorize]
         public async Task<IActionResult> CreateOrUpdate([FromBody] CreateRatingRequest request)
         {
-            
             if (request == null)
             {
                 return BadRequest("Request body cannot be null.");
@@ -59,7 +58,15 @@ namespace SorobanSecurityPortalApi.Controllers
             {
                 return BadRequest("Score must be between 1 and 5.");
             }
-            
+
+            if (request.Review?.Length > 2000)
+            {
+                return BadRequest("Review must not exceed 2000 characters.");
+            }
+
+            // Review is stored in a NOT NULL column; treat an omitted/null review as empty.
+            request.Review ??= string.Empty;
+
             var result = await _ratingService.AddOrUpdateRating(request);
             return Ok(result);
         }

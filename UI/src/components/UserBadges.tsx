@@ -27,10 +27,11 @@ export function UserBadges({ badges, mode = 'compact', maxBadges, size = 'small'
                     <BadgeIcon key={badge.id} badge={badge} size={size} />
                 ))}
                 {maxBadges && badges.length > maxBadges && (
+                    // M-3: replaced hardcoded #666 with theme token
                     <Box
                         sx={{
                             fontSize: '0.75rem',
-                            color: '#666',
+                            color: 'text.secondary',
                             ml: 0.5,
                         }}
                     >
@@ -60,11 +61,12 @@ export function UserBadges({ badges, mode = 'compact', maxBadges, size = 'small'
                     }}
                 >
                     <BadgeIcon badge={badge} size={size} />
+                    {/* M-3: replaced hardcoded #999/#333 with theme tokens */}
                     <Box
                         sx={{
                             fontSize: '0.75rem',
                             textAlign: 'center',
-                            color: badge.isLocked ? '#999' : '#333',
+                            color: badge.isLocked ? 'text.disabled' : 'text.primary',
                         }}
                     >
                         {badge.name}

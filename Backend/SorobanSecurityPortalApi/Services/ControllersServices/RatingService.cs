@@ -16,7 +16,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public interface IRatingService
     {
         Task<RatingSummaryViewModel> GetSummary(EntityType entityType, int entityId);
-        Task<List<RatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10);
+        Task<List<PublicRatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10);
         Task<RatingViewModel> AddOrUpdateRating(CreateRatingRequest request);
         Task DeleteRating(int id);
     }
@@ -81,8 +81,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return summary;
         }
 
-        public async Task<List<RatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10)
+        public async Task<List<PublicRatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10)
         {
+            page = Math.Max(1, page);
+            pageSize = Math.Max(1, Math.Min(100, pageSize));
+
             var query = _db.Rating
                 .AsNoTracking()
                 .Where(r => r.EntityType == entityType && r.EntityId == entityId)
@@ -93,7 +96,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 .Take(pageSize)
                 .ToListAsync();
 
-            return _mapper.Map<List<RatingViewModel>>(ratings);
+            return _mapper.Map<List<PublicRatingViewModel>>(ratings);
         }
 
         public async Task<RatingViewModel> AddOrUpdateRating(CreateRatingRequest request)

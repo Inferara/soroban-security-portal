@@ -178,16 +178,77 @@ namespace SorobanSecurityPortalApi.Tests.Services
         {
             for (int i = 1; i <= 15; i++)
             {
-                _dataStore.Add(new RatingModel 
-                { 
+                _dataStore.Add(new RatingModel
+                {
                     Id = i, UserId = i, EntityId = 50, EntityType = EntityType.Protocol, Score = 5,
                     CreatedAt = DateTime.UtcNow.AddMinutes(i)
                 });
             }
 
             var result = await _service.GetRatings(EntityType.Protocol, 50, page: 2, pageSize: 10);
-            result.Should().HaveCount(5); 
+            result.Should().HaveCount(5);
             result.First().Id.Should().Be(5);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(-100)]
+        public async Task GetRatings_Should_ClampPageToOne_WhenPageIsZeroOrNegative(int badPage)
+        {
+            for (int i = 1; i <= 5; i++)
+            {
+                _dataStore.Add(new RatingModel
+                {
+                    Id = i, UserId = i, EntityId = 77, EntityType = EntityType.Protocol, Score = 3,
+                    CreatedAt = DateTime.UtcNow.AddMinutes(i)
+                });
+            }
+
+            // Should not throw and should return the same result as page=1
+            var result = await _service.GetRatings(EntityType.Protocol, 77, page: badPage, pageSize: 10);
+            var resultPage1 = await _service.GetRatings(EntityType.Protocol, 77, page: 1, pageSize: 10);
+
+            result.Should().HaveCount(5);
+            result.Should().BeEquivalentTo(resultPage1);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-5)]
+        public async Task GetRatings_Should_ClampPageSize_WhenZeroOrNegative(int badPageSize)
+        {
+            for (int i = 1; i <= 5; i++)
+            {
+                _dataStore.Add(new RatingModel
+                {
+                    Id = i, UserId = i, EntityId = 88, EntityType = EntityType.Protocol, Score = 3,
+                    CreatedAt = DateTime.UtcNow.AddMinutes(i)
+                });
+            }
+
+            // Should not throw; clamped pageSize (>=1) returns at least one item
+            var result = await _service.GetRatings(EntityType.Protocol, 88, page: 1, pageSize: badPageSize);
+
+            result.Should().NotBeEmpty();
+            result.Should().HaveCount(1);
+        }
+
+        [Fact]
+        public async Task GetRatings_Should_NotIncludeUserId_InPublicList()
+        {
+            _dataStore.Add(new RatingModel
+            {
+                Id = 1, UserId = 42, EntityId = 10, EntityType = EntityType.Protocol, Score = 4,
+                Review = "Great", CreatedAt = DateTime.UtcNow
+            });
+
+            var result = await _service.GetRatings(EntityType.Protocol, 10, page: 1, pageSize: 10);
+
+            result.Should().HaveCount(1);
+            // PublicRatingViewModel has no UserId property — verified by type
+            result[0].Should().BeOfType<PublicRatingViewModel>();
+            result[0].Score.Should().Be(4);
         }
 
         // --- HELPERS ---

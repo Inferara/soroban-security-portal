@@ -28,7 +28,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .Include(v => v.Auditor)
                 .Include(v => v.Protocol)
                 .ThenInclude(p => p!.Company)
-                .AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved);
+                .AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted);
 
             if (reportSearch != null)
             {
@@ -161,6 +161,24 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return report;
         }
 
+        // Public detail/image path: hidden/soft-deleted reports must never be served by direct URL.
+        // Returns null (not throw) when missing/hidden/deleted so callers can map it to NotFound.
+        // Approval-status is intentionally NOT filtered here; only the moderation flags are applied.
+        public async Task<ReportModel?> GetPublic(int reportId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var report = await db.Report
+                .Include(r => r.Auditor)
+                .Include(r => r.Protocol)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == reportId && !item.IsHidden && !item.IsDeleted);
+            if (report == null)
+                return null;
+            if (report.BinFile == null)
+                report.BinFile = Array.Empty<byte>();
+            return report;
+        }
+
         public async Task Approve(ReportModel reportModel, int userId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -201,7 +219,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .AsNoTracking();
             if (!includeNotApproved)
             {
-                query = query.Where(r => r.Status == ReportModelStatus.Approved);
+                query = query.Where(r => r.Status == ReportModelStatus.Approved && !r.IsHidden && !r.IsDeleted);
             }
             query = query.Select(v => new ReportModel
             {
@@ -267,13 +285,13 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var ago = DateTime.UtcNow.AddMonths(-1);
             var newReports = await db.Report
                 .AsNoTracking()
-                .Where(v => v.Status == ReportModelStatus.Approved && v.Date >= ago)
+                .Where(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted && v.Date >= ago)
                 .CountAsync();
             return new ReportStatisticsChangesViewModel
             {
                 Total = await db.Report
                     .AsNoTracking()
-                    .CountAsync(v => v.Status == ReportModelStatus.Approved),
+                    .CountAsync(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted),
                 New = newReports
             };
         }
@@ -285,6 +303,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<ReportModel> Add(ReportModel reportModel);
         Task<ReportModel> Edit(ReportModel reportModel, int userId);
         Task<ReportModel> Get(int reportId);
+        Task<ReportModel?> GetPublic(int reportId);
         Task Approve(ReportModel reportModel, int userId);
         Task Reject(ReportModel reportModel, int userId);
         Task Remove(int reportId);

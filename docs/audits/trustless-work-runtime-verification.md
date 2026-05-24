@@ -17,12 +17,10 @@ Some public Smart Escrow functions accept the parameter `trustless_work_address:
 
 However, both `resolve_dispute` and `release_funds` are access-restricted. In the case of `release_funds`, only the `release_signer` can sign the function call, while for `resolve_dispute`, only the `dispute_resolver` can sign the function call.
 
-**## Recommendation**
-
+## Recommendation
 We recommend hard-coding the address of Trustless Work into the Smart Contract or using some other secure method to query the address at runtime.
 
-**## Status**
-
+## Status
 The client has addressed this finding by hard-coding the Trustless Work address into the contract and using it internally instead of requiring it as an input parameter. The modification was already implemented in another version of the contract, which was deployed for testing.
 
 
@@ -62,12 +60,10 @@ let net_approver_funds = if total_resolved_funds > 0 {
 
 Here, the variable `net_approver_funds` will be negative in case `total_fees` is bigger than `total_resolved_funds`.
 
-**## Recommendation**
-
+## Recommendation
 We recommend that during both initialization and Smart Escrow update, the sum of the `trustless_work_fee` and `platform_fee` is validated to be less than 100%.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`1da344e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/1da344e) in branch `single-release-develop`.
 
 
@@ -82,14 +78,12 @@ At initialization, an `Escrow` object is passed that defines the Smart Escrow pr
 
 This function does not check whether any passed milestone already has the `approved` flag set to `true`. This allows the contract initializer to circumvent the `approver` role.
 
-**## Recommendation**
-
+## Recommendation
 We recommend to either:
 - validate during initialization and smart escrow update that the passed `Escrow` object has all `approved` flags set to `false`
 - override during initialization and smart escrow update the passed `Escrow` object and set all `approved` flags to `false`
 
-**## Status**
-
+## Status
 This finding has been partially addressed in commit ID [`6d979b5`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/6d979b5) in branch `single-release-develop`.
 
 
@@ -108,12 +102,10 @@ However, in contrast to the initialization, no validation is performed on the pa
 
 Notice that, even though the initialization endpoint and the update endpoint have extremely similar purposes (modifying the escrow state), the set of validations performed by each endpoint is different. This creates opportunities for unpredictable behaviors, as, for instance, an escrow can be updated to have more than 10 milestones, even though its initialization enforces that this shouldn't be possible. Similarly, an escrow can be updated for its amount to be zero, even though its initialization enforces that this shouldn't be possible.
 
-**## Recommendation**
-
+## Recommendation
 We recommend to use the same function `validate_initialize_escrow_conditions` that is used during initialization to validate the Escrow properties in the `update_escrow` function.
 
-**## Status**
-
+## Status
 This finding has been partially addressed in finding [`6d979b5`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/6d979b5) in branch `single-release-develop`. `validate_escrow_property_change_conditions` and `validate_initialize_escrow_conditions` still have distinct implementations.
 
 
@@ -132,12 +124,10 @@ This allows a malicious `platform` actor to try to front-run a pending user tran
 
 In particular, the changeable properties include the roles, meaning the malicious `platform` actor could change the roles and subsequently steal the funds.
 
-**## Recommendation**
-
+## Recommendation
 Require the user to specify the `Escrow` struct as a parameter in `fund_escrow` and validate in `fund_escrow` that the passed `Escrow` struct matches the stored `Escrow` struct. In case of a mismatch, revert, as the user might not want to fund a Smart Escrow with different properties.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`6d979b5`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/6d979b5) in branch `single-release-develop`.
 
 
@@ -172,8 +162,7 @@ The Smart Escrow attribute `amount: i128` specifies the amount to be released in
 
 The Smart Escrow uses the signed integer type `i128` as the type for the `milestone_index` parameter for multiple contract functions. While there are either explicit or implicit bound checks in-place, negative milestone indices might overflow when cast to an unsigned integer.
 
-**## Recommendation**
-
+## Recommendation
 For handling the discussed topics above, our recommendations are, respectively:
 
 1. We suggest that validation of the `platform_fee` attribute during initialization and escrow update prevents negative values. Furthermore, we suggest that the type of `platform_fee` and `TRUSTLESS_WORK_FEE_BPS` be changed to a smaller unsigned integer type, such as `u16`, as the fee attributes have a maximum value as well, which is expected to be less than 10,000 and can therefore be safely represented by a `u16`.
@@ -182,8 +171,7 @@ For handling the discussed topics above, our recommendations are, respectively:
 4. We suggest that validation of the `amount` attribute during initialization and escrow update prevents negative values.
 5. Change the signed integer type to an unsigned integer type for `milestone_index`.
 
-**## Status**
-
+## Status
 This finding has been partially addressed in commit IDs [`6d979b5`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/6d979b5), [`58539ca`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/58539ca), and [`33bfafb`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/33bfafb) in branch `single-release-develop`. Regarding topic 4, the approach used to address the issue was to implement an enforcement that the funding amount should be greater than or equal to `0` when handling escrow via the fund endpoint. Although this is effective for handling the escrow in its intended usage, an escrow can still be initialized with a negative amount. To prevent issues related to this altogether, all instances where `Escrow.amount` is used should be validated against negative values, or more simply, the `Escrow` struct should use an unsigned type for `amount`.
 
 
@@ -198,12 +186,10 @@ The Smart Escrow contract contains a design flaw that exposes it to a griefing a
 
 While this is not a critical vulnerability resulting in direct fund loss, it remains a serious design flaw. A griefing attack is where an actor uses a system's intended features to disrupt without gaining a direct financial advantage. By disapproving a previously approved milestone, the `Approver` can stall the project indefinitely, causing frustration, delaying payments, and, in the case of a multi-source funds escrow, potentially causing the entire crowdsourcing effort to fail. Since the protocol's lifecycle depends on milestones being approved, the ability to revert a milestone's status creates a single point of failure and a denial of service vector for the contract's functionality, which still can be handled by forcing a dispute.
 
-**## Recommendation**
-
+## Recommendation
 We recommend modifying the `approve_milestone` function to prevent this type of attack by removing the `new_flag` parameter or enforcing that it is always set to `true`. Design-wise, suppose a legitimate `Approver` notices a problem with a previously approved milestone. In that case, they can still invoke a dispute, forcing the intervention of an authority that can investigate the issue.
 
-**## Status**
-
+## Status
 This finding has been addressed commit IDs [`fe2623f`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/fe2623f) and [`2b31f1e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/2b31f1e) in branch `single-release-develop`.
 
 
@@ -220,12 +206,10 @@ For the Multi-Release Smart Escrow, funds are released on a milestone basis, wit
 
 The caveat here comes from finding [A09] Milestones can both be released and dispute-resolved in the multi-release smart escrows, which considers that a milestone can both be released and disputed, meaning that, although incorrectly, the redeemable exceeding balance of a Multi-Release Smart Escrow, in its current state, can be at most the same as its expected release value.
 
-**## Recommendation**
-
+## Recommendation
 The Multi-Release Smart Escrow should implement an additional endpoint exclusively for the `dispute_resolver`, which works similarly to `resolve_dispute` in the Single-Release escrow. This endpoint should work on the condition that all milestones must have either been released or dispute-resolved. Alternatively, the limitations on the withdrawn amounts can be removed, but this introduces the issue of being able to withdraw the full balance of an escrow through a single milestone dispute.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`2f6ef92`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/2f6ef92) in branches `multi-receiver`, `multi-release-develop`, `multi-release-main`, and `stellar-multi-release-audit`.
 
 
@@ -242,14 +226,12 @@ There are no mechanisms in place that disallow a milestone dispute resolution af
 
 In the single-release smart escrow, this is a deliberate design decision that allows withdrawal of exceeding funds. Though this design is not suited for a smart escrow with multiple releases of funds.
 
-**## Recommendation**
-
+## Recommendation
 Add validations that enforce that dispute-resolved milestones cannot be released as well as that released milestones cannot be dispute-resolved.
 
 There is another issue that can cause funds to be permanently locked in the multi-release smart escrows, described in [A08] Exceeding Assets Will Be Permanently Locked in The Multi-Release Smart Escrows. The recommended fix reduces the amount of funds that can be recovered from the smart escrow when locked by the issue described in [A08] Exceeding Assets Will Be Permanently Locked in The Multi-Release Smart Escrows. Therefore it is heavily recommended to implement the recommendations from finding [A08] Exceeding Assets Will Be Permanently Locked in The Multi-Release Smart Escrows.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`bbdfcc4`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/bbdfcc4) in branch `multi-receiver`, `multi-release-develop`, `multi-release-main`, and `stellar-multi-release-audit`.
 
 ---
@@ -442,8 +424,7 @@ if !milestones.is_empty() {
 }
 ```
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`4ee04c2`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/4ee04c2), [`c87c1a8`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/c87c1a8), [`ecbe0be`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/ecbe0be), [`7b9c2bb`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/7b9c2bb), [`5107d34`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/5107d34), [`7639179`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/7639179), [`af79c87`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/af79c87), [`32c985a`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/32c985a) of the branch `develop`, and in commit IDs [`bba602a`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/bba602a), [`9dd0d39`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/9dd0d39), and [`a97eefe`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/a97eefe) of the branches `multi-release-develop` and `stellar-multi-release-audit`.
 
 
@@ -459,12 +440,10 @@ This function checks whether a maximum length that is hardcoded to `10` is not e
 
 A Smart Escrow with no milestones serves no purpose, and the funds cannot be paid out with `release_funds` either, as this function checks whether the milestone vector is empty. As the other function to retrieve funds, `resolve_dispute`, does not check the length of the milestones vector, so funds are not locked in such a Smart Contract. They can still be retrieved with `resolve_dispute`, albeit with fees.
 
-**## Recommendation**
-
+## Recommendation
 We recommend validating during initialization and Smart Escrow update that the milestone vector is not empty.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit [`ecbe0be`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/ecbe0be) in the branch `develop`.
 
 
@@ -480,12 +459,10 @@ The attribute `decimals: u32` of type `Trustline` is exclusively used in the pub
 
 The decimals that are returned can hold an arbitrary value specified during initialization of the Smart Escrow that might not match the actual decimals value of the respective token used.
 
-**## Recommendation**
-
+## Recommendation
 We recommend that the Smart Escrow fetch the `decimals` attribute at runtime instead by calling `TokenClient::decimals`.
 
-**## Status**
-
+## Status
 The finding has been addressed in the commit ID [`c76c7dd`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/c76c7dd) in the branch `develop`.
 
 
@@ -503,12 +480,10 @@ if escrow.flags.released {
 }
 ```
 
-**## Recommendation**
-
+## Recommendation
 We recommend to create a new error in `ContractError` that indicates that the Smart Escrow was already released and use that error instead.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`d77d7ae`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/d77d7ae) and [`5b9344f`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/5b9344f) in the branch `develop`.
 
 
@@ -522,12 +497,10 @@ The function `validate_release_conditions` does not check whether the Smart Escr
 
 At the same time, this error indicates that the intent was to also check that the Smart Escrow has not already been resolved yet with `resolve_dispute`.
 
-**## Recommendation**
-
+## Recommendation
 We recommend adding a missing check in `validate_release_conditions` that the Smart Escrow has already been resolved.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`5b9344f`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/5b9344f) in the branch `develop`.
 
 
@@ -541,12 +514,10 @@ Currently, a Smart Escrow can be initialized and used right away with arbitrary 
 
 In case of a dispute, including scenarios where leftover assets need to be returned, the `dispute_resolver` must act; otherwise, the funds are locked in the Smart Escrow. If the `dispute_resolver` does act, the arbitrarily specified platform fees are enforced.
 
-**## Recommendation**
-
+## Recommendation
 To avoid such a deadlock situation, the `dispute_resolver` could be required to explicitly consent to a given Smart Escrow after initialization or Smart Escrow updates through `update_escrow`. This can be done with a new Smart Escrow public function `EscrowContract::consent(e: Env, dispute_resolver: Address, escrow_properties: Escrow)`. At the same time, `fund_escrow` must fail, in case the Smart Escrow has not been consented to by the `dispute_resolver`.
 
-**## Status**
-
+## Status
 The client has acknowledged this finding.
 
 
@@ -560,12 +531,10 @@ The Smart Escrow, which also has a constructor, has the capabilities of deployin
 
 The coexistence of both a deployer function and a constructor creates redundancy and is an inefficient design pattern. The current constructor is underutilized, as it only sets an `admin` address in storage that is never referenced in subsequent logic. This design choice is problematic because it introduces complexity without providing any functional benefit. It would be more secure and efficient to remove the deployer logic and use the constructor to handle all necessary initialization tasks. This would streamline the contract's deployment process and reduce its attack surface.
 
-**## Recommendation**
-
+## Recommendation
 To resolve this issue, we recommend either of the following two solutions. The first is to completely remove the constructor and refactor the deployer function to handle all contract initialization. The second, and more robust, solution is to remove the unnecessary deployer functionality and adapt the existing constructor to perform all essential setup tasks.
 
-**## Status**
-
+## Status
 The client has acknowledged this finding.
 
 
@@ -580,14 +549,12 @@ The Smart Escrow contract, which can be used for crowdsourcing, has a limitation
 
 Although it may be the case in some scenarios, the `Approver` is not the source of the funds and, as such, should not be the recipient of a refund. This exposes the funders to a potential loss of capital, as they are entirely reliant on the `Approver`'s integrity and willingness to manually return the funds. The contract's current logic does not guarantee the repayment of funds to the rightful owners, leaving funders dependent on trust in what is intended to be a trustless environment.
 
-**## Recommendation**
-
+## Recommendation
 To rectify this, the Smart Escrow contract's dispute resolution logic must be updated. The Smart Escrow and platform must either:
 1. Store the funders' addresses in persistent data, in pairs with their supplied amounts, implementing an endpoint to allow funders to retrieve their supplied amounts in case of a dispute, or;
 2. Keep track of all funders in off-chain storage and find a way to ensure that the `approver` will repay all funders with their due amounts. This approach, although feasible, requires an extra layer of off-chain trust.
 
-**## Status**
-
+## Status
 The client has acknowledged this finding.
 
 
@@ -603,14 +570,12 @@ To prevent a contract from being archived, developers must actively manage its T
 
 Smart Escrows have no means of updating their own TTL according to the implemented business logic, and no `RestoreFootprintOp` is constructed in the platform's backend.
 
-**## Recommendation**
-
+## Recommendation
 To avoid needing to manually reinstate the Smart Escrow data after properly modifying the storage entries from persistent to instance, we recommend extending the time-to-live of the contract data within the contract itself whenever the contract is interacted with. For example, whenever fetching information from Smart Escrows using the `get_escrow` endpoint, extend the contract instance storage TTL.
 
 Additionally, the backend should be able to construct `RestoreFootprintOp` operations to bring back contracts from archival.
 
-**## Status**
-
+## Status
 The client has acknowledged this finding.
 
 
@@ -629,12 +594,10 @@ According to Trustless Work's documentation, the expected lifecycle of an escrow
 
 Although designed to follow this lifecycle, there are no validations in the code enforcing that the Milestone Updates Phase is necessary. Milestones can be approved regardless of whether their status is updated or not.
 
-**## Recommendation**
-
+## Recommendation
 Either recognize the Milestone Updates Phase as optional or enforce its necessity in the contract's business logic.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`93c4c37`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/93c4c37) and [`898097a`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/898097a) in the `multi-release-develop` and `stellar-multi-release-audit` branches.
 
 
@@ -650,12 +613,10 @@ The validations implemented when attempting to update a smart escrow do not cons
 
 This issue is informational because smart escrows cannot be updated after being funded, which narrows the window in which this property could be exploited.
 
-**## Recommendation**
-
+## Recommendation
 Make the `platform` address immutable by enforcing immutability at the contract level.
 
-**## Status**
-
+## Status
 The client has addressed this finding in commit ID [`118a316`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/118a316) of the branch `single-release-develop`.
 
 
@@ -669,12 +630,10 @@ While reviewing the code of the Multi-Release Smart Escrow version, multiple min
 
 One of these differences, however, is more significant. When resolving a milestone dispute in the Multi-Release version, one of the parameters is named `service_provider_funds`, with its naming indicating that it holds the amount of funds to be sent to the `service_provider`. However, tracing the logic shows that these funds are actually sent to the `receiver` instead. In the Single-Release version, this variable is appropriately named `release_funds`.
 
-**## Recommendation**
-
+## Recommendation
 Align the implementations of shared logic across both contract versions to improve maintainability and reduce confusion.
 
-**## Status**
-
+## Status
 This finding has been addressed in the commit ID [`699e25e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/699e25e) of the branches `multi-release-develop` and `stellar-multi-release-audit`.
 
 ---
@@ -694,8 +653,7 @@ The `PendingWriteQueueService` uses an in-memory `Map<string, PendingWriteItem>(
 3. Memory Leak Risk: Abandoned transactions are never removed from the queue. There's no TTL (Time To Live) mechanism for stale entries, which may cause the queue to grow indefinitely without cleanup.
 4. No Observability: Cannot monitor queue size or processing metrics, no visibility into failed transactions across restarts, making it difficult to debug transaction issues.
 
-**## Recommendation**
-
+## Recommendation
 Replace the in-memory storage with a persistent, distributed solution:
 
 ```ts
@@ -711,8 +669,7 @@ const pendingWriteQueue = new Queue("pending writes", {
 
 Implement proper cleanup mechanisms and monitoring for queue health.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`f353f3c`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/f353f3c), [`0bf1ac9`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/0bf1ac9), [`98b61ab`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/98b61ab), and [`4412028`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/4412028).
 
 
@@ -738,8 +695,7 @@ This configuration creates several security vulnerabilities:
 2. Data Theft: Malicious sites can access user data through browser requests
 3. API Abuse: Unauthorized third parties can consume API resources without restriction
 
-**## Recommendation**
-
+## Recommendation
 Restrict CORS to specific, trusted domains:
 
 ```ts
@@ -752,8 +708,7 @@ app.enableCors({
 
 Use environment variables to manage different origins for different environments (development, staging, production).
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`4a82d73`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/4a82d73).
 
 
@@ -777,8 +732,7 @@ Multiple critical endpoints lack proper authentication guards, making them publi
 
 This creates severe security vulnerabilities, as sensitive user data and system operations are exposed to unauthorized users.
 
-**## Recommendation**
-
+## Recommendation
 Add authentication guards to all protected endpoints:
 
 ```ts
@@ -788,8 +742,7 @@ Add authentication guards to all protected endpoints:
 
 Implement role-based access control (RBAC) for different user types and operations. Ensure that users can only access and modify their own data unless they have explicit administrative privileges.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`4f7b37e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/4f7b37e), [`859e8d9`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/859e8d9), [`fe8a6f6`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/fe8a6f6), and [`2e8b7cf`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/2e8b7cf).
 
 
@@ -816,8 +769,7 @@ Security Impact:
 - Data Exposure: Contract data becomes accessible without proper authorization
 - Privilege Escalation: Users can potentially view or interact with high-value escrows
 
-**## Recommendation**
-
+## Recommendation
 Add proper signer validation to the query:
 
 ```ts
@@ -830,8 +782,7 @@ Add proper signer validation to the query:
 
 Implement comprehensive authorization checks throughout the escrow repository to ensure users can only access contracts they are authorized to view or modify.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`f3ac8da`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/f3ac8da).
 
 
@@ -858,8 +809,7 @@ These detailed error messages introduce multiple security vulnerabilities:
 
 This information can be used by malicious actors to map out the user base and system structure, facilitating more targeted attacks.
 
-**## Recommendation**
-
+## Recommendation
 Use generic error messages for client responses while logging detailed information separately for debugging:
 
 ```ts
@@ -875,8 +825,7 @@ Implement a consistent error handling strategy that:
 - Logs detailed information server-side for debugging
 - Avoid exposing internal system details, including whether a specific user exists.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`cb5d5f6`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/cb5d5f6), and [`b3f9255`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/b3f9255).
 
 
@@ -896,8 +845,7 @@ Security Risks:
 
 This is particularly concerning for a financial application handling escrow transactions, where data integrity and confidentiality are critical.
 
-**## Recommendation**
-
+## Recommendation
 Configure the application to use HTTPS-only connections in production:
 
 ```ts
@@ -917,8 +865,7 @@ Implement environment-specific configurations that:
 - Allow HTTP only in local development environments
 - Add runtime checks to prevent accidental HTTP usage in production
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`6cc12b5`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/6cc12b5).
 
 
@@ -948,8 +895,7 @@ Security and Design Issues:
 CSRF Vulnerability:
 Websites can use safe requests such as GET to load static resources for websites such as images, e.g.: `<img src="https://www.somewebsite.com/some-image.jpg">`. This can be exploited to make clients of such websites send malicious GET requests to other websites. Cookies that are marked as `SameSite=None` are always sent alongside these requests. Cookies that are marked as `SameSite=Lax` are only added to safe requests such as GET. In case the cookies are to be utilized by the backend, this could be a source of potential security vulnerabilities, as cookies are typically marked as `SameSite=Lax`.
 
-**## Recommendation**
-
+## Recommendation
 Change GET methods to appropriate HTTP methods for state-changing operations:
 
 ```ts
@@ -978,8 +924,7 @@ Follow REST conventions:
 - PUT: Update existing resources (idempotent)
 - DELETE: Remove resources
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`27c7ebe`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/27c7ebe).
 
 
@@ -1023,8 +968,7 @@ Type Safety Impact:
 - Potential runtime errors when accessing properties that may not exist
 - Reduced code maintainability and documentation value
 
-**## Recommendation**
-
+## Recommendation
 Cast `DocumentData` to specific types that match the actual document structure:
 
 ```ts
@@ -1071,8 +1015,7 @@ Benefits of Specific Type Casting:
 - Reduced runtime errors
 - Improved refactoring safety
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`67c890c`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/67c890c), [`bdf8d64`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/bdf8d64), [`4b5a87a`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/4b5a87a), [`f0b34c3`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/f0b34c3), [`55fa23b`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/55fa23b), and [`01724da`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/01724da).
 
 
@@ -1105,8 +1048,7 @@ This mismatch between the validation decorators and the actual data types create
 3. API Contract Confusion: Unclear whether the API expects strings or numbers
 4. Potential Data Corruption: Inconsistent type handling can lead to incorrect data processing
 
-**## Recommendation**
-
+## Recommendation
 Use the correct validation decorators that match the TypeScript types:
 
 ```ts
@@ -1135,8 +1077,7 @@ amount: number;
 
 Review all DTO classes to ensure validation decorators match their corresponding TypeScript types.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`ee82a6e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/ee82a6e).
 
 
@@ -1170,8 +1111,7 @@ updatedAt: new Date(),
 createdAt: new Date(),
 ```
 
-**## Recommendation**
-
+## Recommendation
 Replace client-side timestamps with `FieldValue.serverTimestamp()`:
 
 ```ts
@@ -1192,8 +1132,7 @@ Benefits of server timestamps:
 
 Also update milestone timestamps (`approvedAt`, `completedAt`) for consistency.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`7942bd4`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/7942bd4), and [`8360e9b`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/8360e9b).
 
 
@@ -1232,8 +1171,7 @@ Security and Reliability Risks:
 2. Data Corruption: Unvalidated inputs can corrupt calculations
 3. Security Vulnerabilities: Malicious inputs might exploit undefined behavior
 
-**## Recommendation**
-
+## Recommendation
 Add explicit type annotations and comprehensive input validation:
 
 ```ts
@@ -1259,8 +1197,7 @@ Implement consistent validation patterns:
 - Format validation for strings
 - Null/undefined checks where appropriate
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`6667272`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/6667272).
 
 
@@ -1304,8 +1241,7 @@ interface RawMultiFlags {
 
 `RawSingleEscrow` and `RawMultiEscrow` share common properties but don't extend a base interface, leading to code duplication.
 
-**## Recommendation**
-
+## Recommendation
 Fix Type Guards to Use Discriminant Field:
 
 ```ts
@@ -1342,8 +1278,7 @@ export interface RawSingleEscrow extends RawEscrow {
 }
 ```
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`3c84811`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/3c84811).
 
 
@@ -1371,8 +1306,7 @@ The `.env.example` file contains inconsistencies with actual code usage:
 
 1. Direct Environment Variable Usage: Code directly accesses `process.env` instead of using NestJS `@nestjs/config` for type safety
 
-**## Recommendation**
-
+## Recommendation
 Fix Environment Configuration:
 
 ```ts
@@ -1394,8 +1328,7 @@ const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
 Clean Up Unused Environment Variables:
 Remove unused variables from `.env.example` or implement their usage in the codebase if they are intended for future features.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`702c7ed`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/702c7ed).
 
 
@@ -1472,8 +1405,7 @@ The codebase contains wrong logging and error messages, most likely due to copy 
 
 `src/stellar-contract/queue/pending-write-handler.service.ts:100` defines the variable `completedAt` that should instead be called `lastUpdatedAt` or similar - this variable is updated everytime the status is updated instead of only when the status is complete
 
-**## Recommendation**
-
+## Recommendation
 Improve API Documentation:
 
 ```ts
@@ -1545,8 +1477,7 @@ if (tag === "u64")
 if (tag == "u64")
 ```
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`c8e5a65`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/c8e5a65).
 
 
@@ -1603,8 +1534,7 @@ Whether Firestore interfaces should use flat structures (`Record<string, string>
 
 - `src/config/firebase.config.ts` is not a module, but should be due to providing functions and usage of services
 
-**## Recommendation**
-
+## Recommendation
 Fix Repository Pattern:
 
 ```ts
@@ -1653,8 +1583,7 @@ Keep current flat structure for Firestore queries but improve conversion logic b
 Usage of NestJS modules:
 Use NestJS modules and services when proper.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`d005371`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/d005371), [`c8e5a65`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/c8e5a65), [`a4f8570`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/a4f8570), [`9dd6787`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/9dd6787), and [`5cece24`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/5cece24).
 
 
@@ -1680,8 +1609,7 @@ The codebase previously lacked proper development tooling and code quality enfor
 - Manual code review burden increased
 - Potential for committing problematic code
 
-**## Recommendation**
-
+## Recommendation
 Implement comprehensive development tooling, including:
 - ESLint with TypeScript support
 - Husky for pre-commit hooks
@@ -1704,8 +1632,7 @@ npm install --save-dev prettier eslint-config-prettier eslint-plugin-prettier
 npm install --save-dev lint-staged
 ```
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`67c890c`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/67c890c), [`fc3eb3a`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/fc3eb3a), [`15a3f13`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/15a3f13), [`3a27c6a`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/3a27c6a), [`5329a3b`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/5329a3b), [`35c0cba`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/35c0cba), and [`6c354fe`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/6c354fe).
 
 
@@ -1735,12 +1662,10 @@ if (!pending) {
 }
 ```
 
-**## Recommendation**
-
+## Recommendation
 Check whether the transaction hash is in the `pendingWriteQueue` before submitting the transaction to the blockchain. In case the hash is not in the queue, abort and do not submit the transaction.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`9a4006e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/9a4006e).
 
 
@@ -1838,8 +1763,7 @@ This means `fee`, `wasmHash`, and `operationFunc` contamination persists across 
 
 This affects all transaction-related operations in the system and can lead to wrong fees, operations on incorrect contracts, or funds released to wrong parties.
 
-**## Recommendation**
-
+## Recommendation
 We recommend implementing either a request-scoped service or a stateless factory pattern to eliminate shared mutable state:
 
 **Option A: Request-Scoped Service**
@@ -1864,8 +1788,7 @@ export class StellarTransactionBuilderFactory {
 
 This ensures each operation gets a fresh, isolated builder instance with no shared state between concurrent requests.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`575a047`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/575a047).
 
 
@@ -1909,8 +1832,7 @@ Security Concerns:
 
 Current Risk Level: While the current usage in `establishTrustline()` method appears to use the key only within the same method scope, storing sensitive cryptographic material in instance variables is an anti-pattern that violates the principle of least exposure.
 
-**## Recommendation**
-
+## Recommendation
 Limit private key scope to local variables within methods and clear references as soon as they are no longer required:
 
 ```ts
@@ -1955,8 +1877,7 @@ Additional Security Improvements:
 3. Clear sensitive data: Explicitly null sensitive variables when operations complete
 4. Audit all services: Review other services for similar private key storage patterns
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`939242c`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/939242c).
 
 
@@ -1997,12 +1918,10 @@ for (const doc of snapshot.docs) {
 }
 ```
 
-**## Recommendation**
-
+## Recommendation
 We recommend to adjust all queries to include all relevant filters beforehand, as Firestore supports expressive queries.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit [`5007e8d`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/5007e8d).
 
 
@@ -2025,16 +1944,14 @@ This issue also applies to the other cron jobs declared in `src/notifications/no
 
 The backend endpoints `notifications/test/*` allow for triggering the notification checks manually for all users. This allows for malicious API users (without any credentials) to spam the endpoint with these notification requests. This will cause the backend to possibly generate multiple notifications per request that are all stored in the database. These endpoints are defined in the file `src/notifications/notifications.controller.ts`.
 
-**## Recommendation**
-
+## Recommendation
 Cron jobs:
 Update a timestamp per notification type that is used to prevent the same notifications from being generated more than once in a given period of time.
 
 Notification endpoints:
 Remove the notification endpoints.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`0652a79`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/0652a79).
 
 
@@ -2050,12 +1967,10 @@ The methods in `src/notifications/notifications.service.ts` that generate user n
 - `checkPendingEscrows`
 - `checkCompletedMilestones`
 
-**## Recommendation**
-
+## Recommendation
 Update these methods to also generate notifications for multi-release escrows for consistent behaviour.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`ee38c9e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/ee38c9e).
 
 
@@ -2076,12 +1991,10 @@ The codebase dangerously uses `number` to store and calculate critical values su
 - `src/stellar-contract/escrow/Dto/fund-escrow.dto.ts:17`: monetary value `amount`
 - `src/utils/parse.utils.ts:21`: currency conversion using imprecise floating-point arithmetic
 
-**## Recommendation**
-
+## Recommendation
 Review the codebase in regard to usage of `number` and replace `number` with a precise equivalent such as e.g. `BigInt`. Ensure that all arithmetic operations are precise and round towards the correct direction in case rounding is unavoidable. Ensure that serialization and deserialization of numerical values incurs no critical loss of precision.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`ee82a6e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/ee82a6e).
 
 
@@ -2117,12 +2030,10 @@ There is no format enforced that the API keys must comply with, other than somet
 - No fixed prefix enforced on the API key:
   - Using a fixed prefix that is shared by all API keys allows for detecting leaked API keys on the internet
 
-**## Recommendation**
-
+## Recommendation
 Re-implement the API key mechanisms entirely and follow state-of-the-art recommendations for safe API key handling. Potentially, trusted and verified libraries could be used to ensure that the API key implementation is actually secure. This is especially critical as these implementations typically make use of cryptographic concepts and algorithms that are harder to implement securely.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit IDs [`8360e9b`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/8360e9b), [`9ff80a5`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/9ff80a5), [`2e8b7cf`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/2e8b7cf), [`d439c66`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/d439c66), [`12dfbc2`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/12dfbc2).
 
 
@@ -2138,12 +2049,10 @@ In `src/stellar-contract/escrow/shared/shared-escrow.service.ts:246`, the functi
 
 This can be optimized by using the synchronized state in the database instead. Additionally, such an approach does not prevent race conditions or front-running attacks. Instead, the backend must rely on the smart escrow smart contract to prevent any front-running attacks and submit data in a transactional ordering. Therefore, the database state can be used here.
 
-**## Recommendation**
-
+## Recommendation
 Replace all non-critical occurrences of querying blockchain state with database queries to synchronized blockchain state in the database. It must be ensured that the database state is synchronized properly with the blockchain.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`4298787`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/4298787).
 
 
@@ -2159,12 +2068,10 @@ Some DTOs fields are silently overridden with default values, e.g.:
 - `src/utils/parse.utils.ts:65`
 - `src/utils/parse.utils.ts:115`
 
-**## Recommendation**
-
+## Recommendation
 Change the endpoints and DTOs to either drop fields that are not required by the backend, or alternatively make use of the currently unused fields and values in the DTOs.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`0843d1b`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/0843d1b).
 
 
@@ -2217,16 +2124,14 @@ async login(loginUserDto: LoginUserDto) {
 }
 ```
 
-**## Recommendation**
-
+## Recommendation
 A proper authentication procedure must be implemented and mandatory for all endpoints that require authentication such as login and register endpoints.
 
 As users login with their respective wallet, they must authenticate that they are the respective owner of the wallet. This can be properly implemented by following the SEP-10 standard (https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md), as described in the Stellar documentation (https://developers.stellar.org/docs/build/apps/wallet/sep10).
 
 Additionally, the generated JWT tokens should not be saved in the database. Instead, whenever the user loses the JWT or the JWT becomes invalid, the user is expected to re-authenticate to get a new JWT.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`8360e9b`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/8360e9b), [`2e8b7cf`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/2e8b7cf), [`4f7b37e`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/4f7b37e).
 
 
@@ -2247,14 +2152,12 @@ Additionally, any smart escrow transaction that was not generated by the backend
 
 The backend utilizes the `getTransaction` API endpoint of the Stellar blockchain to confirm the validity of transactions and also to get the contract id from deployment transactions. The Stellar `getTransaction` endpoint only stores transactions for a restricted period of time, the default being 24 hours, see https://developers.stellar.org/docs/data/apis/rpc/api-reference/methods/getTransaction. This puts the backend at risk of missing transactions in case of downtime or similar.
 
-**## Recommendation**
-
+## Recommendation
 We recommend to replace the `pendingWriteQueue` design choice with a procedure that queries storage state from smart escrows via the Stellar API and syncs the data with the database. This procedure could be run for smart escrows determined via emitted Soroban events that the backend could periodically query for from the Stellar API. Additionally, an API endpoint could be provided to update the state on a specific given smart escrow, in case the events were missed by the backend due to, e.g., downtime. This is because events are similarly to transactions only stored for a restricted amount of time in Stellar API nodes.
 
 This would deliberately also allow the backend to process smart escrows that were not deployed by the backend. Therefore the backend must check that the wasm hash of the smart escrow is valid. Additionally, we recommend to validate the smart escrow storage state for valid storage values. This is because we assume that smart escrows with invalid storage values (bypassing initialization validation) could potentially be deployed by exploiting Soroban's smart escrow upgrade functionality.
 
-**## Status**
-
+## Status
 This finding will be fixed in the future version of the protocol which will implement a dedicated blockchain indexer.
 
 
@@ -2273,12 +2176,10 @@ In the other case, where the transaction is different from deployment, the trans
 
 Additionally, due to the `finally` in `updateFromTxHash` that removes the respective transaction from the queue, the transaction is always removed from the queue, regardless of whether the transaction was processed by the backend. E.g., it is expected that this might happen when a deployment transaction is processed by `updateFromTxHash` without the blockchain yet having processed the transaction.
 
-**## Recommendation**
-
+## Recommendation
 Add proper validation that the transaction that is being processed in `updateFromTxHash` was actually properly processed by the blockchain with `getTransaction`. Additionally, in case the blockchain did not properly or successfully process the transaction, keep the element in the queue. Of course, as previously discussed in [TS01] In-Memory Queue Storage Causing Data Loss and Scaling Issues, there needs to be a mechanism in place that removes elements from the queue after a specified period of time has passed.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`36ece55`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/36ece55).
 
 
@@ -2289,12 +2190,10 @@ Status: Not addressed by client
 
 The backend requires a Stellar API endpoint to properly function. In case this API endpoint is hosted by a third-party, this third-party could feed wrong and potentially malicious data to the backend.
 
-**## Recommendation**
-
+## Recommendation
 To ensure that data returned by the Stellar API is valid, Stellar nodes could instead be self-hosted. These nodes are then expected to always return valid data, as long as they are hosted securely, properly maintained, and kept up to date.
 
-**## Status**
-
+## Status
 This recommendation was already being considered by the client, and will be fixed in the future implementation of the project outside of the scope of this audit.
 
 
@@ -2309,12 +2208,10 @@ The endpoint `/helper/set-trustline` can be used to set a trustline on a Stellar
 
 This is inherently dangerous for end-users, as they are not supposed to share their private key with other third-parties. This pattern also diverges from the rest of the backend codebase, where an unsigned transaction is prepared on the backend and then sent to the users client. The user can then decide on their client whether to sign the transaction after reviewing it.
 
-**## Recommendation**
-
+## Recommendation
 We recommend to refactor this endpoint to send an unsigned transaction to the users client, similar to how the other endpoints in the backend operate. There should be no endpoint in the backend that accepts a users private key as an argument.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`939242c`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/939242c).
 
 
@@ -2341,8 +2238,7 @@ JwtModule.registerAsync({
 }),
 ```
 
-**## Recommendation**
-
+## Recommendation
 Add an expiration date to JWT tokens by including the following option with a proper value:
 
 ```ts
@@ -2361,8 +2257,7 @@ JwtModule.registerAsync({
 }),
 ```
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`8360e9b`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/8360e9b).
 
 
@@ -2384,10 +2279,8 @@ do {
 } while (getResponse.status === "NOT_FOUND");
 ```
 
-**## Recommendation**
-
+## Recommendation
 Use a timeout or a maximum number of retries before this loop is terminated and an error is returned.
 
-**## Status**
-
+## Status
 This finding has been addressed in commit ID [`1b3bb0c`](https://github.com/Trustless-Work/Trustless-Work-Smart-Escrow/commit/1b3bb0c).

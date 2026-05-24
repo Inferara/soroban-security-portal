@@ -10,6 +10,7 @@ using SorobanSecurityPortalApi.Common.Data;
 using AspNetCore.Authentication.Basic;
 using Microsoft.OpenApi;
 using SorobanSecurityPortalApi.Services.ControllersServices;
+using SorobanSecurityPortalApi.Services.Moderation;
 
 namespace SorobanSecurityPortalApi;
 
@@ -44,11 +45,25 @@ public class Startup
         services.ForInterfacesMatching("^I.*Processor$")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddScoped();
+        // ContentFilterService is registered before the convention scan so the scan skips it (sees it already registered).
+        // Singleton is safe: ModerationLogProcessor uses IDbContextFactory (creates its own DbContext per call),
+        // IExtendedConfig and ICacheAccessor are also singleton-safe. The expensive file I/O and sanitizer
+        // construction are handled by static Lazy fields inside the service.
+        services.AddSingleton<IContentFilterService, ContentFilterService>();
+
+        // Explicit Scoped registration before the convention scan so the scan skips IRatingService.
+        // Scoped is correct: RatingService depends on Db (DbContext) which is Scoped.
+        services.AddScoped<IRatingService, RatingService>();
+
+        // Moderation target resolvers registered before the convention scan so the scan skips them.
+        // Multiple IModerationTarget registrations are intentional: ModerationTargetRegistry collects all via IEnumerable<IModerationTarget>.
+        services.AddScoped<IModerationTarget, VulnerabilityModerationTarget>();
+        services.AddScoped<IModerationTarget, ReportModerationTarget>();
+        services.AddScoped<IModerationTargetRegistry, ModerationTargetRegistry>();
+
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddTransients();
-
-        services.AddScoped<IRatingService, RatingService>();
 
         services.AddStackExchangeRedisCache(options =>
         {

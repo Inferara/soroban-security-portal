@@ -15,6 +15,17 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public DateTime CreatedAt { get; set; }
     }
 
+    // Public list DTO — no UserId to avoid exposing who-rated-what
+    public class PublicRatingViewModel
+    {
+        public int Id { get; set; }
+        public EntityType EntityType { get; set; }
+        public int EntityId { get; set; }
+        public int Score { get; set; }
+        public string Review { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
     public class CreateRatingRequest
     {
         public EntityType EntityType { get; set; }
