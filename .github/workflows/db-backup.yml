@@ -19,7 +19,7 @@ jobs:
       NAMESPACE: sorobansecurityportal-ns
       POD_SELECTOR: app=prod-sorobansecurityportal-postgres
       RETAIN: '10'
-      BACKUP_REPO: AKercha1/sorobandb
+      BACKUP_REPO: Inferara/sorobandb
 
     steps:
       - name: Set up kubectl
