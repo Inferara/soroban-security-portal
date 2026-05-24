@@ -59,6 +59,8 @@ import {
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
+import { SeoHead } from '../../../../components/common/SeoHead';
+import { ShareButtons } from '../../../../components/common/ShareButtons';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -200,6 +202,11 @@ export const ReportDetails: FC = () => {
     >
       {report && (
         <>
+          <SeoHead
+            title={report.name}
+            description={`Security audit report for ${report.name}`}
+            url={window.location.href}
+          />
           {/* Header */}
           <Box sx={{ mb: 3 }}>
             <DetailPageHeader
@@ -233,17 +240,20 @@ export const ReportDetails: FC = () => {
                 </>
               }
               headerExtra={
-                auth.isAuthenticated && (
-                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                    <FlagButton contentType="report" contentId={report.id ?? 0} />
-                    <BookmarkButton
-                      itemId={report.id ?? 0}
-                      bookmarkType={BookmarkType.Report}
-                      isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
-                      onToggle={toggleBookmark}
-                    />
-                  </Stack>
-                )
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                  <ShareButtons title={report.name} url={window.location.href} />
+                  {auth.isAuthenticated && (
+                    <>
+                      <FlagButton contentType="report" contentId={report.id ?? 0} />
+                      <BookmarkButton
+                        itemId={report.id ?? 0}
+                        bookmarkType={BookmarkType.Report}
+                        isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
+                        onToggle={toggleBookmark}
+                      />
+                    </>
+                  )}
+                </Stack>
               }
             />
           </Box>
