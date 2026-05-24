@@ -10,3 +10,5 @@ metadata:
 data:
   APIURL: "{{ .Values.global.sorobansecurityportalui.apiUrl }}"
   GA_ID: "{{ .Values.global.sorobansecurityportalui.gaId }}"
+  # In-cluster API service (host:port) used by nginx to fetch server-rendered OG meta for crawlers.
+  OG_API_UPSTREAM: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip:8080"
