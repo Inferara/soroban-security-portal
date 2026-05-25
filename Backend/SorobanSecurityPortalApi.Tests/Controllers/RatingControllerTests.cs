@@ -96,5 +96,46 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             // A null review must be coerced to empty string before reaching the NOT NULL column.
             _ratingServiceMock.Verify(s => s.AddOrUpdateRating(It.Is<CreateRatingRequest>(r => r.Review == string.Empty)), Times.Once);
         }
+
+        [Fact]
+        public async Task CreateOrUpdate_Should_Return404_WhenEntityMissing()
+        {
+            var request = new CreateRatingRequest { EntityType = EntityType.Protocol, EntityId = 999, Score = 4, Review = "ok" };
+            _ratingServiceMock
+                .Setup(s => s.AddOrUpdateRating(It.IsAny<CreateRatingRequest>()))
+                .ThrowsAsync(new System.Collections.Generic.KeyNotFoundException("Protocol with id 999 not found."));
+
+            var result = await _controller.CreateOrUpdate(request);
+
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task GetMine_Should_ReturnNoContent_WhenNull()
+        {
+            _ratingServiceMock.Setup(s => s.GetMyRating(EntityType.Protocol, 1)).ReturnsAsync((RatingViewModel?)null);
+
+            var result = await _controller.GetMine(EntityType.Protocol, 1);
+
+            result.Should().BeOfType<NoContentResult>();
+        }
+
+        [Fact]
+        public async Task GetMine_Should_ReturnOk_WhenFound()
+        {
+            _ratingServiceMock.Setup(s => s.GetMyRating(EntityType.Protocol, 1)).ReturnsAsync(new RatingViewModel { Id = 3, Score = 5 });
+
+            var result = await _controller.GetMine(EntityType.Protocol, 1);
+
+            var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+            ok.Value.Should().BeOfType<RatingViewModel>().Which.Score.Should().Be(5);
+        }
+
+        [Fact]
+        public async Task GetMine_Should_ReturnBadRequest_WhenEntityIdInvalid()
+        {
+            var result = await _controller.GetMine(EntityType.Protocol, 0);
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
     }
 }
