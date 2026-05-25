@@ -1,4 +1,5 @@
 import { FC, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, CardContent, CircularProgress, Stack, Typography } from '@mui/material';
 import RateReviewRoundedIcon from '@mui/icons-material/RateReviewRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
@@ -26,7 +27,8 @@ const ENTITY_LABEL: Record<RatingEntityType, string> = {
  * Composed from entity-generic pieces so it drops onto either detail page.
  */
 export const RatingsPanel: FC<RatingsPanelProps> = ({ entityType, entityId }) => {
-  const { isAuthenticated, login } = useAppAuth();
+  const { isAuthenticated } = useAppAuth();
+  const navigate = useNavigate();
   const label = ENTITY_LABEL[entityType];
   const {
     summary, reviews, myRating, loading, loadingMore, submitting, submitError,
@@ -93,7 +95,7 @@ export const RatingsPanel: FC<RatingsPanelProps> = ({ entityType, entityId }) =>
             <Button
               variant="outlined"
               startIcon={<LoginRoundedIcon />}
-              onClick={login}
+              onClick={() => navigate('/login')}
               sx={{ flexShrink: 0 }}
             >
               Log in to rate
