@@ -6,9 +6,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Moq;
 using SorobanSecurityPortalApi.Common.Data;
 using SorobanSecurityPortalApi.Models.DbModels;
+using SorobanSecurityPortalApi.Services.ControllersServices;
 using SorobanSecurityPortalApi.Services.Moderation;
 using Xunit;
 
@@ -80,6 +82,116 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 .ReturnsAsync(dbMock.Object);
 
             return (factoryMock, dbMock);
+        }
+
+        private static (Mock<IDbContextFactory<Db>> factory, Mock<Db> db, Mock<IDistributedCache> cache) BuildRatingFactory(List<RatingModel> list)
+        {
+            var dbQueryMock = new Mock<IDbQuery>();
+            var loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<Db>>();
+            var dataSourceProviderMock = new Mock<IDataSourceProvider>();
+
+            var dbMock = new Mock<Db>(
+                dbQueryMock.Object,
+                loggerMock.Object,
+                dataSourceProviderMock.Object
+            ) { CallBase = true };
+
+            dbMock.Setup(d => d.Rating).Returns(CreateDbSetMock(list).Object);
+            dbMock.Setup(d => d.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+            var factoryMock = new Mock<IDbContextFactory<Db>>();
+            factoryMock
+                .Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(dbMock.Object);
+
+            return (factoryMock, dbMock, new Mock<IDistributedCache>());
+        }
+
+        // --- RatingModerationTarget tests ---
+
+        [Fact]
+        public async Task Rating_Get_Returns_MappedInfo_WithEntityContext()
+        {
+            var rating = new RatingModel { Id = 5, UserId = 42, EntityType = EntityType.Protocol, EntityId = 50, Score = 5, Review = "Great docs" };
+            var (factory, _, cache) = BuildRatingFactory(new List<RatingModel> { rating });
+            var target = new RatingModerationTarget(factory.Object, cache.Object);
+
+            var info = await target.Get(5);
+
+            info.Should().NotBeNull();
+            info!.Preview.Should().Be("★5 on protocol #50: Great docs");
+            info.FullContent.Should().Be("Score: 5/5 on protocol #50\n\nGreat docs");
+            info.AuthorUserId.Should().Be(42);
+        }
+
+        [Fact]
+        public async Task Rating_Get_Preview_OmitsColon_WhenReviewEmpty()
+        {
+            var rating = new RatingModel { Id = 6, UserId = 1, EntityType = EntityType.Auditor, EntityId = 14, Score = 3, Review = "" };
+            var (factory, _, cache) = BuildRatingFactory(new List<RatingModel> { rating });
+            var target = new RatingModerationTarget(factory.Object, cache.Object);
+
+            var info = await target.Get(6);
+
+            info!.Preview.Should().Be("★3 on auditor #14");
+        }
+
+        [Fact]
+        public async Task Rating_Get_Returns_Null_ForMissingId()
+        {
+            var (factory, _, cache) = BuildRatingFactory(new List<RatingModel>());
+            var target = new RatingModerationTarget(factory.Object, cache.Object);
+
+            (await target.Get(999)).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Rating_Hide_Sets_IsHidden_And_Invalidates_SummaryCache()
+        {
+            var rating = new RatingModel { Id = 5, UserId = 1, EntityType = EntityType.Protocol, EntityId = 50, Score = 5, IsHidden = false };
+            var (factory, dbMock, cache) = BuildRatingFactory(new List<RatingModel> { rating });
+            var target = new RatingModerationTarget(factory.Object, cache.Object);
+
+            await target.Hide(5);
+
+            rating.IsHidden.Should().BeTrue();
+            dbMock.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            // The cached summary for the rated entity must be cleared so public stats refresh.
+            cache.Verify(c => c.RemoveAsync(RatingService.SummaryCacheKey(EntityType.Protocol, 50), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Rating_SoftDelete_Sets_IsDeleted()
+        {
+            var rating = new RatingModel { Id = 5, UserId = 1, EntityType = EntityType.Protocol, EntityId = 50, Score = 5, IsDeleted = false };
+            var (factory, _, cache) = BuildRatingFactory(new List<RatingModel> { rating });
+            var target = new RatingModerationTarget(factory.Object, cache.Object);
+
+            await target.SoftDelete(5);
+
+            rating.IsDeleted.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Rating_Restore_Clears_BothHiddenAndDeleted()
+        {
+            var rating = new RatingModel { Id = 5, UserId = 1, EntityType = EntityType.Protocol, EntityId = 50, Score = 5, IsHidden = true, IsDeleted = true };
+            var (factory, _, cache) = BuildRatingFactory(new List<RatingModel> { rating });
+            var target = new RatingModerationTarget(factory.Object, cache.Object);
+
+            await target.Restore(5);
+
+            rating.IsHidden.Should().BeFalse();
+            rating.IsDeleted.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Rating_ContentType_Is_Rating()
+        {
+            var (factory, _, cache) = BuildRatingFactory(new List<RatingModel>());
+            var target = new RatingModerationTarget(factory.Object, cache.Object);
+
+            target.ContentType.Should().Be(ModeratedContentType.Rating);
         }
 
         // --- VulnerabilityModerationTarget tests ---
