@@ -21,7 +21,7 @@ import { flagContentCall } from '../api/soroban-security-portal/soroban-security
 import { showError } from '../features/dialog-handler/dialog-handler';
 
 interface FlagButtonProps {
-    contentType: 'vulnerability' | 'report';
+    contentType: 'vulnerability' | 'report' | 'rating';
     contentId: number;
 }
 

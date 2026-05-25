@@ -108,4 +108,12 @@ describe('ReviewList', () => {
     render(<ReviewList reviews={[]} total={0} loadingMore={false} onLoadMore={() => {}} />);
     expect(screen.getByText('No written reviews yet.')).toBeInTheDocument();
   });
+
+  it('hides the report flag by default and shows it when canFlag is set', () => {
+    const { rerender } = render(<ReviewList reviews={[review()]} total={1} loadingMore={false} onLoadMore={() => {}} />);
+    expect(screen.queryAllByLabelText('Report content')).toHaveLength(0);
+
+    rerender(<ReviewList reviews={[review()]} total={1} loadingMore={false} onLoadMore={() => {}} canFlag />);
+    expect(screen.queryAllByLabelText('Report content').length).toBeGreaterThan(0);
+  });
 });

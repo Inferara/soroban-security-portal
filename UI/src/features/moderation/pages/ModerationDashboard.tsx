@@ -80,6 +80,7 @@ export const ModerationDashboard = () => {
                                 <MenuItem value="all">All Content</MenuItem>
                                 <MenuItem value="vulnerability">Vulnerabilities</MenuItem>
                                 <MenuItem value="report">Reports</MenuItem>
+                                <MenuItem value="rating">Ratings</MenuItem>
                             </Select>
                         </FormControl>
                     </Box>

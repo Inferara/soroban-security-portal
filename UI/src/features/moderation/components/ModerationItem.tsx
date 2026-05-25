@@ -22,6 +22,9 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
     const [showReasonInput, setShowReasonInput] = useState<'hide' | 'delete' | null>(null);
 
     // Link to the actual flagged content so a moderator can open it in context.
+    // Ratings have no standalone page (they live on a protocol/auditor), so they
+    // show their preview as plain text instead of a link.
+    const hasDetailLink = item.contentType === 'report' || item.contentType === 'vulnerability';
     const detailPath = `${environment.basePath}/${item.contentType === 'report' ? 'report' : 'vulnerability'}/${item.contentId}`;
 
     const handleConfirmAction = () => {
@@ -90,22 +93,28 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                 </Box>
             </Box>
 
-            {/* The flagged content — the title is the link that opens it in context */}
-            <Link
-                component={RouterLink}
-                to={detailPath}
-                target="_blank"
-                rel="noopener"
-                underline="hover"
-                sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                    color: 'text.primary', fontWeight: 600, fontSize: '1.05rem', lineHeight: 1.35,
-                    '&:hover': { color: 'secondary.main' },
-                }}
-            >
-                {item.contentPreview}
-                <OpenInNew sx={{ fontSize: 16, opacity: 0.7, flexShrink: 0 }} />
-            </Link>
+            {/* The flagged content — the title links to it in context when a page exists */}
+            {hasDetailLink ? (
+                <Link
+                    component={RouterLink}
+                    to={detailPath}
+                    target="_blank"
+                    rel="noopener"
+                    underline="hover"
+                    sx={{
+                        display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                        color: 'text.primary', fontWeight: 600, fontSize: '1.05rem', lineHeight: 1.35,
+                        '&:hover': { color: 'secondary.main' },
+                    }}
+                >
+                    {item.contentPreview}
+                    <OpenInNew sx={{ fontSize: 16, opacity: 0.7, flexShrink: 0 }} />
+                </Link>
+            ) : (
+                <Typography sx={{ color: 'text.primary', fontWeight: 600, fontSize: '1.05rem', lineHeight: 1.35 }}>
+                    {item.contentPreview}
+                </Typography>
+            )}
 
             {/* Flag summary */}
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, mb: 1.5, flexWrap: 'wrap', gap: 1 }}>

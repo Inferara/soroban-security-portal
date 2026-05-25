@@ -115,6 +115,7 @@ export const RatingsPanel: FC<RatingsPanelProps> = ({ entityType, entityId }) =>
             total={summary?.totalReviews ?? 0}
             loadingMore={loadingMore}
             onLoadMore={loadMore}
+            canFlag={isAuthenticated}
           />
         </CardContent>
       </Card>
