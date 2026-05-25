@@ -33,5 +33,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+
+        // Moderation suppression flags (mirror vulnerability/report). Hidden or
+        // soft-deleted ratings are excluded from all public reads.
+        public bool IsHidden { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

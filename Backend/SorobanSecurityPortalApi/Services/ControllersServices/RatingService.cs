@@ -28,13 +28,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IDistributedCache _cache;
         private readonly UserContextAccessor _userContext;
         private readonly IMapper _mapper;
+        private readonly IContentFilterService _contentFilter;
 
-        public RatingService(Db db, IDistributedCache cache, UserContextAccessor userContext, IMapper mapper)
+        public RatingService(Db db, IDistributedCache cache, UserContextAccessor userContext, IMapper mapper, IContentFilterService contentFilter)
         {
             _db = db;
             _cache = cache;
             _userContext = userContext;
             _mapper = mapper;
+            _contentFilter = contentFilter;
         }
 
         public async Task<RatingSummaryViewModel> GetSummary(EntityType entityType, int entityId)
@@ -46,7 +48,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (cached != null) return cached;
 
             var aggregated = await _db.Rating
-                .Where(r => r.EntityType == entityType && r.EntityId == entityId)
+                .Where(r => r.EntityType == entityType && r.EntityId == entityId && !r.IsHidden && !r.IsDeleted)
                 .GroupBy(r => 1)
                 .Select(g => new
                 {
@@ -91,7 +93,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             var ratings = await _db.Rating
                 .AsNoTracking()
-                .Where(r => r.EntityType == entityType && r.EntityId == entityId)
+                .Where(r => r.EntityType == entityType && r.EntityId == entityId && !r.IsHidden && !r.IsDeleted)
                 .OrderByDescending(r => r.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -150,6 +152,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (!entityExists)
                 throw new KeyNotFoundException($"{request.EntityType} with id {request.EntityId} not found.");
 
+            // Run the shared content guard over the (optional) review text: rate-limit
+            // writes and block spam/profanity. Empty reviews skip the filter (score-only).
+            if (!await _contentFilter.CheckRateLimitAsync(userId))
+                throw new InvalidOperationException("Rate limit exceeded. Please wait a moment before submitting again.");
+
+            if (!string.IsNullOrWhiteSpace(request.Review))
+            {
+                var filterResult = await _contentFilter.FilterContentAsync(request.Review, userId);
+                if (filterResult.IsBlocked)
+                    throw new InvalidOperationException($"Review blocked: {string.Join("; ", filterResult.Warnings)}");
+            }
+
             var existing = await _db.Rating
                 .FirstOrDefaultAsync(r => r.UserId == userId && r.EntityType == request.EntityType && r.EntityId == request.EntityId);
 
@@ -197,7 +211,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             var scored = await _db.Rating
                 .AsNoTracking()
-                .Where(r => r.EntityType == entityType && r.EntityId == entityId)
+                .Where(r => r.EntityType == entityType && r.EntityId == entityId && !r.IsHidden && !r.IsDeleted)
                 .Select(r => new { r.UserId, r.Score })
                 .ToListAsync();
 

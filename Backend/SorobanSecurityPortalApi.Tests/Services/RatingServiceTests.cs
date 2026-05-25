@@ -37,6 +37,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private readonly Mock<IDbQuery> _dbQueryMock;
         private readonly Mock<ILogger<Db>> _loggerMock;
         private readonly Mock<IDataSourceProvider> _dataSourceProviderMock;
+        private readonly Mock<IContentFilterService> _contentFilterMock;
 
         private readonly IMapper _mapper;
         private readonly RatingService _service;
@@ -87,8 +88,14 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _loginProcessorMock = new Mock<ILoginProcessor>();
             var userContext = new UserContextAccessor(_httpContextAccessorMock.Object, _loginProcessorMock.Object);
 
+            // Content filter: allow everything by default; individual tests can override.
+            _contentFilterMock = new Mock<IContentFilterService>();
+            _contentFilterMock.Setup(x => x.CheckRateLimitAsync(It.IsAny<int>())).ReturnsAsync(true);
+            _contentFilterMock.Setup(x => x.FilterContentAsync(It.IsAny<string>(), It.IsAny<int>()))
+                .ReturnsAsync(new ContentFilterResult { IsBlocked = false });
+
             // Initialize Service
-            _service = new RatingService(_dbMock.Object, _cacheMock.Object, userContext, _mapper);
+            _service = new RatingService(_dbMock.Object, _cacheMock.Object, userContext, _mapper, _contentFilterMock.Object);
         }
 
         // --- TESTS ---
@@ -331,6 +338,69 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             await Assert.ThrowsAsync<KeyNotFoundException>(() => _service.AddOrUpdateRating(request));
             _dataStore.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task AddOrUpdateRating_Should_Throw_WhenReviewBlocked()
+        {
+            SetupLoggedInUser(10);
+            _contentFilterMock.Setup(x => x.FilterContentAsync(It.IsAny<string>(), It.IsAny<int>()))
+                .ReturnsAsync(new ContentFilterResult { IsBlocked = true, Warnings = new List<string> { "profanity" } });
+
+            var request = new CreateRatingRequest { EntityType = EntityType.Protocol, EntityId = 1, Score = 5, Review = "rude words" };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _service.AddOrUpdateRating(request));
+            _dataStore.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task AddOrUpdateRating_Should_Throw_WhenRateLimited()
+        {
+            SetupLoggedInUser(10);
+            _contentFilterMock.Setup(x => x.CheckRateLimitAsync(It.IsAny<int>())).ReturnsAsync(false);
+
+            var request = new CreateRatingRequest { EntityType = EntityType.Protocol, EntityId = 1, Score = 5, Review = "ok" };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _service.AddOrUpdateRating(request));
+            _dataStore.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task AddOrUpdateRating_Should_SkipFilter_WhenReviewEmpty()
+        {
+            SetupLoggedInUser(10);
+            var request = new CreateRatingRequest { EntityType = EntityType.Protocol, EntityId = 1, Score = 4, Review = "" };
+
+            await _service.AddOrUpdateRating(request);
+
+            _dataStore.Should().HaveCount(1);
+            _contentFilterMock.Verify(x => x.FilterContentAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetRatings_Should_Exclude_HiddenAndDeleted()
+        {
+            _dataStore.Add(new RatingModel { Id = 1, UserId = 1, EntityId = 70, EntityType = EntityType.Protocol, Score = 5, CreatedAt = DateTime.UtcNow.AddMinutes(3) });
+            _dataStore.Add(new RatingModel { Id = 2, UserId = 2, EntityId = 70, EntityType = EntityType.Protocol, Score = 4, IsHidden = true, CreatedAt = DateTime.UtcNow.AddMinutes(2) });
+            _dataStore.Add(new RatingModel { Id = 3, UserId = 3, EntityId = 70, EntityType = EntityType.Protocol, Score = 3, IsDeleted = true, CreatedAt = DateTime.UtcNow.AddMinutes(1) });
+
+            var result = await _service.GetRatings(EntityType.Protocol, 70, page: 1, pageSize: 10);
+
+            result.Should().HaveCount(1);
+            result[0].Id.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task GetSummary_Should_Exclude_HiddenAndDeleted()
+        {
+            _dataStore.Add(new RatingModel { UserId = 1, EntityId = 71, EntityType = EntityType.Protocol, Score = 5 });
+            _dataStore.Add(new RatingModel { UserId = 2, EntityId = 71, EntityType = EntityType.Protocol, Score = 1, IsHidden = true });
+            _dataStore.Add(new RatingModel { UserId = 3, EntityId = 71, EntityType = EntityType.Protocol, Score = 1, IsDeleted = true });
+
+            var summary = await _service.GetSummary(EntityType.Protocol, 71);
+
+            summary.TotalReviews.Should().Be(1);
+            summary.AverageScore.Should().Be(5.0f);
         }
 
         // --- HELPERS ---

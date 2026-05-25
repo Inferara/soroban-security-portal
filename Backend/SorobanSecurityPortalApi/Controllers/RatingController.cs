@@ -90,6 +90,11 @@ namespace SorobanSecurityPortalApi.Controllers
             {
                 return NotFound(ex.Message);
             }
+            catch (InvalidOperationException ex)
+            {
+                // Content guard rejected the review (rate limit / spam / profanity).
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]
