@@ -83,7 +83,7 @@ export const RatingSummaryCard: FC<RatingSummaryCardProps> = ({ summary }) => {
           {/* Distribution block */}
           <Box sx={{ flex: 1, width: '100%' }}>
             {total === 0 ? (
-              <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', py: 2 }} spacing={1}>
+              <Stack spacing={1} sx={{ alignItems: 'center', justifyContent: 'center', height: '100%', py: 2 }}>
                 <StarRoundedIcon sx={{ fontSize: 40, color: 'rgba(245,181,10,0.5)' }} />
                 <Typography color="text.secondary" align="center">
                   Be the first to share how secure and trustworthy this is.

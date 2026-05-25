@@ -73,7 +73,7 @@ export const RatingDialog: FC<RatingDialogProps> = ({
       </DialogTitle>
 
       <DialogContent dividers>
-        <Stack spacing={2} alignItems="center" sx={{ py: 1 }}>
+        <Stack spacing={2} sx={{ alignItems: 'center', py: 1 }}>
           <RatingStars
             value={score}
             size="large"
@@ -94,9 +94,11 @@ export const RatingDialog: FC<RatingDialogProps> = ({
             fullWidth
             value={review}
             onChange={(e) => setReview(e.target.value.slice(0, MAX_REVIEW))}
-            inputProps={{ maxLength: MAX_REVIEW }}
             helperText={`${review.length}/${MAX_REVIEW}`}
-            FormHelperTextProps={{ sx: { textAlign: 'right', m: 0, mt: 0.5 } }}
+            slotProps={{
+              htmlInput: { maxLength: MAX_REVIEW },
+              formHelperText: { sx: { textAlign: 'right', m: 0, mt: 0.5 } },
+            }}
           />
 
           {error && <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>}
