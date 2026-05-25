@@ -39,10 +39,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _contentFilter = contentFilter;
         }
 
+        // Single source of truth for the summary cache key, shared with the moderation
+        // target so hide/restore/delete can invalidate the same entry.
+        public static string SummaryCacheKey(EntityType entityType, int entityId)
+            => $"ratings_summary_{entityType}_{entityId}";
+
         public async Task<RatingSummaryViewModel> GetSummary(EntityType entityType, int entityId)
         {
-            string cacheKey = $"ratings_summary_{entityType}_{entityId}";
-            
+            string cacheKey = SummaryCacheKey(entityType, entityId);
+
             // Try get from Cache (Using helper method)
             var cached = await GetCachedAsync<RatingSummaryViewModel>(cacheKey);
             if (cached != null) return cached;
@@ -236,8 +241,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         private async Task InvalidateSummaryCache(EntityType type, int id)
         {
-            string cacheKey = $"ratings_summary_{type}_{id}";
-            await _cache.RemoveAsync(cacheKey);
+            await _cache.RemoveAsync(SummaryCacheKey(type, id));
         }
 
         // --- HELPER METHODS FOR CACHING ---
