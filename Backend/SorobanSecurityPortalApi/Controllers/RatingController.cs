@@ -45,6 +45,20 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [HttpGet("mine")]
+        [Authorize]
+        public async Task<IActionResult> GetMine([FromQuery] EntityType entityType, [FromQuery] int entityId)
+        {
+            if (entityId <= 0)
+            {
+                return BadRequest("EntityId must be a positive integer.");
+            }
+
+            var result = await _ratingService.GetMyRating(entityType, entityId);
+            if (result == null) return NoContent();
+            return Ok(result);
+        }
+
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> CreateOrUpdate([FromBody] CreateRatingRequest request)
@@ -67,8 +81,15 @@ namespace SorobanSecurityPortalApi.Controllers
             // Review is stored in a NOT NULL column; treat an omitted/null review as empty.
             request.Review ??= string.Empty;
 
-            var result = await _ratingService.AddOrUpdateRating(request);
-            return Ok(result);
+            try
+            {
+                var result = await _ratingService.AddOrUpdateRating(request);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]
