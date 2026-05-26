@@ -87,7 +87,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 result.Add(vm);
             }
 
-            // Surface the requesting user's own vote on each comment (anonymous → skipped).
+            // Surface the requesting user's own vote + IsOwn flag on each comment (anonymous → skipped).
             var viewerId = await _userContext.GetLoginIdAsync();
             if (viewerId != 0)
             {
@@ -95,6 +95,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var myVotes = await _voteProcessor.GetUserVotesForComments(viewerId, allIds);
                 void Apply(CommentViewModel c)
                 {
+                    c.IsOwn = c.AuthorId == viewerId;
                     if (myVotes.TryGetValue(c.Id, out var vt)) c.CurrentUserVote = VoteService.ToStr(vt);
                 }
                 foreach (var c in result) { Apply(c); foreach (var r in c.Replies) Apply(r); }

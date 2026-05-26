@@ -22,6 +22,7 @@ export interface Comment {
   replyCount: number;
   replies: Comment[];
   currentUserVote: string | null; // 'upvote' | 'downvote' | null (populated; UI in PR7)
+  isOwn: boolean; // true when the requesting user is the comment's author (set by backend GetComments)
 }
 
 export interface CreateCommentRequest {

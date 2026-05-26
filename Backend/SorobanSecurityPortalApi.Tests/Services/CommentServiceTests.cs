@@ -388,6 +388,25 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
+        public async Task GetComments_Sets_IsOwn_For_Viewers_Own_Comments()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.ListByEntity(EntityType.Report, 9, 1, 20, false))
+                .ReturnsAsync(new List<CommentModel> {
+                    new() { Id = 1, AuthorId = 5, EntityType = EntityType.Report, EntityId = 9, Content = "mine" },
+                    new() { Id = 2, AuthorId = 6, EntityType = EntityType.Report, EntityId = 9, Content = "theirs" },
+                });
+            _processor.Setup(p => p.ListReplies(It.IsAny<EntityType>(), It.IsAny<int>(), It.IsAny<List<int>>())).ReturnsAsync(new List<CommentModel>());
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string> { { 5, "Me" }, { 6, "Them" } });
+            _voteProcessor.Setup(v => v.GetUserVotesForComments(5, It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, SorobanSecurityPortalApi.Models.DbModels.VoteType>());
+
+            var result = await Build().GetComments(EntityType.Report, 9, 1);
+
+            result.Single(c => c.Id == 1).IsOwn.Should().BeTrue();
+            result.Single(c => c.Id == 2).IsOwn.Should().BeFalse();
+        }
+
+        [Fact]
         public async Task AddComment_SideEffect_Failure_Is_NonFatal()
         {
             _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);

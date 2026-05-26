@@ -25,6 +25,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public List<CommentViewModel> Replies { get; set; } = new();
         // "upvote" | "downvote" | null — the requesting user's current vote on this comment.
         public string? CurrentUserVote { get; set; }
+        // True when the requesting user is the author of this comment (set in GetComments; always false for anonymous).
+        public bool IsOwn { get; set; }
     }
 
     public class CreateCommentRequest
