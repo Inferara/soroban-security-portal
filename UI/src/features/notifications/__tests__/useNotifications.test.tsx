@@ -21,6 +21,7 @@ const fakeConnection = {
   start: vi.fn().mockResolvedValue(undefined),
   on: vi.fn(),
   off: vi.fn(),
+  onreconnected: vi.fn(),
   stop: vi.fn().mockResolvedValue(undefined),
 };
 
@@ -228,6 +229,31 @@ describe('useNotifications', () => {
       expect(result.current.notifications[0].id).toBe(99);
       expect(result.current.notifications).toHaveLength(SAMPLE_NOTIFICATIONS.length + 1);
       expect(result.current.unreadCount).toBe(4); // 3 + 1
+    });
+
+    it('re-seeds from REST after the connection reconnects', async () => {
+      const { result } = renderHook(() => useNotifications(), {
+        wrapper: createWrapper(authenticatedAuth),
+      });
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      const initialFetches = mockGetNotifications.mock.calls.length;
+
+      // Grab the handler registered via onreconnected and invoke it
+      const reconnectHandler = fakeConnection.onreconnected.mock.calls[0]?.[0] as
+        | (() => void)
+        | undefined;
+      expect(reconnectHandler).toBeDefined();
+
+      await act(async () => {
+        reconnectHandler!();
+        await Promise.resolve();
+      });
+
+      await waitFor(() =>
+        expect(mockGetNotifications.mock.calls.length).toBeGreaterThan(initialFetches),
+      );
     });
   });
 

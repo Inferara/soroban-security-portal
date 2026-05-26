@@ -82,7 +82,14 @@ public class Startup
                 Password = _config.DistributedCachePassword,
             };
         });
-        services.AddSignalR().AddStackExchangeRedis(options =>
+        services.AddSignalR(options =>
+        {
+            // Ping connected clients every 15s so the browser's serverTimeout
+            // (60s, see notificationConnection.ts) is never tripped during quiet
+            // periods, and give the server 60s before it considers a client gone.
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+        }).AddStackExchangeRedis(options =>
         {
             options.Configuration = new StackExchange.Redis.ConfigurationOptions
             {

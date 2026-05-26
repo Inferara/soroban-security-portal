@@ -67,6 +67,12 @@ export const useNotifications = (): UseNotificationsResult => {
 
     connection.on('ReceiveNotification', handleReceive);
 
+    // After an automatic reconnect, re-seed from REST so any notifications that
+    // arrived while the socket was down are not missed.
+    connection.onreconnected(() => {
+      fetchData();
+    });
+
     connection.start().catch((err: unknown) => {
       console.error('[useNotifications] connection error:', err);
     });
