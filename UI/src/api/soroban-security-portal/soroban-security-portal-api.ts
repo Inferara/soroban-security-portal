@@ -15,6 +15,7 @@ import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
 import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
 import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
+import { Comment, CommentEntityType, CreateCommentRequest } from './models/comment';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -573,6 +574,30 @@ export const addOrUpdateRatingCall = async (request: CreateRatingRequest): Promi
 export const deleteRatingCall = async (ratingId: number): Promise<void> => {
     const client = await getRestClient();
     await client.request(`api/v1/ratings/${ratingId}`, 'DELETE');
+};
+
+// --- COMMENTS ---
+export const getCommentsCall = async (entityType: CommentEntityType, entityId: number, page = 1): Promise<Comment[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments?entityType=${entityType}&entityId=${entityId}&page=${page}`, 'GET');
+    return response.data as Comment[];
+};
+
+export const getCommentCountCall = async (entityType: CommentEntityType, entityId: number): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/count?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as number;
+};
+
+export const addCommentCall = async (request: CreateCommentRequest): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/comments', 'POST', request);
+    return response.data as Comment;
+};
+
+export const deleteCommentCall = async (id: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/comments/${id}`, 'DELETE');
 };
 
 // Rest client
