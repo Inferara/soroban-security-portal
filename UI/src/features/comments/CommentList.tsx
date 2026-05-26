@@ -13,7 +13,8 @@ interface CommentListProps {
 
 export const CommentList: FC<CommentListProps> = ({ entityType, entityId }) => {
   const { isAuthenticated, login } = useAppAuth();
-  const { comments, loading, error, hasMore, loadMore, post } = useComments(entityType, entityId);
+  const { comments, loading, error, hasMore, loadMore, post, vote } = useComments(entityType, entityId);
+  const canVote = isAuthenticated;
 
   return (
     <Box>
@@ -43,6 +44,8 @@ export const CommentList: FC<CommentListProps> = ({ entityType, entityId }) => {
           comment={c}
           canReply={isAuthenticated}
           onReply={(parentId, content) => post(content, parentId)}
+          onVote={(id, vt) => vote(id, vt)}
+          canVote={canVote}
         />
       ))}
 
