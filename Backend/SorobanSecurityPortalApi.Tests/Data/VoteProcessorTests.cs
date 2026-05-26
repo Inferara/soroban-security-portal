@@ -141,6 +141,14 @@ namespace SorobanSecurityPortalApi.Tests.Data
         }
 
         [Fact]
+        public async Task SetCommentVote_Returns_Null_For_Deleted_Comment()
+        {
+            var deleted = new CommentModel { Id = 1, AuthorId = 9, IsDeleted = true };
+            var (f, _) = Factory(new List<CommentModel> { deleted }, new List<VoteModel>());
+            (await new VoteProcessor(f.Object).SetCommentVote(1, 5, VoteType.Upvote)).Should().BeNull();
+        }
+
+        [Fact]
         public async Task GetUserVotesForComments_Returns_Map()
         {
             var votes = new List<VoteModel>

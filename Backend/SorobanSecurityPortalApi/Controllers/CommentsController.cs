@@ -115,7 +115,8 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             catch (KeyNotFoundException) { return NotFound($"Comment with id {id} not found."); }
             catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+                when ((ex.InnerException as Npgsql.PostgresException)?.SqlState == "23505")
             {
                 return Conflict("Your vote could not be recorded due to a concurrent update. Please retry.");
             }
