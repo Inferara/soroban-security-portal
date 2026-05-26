@@ -23,10 +23,11 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private readonly Mock<IContentFilterService> _filter = new();
         private readonly Mock<IUserContextAccessor> _userContext = new();
         private readonly Mock<IDistributedCache> _cache = new();
+        private readonly Mock<IVoteProcessor> _voteProcessor = new();
         private readonly IMapper _mapper = new MapperConfiguration(c => c.AddProfile<CommentModelProfile>(), NullLoggerFactory.Instance).CreateMapper();
 
         private CommentService Build() =>
-            new CommentService(_processor.Object, _filter.Object, _userContext.Object, _mapper, _cache.Object);
+            new CommentService(_processor.Object, _filter.Object, _userContext.Object, _mapper, _cache.Object, _voteProcessor.Object);
 
         private void AllowFilter()
         {

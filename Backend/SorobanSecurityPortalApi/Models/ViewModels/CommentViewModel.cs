@@ -23,6 +23,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public DateTime? UpdatedAt { get; set; }
         public int ReplyCount { get; set; }
         public List<CommentViewModel> Replies { get; set; } = new();
+        // "upvote" | "downvote" | null — the requesting user's current vote on this comment.
+        public string? CurrentUserVote { get; set; }
     }
 
     public class CreateCommentRequest
@@ -36,6 +38,13 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
     public class UpdateCommentRequest
     {
         public string Content { get; set; } = string.Empty;
+    }
+
+    public class VoteResultViewModel
+    {
+        public int UpvoteCount { get; set; }
+        public int DownvoteCount { get; set; }
+        public string? CurrentUserVote { get; set; }
     }
 
     // One entry in a comment's edit trail (stored as a JSON array in comment.edit_history).

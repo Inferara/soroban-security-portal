@@ -30,16 +30,19 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IUserContextAccessor _userContext;
         private readonly IMapper _mapper;
         private readonly IDistributedCache _cache;
+        private readonly IVoteProcessor _voteProcessor;
 
         public CommentService(
             ICommentProcessor processor, IContentFilterService contentFilter,
-            IUserContextAccessor userContext, IMapper mapper, IDistributedCache cache)
+            IUserContextAccessor userContext, IMapper mapper, IDistributedCache cache,
+            IVoteProcessor voteProcessor)
         {
             _processor = processor;
             _contentFilter = contentFilter;
             _userContext = userContext;
             _mapper = mapper;
             _cache = cache;
+            _voteProcessor = voteProcessor;
         }
 
         public async Task<List<CommentViewModel>> GetComments(EntityType entityType, int entityId, int page, int pageSize = 20)
@@ -74,6 +77,19 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     vm.ReplyCount = rs.Count;
                 }
                 result.Add(vm);
+            }
+
+            // Surface the requesting user's own vote on each comment (anonymous → skipped).
+            var viewerId = await _userContext.GetLoginIdAsync();
+            if (viewerId != 0)
+            {
+                var allIds = result.Select(c => c.Id).Concat(result.SelectMany(c => c.Replies).Select(r => r.Id)).ToList();
+                var myVotes = await _voteProcessor.GetUserVotesForComments(viewerId, allIds);
+                void Apply(CommentViewModel c)
+                {
+                    if (myVotes.TryGetValue(c.Id, out var vt)) c.CurrentUserVote = VoteService.ToStr(vt);
+                }
+                foreach (var c in result) { Apply(c); foreach (var r in c.Replies) Apply(r); }
             }
             return result;
         }
