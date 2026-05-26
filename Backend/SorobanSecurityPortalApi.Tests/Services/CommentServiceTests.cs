@@ -215,5 +215,89 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             saved!.ParentCommentId.Should().Be(1);
         }
+
+        // ── Task 2: UpdateComment + GetEditHistory ──────────────────────────────
+
+        [Fact]
+        public async Task UpdateComment_Rejects_When_Not_Authenticated()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(0);
+            await Build().Invoking(s => s.UpdateComment(7, "new"))
+                .Should().ThrowAsync<UnauthorizedAccessException>();
+        }
+
+        [Fact]
+        public async Task UpdateComment_Rejects_NonOwner()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.Get(7)).ReturnsAsync(new CommentModel { Id = 7, AuthorId = 6, CreatedAt = DateTime.UtcNow });
+            await Build().Invoking(s => s.UpdateComment(7, "new"))
+                .Should().ThrowAsync<UnauthorizedAccessException>();
+        }
+
+        [Fact]
+        public async Task UpdateComment_Rejects_After_Edit_Window()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.Get(7)).ReturnsAsync(new CommentModel { Id = 7, AuthorId = 5, CreatedAt = DateTime.UtcNow.AddMinutes(-31) });
+            await Build().Invoking(s => s.UpdateComment(7, "new"))
+                .Should().ThrowAsync<InvalidOperationException>();
+        }
+
+        [Fact]
+        public async Task UpdateComment_Rejects_Blocked_Content()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.Get(7)).ReturnsAsync(new CommentModel { Id = 7, AuthorId = 5, CreatedAt = DateTime.UtcNow, Content = "old", EditHistory = "[]" });
+            _filter.Setup(f => f.CheckRateLimitAsync(5)).ReturnsAsync(true);
+            _filter.Setup(f => f.FilterContentAsync("bad", 5)).ReturnsAsync(new ContentFilterResult { IsBlocked = true, Warnings = new List<string> { "nope" } });
+            await Build().Invoking(s => s.UpdateComment(7, "bad"))
+                .Should().ThrowAsync<InvalidOperationException>();
+        }
+
+        [Fact]
+        public async Task UpdateComment_Appends_History_And_Sets_Sanitized_Html()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.Get(7)).ReturnsAsync(new CommentModel { Id = 7, AuthorId = 5, CreatedAt = DateTime.UtcNow, Content = "old text", EditHistory = "[]" });
+            _filter.Setup(f => f.CheckRateLimitAsync(5)).ReturnsAsync(true);
+            _filter.Setup(f => f.FilterContentAsync("new text", 5)).ReturnsAsync(new ContentFilterResult { IsBlocked = false, SanitizedContent = "<p>new text</p>" });
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string> { { 5, "Alice" } });
+            string? historyJson = null;
+            _processor.Setup(p => p.UpdateContent(7, "new text", "<p>new text</p>", It.IsAny<string>()))
+                .ReturnsAsync((int _, string c, string h, string hist) =>
+                {
+                    historyJson = hist;
+                    return new CommentModel { Id = 7, AuthorId = 5, Content = c, ContentHtml = h, IsEdited = true, EditHistory = hist };
+                });
+
+            var vm = await Build().UpdateComment(7, "new text");
+
+            vm.AuthorName.Should().Be("Alice");
+            vm.IsEdited.Should().BeTrue();
+            historyJson.Should().Contain("old text"); // previous content captured in the trail
+        }
+
+        [Fact]
+        public async Task GetEditHistory_Returns_Parsed_Entries()
+        {
+            _processor.Setup(p => p.Get(7)).ReturnsAsync(new CommentModel
+            {
+                Id = 7,
+                EditHistory = "[{\"EditedAt\":\"2026-01-01T00:00:00Z\",\"PreviousContent\":\"v1\"}]"
+            });
+
+            var history = await Build().GetEditHistory(7);
+
+            history.Should().ContainSingle();
+            history[0].PreviousContent.Should().Be("v1");
+        }
+
+        [Fact]
+        public async Task GetEditHistory_Throws_For_Missing()
+        {
+            _processor.Setup(p => p.Get(7)).ReturnsAsync((CommentModel?)null);
+            await Build().Invoking(s => s.GetEditHistory(7)).Should().ThrowAsync<KeyNotFoundException>();
+        }
     }
 }

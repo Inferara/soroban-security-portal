@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Distributed;
@@ -18,6 +19,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<int> GetCount(EntityType entityType, int entityId);
         Task<CommentViewModel> AddComment(CreateCommentRequest request);
         Task DeleteComment(int id);
+        Task<CommentViewModel> UpdateComment(int id, string content);
+        Task<List<CommentEditHistoryEntry>> GetEditHistory(int id);
     }
 
     public class CommentService : ICommentService
@@ -148,5 +151,48 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         }
 
         private Task InvalidateCount(EntityType type, int id) => _cache.RemoveAsync(CommentCacheKeys.Count(type, id));
+
+        private const int EditWindowMinutes = 30;
+
+        public async Task<CommentViewModel> UpdateComment(int id, string content)
+        {
+            var userId = await _userContext.GetLoginIdAsync();
+            if (userId == 0) throw new UnauthorizedAccessException("User not logged in.");
+
+            var comment = await _processor.Get(id);
+            if (comment == null) throw new KeyNotFoundException($"Comment with id {id} not found.");
+            if (comment.AuthorId != userId)
+                throw new UnauthorizedAccessException("You can only edit your own comments.");
+            if ((DateTime.UtcNow - comment.CreatedAt).TotalMinutes > EditWindowMinutes)
+                throw new InvalidOperationException("The edit window for this comment has expired.");
+
+            if (!await _contentFilter.CheckRateLimitAsync(userId))
+                throw new InvalidOperationException("Rate limit exceeded. Please wait a moment before submitting again.");
+            var filterResult = await _contentFilter.FilterContentAsync(content, userId);
+            if (filterResult.IsBlocked)
+                throw new InvalidOperationException($"Comment blocked: {string.Join("; ", filterResult.Warnings)}");
+
+            var history = ParseHistory(comment.EditHistory);
+            history.Add(new CommentEditHistoryEntry { EditedAt = DateTime.UtcNow, PreviousContent = comment.Content });
+
+            var updated = await _processor.UpdateContent(
+                id, content, filterResult.SanitizedContent ?? string.Empty, JsonSerializer.Serialize(history));
+
+            var names = await _processor.GetAuthorNames(new List<int> { userId });
+            var vm = _mapper.Map<CommentViewModel>(updated!);
+            vm.AuthorName = names.TryGetValue(userId, out var nm) && !string.IsNullOrWhiteSpace(nm) ? nm : "Anonymous";
+            return vm;
+        }
+
+        public async Task<List<CommentEditHistoryEntry>> GetEditHistory(int id)
+        {
+            var comment = await _processor.Get(id);
+            if (comment == null) throw new KeyNotFoundException($"Comment with id {id} not found.");
+            return ParseHistory(comment.EditHistory);
+        }
+
+        private static List<CommentEditHistoryEntry> ParseHistory(string? json)
+            => JsonSerializer.Deserialize<List<CommentEditHistoryEntry>>(
+                   string.IsNullOrWhiteSpace(json) ? "[]" : json) ?? new List<CommentEditHistoryEntry>();
     }
 }
