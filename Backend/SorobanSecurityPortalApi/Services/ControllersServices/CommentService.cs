@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
@@ -32,11 +33,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IDistributedCache _cache;
         private readonly IVoteProcessor _voteProcessor;
         private readonly IMentionProcessor _mentionProcessor;
+        private readonly INotificationService _notificationService;
+        private readonly ILogger<CommentService> _logger;
 
         public CommentService(
             ICommentProcessor processor, IContentFilterService contentFilter,
             IUserContextAccessor userContext, IMapper mapper, IDistributedCache cache,
-            IVoteProcessor voteProcessor, IMentionProcessor mentionProcessor)
+            IVoteProcessor voteProcessor, IMentionProcessor mentionProcessor,
+            INotificationService notificationService, ILogger<CommentService> logger)
         {
             _processor = processor;
             _contentFilter = contentFilter;
@@ -45,6 +49,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _cache = cache;
             _voteProcessor = voteProcessor;
             _mentionProcessor = mentionProcessor;
+            _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task<List<CommentViewModel>> GetComments(EntityType entityType, int entityId, int page, int pageSize = 20)
@@ -126,6 +132,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             // Single-level threading: a reply always attaches to a TOP-LEVEL comment.
             // Replying to a reply re-parents to that reply's own top-level ancestor.
             int? parentId = null;
+            int? repliedToAuthorId = null;
             if (request.ParentCommentId.HasValue)
             {
                 var parent = await _processor.Get(request.ParentCommentId.Value);
@@ -133,6 +140,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     || parent.EntityType != request.EntityType || parent.EntityId != request.EntityId)
                     throw new KeyNotFoundException($"Parent comment {request.ParentCommentId} not found on this entity.");
                 parentId = parent.ParentCommentId ?? parent.Id;
+                repliedToAuthorId = parent.AuthorId;   // notify the comment actually replied to
             }
 
             var comment = new CommentModel
@@ -146,7 +154,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 CreatedAt = DateTime.UtcNow
             };
             var saved = await _processor.Add(comment);
-            await _mentionProcessor.ReplaceCommentMentions(saved.Id, request.Content);
+            await RunCommentSideEffects(saved, repliedToAuthorId, request.Content, notify: true);
             await InvalidateCount(request.EntityType, request.EntityId);
 
             var names = await _processor.GetAuthorNames(new List<int> { userId });
@@ -201,7 +209,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var updated = await _processor.UpdateContent(
                 id, content, filterResult.SanitizedContent ?? string.Empty, JsonSerializer.Serialize(history));
             if (updated == null) throw new KeyNotFoundException($"Comment with id {id} not found.");
-            await _mentionProcessor.ReplaceCommentMentions(id, content);
+            await RunCommentSideEffects(updated, repliedToAuthorId: null, content, notify: false);
 
             var names = await _processor.GetAuthorNames(new List<int> { userId });
             var vm = _mapper.Map<CommentViewModel>(updated);
@@ -214,6 +222,24 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var comment = await _processor.Get(id);
             if (comment == null) throw new KeyNotFoundException($"Comment with id {id} not found.");
             return ParseHistory(comment.EditHistory);
+        }
+
+        // Mention indexing + notification creation are best-effort: the comment has already been
+        // persisted, so a failure here must NOT fail the request or trigger a duplicate retry.
+        private async Task RunCommentSideEffects(CommentModel comment, int? repliedToAuthorId, string rawContent, bool notify)
+        {
+            try
+            {
+                var mentionedIds = await _mentionProcessor.ReplaceCommentMentions(comment.Id, rawContent);
+                if (notify)
+                    await _notificationService.NotifyForNewComment(
+                        comment.AuthorId, repliedToAuthorId, mentionedIds,
+                        comment.Id, comment.EntityType, comment.EntityId, rawContent);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Comment side-effects (mentions/notifications) failed for comment {CommentId}", comment.Id);
+            }
         }
 
         private static List<CommentEditHistoryEntry> ParseHistory(string? json)

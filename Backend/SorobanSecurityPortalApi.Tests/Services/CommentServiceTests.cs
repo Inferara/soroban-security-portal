@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SorobanSecurityPortalApi.Common;
@@ -25,14 +26,23 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private readonly Mock<IDistributedCache> _cache = new();
         private readonly Mock<IVoteProcessor> _voteProcessor = new();
         private readonly Mock<IMentionProcessor> _mentionProcessor = new();
+        private readonly Mock<INotificationService> _notifications = new();
+        private readonly Mock<ILogger<CommentService>> _logger = new();
         private readonly IMapper _mapper = new MapperConfiguration(c => c.AddProfile<CommentModelProfile>(), NullLoggerFactory.Instance).CreateMapper();
 
-        private CommentService Build()
+        public CommentServiceTests()
         {
+            // Default catch-all setups registered first so per-test specific setups (registered later) take priority (Moq LIFO).
             _mentionProcessor.Setup(m => m.ReplaceCommentMentions(It.IsAny<int>(), It.IsAny<string>()))
                 .ReturnsAsync(new List<int>());
-            return new CommentService(_processor.Object, _filter.Object, _userContext.Object, _mapper, _cache.Object, _voteProcessor.Object, _mentionProcessor.Object);
+            _notifications.Setup(n => n.NotifyForNewComment(
+                It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<int>>(),
+                It.IsAny<int>(), It.IsAny<EntityType>(), It.IsAny<int>(), It.IsAny<string>()))
+                .Returns(Task.CompletedTask);
         }
+
+        private CommentService Build() =>
+            new CommentService(_processor.Object, _filter.Object, _userContext.Object, _mapper, _cache.Object, _voteProcessor.Object, _mentionProcessor.Object, _notifications.Object, _logger.Object);
 
         private void AllowFilter()
         {
@@ -339,6 +349,61 @@ namespace SorobanSecurityPortalApi.Tests.Services
             await Build().AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, Content = "hey @bob" });
 
             _mentionProcessor.Verify(m => m.ReplaceCommentMentions(100, "hey @bob"), Times.Once);
+        }
+
+        [Fact]
+        public async Task AddComment_Notifies_Reply_Author_And_Mentions()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.EntityExists(EntityType.Report, 9)).ReturnsAsync(true);
+            AllowFilter();
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string> { { 5, "Alice" } });
+            // Reply to comment 50 authored by user 9.
+            _processor.Setup(p => p.Get(50)).ReturnsAsync(new CommentModel { Id = 50, AuthorId = 9, ParentCommentId = null, EntityType = EntityType.Report, EntityId = 9 });
+            _processor.Setup(p => p.Add(It.IsAny<CommentModel>())).ReturnsAsync((CommentModel c) => { c.Id = 100; return c; });
+            _mentionProcessor.Setup(m => m.ReplaceCommentMentions(100, It.IsAny<string>())).ReturnsAsync(new List<int> { 11, 12 });
+
+            await Build().AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, ParentCommentId = 50, Content = "ping @x @y" });
+
+            _notifications.Verify(n => n.NotifyForNewComment(
+                5,                                   // actor
+                9,                                   // replied-to author
+                It.Is<IReadOnlyList<int>>(l => l.Contains(11) && l.Contains(12)),
+                100, EntityType.Report, 9, "ping @x @y"), Times.Once);
+        }
+
+        [Fact]
+        public async Task AddComment_TopLevel_Notifies_With_Null_ReplyAuthor()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.EntityExists(EntityType.Report, 9)).ReturnsAsync(true);
+            AllowFilter();
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string>());
+            _processor.Setup(p => p.Add(It.IsAny<CommentModel>())).ReturnsAsync((CommentModel c) => { c.Id = 100; return c; });
+            _mentionProcessor.Setup(m => m.ReplaceCommentMentions(100, It.IsAny<string>())).ReturnsAsync(new List<int>());
+
+            await Build().AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, Content = "top-level" });
+
+            _notifications.Verify(n => n.NotifyForNewComment(5, null, It.IsAny<IReadOnlyList<int>>(), 100, EntityType.Report, 9, "top-level"), Times.Once);
+        }
+
+        [Fact]
+        public async Task AddComment_SideEffect_Failure_Is_NonFatal()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.EntityExists(EntityType.Report, 9)).ReturnsAsync(true);
+            AllowFilter();
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string> { { 5, "Alice" } });
+            _processor.Setup(p => p.Add(It.IsAny<CommentModel>())).ReturnsAsync((CommentModel c) => { c.Id = 100; return c; });
+            // The mention/notification side-effect throws — the comment was already saved.
+            _mentionProcessor.Setup(m => m.ReplaceCommentMentions(It.IsAny<int>(), It.IsAny<string>()))
+                .ThrowsAsync(new Exception("boom"));
+
+            var vm = await Build().Invoking(s => s.AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, Content = "hi" }))
+                .Should().NotThrowAsync();
+
+            vm.Subject.Id.Should().Be(100); // comment creation still succeeds despite the side-effect failure
+            _notifications.Verify(n => n.NotifyForNewComment(It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<int>>(), It.IsAny<int>(), It.IsAny<EntityType>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never); // notify not reached after the throw
         }
     }
 }
