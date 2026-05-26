@@ -19,10 +19,13 @@ const registerMentionProvider = (monaco: Monaco) => {
       const match = /@([a-zA-Z0-9_.-]*)$/.exec(line);
       if (!match) return { suggestions: [] };
       const query = match[1];
+      // Replace the whole "@token" (including the '@') so Monaco filters the
+      // typed text against the "@username" label/filterText — otherwise the
+      // leading '@' in the label breaks the match and nothing is shown.
       const range = {
         startLineNumber: position.lineNumber,
         endLineNumber: position.lineNumber,
-        startColumn: position.column - query.length, // replace what was typed after '@'
+        startColumn: position.column - query.length - 1, // include the '@'
         endColumn: position.column,
       };
       const users = await searchUsersCall(query).catch(() => [] as { id: number; displayName: string; username: string }[]);
@@ -31,7 +34,8 @@ const registerMentionProvider = (monaco: Monaco) => {
           label: `@${u.username}`,
           kind: monaco.languages.CompletionItemKind.User,
           detail: u.displayName,
-          insertText: `${u.username} `,
+          insertText: `@${u.username} `,
+          filterText: `@${u.username}`,
           range,
         })),
       };
