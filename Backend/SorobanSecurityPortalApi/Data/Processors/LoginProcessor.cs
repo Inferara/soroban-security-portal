@@ -113,7 +113,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var ql = q.ToLower();
             await using var db = await _dbFactory.CreateDbContextAsync();
             return await db.Login.AsNoTracking()
-                .Where(l => l.Login.ToLower().Contains(ql) || l.FullName.ToLower().Contains(ql))
+                .Where(l => l.IsEnabled && (l.Login.ToLower().Contains(ql) || l.FullName.ToLower().Contains(ql)))
                 .OrderBy(l => l.Login)
                 .Take(limit)
                 .ToListAsync();

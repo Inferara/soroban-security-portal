@@ -45,9 +45,9 @@ namespace SorobanSecurityPortalApi.Tests.Data
         {
             var logins = new List<LoginModel>
             {
-                new() { LoginId = 1, Login = "alice", FullName = "Alice Adams" },
-                new() { LoginId = 2, Login = "bob", FullName = "Bob Brown" },
-                new() { LoginId = 3, Login = "carol", FullName = "Alicia Carter" }, // matches "ali" via FullName
+                new() { LoginId = 1, Login = "alice", FullName = "Alice Adams", IsEnabled = true },
+                new() { LoginId = 2, Login = "bob", FullName = "Bob Brown", IsEnabled = true },
+                new() { LoginId = 3, Login = "carol", FullName = "Alicia Carter", IsEnabled = true }, // matches "ali" via FullName
             };
             var res = await Build(logins).SearchUsers("ALI", 5);
             res.Select(l => l.LoginId).Should().BeEquivalentTo(new[] { 1, 3 });
@@ -56,15 +56,27 @@ namespace SorobanSecurityPortalApi.Tests.Data
         [Fact]
         public async Task SearchUsers_Empty_Query_Returns_Empty()
         {
-            (await Build(new List<LoginModel> { new() { LoginId = 1, Login = "alice", FullName = "A" } }).SearchUsers("  ", 5))
+            (await Build(new List<LoginModel> { new() { LoginId = 1, Login = "alice", FullName = "A", IsEnabled = true } }).SearchUsers("  ", 5))
                 .Should().BeEmpty();
         }
 
         [Fact]
         public async Task SearchUsers_Respects_Limit()
         {
-            var logins = Enumerable.Range(1, 10).Select(i => new LoginModel { LoginId = i, Login = $"user{i}", FullName = "X" }).ToList();
+            var logins = Enumerable.Range(1, 10).Select(i => new LoginModel { LoginId = i, Login = $"user{i}", FullName = "X", IsEnabled = true }).ToList();
             (await Build(logins).SearchUsers("user", 5)).Should().HaveCount(5);
+        }
+
+        [Fact]
+        public async Task SearchUsers_Excludes_Disabled_Users()
+        {
+            var logins = new List<LoginModel>
+            {
+                new() { LoginId = 1, Login = "alice", FullName = "Alice Adams", IsEnabled = true },
+                new() { LoginId = 2, Login = "alice2", FullName = "Alice Disabled", IsEnabled = false },
+            };
+            var res = await Build(logins).SearchUsers("alice", 5);
+            res.Select(l => l.LoginId).Should().BeEquivalentTo(new[] { 1 });
         }
     }
 }
