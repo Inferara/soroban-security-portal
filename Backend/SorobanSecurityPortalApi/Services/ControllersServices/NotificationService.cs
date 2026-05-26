@@ -7,6 +7,7 @@ using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.ViewModels;
+using SorobanSecurityPortalApi.Services.Realtime;
 
 namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
@@ -28,12 +29,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly INotificationProcessor _processor;
         private readonly IUserContextAccessor _userContext;
         private readonly IMapper _mapper;
+        private readonly IRealtimePublisher _realtimePublisher;
 
-        public NotificationService(INotificationProcessor processor, IUserContextAccessor userContext, IMapper mapper)
+        public NotificationService(INotificationProcessor processor, IUserContextAccessor userContext, IMapper mapper, IRealtimePublisher realtimePublisher)
         {
             _processor = processor;
             _userContext = userContext;
             _mapper = mapper;
+            _realtimePublisher = realtimePublisher;
         }
 
         public async Task<List<NotificationViewModel>> GetNotifications(NotificationType? type, int page)
@@ -68,7 +71,16 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 notifications.Add(Make(uid, NotificationType.Mention, actorId, commentId, entityType, entityId, preview));
 
             if (notifications.Count > 0)
+            {
                 await _processor.AddRange(notifications);
+                // Best-effort live push (persisted copy is the source of truth; a push failure
+                // just means the recipient sees it on next poll/reconnect).
+                foreach (var n in notifications)
+                {
+                    try { await _realtimePublisher.NotifyUserAsync(n.RecipientUserId, _mapper.Map<NotificationViewModel>(n)); }
+                    catch { /* swallow — delivery is best-effort */ }
+                }
+            }
         }
 
         private static NotificationModel Make(int recipient, NotificationType type, int actor, int commentId, EntityType et, int eid, string preview)

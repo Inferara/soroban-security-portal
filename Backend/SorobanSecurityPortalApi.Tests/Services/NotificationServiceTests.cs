@@ -9,7 +9,9 @@ using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.Mapping;
+using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Services.ControllersServices;
+using SorobanSecurityPortalApi.Services.Realtime;
 using Xunit;
 
 namespace SorobanSecurityPortalApi.Tests.Services
@@ -19,7 +21,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private readonly Mock<INotificationProcessor> _processor = new();
         private readonly Mock<IUserContextAccessor> _userContext = new();
         private readonly IMapper _mapper = new MapperConfiguration(c => c.AddProfile<NotificationModelProfile>(), NullLoggerFactory.Instance).CreateMapper();
-        private NotificationService Build() => new(_processor.Object, _userContext.Object, _mapper);
+        private readonly Mock<IRealtimePublisher> _publisher = new();
+        private NotificationService Build() => new(_processor.Object, _userContext.Object, _mapper, _publisher.Object);
 
         [Fact]
         public async Task GetUnreadCount_Uses_Current_User()
@@ -86,6 +89,17 @@ namespace SorobanSecurityPortalApi.Tests.Services
         {
             await Build().NotifyForNewComment(5, null, new List<int> { 5 }, 100, EntityType.Report, 7, "x");
             _processor.Verify(p => p.AddRange(It.IsAny<IEnumerable<NotificationModel>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task NotifyForNewComment_Pushes_Each_Persisted_Notification_Realtime()
+        {
+            await Build().NotifyForNewComment(5, repliedToAuthorId: 9, mentionedUserIds: new List<int> { 11 },
+                commentId: 100, EntityType.Report, entityId: 7, "hi");
+
+            // recipients: 9 (reply) + 11 (mention) = 2 live pushes
+            _publisher.Verify(p => p.NotifyUserAsync(9, It.IsAny<NotificationViewModel>()), Times.Once);
+            _publisher.Verify(p => p.NotifyUserAsync(11, It.IsAny<NotificationViewModel>()), Times.Once);
         }
     }
 }
