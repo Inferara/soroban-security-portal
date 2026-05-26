@@ -115,6 +115,32 @@ namespace SorobanSecurityPortalApi.Tests.Data
         }
 
         [Fact]
+        public async Task SetCommentVote_Recomputes_Count_From_Votes_Not_StoredValue()
+        {
+            // Stored count is deliberately WRONG (99); the result must be recomputed from the rows.
+            var comment = new CommentModel { Id = 1, AuthorId = 9, UpvoteCount = 99 };
+            var votes = new List<VoteModel>
+            {
+                new() { Id = 1, UserId = 6, EntityType = VotableEntityType.Comment, EntityId = 1, VoteType = VoteType.Upvote },
+                new() { Id = 2, UserId = 7, EntityType = VotableEntityType.Comment, EntityId = 1, VoteType = VoteType.Upvote },
+            };
+            var (f, _) = Factory(new List<CommentModel> { comment }, votes);
+
+            var outcome = await new VoteProcessor(f.Object).SetCommentVote(1, userId: 5, VoteType.Upvote);
+
+            outcome!.UpvoteCount.Should().Be(3); // 2 other upvotes + this user's, NOT 99+1
+            comment.UpvoteCount.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task SetCommentVote_Returns_Null_For_Suppressed_Comment()
+        {
+            var hidden = new CommentModel { Id = 1, AuthorId = 9, IsHidden = true };
+            var (f, _) = Factory(new List<CommentModel> { hidden }, new List<VoteModel>());
+            (await new VoteProcessor(f.Object).SetCommentVote(1, 5, VoteType.Upvote)).Should().BeNull();
+        }
+
+        [Fact]
         public async Task GetUserVotesForComments_Returns_Map()
         {
             var votes = new List<VoteModel>

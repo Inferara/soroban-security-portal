@@ -32,16 +32,15 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var comment = await db.Comment.FirstOrDefaultAsync(c => c.Id == commentId);
             if (comment == null) return null;
 
+            // A hidden/soft-deleted comment isn't publicly visible, so it isn't votable.
+            if (comment.IsHidden || comment.IsDeleted) return null;
+
             // Voting on your own comment is not allowed (protects the count + future reputation).
             if (comment.AuthorId == userId)
                 return new VoteOutcome { IsSelfVote = true, UpvoteCount = comment.UpvoteCount, DownvoteCount = comment.DownvoteCount };
 
             var existing = await db.Vote.FirstOrDefaultAsync(
                 v => v.UserId == userId && v.EntityType == VotableEntityType.Comment && v.EntityId == commentId);
-            var oldVote = existing?.VoteType;
-
-            comment.UpvoteCount += (newVote == VoteType.Upvote ? 1 : 0) - (oldVote == VoteType.Upvote ? 1 : 0);
-            comment.DownvoteCount += (newVote == VoteType.Downvote ? 1 : 0) - (oldVote == VoteType.Downvote ? 1 : 0);
 
             if (newVote == null)
             {
@@ -61,6 +60,17 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     VoteType = newVote.Value
                 });
             }
+
+            // Recompute counts from the authoritative vote rows — other users' committed votes
+            // plus this user's new vote — rather than an in-memory increment, so concurrent votes
+            // on the same comment can't lose updates / drift. The unique index keeps the rows
+            // themselves correct (one per user).
+            var upOthers = await db.Vote.CountAsync(v => v.EntityType == VotableEntityType.Comment
+                && v.EntityId == commentId && v.UserId != userId && v.VoteType == VoteType.Upvote);
+            var downOthers = await db.Vote.CountAsync(v => v.EntityType == VotableEntityType.Comment
+                && v.EntityId == commentId && v.UserId != userId && v.VoteType == VoteType.Downvote);
+            comment.UpvoteCount = upOthers + (newVote == VoteType.Upvote ? 1 : 0);
+            comment.DownvoteCount = downOthers + (newVote == VoteType.Downvote ? 1 : 0);
 
             await db.SaveChangesAsync();
             return new VoteOutcome

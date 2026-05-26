@@ -293,6 +293,14 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateComment_Rejects_When_Comment_Suppressed()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.Get(7)).ReturnsAsync(new CommentModel { Id = 7, AuthorId = 5, CreatedAt = DateTime.UtcNow, IsDeleted = true });
+            await Build().Invoking(s => s.UpdateComment(7, "new")).Should().ThrowAsync<KeyNotFoundException>();
+        }
+
+        [Fact]
         public async Task GetEditHistory_Returns_Parsed_Entries()
         {
             _processor.Setup(p => p.Get(7)).ReturnsAsync(new CommentModel

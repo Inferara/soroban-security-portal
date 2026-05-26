@@ -177,6 +177,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             var comment = await _processor.Get(id);
             if (comment == null) throw new KeyNotFoundException($"Comment with id {id} not found.");
+            // A hidden/soft-deleted comment is not editable (treat as not-found).
+            if (comment.IsHidden || comment.IsDeleted)
+                throw new KeyNotFoundException($"Comment with id {id} not found.");
             if (comment.AuthorId != userId)
                 throw new UnauthorizedAccessException("You can only edit your own comments.");
             if ((DateTime.UtcNow - comment.CreatedAt).TotalMinutes > EditWindowMinutes)

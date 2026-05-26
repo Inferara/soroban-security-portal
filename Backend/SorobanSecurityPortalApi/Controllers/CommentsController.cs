@@ -115,6 +115,10 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             catch (KeyNotFoundException) { return NotFound($"Comment with id {id} not found."); }
             catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("Your vote could not be recorded due to a concurrent update. Please retry.");
+            }
         }
     }
 }
