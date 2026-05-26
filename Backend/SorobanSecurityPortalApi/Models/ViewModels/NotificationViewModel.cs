@@ -14,5 +14,6 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string Preview { get; set; } = string.Empty;
         public bool IsRead { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string ActorName { get; set; } = string.Empty;
     }
 }

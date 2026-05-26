@@ -95,6 +95,17 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await db.SaveChangesAsync();
             return loginModel;
         }
+
+        public async Task<Dictionary<int, string>> GetDisplayNames(List<int> userIds)
+        {
+            if (userIds == null || userIds.Count == 0) return new Dictionary<int, string>();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var rows = await db.Login.AsNoTracking()
+                .Where(l => userIds.Contains(l.LoginId))
+                .Select(l => new { l.LoginId, l.FullName, l.Login })
+                .ToListAsync();
+            return rows.ToDictionary(r => r.LoginId, r => !string.IsNullOrWhiteSpace(r.FullName) ? r.FullName : r.Login);
+        }
     }
 
     public interface ILoginProcessor
@@ -108,5 +119,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task Update(LoginModel login);
         Task Delete(int id);
         Task<LoginModel> Add(LoginModel login);
+        Task<Dictionary<int, string>> GetDisplayNames(List<int> userIds);
     }
 }

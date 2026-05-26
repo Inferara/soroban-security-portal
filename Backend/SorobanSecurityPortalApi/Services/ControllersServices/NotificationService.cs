@@ -30,20 +30,26 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IUserContextAccessor _userContext;
         private readonly IMapper _mapper;
         private readonly IRealtimePublisher _realtimePublisher;
+        private readonly ILoginProcessor _loginProcessor;
 
-        public NotificationService(INotificationProcessor processor, IUserContextAccessor userContext, IMapper mapper, IRealtimePublisher realtimePublisher)
+        public NotificationService(INotificationProcessor processor, IUserContextAccessor userContext, IMapper mapper, IRealtimePublisher realtimePublisher, ILoginProcessor loginProcessor)
         {
             _processor = processor;
             _userContext = userContext;
             _mapper = mapper;
             _realtimePublisher = realtimePublisher;
+            _loginProcessor = loginProcessor;
         }
 
         public async Task<List<NotificationViewModel>> GetNotifications(NotificationType? type, int page)
         {
             var userId = await _userContext.GetLoginIdAsync();
             var rows = await _processor.ListForUser(userId, type, page, 20);
-            return _mapper.Map<List<NotificationViewModel>>(rows);
+            var vms = _mapper.Map<List<NotificationViewModel>>(rows);
+            var names = await _loginProcessor.GetDisplayNames(rows.Select(r => r.ActorUserId).Distinct().ToList());
+            foreach (var vm in vms)
+                vm.ActorName = names.TryGetValue(vm.ActorUserId, out var n) && !string.IsNullOrWhiteSpace(n) ? n : "Unknown";
+            return vms;
         }
 
         public async Task<int> GetUnreadCount() => await _processor.UnreadCount(await _userContext.GetLoginIdAsync());
@@ -75,9 +81,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 await _processor.AddRange(notifications);
                 // Best-effort live push (persisted copy is the source of truth; a push failure
                 // just means the recipient sees it on next poll/reconnect).
+                var actorNames = await _loginProcessor.GetDisplayNames(new List<int> { actorId });
+                var actorName = actorNames.TryGetValue(actorId, out var an) && !string.IsNullOrWhiteSpace(an) ? an : "Unknown";
                 foreach (var n in notifications)
                 {
-                    try { await _realtimePublisher.NotifyUserAsync(n.RecipientUserId, _mapper.Map<NotificationViewModel>(n)); }
+                    var vm = _mapper.Map<NotificationViewModel>(n);
+                    vm.ActorName = actorName;
+                    try { await _realtimePublisher.NotifyUserAsync(n.RecipientUserId, vm); }
                     catch { /* swallow — delivery is best-effort */ }
                 }
             }

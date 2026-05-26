@@ -22,7 +22,16 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private readonly Mock<IUserContextAccessor> _userContext = new();
         private readonly IMapper _mapper = new MapperConfiguration(c => c.AddProfile<NotificationModelProfile>(), NullLoggerFactory.Instance).CreateMapper();
         private readonly Mock<IRealtimePublisher> _publisher = new();
-        private NotificationService Build() => new(_processor.Object, _userContext.Object, _mapper, _publisher.Object);
+        private readonly Mock<ILoginProcessor> _loginProcessor = new();
+
+        public NotificationServiceTests()
+        {
+            // Default: no names known — prevents NRE in existing tests.
+            _loginProcessor.Setup(l => l.GetDisplayNames(It.IsAny<List<int>>()))
+                .ReturnsAsync(new Dictionary<int, string>());
+        }
+
+        private NotificationService Build() => new(_processor.Object, _userContext.Object, _mapper, _publisher.Object, _loginProcessor.Object);
 
         [Fact]
         public async Task GetUnreadCount_Uses_Current_User()
@@ -30,6 +39,44 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
             _processor.Setup(p => p.UnreadCount(5)).ReturnsAsync(3);
             (await Build().GetUnreadCount()).Should().Be(3);
+        }
+
+        [Fact]
+        public async Task GetNotifications_Enriches_ActorName()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(1);
+            _processor.Setup(p => p.ListForUser(1, null, 1, 20))
+                .ReturnsAsync(new List<NotificationModel>
+                {
+                    new() { Id = 1, ActorUserId = 9, RecipientUserId = 1, CommentId = 100,
+                            EntityType = EntityType.Report, EntityId = 7,
+                            Type = NotificationType.CommentReply, Preview = "hi" }
+                });
+            _loginProcessor.Setup(l => l.GetDisplayNames(It.Is<List<int>>(ids => ids.Contains(9))))
+                .ReturnsAsync(new Dictionary<int, string> { [9] = "Alice" });
+
+            var result = await Build().GetNotifications(null, 1);
+
+            result.Should().ContainSingle();
+            result[0].ActorName.Should().Be("Alice");
+        }
+
+        [Fact]
+        public async Task GetNotifications_ActorName_Fallback_To_Unknown_When_Not_Resolved()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(1);
+            _processor.Setup(p => p.ListForUser(1, null, 1, 20))
+                .ReturnsAsync(new List<NotificationModel>
+                {
+                    new() { Id = 2, ActorUserId = 42, RecipientUserId = 1, CommentId = 55,
+                            EntityType = EntityType.Report, EntityId = 3,
+                            Type = NotificationType.Mention, Preview = "yo" }
+                });
+            // default setup returns empty dict → actor 42 not resolved
+
+            var result = await Build().GetNotifications(null, 1);
+
+            result[0].ActorName.Should().Be("Unknown");
         }
 
         [Fact]
@@ -100,6 +147,24 @@ namespace SorobanSecurityPortalApi.Tests.Services
             // recipients: 9 (reply) + 11 (mention) = 2 live pushes
             _publisher.Verify(p => p.NotifyUserAsync(9, It.IsAny<NotificationViewModel>()), Times.Once);
             _publisher.Verify(p => p.NotifyUserAsync(11, It.IsAny<NotificationViewModel>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task NotifyForNewComment_Realtime_Push_Carries_ActorName()
+        {
+            _loginProcessor.Setup(l => l.GetDisplayNames(It.Is<List<int>>(ids => ids.Contains(5))))
+                .ReturnsAsync(new Dictionary<int, string> { [5] = "Bob" });
+
+            NotificationViewModel? pushed = null;
+            _publisher.Setup(p => p.NotifyUserAsync(9, It.IsAny<NotificationViewModel>()))
+                .Callback<int, NotificationViewModel>((_, vm) => pushed = vm)
+                .Returns(Task.CompletedTask);
+
+            await Build().NotifyForNewComment(actorId: 5, repliedToAuthorId: 9, mentionedUserIds: new List<int>(),
+                commentId: 100, EntityType.Report, entityId: 7, "hi");
+
+            pushed.Should().NotBeNull();
+            pushed!.ActorName.Should().Be("Bob");
         }
     }
 }
