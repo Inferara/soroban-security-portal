@@ -32,4 +32,16 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public int? ParentCommentId { get; set; }
         public string Content { get; set; } = string.Empty;
     }
+
+    public class UpdateCommentRequest
+    {
+        public string Content { get; set; } = string.Empty;
+    }
+
+    // One entry in a comment's edit trail (stored as a JSON array in comment.edit_history).
+    public class CommentEditHistoryEntry
+    {
+        public DateTime EditedAt { get; set; }
+        public string PreviousContent { get; set; } = string.Empty;
+    }
 }

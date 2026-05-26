@@ -243,5 +243,29 @@ namespace SorobanSecurityPortalApi.Tests.Data
             names[1].Should().Be("Alice A");
             names[2].Should().Be("bob");
         }
+
+        [Fact]
+        public async Task UpdateContent_Updates_Fields_And_Marks_Edited()
+        {
+            var existing = new CommentModel { Id = 7, Content = "old", ContentHtml = "<p>old</p>", EditHistory = "[]", IsEdited = false };
+            var processor = new CommentProcessor(BuildFactory(new List<CommentModel> { existing }, out var dbMock).Object);
+
+            var updated = await processor.UpdateContent(7, "new", "<p>new</p>", "[{\"EditedAt\":\"2026-01-01T00:00:00Z\",\"PreviousContent\":\"old\"}]");
+
+            updated.Should().NotBeNull();
+            updated!.Content.Should().Be("new");
+            updated.ContentHtml.Should().Be("<p>new</p>");
+            updated.IsEdited.Should().BeTrue();
+            updated.UpdatedAt.Should().NotBeNull();
+            updated.EditHistory.Should().Contain("PreviousContent");
+            dbMock.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateContent_Returns_Null_For_Missing()
+        {
+            var processor = new CommentProcessor(BuildFactory(new List<CommentModel>(), out _).Object);
+            (await processor.UpdateContent(999, "x", "<p>x</p>", "[]")).Should().BeNull();
+        }
     }
 }

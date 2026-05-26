@@ -103,6 +103,20 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 r => r.LoginId,
                 r => !string.IsNullOrWhiteSpace(r.FullName) ? r.FullName : r.Login);
         }
+
+        public async Task<CommentModel?> UpdateContent(int id, string content, string contentHtml, string editHistoryJson)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var c = await db.Comment.FirstOrDefaultAsync(x => x.Id == id);
+            if (c == null) return null;
+            c.Content = content;
+            c.ContentHtml = contentHtml;
+            c.EditHistory = editHistoryJson;
+            c.IsEdited = true;
+            c.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            return c;
+        }
     }
 
     public interface ICommentProcessor
@@ -118,5 +132,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<List<CommentModel>> ListReplies(EntityType entityType, int entityId, List<int> parentIds);
         Task<bool> EntityExists(EntityType entityType, int entityId);
         Task<Dictionary<int, string>> GetAuthorNames(List<int> userIds);
+        Task<CommentModel?> UpdateContent(int id, string content, string contentHtml, string editHistoryJson);
     }
 }
