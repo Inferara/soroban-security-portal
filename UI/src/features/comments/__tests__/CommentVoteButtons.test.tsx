@@ -27,4 +27,11 @@ describe('CommentVoteButtons', () => {
     expect(screen.getByLabelText('upvote')).toBeDisabled();
     expect(screen.getByLabelText('downvote')).toBeDisabled();
   });
+
+  it('downvote click sends "none" when already downvoted (toggle off)', () => {
+    const onVote = vi.fn();
+    render(<CommentVoteButtons upvoteCount={0} downvoteCount={1} currentUserVote="downvote" canVote onVote={onVote} />);
+    fireEvent.click(screen.getByLabelText('downvote'));
+    expect(onVote).toHaveBeenCalledWith('none');
+  });
 });

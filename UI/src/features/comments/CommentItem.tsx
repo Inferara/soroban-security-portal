@@ -12,11 +12,30 @@ interface CommentItemProps {
   onReply: (parentCommentId: number, content: string) => Promise<boolean>;
   onVote: (id: number, voteType: VoteType) => void;
   canVote: boolean;
+  onEdit: (id: number, content: string) => Promise<boolean>;
+  onDelete: (id: number) => void;
+  isAdmin: boolean;
   isReply?: boolean;
 }
 
-export const CommentItem: FC<CommentItemProps> = ({ comment, canReply, onReply, onVote, canVote, isReply = false }) => {
+export const CommentItem: FC<CommentItemProps> = ({
+  comment,
+  canReply,
+  onReply,
+  onVote,
+  canVote,
+  onEdit,
+  onDelete,
+  isAdmin,
+  isReply = false,
+}) => {
   const [replying, setReplying] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const canDelete = comment.isOwn || isAdmin;
+  const canEdit =
+    comment.isOwn &&
+    Date.now() - new Date(comment.createdAt).getTime() < 30 * 60 * 1000;
 
   return (
     <Box sx={{ display: 'flex', gap: 1.5, py: 1.5, ...(isReply ? { ml: 5, borderLeft: 2, borderColor: 'divider', pl: 2 } : {}) }}>
@@ -39,13 +58,50 @@ export const CommentItem: FC<CommentItemProps> = ({ comment, canReply, onReply, 
             onVote={(vt) => onVote(comment.id, vt)}
           />
         </Box>
-        <MarkdownView content={comment.content} sx={{ p: 0, mt: 0.5 }} />
-        {canReply && !isReply && (
-          <Button size="small" onClick={() => setReplying((r) => !r)} sx={{ mt: 0.5 }}>
-            {replying ? 'Cancel' : 'Reply'}
-          </Button>
+
+        {editing ? (
+          <Box sx={{ mt: 1 }}>
+            <CommentEditor
+              initialValue={comment.content}
+              submitLabel="Save"
+              onCancel={() => setEditing(false)}
+              onSubmit={async (content) => {
+                const ok = await onEdit(comment.id, content);
+                if (ok) setEditing(false);
+                return ok;
+              }}
+            />
+          </Box>
+        ) : (
+          <>
+            <MarkdownView content={comment.content} sx={{ p: 0, mt: 0.5 }} />
+            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+              {canReply && !isReply && (
+                <Button size="small" onClick={() => setReplying((r) => !r)}>
+                  {replying ? 'Cancel' : 'Reply'}
+                </Button>
+              )}
+              {canEdit && (
+                <Button size="small" onClick={() => setEditing(true)}>
+                  Edit
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={() => {
+                    if (window.confirm('Delete this comment?')) onDelete(comment.id);
+                  }}
+                >
+                  Delete
+                </Button>
+              )}
+            </Box>
+          </>
         )}
-        {replying && (
+
+        {!editing && replying && (
           <Box sx={{ mt: 1 }}>
             <CommentEditor
               submitLabel="Reply"
@@ -58,10 +114,22 @@ export const CommentItem: FC<CommentItemProps> = ({ comment, canReply, onReply, 
             />
           </Box>
         )}
+
         {comment.replies?.length > 0 && (
           <Box sx={{ mt: 1 }}>
             {comment.replies.map((r) => (
-              <CommentItem key={r.id} comment={r} canReply={canReply} onReply={onReply} onVote={onVote} canVote={canVote} isReply />
+              <CommentItem
+                key={r.id}
+                comment={r}
+                canReply={canReply}
+                onReply={onReply}
+                onVote={onVote}
+                canVote={canVote}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                isAdmin={isAdmin}
+                isReply
+              />
             ))}
           </Box>
         )}

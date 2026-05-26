@@ -6,10 +6,11 @@ interface CommentEditorProps {
   onSubmit: (content: string) => Promise<boolean>;
   onCancel?: () => void;
   submitLabel?: string;
+  initialValue?: string;
 }
 
-export const CommentEditor: FC<CommentEditorProps> = ({ onSubmit, onCancel, submitLabel = 'Comment' }) => {
-  const [content, setContent] = useState('');
+export const CommentEditor: FC<CommentEditorProps> = ({ onSubmit, onCancel, submitLabel = 'Comment', initialValue }) => {
+  const [content, setContent] = useState(initialValue ?? '');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {

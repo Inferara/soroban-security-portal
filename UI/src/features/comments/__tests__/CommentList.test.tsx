@@ -14,6 +14,8 @@ vi.mock('../../../api/soroban-security-portal/soroban-security-portal-api', () =
   getCommentCountCall: vi.fn().mockResolvedValue(0),
   addCommentCall: vi.fn(),
   deleteCommentCall: vi.fn(),
+  voteCommentCall: vi.fn().mockResolvedValue({ upvoteCount: 0, downvoteCount: 0, currentUserVote: null }),
+  editCommentCall: vi.fn(),
 }));
 
 describe('CommentList', () => {

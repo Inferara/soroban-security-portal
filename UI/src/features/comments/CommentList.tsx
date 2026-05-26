@@ -12,8 +12,8 @@ interface CommentListProps {
 }
 
 export const CommentList: FC<CommentListProps> = ({ entityType, entityId }) => {
-  const { isAuthenticated, login } = useAppAuth();
-  const { comments, loading, error, hasMore, loadMore, post, vote } = useComments(entityType, entityId);
+  const { isAuthenticated, isAdmin, login } = useAppAuth();
+  const { comments, loading, error, hasMore, loadMore, post, vote, edit, remove } = useComments(entityType, entityId);
   const canVote = isAuthenticated;
 
   return (
@@ -46,6 +46,9 @@ export const CommentList: FC<CommentListProps> = ({ entityType, entityId }) => {
           onReply={(parentId, content) => post(content, parentId)}
           onVote={(id, vt) => vote(id, vt)}
           canVote={canVote}
+          onEdit={(id, content) => edit(id, content)}
+          onDelete={(id) => { void remove(id); }}
+          isAdmin={isAdmin}
         />
       ))}
 
