@@ -5,6 +5,7 @@ import { EntityAvatar } from '../../components/EntityAvatar';
 import { MarkdownView } from '../../components/MarkdownView';
 import { CommentEditor } from './CommentEditor';
 import { CommentVoteButtons } from './CommentVoteButtons';
+import { highlightMentions } from './mentions';
 
 interface CommentItemProps {
   comment: Comment;
@@ -74,7 +75,7 @@ export const CommentItem: FC<CommentItemProps> = ({
           </Box>
         ) : (
           <>
-            <MarkdownView content={comment.content} sx={{ p: 0, mt: 0.5 }} />
+            <MarkdownView content={highlightMentions(comment.content)} sx={{ p: 0, mt: 0.5 }} />
             <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
               {canReply && !isReply && (
                 <Button size="small" onClick={() => setReplying((r) => !r)}>

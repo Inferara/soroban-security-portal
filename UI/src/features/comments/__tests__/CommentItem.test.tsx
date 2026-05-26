@@ -177,6 +177,14 @@ describe('CommentItem', () => {
     await vi.waitFor(() => expect(onEdit).toHaveBeenCalledWith(7, 'updated content'));
   });
 
+  // --- @mention highlighting ---
+  // Using the REAL MarkdownView path (MarkdownView is NOT mocked in this file;
+  // only MarkdownEditor is mocked). ReactMarkdown renders **@alice** → <strong>@alice</strong>.
+  it('renders @mentions as bold', () => {
+    render(<CommentItem comment={make({ content: 'hey @alice' })} {...defaultProps} />);
+    expect(screen.getByText('@alice').closest('strong')).not.toBeNull();
+  });
+
   // --- canVote + isOwn guard ---
 
   it('vote buttons are disabled when canVote=true but isOwn=true', () => {
