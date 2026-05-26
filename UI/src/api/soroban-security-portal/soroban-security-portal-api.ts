@@ -14,6 +14,7 @@ import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
 import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
+import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -545,6 +546,33 @@ const createEntityFormData = (dataFieldName: string, entityData: object, imageBa
 const getAuthHeader = (): string => {
     const accessToken = getAccessToken();
     return accessToken ? `Bearer ${accessToken}` : '';
+};
+
+// --- RATINGS ---
+export const getRatingSummaryCall = async (entityType: RatingEntityType, entityId: number): Promise<RatingSummary> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings/summary?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as RatingSummary;
+};
+export const getRatingsCall = async (entityType: RatingEntityType, entityId: number, page = 1): Promise<PublicRating[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings?entityType=${entityType}&entityId=${entityId}&page=${page}`, 'GET');
+    return response.data as PublicRating[];
+};
+export const getMyRatingCall = async (entityType: RatingEntityType, entityId: number): Promise<MyRating | null> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings/mine?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    // 204 No Content => the caller has not rated this entity yet.
+    if (response.status === 204 || !response.data) return null;
+    return response.data as MyRating;
+};
+export const addOrUpdateRatingCall = async (request: CreateRatingRequest): Promise<void> => {
+    const client = await getRestClient();
+    await client.request('api/v1/ratings', 'POST', request);
+};
+export const deleteRatingCall = async (ratingId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/ratings/${ratingId}`, 'DELETE');
 };
 
 // Rest client

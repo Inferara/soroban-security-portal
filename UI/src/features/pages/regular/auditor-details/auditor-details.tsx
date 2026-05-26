@@ -21,6 +21,7 @@ import {
   Person,
   Timeline as TimelineIcon,
   Dashboard,
+  StarRounded,
 } from '@mui/icons-material';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +30,8 @@ import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { useAppAuth } from '../../../../features/authentication/useAppAuth';
 import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { EntityAvatar } from '../../../../components/EntityAvatar';
+import { RatingsPanel } from '../../../../components/ratings';
+import { RatingEntityType } from '../../../../api/soroban-security-portal/models/rating';
 import {
   DetailPageLayout,
   DetailPageHeader,
@@ -122,6 +125,7 @@ export const AuditorDetails: FC = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
     { id: 'activity', label: 'Activity', icon: <TimelineIcon /> },
+    { id: 'reviews', label: 'Reviews', icon: <StarRounded /> },
   ];
 
   return (
@@ -370,6 +374,11 @@ export const AuditorDetails: FC = () => {
                 </CardContent>
               </Card>
             </Box>
+          )}
+
+          {/* Reviews Tab Content */}
+          {tabValue === 2 && (
+            <RatingsPanel entityType={RatingEntityType.Auditor} entityId={auditor.id} />
           )}
         </>
       )}

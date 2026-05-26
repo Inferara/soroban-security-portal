@@ -59,6 +59,7 @@ public class Startup
         // Multiple IModerationTarget registrations are intentional: ModerationTargetRegistry collects all via IEnumerable<IModerationTarget>.
         services.AddScoped<IModerationTarget, VulnerabilityModerationTarget>();
         services.AddScoped<IModerationTarget, ReportModerationTarget>();
+        services.AddScoped<IModerationTarget, RatingModerationTarget>();
         services.AddScoped<IModerationTargetRegistry, ModerationTargetRegistry>();
 
         services.ForInterfacesMatching("^I(?!.*Processor$).*")

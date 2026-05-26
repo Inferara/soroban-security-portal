@@ -15,7 +15,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public DateTime CreatedAt { get; set; }
     }
 
-    // Public list DTO — no UserId to avoid exposing who-rated-what
+    // Public list DTO — attributes the review to its author (display name + id for
+    // the public avatar endpoint). Never exposes email or any other PII.
     public class PublicRatingViewModel
     {
         public int Id { get; set; }
@@ -24,6 +25,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public int Score { get; set; }
         public string Review { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public int AuthorId { get; set; }
+        public string AuthorName { get; set; } = string.Empty;
     }
 
     public class CreateRatingRequest
@@ -38,8 +41,11 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
     {
         public EntityType EntityType { get; set; }
         public int EntityId { get; set; }
-        public float AverageScore { get; set; } 
-        
+        public float AverageScore { get; set; }
+
+        // Average weighted by each reviewer's reputation (1 + ReputationScore).
+        public float WeightedAverageScore { get; set; }
+
         public int TotalReviews { get; set; }
         
         // Distribution: Key is star (1-5), Value is count

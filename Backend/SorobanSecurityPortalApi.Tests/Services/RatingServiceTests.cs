@@ -37,16 +37,29 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private readonly Mock<IDbQuery> _dbQueryMock;
         private readonly Mock<ILogger<Db>> _loggerMock;
         private readonly Mock<IDataSourceProvider> _dataSourceProviderMock;
+        private readonly Mock<IContentFilterService> _contentFilterMock;
 
         private readonly IMapper _mapper;
         private readonly RatingService _service;
         private readonly List<RatingModel> _dataStore;
+        private readonly List<LoginModel> _logins;
+        private readonly List<UserProfileModel> _profiles;
+        private readonly List<ProtocolModel> _protocols;
+        private readonly List<AuditorModel> _auditors;
 
         public RatingServiceTests()
         {
             // Setup Data Store
             _dataStore = new List<RatingModel>();
             _ratingSetMock = CreateDbSetMock(_dataStore);
+
+            // Sets used by author lookup, weighted average and entity validation.
+            _logins = new List<LoginModel>();
+            _profiles = new List<UserProfileModel>();
+            // Seed the protocols/auditors referenced by the add/update tests so entity
+            // validation passes; tests needing a missing entity simply use another id.
+            _protocols = new List<ProtocolModel> { new ProtocolModel { Id = 1, Name = "P1" } };
+            _auditors = new List<AuditorModel> { new AuditorModel { Id = 1, Name = "A1" } };
 
             // Mock Db Dependencies
             _dbQueryMock = new Mock<IDbQuery>();
@@ -60,6 +73,10 @@ namespace SorobanSecurityPortalApi.Tests.Services
             ) { CallBase = true };
 
             _dbMock.Object.Rating = _ratingSetMock.Object;
+            _dbMock.Object.Login = CreateDbSetMock(_logins).Object;
+            _dbMock.Object.UserProfiles = CreateDbSetMock(_profiles).Object;
+            _dbMock.Object.Protocol = CreateDbSetMock(_protocols).Object;
+            _dbMock.Object.Auditor = CreateDbSetMock(_auditors).Object;
 
             _dbMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
@@ -71,8 +88,14 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _loginProcessorMock = new Mock<ILoginProcessor>();
             var userContext = new UserContextAccessor(_httpContextAccessorMock.Object, _loginProcessorMock.Object);
 
+            // Content filter: allow everything by default; individual tests can override.
+            _contentFilterMock = new Mock<IContentFilterService>();
+            _contentFilterMock.Setup(x => x.CheckRateLimitAsync(It.IsAny<int>())).ReturnsAsync(true);
+            _contentFilterMock.Setup(x => x.FilterContentAsync(It.IsAny<string>(), It.IsAny<int>()))
+                .ReturnsAsync(new ContentFilterResult { IsBlocked = false });
+
             // Initialize Service
-            _service = new RatingService(_dbMock.Object, _cacheMock.Object, userContext, _mapper);
+            _service = new RatingService(_dbMock.Object, _cacheMock.Object, userContext, _mapper, _contentFilterMock.Object);
         }
 
         // --- TESTS ---
@@ -235,8 +258,9 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
-        public async Task GetRatings_Should_NotIncludeUserId_InPublicList()
+        public async Task GetRatings_Should_AttributeAuthor_ByDisplayName()
         {
+            _logins.Add(new LoginModel { LoginId = 42, FullName = "Alice", Login = "alice@test.com", Email = "alice@test.com" });
             _dataStore.Add(new RatingModel
             {
                 Id = 1, UserId = 42, EntityId = 10, EntityType = EntityType.Protocol, Score = 4,
@@ -246,9 +270,137 @@ namespace SorobanSecurityPortalApi.Tests.Services
             var result = await _service.GetRatings(EntityType.Protocol, 10, page: 1, pageSize: 10);
 
             result.Should().HaveCount(1);
-            // PublicRatingViewModel has no UserId property — verified by type
             result[0].Should().BeOfType<PublicRatingViewModel>();
             result[0].Score.Should().Be(4);
+            result[0].AuthorId.Should().Be(42);
+            result[0].AuthorName.Should().Be("Alice");
+            // PublicRatingViewModel intentionally has no Email/UserId field — verified by type.
+            typeof(PublicRatingViewModel).GetProperty("Email").Should().BeNull();
+            typeof(PublicRatingViewModel).GetProperty("UserId").Should().BeNull();
+        }
+
+        [Fact]
+        public async Task GetRatings_Should_FallBackToLogin_WhenFullNameBlank()
+        {
+            _logins.Add(new LoginModel { LoginId = 7, FullName = "", Login = "bob" });
+            _dataStore.Add(new RatingModel { Id = 1, UserId = 7, EntityId = 11, EntityType = EntityType.Protocol, Score = 3, CreatedAt = DateTime.UtcNow });
+
+            var result = await _service.GetRatings(EntityType.Protocol, 11, page: 1, pageSize: 10);
+
+            result[0].AuthorName.Should().Be("bob");
+        }
+
+        [Fact]
+        public async Task GetMyRating_Should_ReturnNull_WhenNoRatingExists()
+        {
+            // /mine is [Authorize]; the meaningful null path is an authenticated user
+            // who has not rated this entity yet.
+            SetupLoggedInUser(10);
+
+            var result = await _service.GetMyRating(EntityType.Protocol, 1);
+
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task GetMyRating_Should_ReturnExisting_ForCaller()
+        {
+            SetupLoggedInUser(10);
+            _dataStore.Add(new RatingModel { Id = 5, UserId = 10, EntityId = 1, EntityType = EntityType.Protocol, Score = 4, Review = "Mine" });
+
+            var result = await _service.GetMyRating(EntityType.Protocol, 1);
+
+            result.Should().NotBeNull();
+            result!.Score.Should().Be(4);
+            result.Review.Should().Be("Mine");
+        }
+
+        [Fact]
+        public async Task GetSummary_Should_Weight_ByReputation()
+        {
+            // user 1 (rep 99) scores 5; user 2 (rep 0) scores 1.
+            // plain avg = 3.0; weighted = (5*100 + 1*1)/(100+1) = 501/101 = 4.96 -> 5.0
+            _profiles.Add(new UserProfileModel { LoginId = 1, ReputationScore = 99 });
+            _dataStore.Add(new RatingModel { UserId = 1, EntityId = 200, EntityType = EntityType.Protocol, Score = 5 });
+            _dataStore.Add(new RatingModel { UserId = 2, EntityId = 200, EntityType = EntityType.Protocol, Score = 1 });
+
+            var summary = await _service.GetSummary(EntityType.Protocol, 200);
+
+            summary.AverageScore.Should().Be(3.0f);
+            summary.WeightedAverageScore.Should().Be(5.0f);
+        }
+
+        [Fact]
+        public async Task AddOrUpdateRating_Should_Throw_WhenEntityMissing()
+        {
+            SetupLoggedInUser(10);
+            var request = new CreateRatingRequest { EntityType = EntityType.Protocol, EntityId = 9999, Score = 5, Review = "x" };
+
+            await Assert.ThrowsAsync<KeyNotFoundException>(() => _service.AddOrUpdateRating(request));
+            _dataStore.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task AddOrUpdateRating_Should_Throw_WhenReviewBlocked()
+        {
+            SetupLoggedInUser(10);
+            _contentFilterMock.Setup(x => x.FilterContentAsync(It.IsAny<string>(), It.IsAny<int>()))
+                .ReturnsAsync(new ContentFilterResult { IsBlocked = true, Warnings = new List<string> { "profanity" } });
+
+            var request = new CreateRatingRequest { EntityType = EntityType.Protocol, EntityId = 1, Score = 5, Review = "rude words" };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _service.AddOrUpdateRating(request));
+            _dataStore.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task AddOrUpdateRating_Should_Throw_WhenRateLimited()
+        {
+            SetupLoggedInUser(10);
+            _contentFilterMock.Setup(x => x.CheckRateLimitAsync(It.IsAny<int>())).ReturnsAsync(false);
+
+            var request = new CreateRatingRequest { EntityType = EntityType.Protocol, EntityId = 1, Score = 5, Review = "ok" };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _service.AddOrUpdateRating(request));
+            _dataStore.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task AddOrUpdateRating_Should_SkipFilter_WhenReviewEmpty()
+        {
+            SetupLoggedInUser(10);
+            var request = new CreateRatingRequest { EntityType = EntityType.Protocol, EntityId = 1, Score = 4, Review = "" };
+
+            await _service.AddOrUpdateRating(request);
+
+            _dataStore.Should().HaveCount(1);
+            _contentFilterMock.Verify(x => x.FilterContentAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetRatings_Should_Exclude_HiddenAndDeleted()
+        {
+            _dataStore.Add(new RatingModel { Id = 1, UserId = 1, EntityId = 70, EntityType = EntityType.Protocol, Score = 5, CreatedAt = DateTime.UtcNow.AddMinutes(3) });
+            _dataStore.Add(new RatingModel { Id = 2, UserId = 2, EntityId = 70, EntityType = EntityType.Protocol, Score = 4, IsHidden = true, CreatedAt = DateTime.UtcNow.AddMinutes(2) });
+            _dataStore.Add(new RatingModel { Id = 3, UserId = 3, EntityId = 70, EntityType = EntityType.Protocol, Score = 3, IsDeleted = true, CreatedAt = DateTime.UtcNow.AddMinutes(1) });
+
+            var result = await _service.GetRatings(EntityType.Protocol, 70, page: 1, pageSize: 10);
+
+            result.Should().HaveCount(1);
+            result[0].Id.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task GetSummary_Should_Exclude_HiddenAndDeleted()
+        {
+            _dataStore.Add(new RatingModel { UserId = 1, EntityId = 71, EntityType = EntityType.Protocol, Score = 5 });
+            _dataStore.Add(new RatingModel { UserId = 2, EntityId = 71, EntityType = EntityType.Protocol, Score = 1, IsHidden = true });
+            _dataStore.Add(new RatingModel { UserId = 3, EntityId = 71, EntityType = EntityType.Protocol, Score = 1, IsDeleted = true });
+
+            var summary = await _service.GetSummary(EntityType.Protocol, 71);
+
+            summary.TotalReviews.Should().Be(1);
+            summary.AverageScore.Should().Be(5.0f);
         }
 
         // --- HELPERS ---

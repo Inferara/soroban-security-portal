@@ -10,12 +10,18 @@ namespace SorobanSecurityPortalApi.Services.Moderation
             {
                 case "vulnerability": t = ModeratedContentType.Vulnerability; return true;
                 case "report": t = ModeratedContentType.Report; return true;
+                case "rating": t = ModeratedContentType.Rating; return true;
                 default: t = default; return false;
             }
         }
 
-        public static string ContentTypeString(ModeratedContentType t)
-            => t == ModeratedContentType.Vulnerability ? "vulnerability" : "report";
+        public static string ContentTypeString(ModeratedContentType t) => t switch
+        {
+            ModeratedContentType.Vulnerability => "vulnerability",
+            ModeratedContentType.Report => "report",
+            ModeratedContentType.Rating => "rating",
+            _ => "",
+        };
 
         public static bool TryReason(string s, out FlagReason r)
             => Enum.TryParse(s, true, out r) && Enum.IsDefined(typeof(FlagReason), r);

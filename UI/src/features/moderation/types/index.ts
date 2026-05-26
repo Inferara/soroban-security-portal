@@ -1,6 +1,6 @@
-// Only vulnerabilities and reports can be flagged/moderated today (no comment entity exists,
-// and there's no UI to view another user's profile). Keep this in sync with the backend.
-export type ContentType = 'report' | 'vulnerability';
+// Vulnerabilities, reports and ratings/reviews can be flagged/moderated.
+// Keep this in sync with the backend ModeratedContentType enum.
+export type ContentType = 'report' | 'vulnerability' | 'rating';
 
 export type FlagReason = 'spam' | 'harassment' | 'inappropriate' | 'misinformation' | 'other';
 
