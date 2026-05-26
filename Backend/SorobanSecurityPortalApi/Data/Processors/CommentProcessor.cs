@@ -61,6 +61,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<CommentModel> Add(CommentModel comment);
         Task<CommentModel?> Get(int id);
         Task<List<CommentModel>> ListByEntity(EntityType entityType, int entityId, int page, int pageSize, bool includeSuppressed);
+        /// <summary>
+        /// Soft-deletes a comment (sets IsDeleted + DeletedAt). Idempotent: no-ops if the comment does not exist.
+        /// </summary>
         Task SoftDelete(int id);
     }
 }

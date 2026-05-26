@@ -108,5 +108,31 @@ namespace SorobanSecurityPortalApi.Tests.Data
             c.DeletedAt.Should().NotBeNull();
             dbMock.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
+
+        [Fact]
+        public async Task ListByEntity_Includes_Suppressed_When_IncludeSuppressed_True()
+        {
+            var list = new List<CommentModel>
+            {
+                new() { Id = 1, EntityType = EntityType.Report, EntityId = 9, Content = "visible", CreatedAt = new DateTime(2026,1,1) },
+                new() { Id = 2, EntityType = EntityType.Report, EntityId = 9, Content = "hidden", IsHidden = true, CreatedAt = new DateTime(2026,1,2) },
+                new() { Id = 3, EntityType = EntityType.Report, EntityId = 9, Content = "deleted", IsDeleted = true, CreatedAt = new DateTime(2026,1,3) },
+            };
+            var processor = new CommentProcessor(BuildFactory(list, out _).Object);
+
+            var page = await processor.ListByEntity(EntityType.Report, 9, page: 1, pageSize: 20, includeSuppressed: true);
+
+            page.Select(c => c.Id).Should().Equal(1, 2, 3);
+        }
+
+        [Fact]
+        public async Task SoftDelete_NoOps_When_Comment_Missing()
+        {
+            var processor = new CommentProcessor(BuildFactory(new List<CommentModel>(), out var dbMock).Object);
+
+            await processor.SoftDelete(999); // must not throw
+
+            dbMock.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 }
