@@ -73,5 +73,16 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _processor.Setup(p => p.SetCommentVote(1, 5, VoteType.Upvote)).ReturnsAsync(new VoteOutcome { IsSelfVote = true });
             await Build().Invoking(s => s.Vote(1, "upvote")).Should().ThrowAsync<InvalidOperationException>();
         }
+
+        [Fact]
+        public async Task Vote_Throws_When_Below_Downvote_Threshold()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.SetCommentVote(1, 5, VoteType.Downvote))
+                .ReturnsAsync(new VoteOutcome { BelowDownvoteThreshold = true });
+
+            await Build().Invoking(s => s.Vote(1, "downvote"))
+                .Should().ThrowAsync<InvalidOperationException>().WithMessage("*reputation*");
+        }
     }
 }

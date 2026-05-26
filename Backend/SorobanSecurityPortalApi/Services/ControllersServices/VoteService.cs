@@ -40,6 +40,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var outcome = await _processor.SetCommentVote(commentId, userId, parsed);
             if (outcome == null) throw new KeyNotFoundException($"Comment with id {commentId} not found.");
             if (outcome.IsSelfVote) throw new InvalidOperationException("You cannot vote on your own comment.");
+            if (outcome.BelowDownvoteThreshold)
+                throw new InvalidOperationException(
+                    $"You need at least {VoteProcessor.MinReputationToDownvote} reputation to downvote.");
 
             return new VoteResultViewModel
             {
