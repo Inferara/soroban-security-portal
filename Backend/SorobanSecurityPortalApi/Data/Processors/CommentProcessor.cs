@@ -58,8 +58,14 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<int> CountByEntity(EntityType entityType, int entityId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            return await db.Comment.AsNoTracking()
-                .CountAsync(c => c.EntityType == entityType && c.EntityId == entityId && !c.IsHidden && !c.IsDeleted);
+            var visible = db.Comment.AsNoTracking()
+                .Where(c => c.EntityType == entityType && c.EntityId == entityId && !c.IsHidden && !c.IsDeleted);
+            // Replies whose top-level parent is hidden/deleted are not shown in the thread
+            // (GetComments only fetches replies for visible top-level comments), so they must
+            // not be counted either — keep the count badge consistent with the rendered list.
+            var visibleTopLevelIds = visible.Where(c => c.ParentCommentId == null).Select(c => c.Id);
+            return await visible.CountAsync(c => c.ParentCommentId == null
+                || visibleTopLevelIds.Contains(c.ParentCommentId.Value));
         }
 
         public async Task<List<CommentModel>> ListReplies(EntityType entityType, int entityId, List<int> parentIds)

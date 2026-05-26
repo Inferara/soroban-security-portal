@@ -174,6 +174,22 @@ namespace SorobanSecurityPortalApi.Tests.Data
         }
 
         [Fact]
+        public async Task CountByEntity_Excludes_Replies_Under_Suppressed_Parent()
+        {
+            var list = new List<CommentModel>
+            {
+                new() { Id = 1, EntityType = EntityType.Report, EntityId = 9, Content = "hidden top", IsHidden = true },
+                new() { Id = 2, EntityType = EntityType.Report, EntityId = 9, Content = "orphan reply", ParentCommentId = 1 }, // visible itself, parent hidden
+                new() { Id = 3, EntityType = EntityType.Report, EntityId = 9, Content = "visible top" },
+                new() { Id = 4, EntityType = EntityType.Report, EntityId = 9, Content = "reply", ParentCommentId = 3 },
+            };
+            var processor = new CommentProcessor(BuildFullFactory(list).Object);
+
+            // id3 (visible top) + id4 (reply under visible parent) = 2; id1 hidden, id2 orphaned under hidden parent → both excluded
+            (await processor.CountByEntity(EntityType.Report, 9)).Should().Be(2);
+        }
+
+        [Fact]
         public async Task ListReplies_Returns_Visible_Replies_For_Parents_OldestFirst()
         {
             var list = new List<CommentModel>
