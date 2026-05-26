@@ -30,7 +30,8 @@ namespace SorobanSecurityPortalApi.Tests.Data
             return m;
         }
 
-        private static (Mock<IDbContextFactory<Db>>, Mock<Db>) Factory(List<CommentModel> comments, List<VoteModel> votes)
+        private static (Mock<IDbContextFactory<Db>>, Mock<Db>) Factory(
+            List<CommentModel> comments, List<VoteModel> votes, List<UserProfileModel>? profiles = null)
         {
             var db = new Mock<Db>(
                 new Mock<IDbQuery>().Object,
@@ -38,6 +39,7 @@ namespace SorobanSecurityPortalApi.Tests.Data
                 new Mock<IDataSourceProvider>().Object) { CallBase = true };
             db.Setup(d => d.Comment).Returns(Set(comments).Object);
             db.Setup(d => d.Vote).Returns(Set(votes).Object);
+            db.Object.UserProfiles = Set(profiles ?? new List<UserProfileModel>()).Object; // UserProfiles is not virtual
             db.Setup(d => d.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
             var f = new Mock<IDbContextFactory<Db>>();
             f.Setup(x => x.CreateDbContextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(db.Object);
@@ -67,7 +69,8 @@ namespace SorobanSecurityPortalApi.Tests.Data
         {
             var comment = new CommentModel { Id = 1, AuthorId = 9, UpvoteCount = 1, DownvoteCount = 0 };
             var votes = new List<VoteModel> { new() { Id = 1, UserId = 5, EntityType = VotableEntityType.Comment, EntityId = 1, VoteType = VoteType.Upvote } };
-            var (f, _) = Factory(new List<CommentModel> { comment }, votes);
+            var (f, _) = Factory(new List<CommentModel> { comment }, votes,
+                new List<UserProfileModel> { new() { LoginId = 5, ReputationScore = 50 } });
 
             var outcome = await new VoteProcessor(f.Object).SetCommentVote(1, 5, VoteType.Downvote);
 
@@ -164,6 +167,88 @@ namespace SorobanSecurityPortalApi.Tests.Data
             map[1].Should().Be(VoteType.Upvote);
             map[2].Should().Be(VoteType.Downvote);
             map.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task SetCommentVote_Upvote_Credits_Author_Reputation()
+        {
+            var comment = new CommentModel { Id = 1, AuthorId = 9 };
+            var author = new UserProfileModel { LoginId = 9, ReputationScore = 0 };
+            var (f, _) = Factory(new List<CommentModel> { comment }, new List<VoteModel>(),
+                new List<UserProfileModel> { author });
+
+            await new VoteProcessor(f.Object).SetCommentVote(1, userId: 5, VoteType.Upvote);
+
+            author.ReputationScore.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task SetCommentVote_Clearing_Upvote_Debits_Author_Reputation()
+        {
+            var comment = new CommentModel { Id = 1, AuthorId = 9, UpvoteCount = 1 };
+            var author = new UserProfileModel { LoginId = 9, ReputationScore = 1 };
+            var votes = new List<VoteModel> { new() { Id = 1, UserId = 5, EntityType = VotableEntityType.Comment, EntityId = 1, VoteType = VoteType.Upvote } };
+            var (f, _) = Factory(new List<CommentModel> { comment }, votes, new List<UserProfileModel> { author });
+
+            await new VoteProcessor(f.Object).SetCommentVote(1, 5, newVote: null);
+
+            author.ReputationScore.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task SetCommentVote_Downvote_Does_Not_Change_Author_Reputation()
+        {
+            var comment = new CommentModel { Id = 1, AuthorId = 9 };
+            var author = new UserProfileModel { LoginId = 9, ReputationScore = 0 };
+            var voter = new UserProfileModel { LoginId = 5, ReputationScore = 50 };
+            var (f, _) = Factory(new List<CommentModel> { comment }, new List<VoteModel>(),
+                new List<UserProfileModel> { author, voter });
+
+            await new VoteProcessor(f.Object).SetCommentVote(1, 5, VoteType.Downvote);
+
+            author.ReputationScore.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task SetCommentVote_Author_Without_Profile_Skips_Reputation_But_Succeeds()
+        {
+            var comment = new CommentModel { Id = 1, AuthorId = 9 };
+            var (f, db) = Factory(new List<CommentModel> { comment }, new List<VoteModel>()); // no profiles
+
+            var outcome = await new VoteProcessor(f.Object).SetCommentVote(1, 5, VoteType.Upvote);
+
+            outcome!.UpvoteCount.Should().Be(1);
+            db.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task SetCommentVote_Downvote_Below_Threshold_Is_Blocked_And_NotApplied()
+        {
+            var comment = new CommentModel { Id = 1, AuthorId = 9, DownvoteCount = 0 };
+            var voter = new UserProfileModel { LoginId = 5, ReputationScore = 3 }; // < 10
+            var votes = new List<VoteModel>();
+            var (f, db) = Factory(new List<CommentModel> { comment }, votes, new List<UserProfileModel> { voter });
+
+            var outcome = await new VoteProcessor(f.Object).SetCommentVote(1, 5, VoteType.Downvote);
+
+            outcome!.BelowDownvoteThreshold.Should().BeTrue();
+            comment.DownvoteCount.Should().Be(0);
+            votes.Should().BeEmpty();
+            db.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SetCommentVote_Downvote_With_Enough_Reputation_Succeeds()
+        {
+            var comment = new CommentModel { Id = 1, AuthorId = 9 };
+            var voter = new UserProfileModel { LoginId = 5, ReputationScore = 10 }; // == threshold
+            var (f, _) = Factory(new List<CommentModel> { comment }, new List<VoteModel>(),
+                new List<UserProfileModel> { voter });
+
+            var outcome = await new VoteProcessor(f.Object).SetCommentVote(1, 5, VoteType.Downvote);
+
+            outcome!.BelowDownvoteThreshold.Should().BeFalse();
+            outcome.DownvoteCount.Should().Be(1);
         }
     }
 }
