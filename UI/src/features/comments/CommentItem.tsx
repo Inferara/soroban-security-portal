@@ -7,6 +7,7 @@ import { CommentEditor } from './CommentEditor';
 import { CommentVoteButtons } from './CommentVoteButtons';
 import { highlightMentions } from './mentions';
 import { FlagButton } from '../../components/FlagButton';
+import { CommentHistoryButton } from './CommentHistoryButton';
 
 interface CommentItemProps {
   comment: Comment;
@@ -17,6 +18,7 @@ interface CommentItemProps {
   onEdit: (id: number, content: string) => Promise<boolean>;
   onDelete: (id: number) => void;
   isAdmin: boolean;
+  isAdminOrModerator?: boolean;
   isReply?: boolean;
 }
 
@@ -29,6 +31,7 @@ export const CommentItem: FC<CommentItemProps> = ({
   onEdit,
   onDelete,
   isAdmin,
+  isAdminOrModerator = false,
   isReply = false,
 }) => {
   const [replying, setReplying] = useState(false);
@@ -103,6 +106,10 @@ export const CommentItem: FC<CommentItemProps> = ({
               {canReply && !comment.isOwn && (
                 <FlagButton contentType="comment" contentId={comment.id} size="small" />
               )}
+              {/* Moderators/admins can inspect what an edited comment used to say. */}
+              {comment.isEdited && isAdminOrModerator && (
+                <CommentHistoryButton commentId={comment.id} />
+              )}
             </Box>
           </>
         )}
@@ -134,6 +141,7 @@ export const CommentItem: FC<CommentItemProps> = ({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 isAdmin={isAdmin}
+                isAdminOrModerator={isAdminOrModerator}
                 isReply
               />
             ))}

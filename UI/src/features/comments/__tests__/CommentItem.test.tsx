@@ -82,6 +82,21 @@ describe('CommentItem', () => {
     expect(screen.queryByRole('button', { name: /report content/i })).not.toBeInTheDocument();
   });
 
+  it('shows the edit-history button on an edited comment for a moderator/admin', () => {
+    render(<CommentItem comment={make({ isEdited: true })} {...defaultProps} isAdminOrModerator />);
+    expect(screen.getByRole('button', { name: /history/i })).toBeInTheDocument();
+  });
+
+  it('hides the edit-history button when the comment was never edited', () => {
+    render(<CommentItem comment={make({ isEdited: false })} {...defaultProps} isAdminOrModerator />);
+    expect(screen.queryByRole('button', { name: /history/i })).not.toBeInTheDocument();
+  });
+
+  it('hides the edit-history button from non-moderators even on an edited comment', () => {
+    render(<CommentItem comment={make({ isEdited: true })} {...defaultProps} isAdminOrModerator={false} />);
+    expect(screen.queryByRole('button', { name: /history/i })).not.toBeInTheDocument();
+  });
+
   it('reveals inline CommentEditor when Reply is clicked', () => {
     render(<CommentItem comment={make()} {...defaultProps} canReply onReply={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /reply/i }));

@@ -45,3 +45,9 @@ export interface UserSearchResult {
   displayName: string;
   username: string;
 }
+
+// A past version of a comment, returned by the moderator-only edit-history endpoint.
+export interface CommentEditHistoryEntry {
+  editedAt: string;
+  previousContent: string;
+}

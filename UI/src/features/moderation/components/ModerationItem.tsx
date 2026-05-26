@@ -22,8 +22,8 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
     const [showReasonInput, setShowReasonInput] = useState<'hide' | 'delete' | null>(null);
 
     // Link to the actual flagged content so a moderator can open it in context.
-    // Ratings have no standalone page (they live on a protocol/auditor), so they
-    // show their preview as plain text instead of a link.
+    // Ratings and comments have no standalone page (they live on a protocol/auditor
+    // or a vuln/report), so they show their preview as plain text instead of a link.
     const hasDetailLink = item.contentType === 'report' || item.contentType === 'vulnerability';
     const detailPath = `${environment.basePath}/${item.contentType === 'report' ? 'report' : 'vulnerability'}/${item.contentId}`;
 

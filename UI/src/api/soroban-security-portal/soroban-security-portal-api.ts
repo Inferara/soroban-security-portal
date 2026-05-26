@@ -15,7 +15,7 @@ import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
 import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
 import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
-import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType, UserSearchResult } from './models/comment';
+import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType, UserSearchResult, CommentEditHistoryEntry } from './models/comment';
 import { Notification, NotificationType } from './models/notification';
 
 // --- TAGS ---
@@ -611,6 +611,13 @@ export const editCommentCall = async (id: number, content: string): Promise<Comm
     const client = await getRestClient();
     const response = await client.request(`api/v1/comments/${id}`, 'PUT', { content });
     return response.data as Comment;
+};
+
+// Moderator-only: past versions of an edited comment.
+export const getCommentHistoryCall = async (id: number): Promise<CommentEditHistoryEntry[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}/history`, 'GET');
+    return response.data as CommentEditHistoryEntry[];
 };
 
 // --- USER SEARCH ---

@@ -12,7 +12,7 @@ interface CommentListProps {
 }
 
 export const CommentList: FC<CommentListProps> = ({ entityType, entityId }) => {
-  const { isAuthenticated, isAdmin, login } = useAppAuth();
+  const { isAuthenticated, isAdmin, isAdminOrModerator, login } = useAppAuth();
   const { comments, loading, error, hasMore, loadMore, post, vote, edit, remove } = useComments(entityType, entityId);
   const canVote = isAuthenticated;
 
@@ -49,6 +49,7 @@ export const CommentList: FC<CommentListProps> = ({ entityType, entityId }) => {
           onEdit={(id, content) => edit(id, content)}
           onDelete={(id) => { void remove(id); }}
           isAdmin={isAdmin}
+          isAdminOrModerator={isAdminOrModerator}
         />
       ))}
 
