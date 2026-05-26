@@ -135,20 +135,6 @@ namespace SorobanSecurityPortalApi.Tests.Data
             dbMock.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
 
-        private static Mock<DbSet<T>> CreateDbSetMock2<T>(List<T> source) where T : class
-        {
-            var q = source.AsQueryable();
-            var m = new Mock<DbSet<T>>();
-            m.As<IQueryable<T>>().Setup(x => x.Provider).Returns(new TestAsyncQueryProvider<T>(q.Provider));
-            m.As<IQueryable<T>>().Setup(x => x.Expression).Returns(q.Expression);
-            m.As<IQueryable<T>>().Setup(x => x.ElementType).Returns(q.ElementType);
-            m.As<IQueryable<T>>().Setup(x => x.GetEnumerator()).Returns(q.GetEnumerator());
-            m.As<IAsyncEnumerable<T>>().Setup(x => x.GetAsyncEnumerator(It.IsAny<CancellationToken>()))
-                .Returns(new TestAsyncEnumerator<T>(q.GetEnumerator()));
-            m.Setup(d => d.Add(It.IsAny<T>())).Callback<T>(source.Add);
-            return m;
-        }
-
         private static Mock<IDbContextFactory<Db>> BuildFullFactory(
             List<CommentModel> comments,
             List<VulnerabilityModel>? vulns = null,
@@ -159,11 +145,11 @@ namespace SorobanSecurityPortalApi.Tests.Data
                 new Mock<IDbQuery>().Object,
                 new Mock<Microsoft.Extensions.Logging.ILogger<Db>>().Object,
                 new Mock<IDataSourceProvider>().Object) { CallBase = true };
-            dbMock.Setup(d => d.Comment).Returns(CreateDbSetMock2(comments).Object);
-            dbMock.Setup(d => d.Vulnerability).Returns(CreateDbSetMock2(vulns ?? new()).Object);
-            dbMock.Setup(d => d.Report).Returns(CreateDbSetMock2(reports ?? new()).Object);
+            dbMock.Setup(d => d.Comment).Returns(CreateDbSetMock(comments).Object);
+            dbMock.Setup(d => d.Vulnerability).Returns(CreateDbSetMock(vulns ?? new()).Object);
+            dbMock.Setup(d => d.Report).Returns(CreateDbSetMock(reports ?? new()).Object);
             // Login is not virtual — assign directly on the mock object.
-            dbMock.Object.Login = CreateDbSetMock2(logins ?? new()).Object;
+            dbMock.Object.Login = CreateDbSetMock(logins ?? new()).Object;
             dbMock.Setup(d => d.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
             var factory = new Mock<IDbContextFactory<Db>>();
@@ -205,6 +191,13 @@ namespace SorobanSecurityPortalApi.Tests.Data
         }
 
         [Fact]
+        public async Task ListReplies_Returns_Empty_When_No_Parents()
+        {
+            var processor = new CommentProcessor(BuildFullFactory(new List<CommentModel>()).Object);
+            (await processor.ListReplies(EntityType.Report, 9, new List<int>())).Should().BeEmpty();
+        }
+
+        [Fact]
         public async Task EntityExists_True_For_Existing_Report_And_Vulnerability()
         {
             var processor = new CommentProcessor(BuildFullFactory(
@@ -215,6 +208,7 @@ namespace SorobanSecurityPortalApi.Tests.Data
             (await processor.EntityExists(EntityType.Vulnerability, 7)).Should().BeTrue();
             (await processor.EntityExists(EntityType.Report, 8)).Should().BeTrue();
             (await processor.EntityExists(EntityType.Report, 999)).Should().BeFalse();
+            (await processor.EntityExists(EntityType.Protocol, 1)).Should().BeFalse();
         }
 
         [Fact]
