@@ -57,6 +57,7 @@ public class Startup
         // Explicit Scoped registration before the convention scan so the scan skips ICommentService.
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IVoteService, VoteService>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         // Moderation target resolvers registered before the convention scan so the scan skips them.
         // Multiple IModerationTarget registrations are intentional: ModerationTargetRegistry collects all via IEnumerable<IModerationTarget>.
