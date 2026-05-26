@@ -29,7 +29,7 @@ export const useComments = (entityType: CommentEntityType, entityId: number): Us
     try {
       const [pageData, total] = await Promise.all([
         getCommentsCall(entityType, entityId, pageToLoad),
-        pageToLoad === 1 ? getCommentCountCall(entityType, entityId) : Promise.resolve(count),
+        pageToLoad === 1 ? getCommentCountCall(entityType, entityId) : Promise.resolve(0),
       ]);
       setComments((prev) => (append ? [...prev, ...pageData] : pageData));
       if (pageToLoad === 1) setCount(total);
@@ -40,7 +40,7 @@ export const useComments = (entityType: CommentEntityType, entityId: number): Us
     } finally {
       setLoading(false);
     }
-  }, [entityType, entityId, count]);
+  }, [entityType, entityId]);
 
   useEffect(() => {
     if (entityId > 0) void load(1, false);
