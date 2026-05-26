@@ -62,13 +62,14 @@ describe('CommentItem', () => {
     expect(screen.getByRole('textbox', { name: /comment/i })).toBeInTheDocument();
   });
 
-  it('hides inline editor after Cancel in reply editor', () => {
+  it('hides inline editor after clicking the editor Cancel', () => {
     render(<CommentItem comment={make()} canReply onReply={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /reply/i }));
-    // The Reply toggle button now shows "Cancel" label on the main button
+    // Two "Cancel" buttons are now present: [0] the Reply toggle (relabeled "Cancel"
+    // while open) and [1] the CommentEditor's own Cancel. Exercise the editor's Cancel.
     const cancelButtons = screen.getAllByRole('button', { name: /cancel/i });
-    // The first Cancel button belongs to the Reply toggle; click the CommentEditor cancel
-    fireEvent.click(cancelButtons[0]);
+    expect(cancelButtons).toHaveLength(2);
+    fireEvent.click(cancelButtons[1]);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 });

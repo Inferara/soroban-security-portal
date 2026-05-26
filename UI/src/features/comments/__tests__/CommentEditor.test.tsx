@@ -28,6 +28,7 @@ describe('CommentEditor', () => {
     fireEvent.change(textarea, { target: { value: 'my comment' } });
     fireEvent.click(screen.getByRole('button', { name: /comment/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith('my comment'));
+    await waitFor(() => expect(screen.getByLabelText('Comment')).toHaveValue(''));
   });
 
   it('renders Cancel button when onCancel is provided', () => {

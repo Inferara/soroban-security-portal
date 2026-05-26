@@ -6,8 +6,6 @@ interface CommentEditorProps {
   onSubmit: (content: string) => Promise<boolean>;
   onCancel?: () => void;
   submitLabel?: string;
-  placeholder?: string;
-  autoFocus?: boolean;
 }
 
 export const CommentEditor: FC<CommentEditorProps> = ({ onSubmit, onCancel, submitLabel = 'Comment' }) => {
@@ -17,9 +15,12 @@ export const CommentEditor: FC<CommentEditorProps> = ({ onSubmit, onCancel, subm
   const handleSubmit = async () => {
     if (!content.trim() || submitting) return;
     setSubmitting(true);
-    const ok = await onSubmit(content);
-    setSubmitting(false);
-    if (ok) setContent('');
+    try {
+      const ok = await onSubmit(content);
+      if (ok) setContent('');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
