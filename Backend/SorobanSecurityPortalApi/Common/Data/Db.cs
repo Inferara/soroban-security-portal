@@ -32,6 +32,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<ModerationActionModel> ModerationAction { get; set; }
         public virtual DbSet<CommentModel> Comment { get; set; }
         public virtual DbSet<VoteModel> Vote { get; set; }
+        public virtual DbSet<MentionModel> Mention { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
@@ -187,6 +188,11 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .IsUnique();
             builder.Entity<VoteModel>()
                 .HasIndex(v => new { v.EntityType, v.EntityId });
+
+            builder.Entity<MentionModel>()
+                .HasIndex(m => m.CommentId);
+            builder.Entity<MentionModel>()
+                .HasIndex(m => m.MentionedUserId);
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function
