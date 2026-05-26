@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Distributed;
@@ -137,6 +136,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task DeleteComment(int id)
         {
             var userId = await _userContext.GetLoginIdAsync();
+            if (userId == 0) throw new UnauthorizedAccessException("User not logged in.");
             var comment = await _processor.Get(id);
             if (comment == null) throw new KeyNotFoundException($"Comment with id {id} not found.");
 

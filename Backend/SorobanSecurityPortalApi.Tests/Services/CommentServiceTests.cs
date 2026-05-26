@@ -174,5 +174,46 @@ namespace SorobanSecurityPortalApi.Tests.Services
             await Build().Invoking(s => s.DeleteComment(100)).Should().ThrowAsync<UnauthorizedAccessException>();
             _processor.Verify(p => p.SoftDelete(It.IsAny<int>()), Times.Never);
         }
+
+        [Fact]
+        public async Task GetCount_Returns_Cached_Value_Without_Hitting_Db()
+        {
+            var key = CommentCacheKeysProbe(EntityType.Report, 9);
+            _cache.Setup(c => c.GetAsync(key, It.IsAny<System.Threading.CancellationToken>()))
+                .ReturnsAsync(System.Text.Encoding.UTF8.GetBytes("5"));
+
+            var count = await Build().GetCount(EntityType.Report, 9);
+
+            count.Should().Be(5);
+            _processor.Verify(p => p.CountByEntity(It.IsAny<EntityType>(), It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task AddComment_Rejects_Parent_On_Different_Entity()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.EntityExists(EntityType.Report, 9)).ReturnsAsync(true);
+            AllowFilter();
+            _processor.Setup(p => p.Get(50)).ReturnsAsync(new CommentModel { Id = 50, EntityType = EntityType.Vulnerability, EntityId = 99 });
+
+            await Build().Invoking(s => s.AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, ParentCommentId = 50, Content = "x" }))
+                .Should().ThrowAsync<KeyNotFoundException>();
+        }
+
+        [Fact]
+        public async Task AddComment_Reply_To_TopLevel_Parent_Keeps_Parent_Id()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.EntityExists(EntityType.Report, 9)).ReturnsAsync(true);
+            AllowFilter();
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string>());
+            _processor.Setup(p => p.Get(1)).ReturnsAsync(new CommentModel { Id = 1, ParentCommentId = null, EntityType = EntityType.Report, EntityId = 9 });
+            CommentModel? saved = null;
+            _processor.Setup(p => p.Add(It.IsAny<CommentModel>())).ReturnsAsync((CommentModel c) => { saved = c; return c; });
+
+            await Build().AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, ParentCommentId = 1, Content = "x" });
+
+            saved!.ParentCommentId.Should().Be(1);
+        }
     }
 }
