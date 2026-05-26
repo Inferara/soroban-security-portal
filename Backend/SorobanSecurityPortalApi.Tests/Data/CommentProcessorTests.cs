@@ -134,5 +134,104 @@ namespace SorobanSecurityPortalApi.Tests.Data
 
             dbMock.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
+
+        private static Mock<DbSet<T>> CreateDbSetMock2<T>(List<T> source) where T : class
+        {
+            var q = source.AsQueryable();
+            var m = new Mock<DbSet<T>>();
+            m.As<IQueryable<T>>().Setup(x => x.Provider).Returns(new TestAsyncQueryProvider<T>(q.Provider));
+            m.As<IQueryable<T>>().Setup(x => x.Expression).Returns(q.Expression);
+            m.As<IQueryable<T>>().Setup(x => x.ElementType).Returns(q.ElementType);
+            m.As<IQueryable<T>>().Setup(x => x.GetEnumerator()).Returns(q.GetEnumerator());
+            m.As<IAsyncEnumerable<T>>().Setup(x => x.GetAsyncEnumerator(It.IsAny<CancellationToken>()))
+                .Returns(new TestAsyncEnumerator<T>(q.GetEnumerator()));
+            m.Setup(d => d.Add(It.IsAny<T>())).Callback<T>(source.Add);
+            return m;
+        }
+
+        private static Mock<IDbContextFactory<Db>> BuildFullFactory(
+            List<CommentModel> comments,
+            List<VulnerabilityModel>? vulns = null,
+            List<ReportModel>? reports = null,
+            List<LoginModel>? logins = null)
+        {
+            var dbMock = new Mock<Db>(
+                new Mock<IDbQuery>().Object,
+                new Mock<Microsoft.Extensions.Logging.ILogger<Db>>().Object,
+                new Mock<IDataSourceProvider>().Object) { CallBase = true };
+            dbMock.Setup(d => d.Comment).Returns(CreateDbSetMock2(comments).Object);
+            dbMock.Setup(d => d.Vulnerability).Returns(CreateDbSetMock2(vulns ?? new()).Object);
+            dbMock.Setup(d => d.Report).Returns(CreateDbSetMock2(reports ?? new()).Object);
+            // Login is not virtual — assign directly on the mock object.
+            dbMock.Object.Login = CreateDbSetMock2(logins ?? new()).Object;
+            dbMock.Setup(d => d.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+            var factory = new Mock<IDbContextFactory<Db>>();
+            factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dbMock.Object);
+            return factory;
+        }
+
+        [Fact]
+        public async Task CountByEntity_Counts_Visible_AllLevels_ForEntity()
+        {
+            var list = new List<CommentModel>
+            {
+                new() { Id = 1, EntityType = EntityType.Report, EntityId = 9, Content = "top" },
+                new() { Id = 2, EntityType = EntityType.Report, EntityId = 9, Content = "reply", ParentCommentId = 1 },
+                new() { Id = 3, EntityType = EntityType.Report, EntityId = 9, Content = "hidden", IsHidden = true },
+                new() { Id = 4, EntityType = EntityType.Report, EntityId = 9, Content = "deleted", IsDeleted = true },
+                new() { Id = 5, EntityType = EntityType.Vulnerability, EntityId = 9, Content = "other" },
+            };
+            var processor = new CommentProcessor(BuildFullFactory(list).Object);
+
+            (await processor.CountByEntity(EntityType.Report, 9)).Should().Be(2); // top + reply, excludes hidden/deleted/other-entity
+        }
+
+        [Fact]
+        public async Task ListReplies_Returns_Visible_Replies_For_Parents_OldestFirst()
+        {
+            var list = new List<CommentModel>
+            {
+                new() { Id = 10, EntityType = EntityType.Report, EntityId = 9, Content = "r1", ParentCommentId = 1, CreatedAt = new DateTime(2026,1,2) },
+                new() { Id = 11, EntityType = EntityType.Report, EntityId = 9, Content = "r0", ParentCommentId = 1, CreatedAt = new DateTime(2026,1,1) },
+                new() { Id = 12, EntityType = EntityType.Report, EntityId = 9, Content = "hidden", ParentCommentId = 1, IsHidden = true },
+                new() { Id = 13, EntityType = EntityType.Report, EntityId = 9, Content = "other-parent", ParentCommentId = 2 },
+            };
+            var processor = new CommentProcessor(BuildFullFactory(list).Object);
+
+            var replies = await processor.ListReplies(EntityType.Report, 9, new List<int> { 1 });
+
+            replies.Select(c => c.Id).Should().Equal(11, 10); // parent 1, visible, oldest-first; excludes hidden + other parent
+        }
+
+        [Fact]
+        public async Task EntityExists_True_For_Existing_Report_And_Vulnerability()
+        {
+            var processor = new CommentProcessor(BuildFullFactory(
+                new List<CommentModel>(),
+                vulns: new List<VulnerabilityModel> { new() { Id = 7, Title = "v" } },
+                reports: new List<ReportModel> { new() { Id = 8, Name = "r" } }).Object);
+
+            (await processor.EntityExists(EntityType.Vulnerability, 7)).Should().BeTrue();
+            (await processor.EntityExists(EntityType.Report, 8)).Should().BeTrue();
+            (await processor.EntityExists(EntityType.Report, 999)).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task GetAuthorNames_Prefers_FullName_Falls_Back_To_Login()
+        {
+            var processor = new CommentProcessor(BuildFullFactory(
+                new List<CommentModel>(),
+                logins: new List<LoginModel>
+                {
+                    new() { LoginId = 1, FullName = "Alice A", Login = "alice" },
+                    new() { LoginId = 2, FullName = "", Login = "bob" },
+                }).Object);
+
+            var names = await processor.GetAuthorNames(new List<int> { 1, 2 });
+
+            names[1].Should().Be("Alice A");
+            names[2].Should().Be("bob");
+        }
     }
 }
