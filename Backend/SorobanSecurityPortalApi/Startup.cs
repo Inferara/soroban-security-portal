@@ -54,6 +54,8 @@ public class Startup
         // Explicit Scoped registration before the convention scan so the scan skips IRatingService.
         // Scoped is correct: RatingService depends on Db (DbContext) which is Scoped.
         services.AddScoped<IRatingService, RatingService>();
+        // Explicit Scoped registration before the convention scan so the scan skips ICommentService.
+        services.AddScoped<ICommentService, CommentService>();
 
         // Moderation target resolvers registered before the convention scan so the scan skips them.
         // Multiple IModerationTarget registrations are intentional: ModerationTargetRegistry collects all via IEnumerable<IModerationTarget>.
