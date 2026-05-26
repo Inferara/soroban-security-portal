@@ -24,10 +24,15 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private readonly Mock<IUserContextAccessor> _userContext = new();
         private readonly Mock<IDistributedCache> _cache = new();
         private readonly Mock<IVoteProcessor> _voteProcessor = new();
+        private readonly Mock<IMentionProcessor> _mentionProcessor = new();
         private readonly IMapper _mapper = new MapperConfiguration(c => c.AddProfile<CommentModelProfile>(), NullLoggerFactory.Instance).CreateMapper();
 
-        private CommentService Build() =>
-            new CommentService(_processor.Object, _filter.Object, _userContext.Object, _mapper, _cache.Object, _voteProcessor.Object);
+        private CommentService Build()
+        {
+            _mentionProcessor.Setup(m => m.ReplaceCommentMentions(It.IsAny<int>(), It.IsAny<string>()))
+                .ReturnsAsync(new List<int>());
+            return new CommentService(_processor.Object, _filter.Object, _userContext.Object, _mapper, _cache.Object, _voteProcessor.Object, _mentionProcessor.Object);
+        }
 
         private void AllowFilter()
         {
@@ -320,6 +325,20 @@ namespace SorobanSecurityPortalApi.Tests.Services
         {
             _processor.Setup(p => p.Get(7)).ReturnsAsync((CommentModel?)null);
             await Build().Invoking(s => s.GetEditHistory(7)).Should().ThrowAsync<KeyNotFoundException>();
+        }
+
+        [Fact]
+        public async Task AddComment_Stores_Mentions_From_Content()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.EntityExists(EntityType.Report, 9)).ReturnsAsync(true);
+            AllowFilter();
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string> { { 5, "Alice" } });
+            _processor.Setup(p => p.Add(It.IsAny<CommentModel>())).ReturnsAsync((CommentModel c) => { c.Id = 100; return c; });
+
+            await Build().AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, Content = "hey @bob" });
+
+            _mentionProcessor.Verify(m => m.ReplaceCommentMentions(100, "hey @bob"), Times.Once);
         }
     }
 }

@@ -31,11 +31,12 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IMapper _mapper;
         private readonly IDistributedCache _cache;
         private readonly IVoteProcessor _voteProcessor;
+        private readonly IMentionProcessor _mentionProcessor;
 
         public CommentService(
             ICommentProcessor processor, IContentFilterService contentFilter,
             IUserContextAccessor userContext, IMapper mapper, IDistributedCache cache,
-            IVoteProcessor voteProcessor)
+            IVoteProcessor voteProcessor, IMentionProcessor mentionProcessor)
         {
             _processor = processor;
             _contentFilter = contentFilter;
@@ -43,6 +44,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _mapper = mapper;
             _cache = cache;
             _voteProcessor = voteProcessor;
+            _mentionProcessor = mentionProcessor;
         }
 
         public async Task<List<CommentViewModel>> GetComments(EntityType entityType, int entityId, int page, int pageSize = 20)
@@ -144,6 +146,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 CreatedAt = DateTime.UtcNow
             };
             var saved = await _processor.Add(comment);
+            await _mentionProcessor.ReplaceCommentMentions(saved.Id, request.Content);
             await InvalidateCount(request.EntityType, request.EntityId);
 
             var names = await _processor.GetAuthorNames(new List<int> { userId });
@@ -198,6 +201,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var updated = await _processor.UpdateContent(
                 id, content, filterResult.SanitizedContent ?? string.Empty, JsonSerializer.Serialize(history));
             if (updated == null) throw new KeyNotFoundException($"Comment with id {id} not found.");
+            await _mentionProcessor.ReplaceCommentMentions(id, content);
 
             var names = await _processor.GetAuthorNames(new List<int> { userId });
             var vm = _mapper.Map<CommentViewModel>(updated);
