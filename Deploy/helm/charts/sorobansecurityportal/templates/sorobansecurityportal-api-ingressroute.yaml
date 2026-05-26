@@ -23,3 +23,10 @@ spec:
     services:
     - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
       port: 8080
+  # SignalR notifications hub (/hubs/notifications). Traefik upgrades the
+  # websocket automatically; the path just has to reach the API service.
+  - kind: Rule
+    match: Host(`{{ .Values.global.app.domain }}`) && PathPrefix(`/hubs`)
+    services:
+    - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
+      port: 8080
