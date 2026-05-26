@@ -245,6 +245,19 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateComment_Rejects_When_Rate_Limited()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.Get(7)).ReturnsAsync(
+                new CommentModel { Id = 7, AuthorId = 5, CreatedAt = DateTime.UtcNow });
+            _filter.Setup(f => f.CheckRateLimitAsync(5)).ReturnsAsync(false);
+
+            await Build().Invoking(s => s.UpdateComment(7, "new"))
+                .Should().ThrowAsync<InvalidOperationException>().WithMessage("*Rate limit*");
+            _filter.Verify(f => f.FilterContentAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
         public async Task UpdateComment_Rejects_Blocked_Content()
         {
             _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);

@@ -173,13 +173,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 throw new InvalidOperationException($"Comment blocked: {string.Join("; ", filterResult.Warnings)}");
 
             var history = ParseHistory(comment.EditHistory);
+            // Capture the raw Markdown (not ContentHtml) so the trail stays diffable.
             history.Add(new CommentEditHistoryEntry { EditedAt = DateTime.UtcNow, PreviousContent = comment.Content });
 
             var updated = await _processor.UpdateContent(
                 id, content, filterResult.SanitizedContent ?? string.Empty, JsonSerializer.Serialize(history));
+            if (updated == null) throw new KeyNotFoundException($"Comment with id {id} not found.");
 
             var names = await _processor.GetAuthorNames(new List<int> { userId });
-            var vm = _mapper.Map<CommentViewModel>(updated!);
+            var vm = _mapper.Map<CommentViewModel>(updated);
             vm.AuthorName = names.TryGetValue(userId, out var nm) && !string.IsNullOrWhiteSpace(nm) ? nm : "Anonymous";
             return vm;
         }
