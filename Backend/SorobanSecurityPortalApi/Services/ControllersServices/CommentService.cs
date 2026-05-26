@@ -88,7 +88,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
 
             // Surface the requesting user's own vote + IsOwn flag on each comment (anonymous → skipped).
-            var viewerId = await _userContext.GetLoginIdAsync();
+            var viewerId = await _userContext.GetLoginIdOrNullAsync() ?? 0;
             if (viewerId != 0)
             {
                 var allIds = result.Select(c => c.Id).Concat(result.SelectMany(c => c.Replies).Select(r => r.Id)).ToList();

@@ -85,6 +85,42 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
+        public async Task GetComments_Does_Not_Throw_For_Anonymous_Viewer()
+        {
+            // Regression: an anonymous reader (no login id) must be able to read comments.
+            _processor.Setup(p => p.ListByEntity(It.IsAny<EntityType>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), false))
+                .ReturnsAsync(new List<CommentModel> { new() { Id = 1, AuthorId = 5, Content = "x" } });
+            _processor.Setup(p => p.ListReplies(It.IsAny<EntityType>(), It.IsAny<int>(), It.IsAny<List<int>>()))
+                .ReturnsAsync(new List<CommentModel>());
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string>());
+            _userContext.Setup(u => u.GetLoginIdOrNullAsync()).ReturnsAsync((int?)null);
+
+            var act = async () => await Build().GetComments(EntityType.Report, 9, 1);
+
+            await act.Should().NotThrowAsync();
+            _voteProcessor.Verify(v => v.GetUserVotesForComments(It.IsAny<int>(), It.IsAny<List<int>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetComments_Enriches_Viewer_Vote_And_IsOwn_For_Authenticated_User()
+        {
+            _processor.Setup(p => p.ListByEntity(EntityType.Report, 9, 1, 20, false))
+                .ReturnsAsync(new List<CommentModel> { new() { Id = 1, AuthorId = 5, EntityType = EntityType.Report, EntityId = 9, Content = "top" } });
+            _processor.Setup(p => p.ListReplies(It.IsAny<EntityType>(), It.IsAny<int>(), It.IsAny<List<int>>()))
+                .ReturnsAsync(new List<CommentModel>());
+            _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>()))
+                .ReturnsAsync(new Dictionary<int, string> { { 5, "Alice" } });
+            _userContext.Setup(u => u.GetLoginIdOrNullAsync()).ReturnsAsync(5);
+            _voteProcessor.Setup(v => v.GetUserVotesForComments(5, It.IsAny<List<int>>()))
+                .ReturnsAsync(new Dictionary<int, VoteType> { { 1, VoteType.Upvote } });
+
+            var result = await Build().GetComments(EntityType.Report, 9, 1);
+
+            result[0].IsOwn.Should().BeTrue();
+            result[0].CurrentUserVote.Should().Be("upvote");
+        }
+
+        [Fact]
         public async Task GetCount_Caches_Result()
         {
             _cache.Setup(c => c.GetAsync(CommentCacheKeysProbe(EntityType.Report, 9), It.IsAny<System.Threading.CancellationToken>()))
@@ -390,7 +426,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
         [Fact]
         public async Task GetComments_Sets_IsOwn_For_Viewers_Own_Comments()
         {
-            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _userContext.Setup(u => u.GetLoginIdOrNullAsync()).ReturnsAsync(5);
             _processor.Setup(p => p.ListByEntity(EntityType.Report, 9, 1, 20, false))
                 .ReturnsAsync(new List<CommentModel> {
                     new() { Id = 1, AuthorId = 5, EntityType = EntityType.Report, EntityId = 9, Content = "mine" },
