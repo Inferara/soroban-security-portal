@@ -7,7 +7,9 @@ namespace SorobanSecurityPortalApi.Models.DbModels
     public enum EntityType
     {
         Protocol = 0,
-        Auditor = 1
+        Auditor = 1,
+        Vulnerability = 2,
+        Report = 3
     }
 
     [Table("rating")]
