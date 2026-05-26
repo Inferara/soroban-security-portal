@@ -9,10 +9,13 @@ export const createNotificationConnection = (getToken: () => string | undefined)
       accessTokenFactory: () => getToken() ?? '',
     })
     .withAutomaticReconnect()
-    // Be tolerant of quiet periods behind the reverse proxy: only treat the
-    // connection as dead after 60s of silence (default is 30s), and ping the
-    // server every 15s so the link stays warm even when no notifications flow.
-    .withServerTimeout(60000)
+    // The hub's server->client keep-alive ping does not survive the reverse
+    // proxy, so an idle socket looks "silent" to the client even though it is
+    // healthy and still delivers notifications. A real drop is detected
+    // immediately by the socket close event, so we can safely raise the
+    // silence tolerance to 5 minutes to avoid pointless idle reconnects, while
+    // still pinging the server every 15s to keep the server side warm.
+    .withServerTimeout(300000)
     .withKeepAliveInterval(15000)
     .configureLogging(LogLevel.Warning)
     .build();
