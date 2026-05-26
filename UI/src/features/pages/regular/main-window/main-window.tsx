@@ -52,6 +52,8 @@ import { useMainWindow } from './hooks';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
 import { BookmarkMenu } from './components/BookmarkMenu';
+import { NotificationBell } from '../../../notifications/NotificationBell';
+import { MentionsInbox } from '../../../notifications/MentionsInbox';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { AccentColors } from '../../../../theme';
 import { isAdminOrModerator } from '../../../authentication/authPermissions';
@@ -248,6 +250,7 @@ export const MainWindow: FC = () => {
                 <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
                 <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
               </Menu>
+              {!auth.isLoading && <NotificationBell />}
               {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks} />}
             </>
           ) : (
@@ -357,6 +360,7 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/auditor/:id`} element={<AuditorDetails />} />
             <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
             <Route path={`${environment.basePath}/badge-demo`} element={<BadgeDemoPage />} />
+            <Route path={`${environment.basePath}/mentions`} element={<MentionsInbox />} />
           </Routes>
         </Box>
       </Box>
