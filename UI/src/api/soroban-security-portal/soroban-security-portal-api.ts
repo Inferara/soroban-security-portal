@@ -15,7 +15,7 @@ import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
 import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
 import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
-import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType } from './models/comment';
+import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType, UserSearchResult } from './models/comment';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -610,6 +610,13 @@ export const editCommentCall = async (id: number, content: string): Promise<Comm
     const client = await getRestClient();
     const response = await client.request(`api/v1/comments/${id}`, 'PUT', { content });
     return response.data as Comment;
+};
+
+// --- USER SEARCH ---
+export const searchUsersCall = async (q: string): Promise<UserSearchResult[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/user/search?q=${encodeURIComponent(q)}`, 'GET');
+    return response.data as UserSearchResult[];
 };
 
 // Rest client

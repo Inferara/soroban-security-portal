@@ -39,3 +39,9 @@ export interface VoteResult {
   downvoteCount: number;
   currentUserVote: string | null;
 }
+
+export interface UserSearchResult {
+  id: number;
+  displayName: string;
+  username: string;
+}
