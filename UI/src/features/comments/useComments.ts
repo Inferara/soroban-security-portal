@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { addCommentCall, getCommentCountCall, getCommentsCall } from '../../api/soroban-security-portal/soroban-security-portal-api';
-import { Comment, CommentEntityType, CreateCommentRequest } from '../../api/soroban-security-portal/models/comment';
+import { addCommentCall, deleteCommentCall, editCommentCall, getCommentCountCall, getCommentsCall, voteCommentCall } from '../../api/soroban-security-portal/soroban-security-portal-api';
+import { Comment, CommentEntityType, CreateCommentRequest, VoteType } from '../../api/soroban-security-portal/models/comment';
 
 export interface UseCommentsResult {
   comments: Comment[];
@@ -11,9 +11,18 @@ export interface UseCommentsResult {
   loadMore: () => Promise<void>;
   post: (content: string, parentCommentId?: number | null) => Promise<boolean>;
   refresh: () => Promise<void>;
+  vote: (id: number, voteType: VoteType) => Promise<void>;
+  edit: (id: number, content: string) => Promise<boolean>;
+  remove: (id: number) => Promise<boolean>;
 }
 
 const PAGE_SIZE = 20;
+
+const mapTree = (list: Comment[], id: number, fn: (c: Comment) => Comment): Comment[] =>
+  list.map((c) => (c.id === id ? fn(c) : { ...c, replies: mapTree(c.replies, id, fn) }));
+
+const removeFromTree = (list: Comment[], id: number): Comment[] =>
+  list.filter((c) => c.id !== id).map((c) => ({ ...c, replies: removeFromTree(c.replies, id) }));
 
 export const useComments = (entityType: CommentEntityType, entityId: number): UseCommentsResult => {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -61,5 +70,30 @@ export const useComments = (entityType: CommentEntityType, entityId: number): Us
     }
   }, [entityType, entityId, load]);
 
-  return { comments, count, loading, error, hasMore, loadMore, post, refresh };
+  const vote = useCallback(async (id: number, voteType: VoteType) => {
+    try {
+      const r = await voteCommentCall(id, voteType);
+      setComments((prev) => mapTree(prev, id, (c) => ({ ...c, upvoteCount: r.upvoteCount, downvoteCount: r.downvoteCount, currentUserVote: r.currentUserVote })));
+    } catch { /* rest-api already surfaces the error toast */ }
+  }, []);
+
+  const edit = useCallback(async (id: number, content: string): Promise<boolean> => {
+    if (!content.trim()) return false;
+    try {
+      const updated = await editCommentCall(id, content);
+      setComments((prev) => mapTree(prev, id, (c) => ({ ...c, content: updated.content, contentHtml: updated.contentHtml, isEdited: true, updatedAt: updated.updatedAt })));
+      return true;
+    } catch { return false; }
+  }, []);
+
+  const remove = useCallback(async (id: number): Promise<boolean> => {
+    try {
+      await deleteCommentCall(id);
+      setComments((prev) => removeFromTree(prev, id));
+      setCount((c) => Math.max(0, c - 1));
+      return true;
+    } catch { return false; }
+  }, []);
+
+  return { comments, count, loading, error, hasMore, loadMore, post, refresh, vote, edit, remove };
 };

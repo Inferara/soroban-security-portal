@@ -31,3 +31,11 @@ export interface CreateCommentRequest {
   parentCommentId?: number | null;
   content: string;
 }
+
+export type VoteType = 'upvote' | 'downvote' | 'none';
+
+export interface VoteResult {
+  upvoteCount: number;
+  downvoteCount: number;
+  currentUserVote: string | null;
+}

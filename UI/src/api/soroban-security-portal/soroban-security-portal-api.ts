@@ -15,7 +15,7 @@ import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
 import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
 import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
-import { Comment, CommentEntityType, CreateCommentRequest } from './models/comment';
+import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType } from './models/comment';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -598,6 +598,18 @@ export const addCommentCall = async (request: CreateCommentRequest): Promise<Com
 export const deleteCommentCall = async (id: number): Promise<void> => {
     const client = await getRestClient();
     await client.request(`api/v1/comments/${id}`, 'DELETE');
+};
+
+export const voteCommentCall = async (id: number, voteType: VoteType): Promise<VoteResult> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}/vote`, 'POST', { voteType });
+    return response.data as VoteResult;
+};
+
+export const editCommentCall = async (id: number, content: string): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}`, 'PUT', { content });
+    return response.data as Comment;
 };
 
 // Rest client
