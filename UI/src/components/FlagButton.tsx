@@ -21,8 +21,9 @@ import { flagContentCall } from '../api/soroban-security-portal/soroban-security
 import { showError } from '../features/dialog-handler/dialog-handler';
 
 interface FlagButtonProps {
-    contentType: 'vulnerability' | 'report' | 'rating';
+    contentType: 'vulnerability' | 'report' | 'rating' | 'comment';
     contentId: number;
+    size?: 'small' | 'medium';
 }
 
 const REASON_OPTIONS: { value: string; label: string }[] = [
@@ -33,7 +34,7 @@ const REASON_OPTIONS: { value: string; label: string }[] = [
     { value: 'other', label: 'Other' },
 ];
 
-export const FlagButton: FC<FlagButtonProps> = ({ contentType, contentId }) => {
+export const FlagButton: FC<FlagButtonProps> = ({ contentType, contentId, size = 'medium' }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [reason, setReason] = useState('spam');
     const [comment, setComment] = useState('');
@@ -86,6 +87,7 @@ export const FlagButton: FC<FlagButtonProps> = ({ contentType, contentId }) => {
                     <IconButton
                         onClick={handleOpenDialog}
                         disabled={reported}
+                        size={size}
                         sx={{
                             color: 'action.active',
                             '&:hover': {
@@ -94,7 +96,7 @@ export const FlagButton: FC<FlagButtonProps> = ({ contentType, contentId }) => {
                         }}
                         aria-label={tooltipText}
                     >
-                        {reported ? <FlagIcon color="error" /> : <OutlinedFlagIcon />}
+                        {reported ? <FlagIcon color="error" fontSize={size} /> : <OutlinedFlagIcon fontSize={size} />}
                     </IconButton>
                 </span>
             </Tooltip>

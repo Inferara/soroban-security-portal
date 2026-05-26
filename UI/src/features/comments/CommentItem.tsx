@@ -6,6 +6,7 @@ import { MarkdownView } from '../../components/MarkdownView';
 import { CommentEditor } from './CommentEditor';
 import { CommentVoteButtons } from './CommentVoteButtons';
 import { highlightMentions } from './mentions';
+import { FlagButton } from '../../components/FlagButton';
 
 interface CommentItemProps {
   comment: Comment;
@@ -97,6 +98,10 @@ export const CommentItem: FC<CommentItemProps> = ({
                 >
                   Delete
                 </Button>
+              )}
+              {/* Let a logged-in reader flag someone else's comment for moderation. */}
+              {canReply && !comment.isOwn && (
+                <FlagButton contentType="comment" contentId={comment.id} size="small" />
               )}
             </Box>
           </>

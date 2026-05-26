@@ -67,6 +67,21 @@ describe('CommentItem', () => {
     expect(screen.queryByRole('button', { name: /reply/i })).not.toBeInTheDocument();
   });
 
+  it("shows the flag-for-moderation button on someone else's comment when logged in", () => {
+    render(<CommentItem comment={make({ isOwn: false })} {...defaultProps} canReply />);
+    expect(screen.getByRole('button', { name: /report content/i })).toBeInTheDocument();
+  });
+
+  it('hides the flag button on your own comment', () => {
+    render(<CommentItem comment={make({ isOwn: true })} {...defaultProps} canReply />);
+    expect(screen.queryByRole('button', { name: /report content/i })).not.toBeInTheDocument();
+  });
+
+  it('hides the flag button when logged out', () => {
+    render(<CommentItem comment={make({ isOwn: false })} {...defaultProps} canReply={false} />);
+    expect(screen.queryByRole('button', { name: /report content/i })).not.toBeInTheDocument();
+  });
+
   it('reveals inline CommentEditor when Reply is clicked', () => {
     render(<CommentItem comment={make()} {...defaultProps} canReply onReply={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /reply/i }));
