@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SorobanSecurityPortalApi.Authorization.Attributes;
+using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using SorobanSecurityPortalApi.Services.ControllersServices;
@@ -64,6 +66,37 @@ namespace SorobanSecurityPortalApi.Controllers
                 return NoContent();
             }
             catch (System.UnauthorizedAccessException) { return Forbid(); }
+            catch (KeyNotFoundException) { return NotFound($"Comment with id {id} not found."); }
+        }
+
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateCommentRequest request)
+        {
+            if (id <= 0) return BadRequest("Comment ID must be a positive integer.");
+            if (request == null || string.IsNullOrWhiteSpace(request.Content)) return BadRequest("Content must not be empty.");
+            if (request.Content.Length > 10000) return BadRequest("Content must not exceed 10000 characters.");
+
+            try
+            {
+                var result = await _commentService.UpdateComment(id, request.Content);
+                return Ok(result);
+            }
+            catch (System.UnauthorizedAccessException) { return Forbid(); }
+            catch (KeyNotFoundException) { return NotFound($"Comment with id {id} not found."); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpGet("{id}/history")]
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
+        public async Task<IActionResult> History(int id)
+        {
+            if (id <= 0) return BadRequest("Comment ID must be a positive integer.");
+            try
+            {
+                var result = await _commentService.GetEditHistory(id);
+                return Ok(result);
+            }
             catch (KeyNotFoundException) { return NotFound($"Comment with id {id} not found."); }
         }
     }
