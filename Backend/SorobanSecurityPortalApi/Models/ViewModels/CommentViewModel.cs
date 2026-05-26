@@ -47,6 +47,11 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string? CurrentUserVote { get; set; }
     }
 
+    public class VoteRequest
+    {
+        public string VoteType { get; set; } = string.Empty;
+    }
+
     // One entry in a comment's edit trail (stored as a JSON array in comment.edit_history).
     public class CommentEditHistoryEntry
     {

@@ -15,10 +15,12 @@ namespace SorobanSecurityPortalApi.Controllers
     public class CommentsController : ControllerBase
     {
         private readonly ICommentService _commentService;
+        private readonly IVoteService _voteService;
 
-        public CommentsController(ICommentService commentService)
+        public CommentsController(ICommentService commentService, IVoteService voteService)
         {
             _commentService = commentService;
+            _voteService = voteService;
         }
 
         [HttpGet]
@@ -98,6 +100,21 @@ namespace SorobanSecurityPortalApi.Controllers
                 return Ok(result);
             }
             catch (KeyNotFoundException) { return NotFound($"Comment with id {id} not found."); }
+        }
+
+        [HttpPost("{id}/vote")]
+        [Authorize]
+        public async Task<IActionResult> Vote(int id, [FromBody] VoteRequest request)
+        {
+            if (id <= 0) return BadRequest("Comment ID must be a positive integer.");
+            if (request == null) return BadRequest("Request body cannot be null.");
+            try
+            {
+                var result = await _voteService.Vote(id, request.VoteType);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException) { return NotFound($"Comment with id {id} not found."); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
         }
     }
 }
