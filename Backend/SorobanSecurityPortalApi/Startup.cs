@@ -11,6 +11,7 @@ using AspNetCore.Authentication.Basic;
 using Microsoft.OpenApi;
 using SorobanSecurityPortalApi.Services.ControllersServices;
 using SorobanSecurityPortalApi.Services.Moderation;
+using SorobanSecurityPortalApi.Services.Realtime;
 
 namespace SorobanSecurityPortalApi;
 
@@ -58,6 +59,7 @@ public class Startup
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IVoteService, VoteService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IRealtimePublisher, SignalRNotificationPublisher>();
 
         // Moderation target resolvers registered before the convention scan so the scan skips them.
         // Multiple IModerationTarget registrations are intentional: ModerationTargetRegistry collects all via IEnumerable<IModerationTarget>.
@@ -78,6 +80,15 @@ public class Startup
             {
                 EndPoints = { _config.DistributedCacheUrl },
                 Password = _config.DistributedCachePassword,
+            };
+        });
+        services.AddSignalR().AddStackExchangeRedis(options =>
+        {
+            options.Configuration = new StackExchange.Redis.ConfigurationOptions
+            {
+                EndPoints = { _config.DistributedCacheUrl },
+                Password = _config.DistributedCachePassword,
+                AbortOnConnectFail = false
             };
         });
         services.AddScoped<Db>();
@@ -127,7 +138,22 @@ public class Startup
                     return JwtBearerDefaults.AuthenticationScheme;
                 };
             })
-            .AddJwtBearer(options => { options.TokenValidationParameters = tokenValidationParameters; })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = tokenValidationParameters;
+                // SignalR sends the JWT on the websocket handshake as ?access_token=...
+                options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                            context.Token = accessToken;
+                        return Task.CompletedTask;
+                    }
+                };
+            })
             .AddBasic<BasicUserValidationService>(options => { options.SuppressWWWAuthenticateHeader = true; });
 
         services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
@@ -197,6 +223,7 @@ public class Startup
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
+            endpoints.MapHub<SorobanSecurityPortalApi.Hubs.NotificationHub>("/hubs/notifications");
             endpoints.MapHealthChecks("/health", new HealthCheckOptions
             {
                 ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
