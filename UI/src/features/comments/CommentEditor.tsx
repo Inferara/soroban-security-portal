@@ -1,6 +1,43 @@
 import { FC, useState } from 'react';
 import { Box, Button, Stack } from '@mui/material';
+import type { Monaco } from '@monaco-editor/react';
 import { MarkdownEditor } from '../../components/MarkdownEditor';
+import { searchUsersCall } from '../../api/soroban-security-portal/soroban-security-portal-api';
+
+// Module-level guard so React re-renders don't stack multiple providers.
+let mentionProviderRegistered = false;
+
+// NOTE: This provider is browser-verified only — Monaco is mocked in jsdom and
+// beforeMount will not fire during unit tests.
+const registerMentionProvider = (monaco: Monaco) => {
+  if (mentionProviderRegistered) return;
+  mentionProviderRegistered = true;
+  monaco.languages.registerCompletionItemProvider('markdown', {
+    triggerCharacters: ['@'],
+    provideCompletionItems: async (model: Monaco['editor']['ITextModel'], position: Monaco['editor']['IPosition']) => {
+      const line = model.getLineContent(position.lineNumber).slice(0, position.column - 1);
+      const match = /@([a-zA-Z0-9_.-]*)$/.exec(line);
+      if (!match) return { suggestions: [] };
+      const query = match[1];
+      const range = {
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+        startColumn: position.column - query.length, // replace what was typed after '@'
+        endColumn: position.column,
+      };
+      const users = await searchUsersCall(query).catch(() => [] as { id: number; displayName: string; username: string }[]);
+      return {
+        suggestions: users.map((u) => ({
+          label: `@${u.username}`,
+          kind: monaco.languages.CompletionItemKind.User,
+          detail: u.displayName,
+          insertText: `${u.username} `,
+          range,
+        })),
+      };
+    },
+  });
+};
 
 interface CommentEditorProps {
   onSubmit: (content: string) => Promise<boolean>;
@@ -26,7 +63,13 @@ export const CommentEditor: FC<CommentEditorProps> = ({ onSubmit, onCancel, subm
 
   return (
     <Box sx={{ mb: 2 }}>
-      <MarkdownEditor value={content} onChange={setContent} label="Comment" height="20vh" />
+      <MarkdownEditor
+        value={content}
+        onChange={setContent}
+        label="Comment"
+        height="20vh"
+        beforeMount={registerMentionProvider}
+      />
       <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
         <Button variant="contained" onClick={handleSubmit} disabled={!content.trim() || submitting}>
           {submitting ? 'Posting…' : submitLabel}
