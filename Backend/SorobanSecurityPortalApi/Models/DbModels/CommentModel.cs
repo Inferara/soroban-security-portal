@@ -23,9 +23,11 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public int? ParentCommentId { get; set; }
 
         [Required]
+        [MaxLength(10000)]
         public string Content { get; set; } = string.Empty;
 
         // Sanitized HTML produced by the content filter (populated when the API is added).
+        [Required]
         public string ContentHtml { get; set; } = string.Empty;
 
         // Moderation suppression flags (mirror RatingModel). Hidden or soft-deleted

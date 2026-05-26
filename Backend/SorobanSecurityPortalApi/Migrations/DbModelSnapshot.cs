@@ -190,7 +190,8 @@ namespace SorobanSecurityPortalApi.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
                         .HasColumnName("content");
 
                     b.Property<string>("ContentHtml")
@@ -732,7 +733,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2026, 5, 26, 11, 46, 57, 312, DateTimeKind.Utc).AddTicks(1084),
+                            Created = new DateTime(2026, 5, 26, 11, 54, 14, 384, DateTimeKind.Utc).AddTicks(2738),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",

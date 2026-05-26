@@ -24,7 +24,7 @@ namespace SorobanSecurityPortalApi.Migrations
                     entity_type = table.Column<int>(type: "integer", nullable: false),
                     entity_id = table.Column<int>(type: "integer", nullable: false),
                     parent_comment_id = table.Column<int>(type: "integer", nullable: true),
-                    content = table.Column<string>(type: "text", nullable: false),
+                    content = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: false),
                     content_html = table.Column<string>(type: "text", nullable: false),
                     is_hidden = table.Column<bool>(type: "boolean", nullable: false),
                     is_deleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -46,7 +46,7 @@ namespace SorobanSecurityPortalApi.Migrations
                 keyColumn: "login_id",
                 keyValue: 1,
                 columns: new[] { "connected_accounts", "created" },
-                values: new object[] { new List<ConnectedAccountModel>(), new DateTime(2026, 5, 26, 11, 46, 57, 312, DateTimeKind.Utc).AddTicks(1084) });
+                values: new object[] { new List<ConnectedAccountModel>(), new DateTime(2026, 5, 26, 11, 54, 14, 384, DateTimeKind.Utc).AddTicks(2738) });
 
             migrationBuilder.CreateIndex(
                 name: "ix_comment_author_id",
