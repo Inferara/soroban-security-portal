@@ -16,6 +16,7 @@ import { Bookmark, CreateBookmark } from './models/bookmark';
 import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
 import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
 import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType, UserSearchResult } from './models/comment';
+import { Notification, NotificationType } from './models/notification';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -617,6 +618,32 @@ export const searchUsersCall = async (q: string): Promise<UserSearchResult[]> =>
     const client = await getRestClient();
     const response = await client.request(`api/v1/user/search?q=${encodeURIComponent(q)}`, 'GET');
     return response.data as UserSearchResult[];
+};
+
+// --- NOTIFICATIONS ---
+export const getNotificationsCall = async (type?: NotificationType, page = 1): Promise<Notification[]> => {
+    const client = await getRestClient();
+    const qs = new URLSearchParams();
+    if (type !== undefined) qs.append('type', String(type));
+    qs.append('page', String(page));
+    const response = await client.request(`api/v1/notifications?${qs.toString()}`, 'GET');
+    return response.data as Notification[];
+};
+
+export const getUnreadCountCall = async (): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/notifications/unread-count', 'GET');
+    return response.data as number;
+};
+
+export const markNotificationReadCall = async (id: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/notifications/${id}/read`, 'POST');
+};
+
+export const markAllNotificationsReadCall = async (): Promise<void> => {
+    const client = await getRestClient();
+    await client.request('api/v1/notifications/read-all', 'POST');
 };
 
 // Rest client
