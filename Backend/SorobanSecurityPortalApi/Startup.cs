@@ -60,6 +60,7 @@ public class Startup
         services.AddScoped<IModerationTarget, VulnerabilityModerationTarget>();
         services.AddScoped<IModerationTarget, ReportModerationTarget>();
         services.AddScoped<IModerationTarget, RatingModerationTarget>();
+        services.AddScoped<IModerationTarget, CommentModerationTarget>();
         services.AddScoped<IModerationTargetRegistry, ModerationTargetRegistry>();
 
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
