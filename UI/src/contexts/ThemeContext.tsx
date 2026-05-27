@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createTheme, PaletteColor, PaletteOptions, Theme } from '@mui/material/styles';
+import { createTheme, Theme } from '@mui/material/styles';
+import { CosmicTokens, DaylightTokens, ThemeTokens } from '../theme/tokens';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -7,169 +8,107 @@ interface ThemeContextType {
   themeMode: ThemeMode;
   toggleTheme: () => void;
   theme: Theme;
+  tokens: ThemeTokens;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const fontFamily = ['Roboto', 'Rubik', 'Helvetica', 'Arial', 'sans-serif'].join(',');
+
+const sharedTypography = {
+  fontFamily,
+  h1: { fontWeight: 800, letterSpacing: '-0.02em' },
+  h2: { fontWeight: 800, letterSpacing: '-0.01em' },
+  h3: { fontWeight: 700, letterSpacing: '-0.01em' },
+  h4: { fontWeight: 700 },
+  button: { fontWeight: 700, textTransform: 'none' as const },
+};
+
 const lightTheme = createTheme({
-  typography: {
-    fontFamily: [
-      "Roboto",
-      "Rubik",
-      "Helvetica",
-      "Arial",
-      "sans-serif",
-    ].join(','),
-  },
+  typography: sharedTypography,
+  shape: { borderRadius: 12 },
   palette: {
     mode: 'light',
-    primary: {
-      main: '#1976d2',
-      contrastText: '#F2F2F2',
-    },
-    secondary: {
-      main: '#2f2f2f',
-      contrastText: '#F2F2F2',
-    },
-    text: {
-      primary: '#000000',
-      secondary: '#213547',
-    },
-    background: {
-      paper: '#F2F2F2',
-      default: '#f7f8fa',
-    },
-    divider: '#e0e0e0',
+    primary: { main: '#2D4EFF', dark: '#1a3fd9', contrastText: '#ffffff' },
+    secondary: { main: '#9a7b1f', contrastText: '#ffffff' },
+    text: { primary: '#15151f', secondary: '#4a4a5e' },
+    background: { paper: '#ffffff', default: '#eef2ff' },
+    divider: 'rgba(20,20,50,0.10)',
   },
   components: {
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#F2F2F2',
-          color: '#222',
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(10px)',
+          color: '#15151f',
           boxShadow: 'none',
-          borderBottom: '1px solid #e0e0e0',
+          borderBottom: '1px solid rgba(20,20,50,0.10)',
+          backgroundImage: 'none',
         },
       },
     },
     MuiDrawer: {
       styleOverrides: {
-        paper: {
-          backgroundColor: '#F2F2F2',
-          borderRight: '1px solid #e0e0e0',
-        },
+        paper: { backgroundColor: '#ffffff', borderRight: '1px solid rgba(20,20,50,0.10)' },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          backgroundColor: '#2D4EFF',
-          color: '#F2F2F2',
-          '&:hover': {
-            backgroundColor: '#1a3fd9',
-          },
+          borderRadius: 10,
+          transition: 'transform .2s ease, box-shadow .2s ease',
+        },
+        containedPrimary: {
+          '&:hover': { boxShadow: '0 6px 20px rgba(45,78,255,0.35)', transform: 'translateY(-1px)' },
         },
       },
     },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            backgroundColor: '#fafafa',
-          },
-        },
-      },
-    },
-    MuiFormControl: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            backgroundColor: '#fafafa',
-          },
-        },
-      },
-    },
-    MuiOutlinedInput: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#fafafa',
-        },
-      },
-    },
-    MuiSelect: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#fafafa',
-        },
-      },
-    },
+    MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
   },
 });
 
-const darkThemePalette: PaletteOptions = {
-  mode: 'dark',
-  primary: {
-    main: '#F2F2F2',
-    contrastText: '#DDCDB1',
-  },
-  secondary: {
-    main: '#DDCDB1',
-  },
-  text: {
-    primary: '#F2F2F2',
-    secondary: '#b3b3b3',
-  },
-  background: {
-    paper: '#1e1e1e',
-    default: '#1e1e1e',
-  },
-  divider: '#333333',
-};
-
 const darkTheme = createTheme({
-  typography: {
-    fontFamily: [
-      "Roboto",
-      "Rubik",
-      "Helvetica",
-      "Arial",
-      "sans-serif",
-    ].join(','),
+  typography: sharedTypography,
+  shape: { borderRadius: 12 },
+  palette: {
+    mode: 'dark',
+    primary: { main: '#2D4EFF', dark: '#1a3fd9', contrastText: '#ffffff' },
+    secondary: { main: '#FFD84D', contrastText: '#0b0b14' },
+    text: { primary: '#F2F2F2', secondary: '#b9c0d4' },
+    background: { paper: '#13131c', default: '#0b0b14' },
+    divider: 'rgba(255,255,255,0.10)',
   },
-  palette: darkThemePalette,
   components: {
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#1e1e1e',
+          backgroundColor: 'rgba(11,11,20,0.72)',
+          backdropFilter: 'blur(12px)',
           color: '#F2F2F2',
           boxShadow: 'none',
-          borderBottom: '1px solid #333333',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          backgroundImage: 'none',
         },
       },
     },
     MuiDrawer: {
       styleOverrides: {
-        paper: {
-          backgroundColor: '#1e1e1e',
-          borderRight: '1px solid #333333',
-        },
+        paper: { backgroundColor: '#13131c', borderRight: '1px solid rgba(255,255,255,0.08)' },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          fontSize: '1rem',
-          fontWeight: 900,
-          borderRadius: '8px',
-          backgroundColor: '#2D4EFF',
-          color: (darkThemePalette.primary as PaletteColor).main,
-          '&:hover': {
-            backgroundColor: '#1a3fd9',
-          },
+          borderRadius: 10,
+          transition: 'transform .2s ease, box-shadow .2s ease',
+        },
+        containedPrimary: {
+          '&:hover': { boxShadow: '0 0 20px rgba(45,78,255,0.55)', transform: 'translateY(-1px)' },
         },
       },
     },
+    MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
   },
 });
 
@@ -180,9 +119,10 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   });
 
   const theme = themeMode === 'light' ? lightTheme : darkTheme;
+  const tokens = themeMode === 'dark' ? CosmicTokens : DaylightTokens;
 
   const toggleTheme = () => {
-    setThemeMode(prevMode => {
+    setThemeMode((prevMode) => {
       const newMode = prevMode === 'light' ? 'dark' : 'light';
       localStorage.setItem('themeMode', newMode);
       return newMode;
@@ -202,7 +142,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [themeMode]);
 
   return (
-    <ThemeContext.Provider value={{ themeMode, toggleTheme, theme }}>
+    <ThemeContext.Provider value={{ themeMode, toggleTheme, theme, tokens }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -273,4 +213,4 @@ export const useTheme = (): ThemeContextType => {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
-}; 
+};
