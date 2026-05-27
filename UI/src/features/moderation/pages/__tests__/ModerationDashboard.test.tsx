@@ -11,8 +11,8 @@ import { FlaggedContent, ModerationStats } from '../../types';
 // loaded data set so the test exercises the REAL filter, not the mock delay.
 const mockHandleAction = vi.fn();
 
-const baseAuthor = (name: string) => ({
-    id: `author-${name}`,
+const baseAuthor = (name: string, id = '7') => ({
+    id, // login id as string — must be numeric so the name links to /profile/:id
     name,
     email: `${name}@example.com`,
     reputationScore: 10,
@@ -204,6 +204,12 @@ describe('ModerationDashboard - filtering', () => {
         renderComponent();
         const link = screen.getByRole('link', { name: /A flagged comment/i });
         expect(link).toHaveAttribute('href', expect.stringContaining('/vulnerability/1'));
+    });
+
+    it('links the flagged author name to their public profile', () => {
+        renderComponent();
+        const link = screen.getByRole('link', { name: 'VulnAuthor' });
+        expect(link).toHaveAttribute('href', expect.stringContaining('/profile/7'));
     });
 
     it('an empty queue (e.g. Approved tab with no items) shows the empty-state message', async () => {

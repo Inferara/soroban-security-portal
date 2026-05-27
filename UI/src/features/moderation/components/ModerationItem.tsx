@@ -72,7 +72,19 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                     <Avatar src={item.author.avatarUrl} alt={item.author.name} sx={{ width: 40, height: 40 }} />
                     <Box sx={{ minWidth: 0 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
-                            {item.author.name}
+                            {Number(item.author.id) > 0 ? (
+                                <Link
+                                    component={RouterLink}
+                                    to={`${environment.basePath}/profile/${item.author.id}`}
+                                    state={{ name: item.author.name }}
+                                    underline="hover"
+                                    color="inherit"
+                                >
+                                    {item.author.name}
+                                </Link>
+                            ) : (
+                                item.author.name
+                            )}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
                             Reputation {item.author.reputationScore}
