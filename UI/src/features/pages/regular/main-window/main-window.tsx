@@ -183,17 +183,32 @@ export const MainWindow: FC = () => {
             />
             <Typography
               variant="h6"
+              component="span"
               sx={{
-                display: { xs: 'none', sm: 'block' },
-                fontWeight: 800,
-                letterSpacing: '0.01em',
-                background: 'linear-gradient(90deg, #FFD84D 0%, #2D4EFF 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                display: { xs: 'none', sm: 'flex' },
+                alignItems: 'baseline',
+                gap: '0.35ch',
+                fontSize: '1.3rem',
+                letterSpacing: '-0.01em',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
               }}
             >
-              Stellar Security Portal
+              <Box
+                component="span"
+                sx={{
+                  fontWeight: 800,
+                  backgroundImage: tokens.goldGradient,
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Stellar
+              </Box>
+              <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                Security Portal
+              </Box>
             </Typography>
           </Box>
 
