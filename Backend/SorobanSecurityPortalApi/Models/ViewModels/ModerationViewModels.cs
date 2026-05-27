@@ -49,6 +49,9 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string ContentId { get; set; } = string.Empty;
         public string ContentPreview { get; set; } = string.Empty;
         public string FullContent { get; set; } = string.Empty;
+        // Navigable parent page so a moderator can open the content in context.
+        public string ContextType { get; set; } = string.Empty;
+        public int ContextId { get; set; }
         public ModerationAuthorViewModel Author { get; set; } = new();
         public int FlagCount { get; set; }
         public Dictionary<string, int> Reasons { get; set; } = new();

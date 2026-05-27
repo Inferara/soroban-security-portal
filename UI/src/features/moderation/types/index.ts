@@ -26,6 +26,10 @@ export interface FlaggedContent {
     contentId: string;
     contentPreview: string; // Text snippet or title
     fullContent: string; // Full content for review
+    // Navigable parent page (e.g. type "vulnerability" id 4, or "protocol" id 17).
+    // Comments point at their vuln/report discussion; ratings at the protocol/auditor.
+    contextType?: string;
+    contextId?: number;
     author: Author;
     flagCount: number;
     reasons: Record<FlagReason, number>; // e.g. { spam: 2, harassment: 1 }

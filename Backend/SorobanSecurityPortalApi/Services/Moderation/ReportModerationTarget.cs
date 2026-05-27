@@ -23,7 +23,9 @@ namespace SorobanSecurityPortalApi.Services.Moderation
                 FullContent = r.Name,
                 AuthorUserId = r.CreatedBy,
                 IsHidden = r.IsHidden,
-                IsDeleted = r.IsDeleted
+                IsDeleted = r.IsDeleted,
+                ContextType = "report",
+                ContextId = r.Id
             };
         }
 

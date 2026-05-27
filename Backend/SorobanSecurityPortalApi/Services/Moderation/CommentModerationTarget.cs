@@ -30,7 +30,10 @@ namespace SorobanSecurityPortalApi.Services.Moderation
                 FullContent = c.Content,
                 AuthorUserId = c.AuthorId,
                 IsHidden = c.IsHidden,
-                IsDeleted = c.IsDeleted
+                IsDeleted = c.IsDeleted,
+                // A comment lives on a vulnerability or report discussion — link there.
+                ContextType = c.EntityType == EntityType.Vulnerability ? "vulnerability" : "report",
+                ContextId = c.EntityId
             };
         }
 
