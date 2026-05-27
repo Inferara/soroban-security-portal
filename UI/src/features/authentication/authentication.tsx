@@ -363,7 +363,7 @@ export const Authentication: FC<Props> = (props: Props) => {
           {/* Logo */}
           <img
             src="/static/images/logo.png"
-            alt="Soroban Security Portal"
+            alt="Stellar Security Portal"
             style={{
               maxWidth: '100%',
               maxHeight: '100%',

@@ -119,7 +119,7 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
   return (
     <>
       <div className="leftMenuTopSection">
-        <img src="/static/images/logo.png" alt="Soroban Security Portal" className="leftMenuLogo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} />
+        <img src="/static/images/logo.png" alt="Stellar Security Portal" className="leftMenuLogo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} />
       </div>
       <Divider />
       <List disablePadding component="nav">

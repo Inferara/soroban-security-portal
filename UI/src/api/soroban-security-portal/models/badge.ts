@@ -1,4 +1,4 @@
-// Badge types for the Soroban Security Portal
+// Badge types for the Stellar Security Portal
 
 export enum BadgeCategory {
     ACHIEVEMENT = 'achievement',

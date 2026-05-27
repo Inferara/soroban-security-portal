@@ -84,7 +84,7 @@ export const Home: FC = () => {
             fontSize: 'clamp(3.75rem, 6vw, 7rem)',
           }}
         >
-          WELCOME TO THE<br />SOROBAN SECURITY PORTAL
+          WELCOME TO THE<br />STELLAR SECURITY PORTAL
         </Typography>
 
         <Typography

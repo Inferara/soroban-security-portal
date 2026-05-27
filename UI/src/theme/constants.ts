@@ -1,5 +1,5 @@
 /**
- * Centralized theme constants for the Soroban Security Portal UI.
+ * Centralized theme constants for the Stellar Security Portal UI.
  *
  * Design decisions:
  * - PascalCase for exported objects (matching existing SeverityColors pattern in ThemeContext)

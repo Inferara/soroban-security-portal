@@ -22,13 +22,13 @@ export const SeoHead: FC<SeoHeadProps> = ({
   url,
   type = 'article',
 }) => {
-  const metaDescription = description || 'Soroban security portal - audits, reports, and vulnerabilities.';
+  const metaDescription = description || 'Stellar security portal - audits, reports, and vulnerabilities.';
   const metaUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
   const metaImage = image || LOGO_URL;
 
   return (
     <>
-      <title>{`${title} | Soroban Security Portal`}</title>
+      <title>{`${title} | Stellar Security Portal`}</title>
       <meta name="description" content={metaDescription} />
 
       <meta property="og:type" content={type} />
@@ -36,7 +36,7 @@ export const SeoHead: FC<SeoHeadProps> = ({
       <meta property="og:description" content={metaDescription} />
       <meta property="og:image" content={metaImage} />
       <meta property="og:url" content={metaUrl} />
-      <meta property="og:site_name" content="Soroban Security Portal" />
+      <meta property="og:site_name" content="Stellar Security Portal" />
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
