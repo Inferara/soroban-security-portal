@@ -26,13 +26,12 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
     {
       name: "Contributor",
       permissions: ["read", "download", "create"],
-      description: "Contributors are Pilots (see the handbook) or those who expressed interest in contributing",
+      description: "Contributors are SCF Navigators and SCF Projects (see the handbook) or those who expressed interest in contributing",
     },
     {
       name: "Moderator",
       permissions: ["read", "download", "create", "approve"],
-      description:
-        "Granted manually to active community members who are looking after the content integrity and quality",
+      description: "Granted to SCF Pilots and active community members who are looking after the content integrity and quality",
     },
   ];
 

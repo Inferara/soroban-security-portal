@@ -111,14 +111,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             bool isOfflineMode,
             LoginProcessViewModel loginProcessViewModel)
         {
+            var userRole = GetRoleFromDiscordGuild(extendedTokenModel);
             var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, LoginTypeEnum.SsoDiscord);
             if (login == null)
             {
                 login = await _loginProcessor.GetByEmail(extendedTokenModel.Email);
-                var userRole = GetRoleFromDiscordGuild(extendedTokenModel);
                 if (login != null)
                 {
-                    var updated = false;
                     if (!login.ConnectedAccounts!.Any(ca => ca.ServiceName == "Discord" && ca.AccountId == extendedTokenModel.Email))
                     {
                         login.ConnectedAccounts!.Add(new ConnectedAccountModel
@@ -126,15 +125,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                             ServiceName = "Discord",
                             AccountId = extendedTokenModel.Email
                         });
-                        updated = true;
-                    }
-                    if (userRole > login.Role)
-                    {
-                        login.Role = userRole;
-                        updated = true;
-                    }
-                    if (updated)
-                    {
                         await _loginProcessor.Update(login);
                     }
                 }
@@ -155,6 +145,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                             : null
                     });
                 }
+            }
+
+            // Sync role from Discord on every login if it's higher
+            if (userRole > login.Role)
+            {
+                login.Role = userRole;
+                await _loginProcessor.Update(login);
             }
 
             // Sync avatar from SSO on every login, unless user has manually set their avatar
@@ -484,18 +481,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 return RoleEnum.User;
             }
-            if (extendedTokenModel.GuildMemberInfo.IsPathfinder())
-            {
-                return RoleEnum.User;
-            }
-            else if (extendedTokenModel.GuildMemberInfo.IsNavigator())
-            {
-                return RoleEnum.Contributor;
-            }
-            else if (extendedTokenModel.GuildMemberInfo.IsPilot())
+
+            if (extendedTokenModel.GuildMemberInfo.IsPilot())
             {
                 return RoleEnum.Moderator;
             }
+
+            if (extendedTokenModel.GuildMemberInfo.IsNavigator() ||
+                extendedTokenModel.GuildMemberInfo.IsScfProject())
+            {
+                return RoleEnum.Contributor;
+            }
+
             return RoleEnum.User;
         }
 
