@@ -74,7 +74,7 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: { main: '#2D4EFF', dark: '#1a3fd9', contrastText: '#ffffff' },
-    secondary: { main: '#FFD84D', contrastText: '#0b0b14' },
+    secondary: { main: '#D4A23C', contrastText: '#0b0b14' },
     text: { primary: '#F2F2F2', secondary: '#b9c0d4' },
     background: { paper: '#13131c', default: '#0b0b14' },
     divider: 'rgba(255,255,255,0.10)',

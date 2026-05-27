@@ -10,14 +10,28 @@ import ReactGA from 'react-ga4';
 import { StatisticsChanges } from './statistics-changes';
 import { useState, useEffect } from 'react';
 import { RolesInfo } from './roles-info';
-import { AccentColors } from '../../../../theme';
 import { RevealOnScroll } from '../../../../components/common/RevealOnScroll';
+import { AuroraBackground } from '../../../../components/common/AuroraBackground';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { useReducedMotion } from '../../../../hooks/useReducedMotion';
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
   const { tokens, themeMode } = useTheme();
+  const reduced = useReducedMotion();
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const showTable = false;
+
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (reduced) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setParallax({
+      x: (e.clientX - r.left) / r.width - 0.5,
+      y: (e.clientY - r.top) / r.height - 0.5,
+    });
+  };
 
   const handleGetStarted = () => {
     navigate('/vulnerabilities');
@@ -44,9 +58,14 @@ export const Home: FC = () => {
 
   return (
     <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', elevation: 0, background: tokens.heroBackground }}>
+      {/* Animated aurora / gradient-mesh depth layer */}
+      <AuroraBackground />
+
       {/* Content Overlay */}
       <Box
         id="hero"
+        onMouseMove={handleHeroMouseMove}
+        onMouseLeave={() => setParallax({ x: 0, y: 0 })}
         sx={{
           position: 'relative',
           zIndex: 1,
@@ -56,131 +75,190 @@ export const Home: FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           pt: { xs: '40px', sm: 0 },
-          backdropFilter: 'blur(2px)',
           overflow: 'hidden',
         }}
       >
-        {/* GalaxyCanvas only covers hero section */}
-        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 2, pointerEvents: 'none' }}>
-          <GalaxyCanvas />
-        </Box>
-        <Typography
-          variant="h2"
-          component="h2"
-          sx={{
-            mb: { xs: 2, md: 3 },
-            color: themeMode === 'dark' ? 'background.default' : 'text.primary',
-            textAlign: 'center',
-            textShadow:
-              themeMode === 'dark'
-                ? `
-              -1px -1px 0 ${AccentColors.navigationInactive},
-               1px -1px 0 ${AccentColors.navigationInactive},
-              -1px  1px 0 ${AccentColors.navigationInactive},
-               1px  1px 0 ${AccentColors.navigationInactive},
-               0 0 28px rgba(45,78,255,0.55)
-            `
-                : '0 1px 2px rgba(0,0,0,0.18)',
-            fontWeight: 'bold',
-            position: 'relative',
-            zIndex: 3,
-            fontSize: 'clamp(3.75rem, 6vw, 7rem)',
-          }}
-        >
-          WELCOME TO THE<br />STELLAR SECURITY PORTAL
-        </Typography>
-
-        <Typography
-          variant="h6"
-          component="h3"
-          sx={{
-            mb: { xs: 3, md: 4 },
-            textAlign: 'center',
-            color: themeMode === 'dark' ? 'common.white' : 'text.primary',
-            position: 'relative',
-            fontSize: 'clamp(1.5rem, 1.5vw, 2rem)',
-            zIndex: 3,
-          }}
-        >
-          It&apos;s your go-to hub for all things secure in the world of Soroban - Soroban&apos;s<br />
-          smart contract platform. Think of it as your safety compass: audit history,<br />
-          tools, tips and top-tier experts who&apos;ve put Soroban projects through their<br />
-          paces.
-        </Typography>
-
-        {/* Action Buttons */}
+        {/* GalaxyCanvas with subtle mouse parallax */}
         <Box
           sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 3,
-            flexWrap: 'wrap',
-            mt: { xs: 2, md: 4 },
-            position: 'relative',
-            zIndex: 3,
+            position: 'absolute',
+            inset: 0,
+            zIndex: 0,
+            pointerEvents: 'none',
+            transform: `translate3d(${parallax.x * 24}px, ${parallax.y * 24}px, 0)`,
+            transition: reduced ? 'none' : 'transform .35s cubic-bezier(.22,.61,.36,1)',
           }}
         >
+          <GalaxyCanvas />
+        </Box>
+
+        {/* Foreground content with counter-parallax for depth */}
+        <Box
+          sx={{
+            position: 'relative',
+            zIndex: 3,
+            textAlign: 'center',
+            px: 2,
+            transform: `translate3d(${parallax.x * -12}px, ${parallax.y * -12}px, 0)`,
+            transition: reduced ? 'none' : 'transform .35s cubic-bezier(.22,.61,.36,1)',
+          }}
+        >
+          {/* Eyebrow */}
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 0.75,
+              mb: { xs: 2, md: 3 },
+              borderRadius: 999,
+              border: '1px solid',
+              borderColor: themeMode === 'dark' ? 'rgba(212,162,60,0.35)' : 'rgba(184,134,11,0.35)',
+              backgroundColor: themeMode === 'dark' ? 'rgba(212,162,60,0.08)' : 'rgba(184,134,11,0.06)',
+              backdropFilter: 'blur(6px)',
+              color: tokens.accentGoldBright,
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+            }}
+          >
+            <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', background: tokens.accentGoldBright, boxShadow: tokens.glowGold }} />
+            Soroban smart-contract security
+          </Box>
+
+          {/* Headline with animated shimmer */}
+          <Typography
+            variant="h1"
+            component="h1"
+            sx={{
+              fontWeight: 800,
+              lineHeight: 1.02,
+              letterSpacing: '-0.02em',
+              fontSize: 'clamp(3rem, 7vw, 6.5rem)',
+              backgroundImage:
+                themeMode === 'dark'
+                  ? 'linear-gradient(100deg, #ffffff 0%, #E9C46A 22%, #ffffff 46%, #7f9bff 72%, #ffffff 100%)'
+                  : 'linear-gradient(100deg, #15151f 0%, #B8860B 24%, #15151f 48%, #2D4EFF 74%, #15151f 100%)',
+              backgroundSize: '220% auto',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+              animation: reduced ? 'none' : 'heroShimmer 7s linear infinite',
+              '@keyframes heroShimmer': { to: { backgroundPosition: '220% center' } },
+            }}
+          >
+            Stellar Security Portal
+          </Typography>
+
+          <Typography
+            component="p"
+            sx={{
+              mt: { xs: 2, md: 3 },
+              mb: { xs: 3, md: 4 },
+              mx: 'auto',
+              maxWidth: 720,
+              color: themeMode === 'dark' ? 'rgba(255,255,255,0.78)' : 'text.secondary',
+              fontSize: 'clamp(1.05rem, 1.4vw, 1.35rem)',
+              lineHeight: 1.6,
+            }}
+          >
+            Your go-to hub for everything secure in the Soroban ecosystem — audit history,
+            tools, and top-tier experts who put Soroban projects through their paces.
+          </Typography>
+
+          {/* Action Buttons */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Button
-              variant="contained"
               onClick={handleGetStarted}
+              endIcon={<ArrowForwardRoundedIcon />}
               sx={{
                 px: 4,
                 py: 1.5,
-                fontSize: '1.1rem',
-                fontWeight: 900,
-                textTransform: 'uppercase',
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                textTransform: 'none',
+                borderRadius: 999,
+                color: '#fff',
+                background: 'linear-gradient(135deg, #2D4EFF 0%, #6E5BFF 100%)',
+                boxShadow: '0 8px 30px rgba(45,78,255,0.45)',
                 position: 'relative',
                 overflow: 'hidden',
+                transition: 'transform .2s ease, box-shadow .2s ease',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #2D4EFF 0%, #6E5BFF 100%)',
+                  transform: reduced ? 'none' : 'translateY(-2px)',
+                  boxShadow: '0 12px 40px rgba(110,91,255,0.6)',
+                },
+                '& .MuiButton-endIcon': { transition: 'transform .2s ease' },
+                '&:hover .MuiButton-endIcon': { transform: reduced ? 'none' : 'translateX(4px)' },
                 '&::before': {
                   content: '""',
                   position: 'absolute',
+                  top: 0,
                   left: '-150%',
-                  width: '200%',
+                  width: '60%',
                   height: '100%',
-                  background: 'linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 70%)',
+                  background: 'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)',
                   transform: 'skewX(-20deg)',
-                  animation: 'glitter 2s infinite',
+                  animation: reduced ? 'none' : 'heroSheen 3.5s ease-in-out infinite',
+                },
+                '@keyframes heroSheen': {
+                  '0%': { left: '-150%' },
+                  '55%': { left: '160%' },
+                  '100%': { left: '160%' },
                 },
               }}
             >
-            Warp
+              Explore vulnerabilities
             </Button>
 
-            <style>
-            {`
-              @keyframes glitter {
-              0% {
-                left: -150%;
-              }
-              50% {
-                left: 150%;
-              }
-              100% {
-                left: 150%;
-              }
-              }
-            `}
-            </style>
+            <Button
+              onClick={handleLearnMore}
+              sx={{
+                px: 4,
+                py: 1.5,
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                textTransform: 'none',
+                borderRadius: 999,
+                color: themeMode === 'dark' ? '#fff' : 'text.primary',
+                backgroundColor: themeMode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(20,20,50,0.04)',
+                border: '1px solid',
+                borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(20,20,50,0.18)',
+                backdropFilter: 'blur(8px)',
+                transition: 'all .2s ease',
+                '&:hover': {
+                  borderColor: tokens.accentGoldBright,
+                  color: tokens.accentGoldBright,
+                  backgroundColor: themeMode === 'dark' ? 'rgba(212,162,60,0.08)' : 'rgba(184,134,11,0.06)',
+                  transform: reduced ? 'none' : 'translateY(-2px)',
+                },
+              }}
+            >
+              Learn more
+            </Button>
+          </Box>
+        </Box>
 
-          <Button
-            variant="outlined"
-            onClick={handleLearnMore}
-            sx={{
-              color: 'background.default',
-              borderColor: 'primary.main',
-              backgroundColor: 'primary.main',
-              px: 4,
-              py: 1.5,
-              textTransform: 'none',
-              '&:hover': {
-                backgroundColor: 'rgba(250, 250, 250, 0.1)',
-                borderColor: 'primary.main',
-                color: 'primary.main',
-              },
-            }}
-          >
-            Learn More
-          </Button>
+        {/* Scroll cue */}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 28,
+            left: '50%',
+            zIndex: 3,
+            color: themeMode === 'dark' ? 'rgba(255,255,255,0.55)' : 'text.secondary',
+            display: { xs: 'none', md: 'flex' },
+            animation: reduced ? 'none' : 'scrollBob 2s ease-in-out infinite',
+            '@keyframes scrollBob': {
+              '0%,100%': { transform: 'translateX(-50%) translateY(0)' },
+              '50%': { transform: 'translateX(-50%) translateY(8px)' },
+            },
+          }}
+        >
+          <KeyboardArrowDownRoundedIcon fontSize="large" />
         </Box>
       </Box>
 

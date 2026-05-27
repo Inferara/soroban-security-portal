@@ -6,6 +6,10 @@
  */
 export interface ThemeTokens {
   accentGold: string;
+  /** Brighter gold for text/active states that need legibility on the background. */
+  accentGoldBright: string;
+  /** Metallic gold gradient for premium accents (brand text, highlights). */
+  goldGradient: string;
   accentBlue: string;
   /** Page/hero background (full-bleed). */
   heroBackground: string;
@@ -32,7 +36,9 @@ export interface ThemeTokens {
 }
 
 export const CosmicTokens: ThemeTokens = {
-  accentGold: '#FFD84D',
+  accentGold: '#D4A23C',
+  accentGoldBright: '#E9C46A',
+  goldGradient: 'linear-gradient(135deg, #F5D98B 0%, #D9A441 48%, #B5861F 100%)',
   accentBlue: '#2D4EFF',
   heroBackground:
     'radial-gradient(135% 120% at 50% 125%, rgba(45,78,255,0.30) 0%, rgba(45,78,255,0) 72%), ' +
@@ -42,8 +48,8 @@ export const CosmicTokens: ThemeTokens = {
   surfaceBorder: 'rgba(255,255,255,0.10)',
   surfaceShadow: '0 2px 18px rgba(0,0,0,0.45)',
   surfaceShadowHover:
-    '0 0 0 1px rgba(255,216,77,0.35), 0 8px 32px rgba(45,78,255,0.30)',
-  glowGold: '0 0 18px rgba(255,216,77,0.55)',
+    '0 0 0 1px rgba(212,162,60,0.40), 0 8px 32px rgba(45,78,255,0.30)',
+  glowGold: '0 0 18px rgba(212,162,60,0.55)',
   glowBlue: '0 0 18px rgba(45,78,255,0.55)',
   sectionGradient:
     'linear-gradient(180deg, rgba(45,78,255,0.06) 0%, transparent 100%)',
@@ -53,7 +59,9 @@ export const CosmicTokens: ThemeTokens = {
 };
 
 export const DaylightTokens: ThemeTokens = {
-  accentGold: '#FFD84D',
+  accentGold: '#B8860B',
+  accentGoldBright: '#9a7b1f',
+  goldGradient: 'linear-gradient(135deg, #C9942A 0%, #B5861F 50%, #8a6514 100%)',
   accentBlue: '#2D4EFF',
   heroBackground:
     'radial-gradient(125% 110% at 50% 120%, rgba(45,78,255,0.14) 0%, rgba(45,78,255,0) 72%), ' +
