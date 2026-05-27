@@ -8,6 +8,7 @@ export enum PageViewEntityType {
 
 export interface PageViewCount {
   total: number;
+  today: number;
   unique: number;
 }
 

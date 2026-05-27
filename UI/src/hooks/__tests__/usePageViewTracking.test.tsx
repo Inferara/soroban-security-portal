@@ -13,12 +13,12 @@ describe('usePageViewTracking', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (api.recordPageViewCall as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
-    (api.getPageViewCountCall as ReturnType<typeof vi.fn>).mockResolvedValue({ total: 11, unique: 7 });
+    (api.getPageViewCountCall as ReturnType<typeof vi.fn>).mockResolvedValue({ total: 11, today: 2, unique: 7 });
   });
 
   it('records once and returns the count', async () => {
     const { result } = renderHook(() => usePageViewTracking(PageViewEntityType.Report, 9));
-    await waitFor(() => expect(result.current).toEqual({ total: 11, unique: 7 }));
+    await waitFor(() => expect(result.current).toEqual({ total: 11, today: 2, unique: 7 }));
     expect(api.recordPageViewCall).toHaveBeenCalledTimes(1);
     expect(api.recordPageViewCall).toHaveBeenCalledWith(PageViewEntityType.Report, 9);
   });

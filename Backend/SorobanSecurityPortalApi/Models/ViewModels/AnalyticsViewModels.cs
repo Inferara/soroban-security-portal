@@ -4,10 +4,12 @@ using SorobanSecurityPortalApi.Models.DbModels;
 
 namespace SorobanSecurityPortalApi.Models.ViewModels
 {
-    // Public per-entity counter payload.
+    // Public per-entity counter payload. Total = all-time human views; Today = human views since
+    // 00:00 UTC; Unique = distinct visitors all-time (kept for the tooltip).
     public class PageViewCountViewModel
     {
         public int Total { get; set; }
+        public int Today { get; set; }
         public int Unique { get; set; }
     }
 

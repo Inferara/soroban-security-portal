@@ -9,15 +9,16 @@ export interface ViewCountLabelProps {
 }
 
 /**
- * A quiet inline "👁 N views" indicator for detail-page bylines. It reads as a meta/engagement
- * stat (next to the date), not as a core domain metric. The unique-visitor count is in the tooltip.
- * Renders nothing until the count has loaded, so it gently appears rather than flashing a zero.
+ * A quiet inline view indicator for detail-page bylines, showing two numbers: views today and
+ * all-time total (e.g. "👁 3 today · 11 total"). It reads as a meta/engagement stat next to the
+ * date, not as a core domain metric. The unique-visitor count is in the tooltip. Renders nothing
+ * until the count has loaded, so it gently appears rather than flashing a zero.
  */
 export const ViewCountLabel: FC<ViewCountLabelProps> = ({ count }) => {
   if (!count) return null;
 
-  const viewsText = `${count.total} ${count.total === 1 ? 'view' : 'views'}`;
-  const uniqueText = `${count.unique} unique visitor${count.unique === 1 ? '' : 's'}`;
+  const viewsText = `${count.today} today · ${count.total} total`;
+  const uniqueText = `${count.unique} unique visitor${count.unique === 1 ? '' : 's'} all-time`;
 
   return (
     <Tooltip title={uniqueText}>

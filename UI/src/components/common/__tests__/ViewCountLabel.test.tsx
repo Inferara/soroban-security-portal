@@ -12,13 +12,8 @@ describe('ViewCountLabel', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders the total view count (plural)', () => {
-    renderWith(<ViewCountLabel count={{ total: 1234, unique: 980 }} />);
-    expect(screen.getByText('1234 views')).toBeInTheDocument();
-  });
-
-  it('uses the singular form for a single view', () => {
-    renderWith(<ViewCountLabel count={{ total: 1, unique: 1 }} />);
-    expect(screen.getByText('1 view')).toBeInTheDocument();
+  it('shows both today and total view counts', () => {
+    renderWith(<ViewCountLabel count={{ total: 1234, today: 12, unique: 980 }} />);
+    expect(screen.getByText('12 today · 1234 total')).toBeInTheDocument();
   });
 });

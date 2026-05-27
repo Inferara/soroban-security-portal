@@ -41,8 +41,11 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var q = db.PageView.AsNoTracking().Where(p =>
                 p.EntityType == entityType && p.EntityId == entityId && p.Source == PageViewSource.Human);
             var total = await q.CountAsync();
+            // Range comparison against a UTC instant — not date_trunc — so no session-timezone issue.
+            var todayStartUtc = DateTime.UtcNow.Date;
+            var today = await q.CountAsync(p => p.ViewedAt >= todayStartUtc);
             var unique = await q.Select(p => p.VisitorHash).Distinct().CountAsync();
-            return new PageViewCountViewModel { Total = total, Unique = unique };
+            return new PageViewCountViewModel { Total = total, Today = today, Unique = unique };
         }
 
         public async Task<AnalyticsStatisticsViewModel> GetStatisticsAsync()
