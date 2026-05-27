@@ -1,5 +1,6 @@
 import { FC, useState } from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, Link as MuiLink } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import { Comment, VoteType } from '../../api/soroban-security-portal/models/comment';
 import { EntityAvatar } from '../../components/EntityAvatar';
 import { MarkdownView } from '../../components/MarkdownView';
@@ -49,7 +50,19 @@ export const CommentItem: FC<CommentItemProps> = ({
         <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
           <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', flex: 1 }}>
             <Typography variant="subtitle2" component="span" sx={{ fontWeight: 600 }}>
-              {comment.authorName || 'Anonymous'}
+              {comment.authorId > 0 ? (
+                <MuiLink
+                  component={RouterLink}
+                  to={`/profile/${comment.authorId}`}
+                  state={{ name: comment.authorName }}
+                  underline="hover"
+                  color="inherit"
+                >
+                  {comment.authorName || 'Anonymous'}
+                </MuiLink>
+              ) : (
+                comment.authorName || 'Anonymous'
+              )}
             </Typography>
             <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
               {new Date(comment.createdAt).toLocaleString()}{comment.isEdited ? ' · edited' : ''}

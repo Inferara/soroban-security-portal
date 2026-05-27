@@ -1,6 +1,7 @@
 import axios from 'axios';
 import RestApi from '../rest-api';
 import { UserItem, CreateUserItem, EditUserItem, SelfEditUserItem } from './models/user';
+import { PublicUserProfile } from './models/profile';
 import { SettingsItem } from './models/settings';
 import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
@@ -402,6 +403,12 @@ export const selfEditUserCall = async (loginId: number, userItem: SelfEditUserIt
     const client = await getRestClient();
     const response = await client.request(`api/v1/user/self/${loginId}`, 'PUT', userItem);
     return response.data as boolean;
+}
+// Public, privacy-safe profile of any user by login id (no name/email).
+export const getPublicProfileCall = async (loginId: number): Promise<PublicUserProfile> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/profiles/${loginId}`, 'GET');
+    return response.data as PublicUserProfile;
 }
 export const removeUserCall = async (userId: number): Promise<void> => {
     const client = await getRestClient();

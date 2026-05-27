@@ -36,6 +36,12 @@ describe('CommentItem', () => {
     expect(screen.getByText('hello world')).toBeInTheDocument();
   });
 
+  it('links the author name to their public profile', () => {
+    render(<CommentItem comment={make({ authorId: 5, authorName: 'Alice' })} {...defaultProps} />);
+    const link = screen.getByRole('link', { name: 'Alice' });
+    expect(link).toHaveAttribute('href', '/profile/5');
+  });
+
   it('shows "edited" when isEdited', () => {
     render(<CommentItem comment={make({ isEdited: true })} {...defaultProps} />);
     expect(screen.getByText(/edited/)).toBeInTheDocument();
