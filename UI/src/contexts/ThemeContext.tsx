@@ -59,7 +59,7 @@ const lightTheme = createTheme({
           borderRadius: 10,
           transition: 'transform .2s ease, box-shadow .2s ease',
         },
-        containedPrimary: {
+        contained: {
           '&:hover': { boxShadow: '0 6px 20px rgba(45,78,255,0.35)', transform: 'translateY(-1px)' },
         },
       },
@@ -103,7 +103,7 @@ const darkTheme = createTheme({
           borderRadius: 10,
           transition: 'transform .2s ease, box-shadow .2s ease',
         },
-        containedPrimary: {
+        contained: {
           '&:hover': { boxShadow: '0 0 20px rgba(45,78,255,0.55)', transform: 'translateY(-1px)' },
         },
       },

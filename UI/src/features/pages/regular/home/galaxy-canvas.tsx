@@ -1,9 +1,13 @@
 // components/GalaxyCanvas.tsx
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useReducedMotion } from '../../../../hooks/useReducedMotion';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 export const GalaxyCanvas = () => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  const { tokens } = useTheme();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -18,6 +22,8 @@ export const GalaxyCanvas = () => {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
+    renderer.domElement.style.opacity = String(tokens.galaxyOpacity);
+    renderer.domElement.style.transition = 'opacity .8s ease';
     containerRef.current.appendChild(renderer.domElement);
 
     // Galaxy generation
@@ -28,8 +34,8 @@ export const GalaxyCanvas = () => {
       branches: 4,
       spin: 2,
       randomness: 1.3,
-      insideColor: '#ffb700',
-      outsideColor: '#646cff',
+      insideColor: tokens.galaxyInside,
+      outsideColor: tokens.galaxyOutside,
     };
 
     const geometry = new THREE.BufferGeometry();
@@ -100,13 +106,19 @@ export const GalaxyCanvas = () => {
     const galaxy = new THREE.Points(geometry, material);
     scene.add(galaxy);
 
+    let frameId = 0;
     const animate = () => {
-      requestAnimationFrame(animate);
+      frameId = requestAnimationFrame(animate);
       galaxy.rotation.y += 0.0015;
       renderer.render(scene, camera);
     };
 
-    animate();
+    if (reduced) {
+      // Respect prefers-reduced-motion: render a single static frame, no loop.
+      renderer.render(scene, camera);
+    } else {
+      animate();
+    }
 
     const handleResize = () => {
       const width = containerRef.current?.clientWidth ?? window.innerWidth;
@@ -118,14 +130,16 @@ export const GalaxyCanvas = () => {
 
     window.addEventListener('resize', handleResize);
 
+    const container = containerRef.current;
     return () => {
+      cancelAnimationFrame(frameId);
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
       geometry.dispose();
       material.dispose();
-      containerRef.current?.removeChild(renderer.domElement);
+      container?.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [reduced, tokens.galaxyInside, tokens.galaxyOutside, tokens.galaxyOpacity]);
 
   return (
     <div
