@@ -23,7 +23,7 @@ import {
   Dashboard,
   StarRounded,
 } from '@mui/icons-material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import { ViewCountLabel } from '../../../../components/common/ViewCountLabel';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useAuditorDetails } from './hooks/auditor-details.hook';
@@ -124,13 +124,6 @@ export const AuditorDetails: FC = () => {
       label: 'Fix Rate',
       tooltip: 'Percentage of valid vulnerabilities that have been fixed',
     },
-    {
-      icon: <VisibilityIcon sx={{ fontSize: 40 }} />,
-      iconColor: SeverityColors['note'],
-      value: views?.total ?? 0,
-      label: 'Views',
-      tooltip: views ? `${views.unique} unique visitor${views.unique === 1 ? '' : 's'}` : 'Human page views (bots excluded)',
-    },
   ];
 
   // Configure tabs
@@ -156,6 +149,7 @@ export const AuditorDetails: FC = () => {
             title={auditor.name}
             subtitle="Security Auditor"
             description={`Since ${formatDateLong(auditor.date)}`}
+            metaInline={views ? <ViewCountLabel count={views} /> : undefined}
             websiteUrl={auditor.url}
             actions={
               canAddReport && (

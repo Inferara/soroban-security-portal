@@ -30,7 +30,7 @@ import {
   Forum,
 } from '@mui/icons-material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import { ViewCountLabel } from '../../../../components/common/ViewCountLabel';
 import { useNavigate } from 'react-router-dom';
 import { useReportDetails } from './hooks/report-details.hook';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
@@ -203,13 +203,6 @@ export const ReportDetails: FC = () => {
       label: 'Fixed Rate',
       tooltip: 'Percentage of vulnerabilities that have been fixed',
     },
-    {
-      icon: <VisibilityIcon sx={{ fontSize: 40 }} />,
-      iconColor: SeverityColors['note'],
-      value: views?.total ?? 0,
-      label: 'Views',
-      tooltip: views ? `${views.unique} unique visitor${views.unique === 1 ? '' : 's'}` : 'Human page views (bots excluded)',
-    },
   ];
 
   // Configure tabs
@@ -241,6 +234,7 @@ export const ReportDetails: FC = () => {
               title={report.name}
               subtitle={auditor ? `by ${auditor.name}` : undefined}
               description={`Published: ${formatDateLong(report.date)}`}
+              metaInline={views ? <ViewCountLabel count={views} /> : undefined}
               actions={
                 <>
                   <Button

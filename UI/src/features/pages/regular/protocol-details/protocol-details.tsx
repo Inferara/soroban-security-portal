@@ -25,7 +25,7 @@ import {
   Grading,
   StarRounded,
 } from '@mui/icons-material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import { ViewCountLabel } from '../../../../components/common/ViewCountLabel';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useProtocolDetails } from './hooks/protocol-details.hook';
@@ -158,13 +158,6 @@ export const ProtocolDetails: FC = () => {
       label: 'Fix Rate',
       tooltip: 'Percentage of vulnerabilities that have been fixed',
     },
-    {
-      icon: <VisibilityIcon sx={{ fontSize: 40 }} />,
-      iconColor: SeverityColors['note'],
-      value: views?.total ?? 0,
-      label: 'Views',
-      tooltip: views ? `${views.unique} unique visitor${views.unique === 1 ? '' : 's'}` : 'Human page views (bots excluded)',
-    },
   ];
 
   // Configure tabs
@@ -190,6 +183,7 @@ export const ProtocolDetails: FC = () => {
               entityId={protocol.id}
               title={protocol.name}
               subtitle={company ? `by ${company.name}` : undefined}
+              metaInline={views ? <ViewCountLabel count={views} /> : undefined}
               websiteUrl={protocol.url}
               actions={
                 <>
