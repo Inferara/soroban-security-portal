@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SorobanSecurityPortalApi.Authorization.Attributes;
+using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Services.ControllersServices;
 
@@ -19,13 +20,15 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         // Public: the SPA records a human view on page mount. Bots that don't run JS never reach this.
+        // Unauthenticated by design; the per-visitor/day dedupe is NOT an anti-abuse control — abuse
+        // protection is expected at the nginx/ingress layer. Body is a tiny fixed DTO.
         [HttpPost("view")]
         public async Task<IActionResult> RecordView([FromBody] RecordPageViewRequest req)
         {
             if (req == null || req.EntityId <= 0 || !Enum.IsDefined(typeof(EntityType), req.EntityType))
                 return BadRequest("Invalid entity.");
 
-            await _service.RecordView(req.EntityType, req.EntityId, ClientIp(), UserAgent());
+            await _service.RecordView(req.EntityType, req.EntityId, Request.GetClientIp(), UserAgent());
             return Ok();
         }
 
@@ -42,15 +45,6 @@ namespace SorobanSecurityPortalApi.Controllers
         [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpGet("statistics")]
         public async Task<IActionResult> Statistics() => Ok(await _service.GetStatistics());
-
-        // Behind ingress/nginx the connection IP is the proxy; the real client is the first XFF hop.
-        private string? ClientIp()
-        {
-            var xff = Request.Headers["X-Forwarded-For"].ToString();
-            if (!string.IsNullOrWhiteSpace(xff))
-                return xff.Split(',')[0].Trim();
-            return HttpContext.Connection.RemoteIpAddress?.ToString();
-        }
 
         private string UserAgent() => Request.Headers.UserAgent.ToString();
     }

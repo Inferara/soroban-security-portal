@@ -72,10 +72,8 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             try
             {
-                var xff = Request.Headers["X-Forwarded-For"].ToString();
-                var ip = string.IsNullOrWhiteSpace(xff) ? HttpContext.Connection.RemoteIpAddress?.ToString() : xff.Split(',')[0].Trim();
                 var ua = Request.Headers.UserAgent.ToString();
-                await _pageViewService.RecordView(entityType, id, ip, ua, PageViewSource.Crawler);
+                await _pageViewService.RecordView(entityType, id, Request.GetClientIp(), ua, PageViewSource.Crawler);
             }
             catch
             {
