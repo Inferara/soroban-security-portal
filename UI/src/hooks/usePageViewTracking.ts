@@ -21,7 +21,8 @@ export const usePageViewTracking = (entityType: PageViewEntityType, entityId: nu
       }
       try {
         const c = await getPageViewCountCall(entityType, entityId);
-        setCount(c);
+        // ignoreError swallows failures and resolves to undefined; keep state as null in that case.
+        if (c) setCount(c);
       } catch {
         /* ignore */
       }
