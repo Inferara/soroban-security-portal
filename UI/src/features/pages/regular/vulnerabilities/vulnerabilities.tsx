@@ -968,20 +968,45 @@ export const Vulnerabilities: FC = () => {
                 </Box>
               </Grid>
             )}
-            {!isLoading && vulnerabilitiesList.map(vuln => (
+            {!isLoading && vulnerabilitiesList.map(vuln => {
+              const sevColor = SeverityColors[vuln.severity.toLocaleLowerCase()] || '#388e3c';
+              return (
               <Box key={vuln.id}>
                 <Card
+                  onMouseMove={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
+                    e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
+                  }}
                   sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
                     mr: 1,
                     borderRadius: '20px',
                     border: '1px solid',
                     backgroundColor: themeMode === 'light' ? '#fafafa' : '#13131c',
                     borderColor: 'divider',
-                    borderLeft: `10px solid ${SeverityColors[vuln.severity.toLocaleLowerCase()] || '#388e3c'}`,
+                    borderLeft: `6px solid ${sevColor}`,
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
+                    transition: 'transform .25s ease, box-shadow .25s ease, border-color .25s ease, border-left-width .2s ease',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      inset: 0,
+                      background: `radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), ${sevColor}26, transparent 60%)`,
+                      opacity: 0,
+                      transition: 'opacity .25s ease',
+                      pointerEvents: 'none',
+                    },
+                    '&:hover': {
+                      transform: 'translateY(-3px)',
+                      borderLeftWidth: '10px',
+                      boxShadow: `0 10px 30px ${sevColor}40, 0 0 0 1px ${sevColor}55`,
+                      '@media (prefers-reduced-motion: reduce)': { transform: 'none' },
+                    },
+                    '&:hover::before': { opacity: 1 },
                     ...(selectedVulnerability?.id === vuln.id && {
-                      backgroundColor: '#6a6a6a',
+                      boxShadow: `0 0 0 1px ${sevColor}, 0 8px 24px ${sevColor}40`,
                     })
                   }}
                   onClick={() => handleCardClick(vuln)}
@@ -1010,7 +1035,8 @@ export const Vulnerabilities: FC = () => {
                   </CardContent>
                 </Card>
               </Box>
-            ))}
+              );
+            })}
           </Stack>
           {/* Vulnerability Profile Section */}
           {selectedVulnerability && (
