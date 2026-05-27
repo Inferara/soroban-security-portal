@@ -11,9 +11,12 @@ import { StatisticsChanges } from './statistics-changes';
 import { useState, useEffect } from 'react';
 import { RolesInfo } from './roles-info';
 import { AccentColors } from '../../../../theme';
+import { RevealOnScroll } from '../../../../components/common/RevealOnScroll';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 export const Home: FC = () => {
   const navigate = useNavigate();
+  const { tokens, themeMode } = useTheme();
   const showTable = false;
 
   const handleGetStarted = () => {
@@ -40,7 +43,7 @@ export const Home: FC = () => {
   }, []);
 
   return (
-    <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', elevation: 0 }}>
+    <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', elevation: 0, background: tokens.heroBackground }}>
       {/* Content Overlay */}
       <Box
         id="hero"
@@ -66,18 +69,18 @@ export const Home: FC = () => {
           component="h2"
           sx={{
             mb: { xs: 2, md: 3 },
-            color: 'background.default',
+            color: themeMode === 'dark' ? 'background.default' : 'text.primary',
             textAlign: 'center',
-            textShadow: `
+            textShadow:
+              themeMode === 'dark'
+                ? `
               -1px -1px 0 ${AccentColors.navigationInactive},
                1px -1px 0 ${AccentColors.navigationInactive},
               -1px  1px 0 ${AccentColors.navigationInactive},
                1px  1px 0 ${AccentColors.navigationInactive},
-              -2px -2px 0 ${AccentColors.navigationInactive},
-               2px -2px 0 ${AccentColors.navigationInactive},
-              -2px  2px 0 ${AccentColors.navigationInactive},
-               2px  2px 0 ${AccentColors.navigationInactive}
-            `,
+               0 0 28px rgba(45,78,255,0.55)
+            `
+                : '0 1px 2px rgba(0,0,0,0.18)',
             fontWeight: 'bold',
             position: 'relative',
             zIndex: 3,
@@ -93,7 +96,7 @@ export const Home: FC = () => {
           sx={{
             mb: { xs: 3, md: 4 },
             textAlign: 'center',
-            color: 'primary.contrastText',
+            color: themeMode === 'dark' ? 'common.white' : 'text.primary',
             position: 'relative',
             fontSize: 'clamp(1.5rem, 1.5vw, 2rem)',
             zIndex: 3,
@@ -181,33 +184,40 @@ export const Home: FC = () => {
         </Box>
       </Box>
 
-      <Box sx={{ pt: 10 }}>
-        <StatisticsChanges />
-      </Box>
-      <Box sx={{ pt: 10 }}>
-        <RolesInfo isCompact={isOnSmallScreen} />
-      </Box>
+      <RevealOnScroll>
+        <Box sx={{ pt: 10 }}>
+          <StatisticsChanges />
+        </Box>
+      </RevealOnScroll>
+      <RevealOnScroll delay={120}>
+        <Box sx={{ pt: 10 }}>
+          <RolesInfo isCompact={isOnSmallScreen} />
+        </Box>
+      </RevealOnScroll>
       {/* Vulnerability Statistics Pie Chart */}
-     {!isOnSmallScreen && (<Box
-        sx={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          pt: { xs: 10, md: 20 },
-          pb: 20
-        }}
-      >
-        <VulnerabilityPieChart
-          height={350}
-          width={350}
-        />
-        {showTable && (
-          <Box sx={{ pt: 10, pb: 10 }}>
-            <VulnerabilityTable />
-          </Box>
-        )}
-      </Box>)}
+     {!isOnSmallScreen && (
+      <RevealOnScroll delay={240}>
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            pt: { xs: 10, md: 20 },
+            pb: 20
+          }}
+        >
+          <VulnerabilityPieChart
+            height={350}
+            width={350}
+          />
+          {showTable && (
+            <Box sx={{ pt: 10, pb: 10 }}>
+              <VulnerabilityTable />
+            </Box>
+          )}
+        </Box>
+      </RevealOnScroll>)}
     </Box>
   );
 };
