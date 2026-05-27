@@ -95,6 +95,11 @@ export const MainWindow: FC = () => {
     return location.pathname === `${environment.basePath}${path}`;
   };
 
+  // The home page renders full-bleed (no contrasting card frame) so its cosmic
+  // background blends seamlessly with the header and footer.
+  const isHomeRoute =
+    isActiveRoute('/') || location.pathname === '/' || location.pathname.endsWith('/home');
+
   const baseNavigationItems = [
     { label: 'Home', path: '/' },
     { label: 'Reports', path: '/reports' },
@@ -373,7 +378,11 @@ export const MainWindow: FC = () => {
       {/* Main content area */}
       <Box sx={{ flexGrow: 1, p: 0 }}>
         <Box
-          sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: { xs: 2, md: 3 }, minHeight: '91vh' }}
+          sx={
+            isHomeRoute
+              ? { bgcolor: 'transparent', borderRadius: 0, boxShadow: 0, p: 0, minHeight: '91vh' }
+              : { bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: { xs: 2, md: 3 }, minHeight: '91vh' }
+          }
         >
           <Routes>
             <Route path={`${environment.basePath}/`} element={<Home />} />

@@ -35,9 +35,9 @@ export const CosmicTokens: ThemeTokens = {
   accentGold: '#FFD84D',
   accentBlue: '#2D4EFF',
   heroBackground:
-    'radial-gradient(120% 100% at 50% 120%, rgba(45,78,255,0.35) 0%, transparent 60%), ' +
-    'radial-gradient(90% 70% at 85% 0%, rgba(255,216,77,0.18) 0%, transparent 55%), ' +
-    '#07070d',
+    'radial-gradient(135% 120% at 50% 125%, rgba(45,78,255,0.30) 0%, rgba(45,78,255,0) 72%), ' +
+    'radial-gradient(120% 95% at 88% -10%, rgba(255,216,77,0.14) 0%, rgba(255,216,77,0) 68%), ' +
+    '#0b0b14',
   surface: 'rgba(255,255,255,0.03)',
   surfaceBorder: 'rgba(255,255,255,0.10)',
   surfaceShadow: '0 2px 18px rgba(0,0,0,0.45)',
@@ -56,9 +56,9 @@ export const DaylightTokens: ThemeTokens = {
   accentGold: '#FFD84D',
   accentBlue: '#2D4EFF',
   heroBackground:
-    'radial-gradient(110% 90% at 50% 110%, rgba(45,78,255,0.16) 0%, transparent 60%), ' +
-    'radial-gradient(90% 70% at 80% 0%, rgba(255,216,77,0.28) 0%, transparent 55%), ' +
-    'linear-gradient(180deg, #eef2ff 0%, #fff6e0 100%)',
+    'radial-gradient(125% 110% at 50% 120%, rgba(45,78,255,0.14) 0%, rgba(45,78,255,0) 72%), ' +
+    'radial-gradient(120% 90% at 82% -10%, rgba(255,216,77,0.22) 0%, rgba(255,216,77,0) 68%), ' +
+    'linear-gradient(180deg, #eef2ff 0%, #f3f0ff 45%, #fff6e0 100%)',
   surface: '#ffffff',
   surfaceBorder: 'rgba(20,20,50,0.10)',
   surfaceShadow: '0 2px 14px rgba(20,30,80,0.08)',
