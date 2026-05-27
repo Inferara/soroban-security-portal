@@ -92,17 +92,39 @@ export const Home: FC = () => {
           <GalaxyCanvas />
         </Box>
 
-        {/* Foreground content with counter-parallax for depth */}
+        {/* Foreground content with 3D parallax tilt for depth */}
         <Box
           sx={{
             position: 'relative',
             zIndex: 3,
             textAlign: 'center',
             px: 2,
-            transform: `translate3d(${parallax.x * -12}px, ${parallax.y * -12}px, 0)`,
-            transition: reduced ? 'none' : 'transform .35s cubic-bezier(.22,.61,.36,1)',
+            transformStyle: 'preserve-3d',
+            transform: reduced
+              ? 'none'
+              : `perspective(1100px) rotateY(${parallax.x * 7}deg) rotateX(${parallax.y * -7}deg) translateZ(0)`,
+            transition: reduced ? 'none' : 'transform .3s cubic-bezier(.22,.61,.36,1)',
           }}
         >
+          {/* Glow bloom behind the headline */}
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              top: '40%',
+              left: '50%',
+              width: { xs: 360, md: 720 },
+              height: { xs: 200, md: 320 },
+              transform: 'translate(-50%, -50%)',
+              background:
+                themeMode === 'dark'
+                  ? 'radial-gradient(closest-side, rgba(45,78,255,0.45), rgba(212,162,60,0.18), transparent 75%)'
+                  : 'radial-gradient(closest-side, rgba(45,78,255,0.16), rgba(184,134,11,0.12), transparent 75%)',
+              filter: 'blur(40px)',
+              pointerEvents: 'none',
+              zIndex: -1,
+            }}
+          />
           {/* Eyebrow */}
           <Box
             sx={{
@@ -133,10 +155,11 @@ export const Home: FC = () => {
             variant="h1"
             component="h1"
             sx={{
-              fontWeight: 800,
-              lineHeight: 1.02,
-              letterSpacing: '-0.02em',
-              fontSize: 'clamp(3rem, 7vw, 6.5rem)',
+              fontWeight: 900,
+              lineHeight: 0.98,
+              letterSpacing: '-0.03em',
+              fontSize: 'clamp(3.25rem, 8vw, 7.5rem)',
+              filter: themeMode === 'dark' ? 'drop-shadow(0 6px 40px rgba(45,78,255,0.35))' : 'none',
               backgroundImage:
                 themeMode === 'dark'
                   ? 'linear-gradient(100deg, #ffffff 0%, #E9C46A 22%, #ffffff 46%, #7f9bff 72%, #ffffff 100%)'

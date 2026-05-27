@@ -20,9 +20,9 @@ export const AuroraBackground: FC = () => {
     left,
     borderRadius: '50%',
     background: color,
-    filter: 'blur(80px)',
-    opacity: themeMode === 'dark' ? 0.55 : 0.4,
-    animation: reduced ? 'none' : `${anim} 18s ease-in-out infinite`,
+    filter: 'blur(70px)',
+    opacity: themeMode === 'dark' ? 0.75 : 0.5,
+    animation: reduced ? 'none' : `${anim} 16s ease-in-out infinite`,
     animationDelay: delay,
     willChange: 'transform',
   });
