@@ -23,6 +23,7 @@ import {
   Dashboard,
   StarRounded,
 } from '@mui/icons-material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useAuditorDetails } from './hooks/auditor-details.hook';
@@ -44,6 +45,8 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong, formatMonthYear } from '../../../../utils';
+import { usePageViewTracking } from '../../../../hooks/usePageViewTracking';
+import { PageViewEntityType } from '../../../../api/soroban-security-portal/models/analytics';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
@@ -60,6 +63,8 @@ export const AuditorDetails: FC = () => {
   } = useAuditorDetails();
 
   const { tabValue, tabProps } = useDetailTabs(0);
+
+  const views = usePageViewTracking(PageViewEntityType.Auditor, auditor?.id);
 
   // Calculate fix rate
   const fixedValidVulns = statistics?.vulnerabilitiesByCategory![VulnerabilityCategory.Valid] || 0;
@@ -118,6 +123,13 @@ export const AuditorDetails: FC = () => {
       value: `${fixRate}%`,
       label: 'Fix Rate',
       tooltip: 'Percentage of valid vulnerabilities that have been fixed',
+    },
+    {
+      icon: <VisibilityIcon sx={{ fontSize: 40 }} />,
+      iconColor: SeverityColors['note'],
+      value: views?.total ?? 0,
+      label: 'Views',
+      tooltip: views ? `${views.unique} unique visitor${views.unique === 1 ? '' : 's'}` : 'Human page views (bots excluded)',
     },
   ];
 
