@@ -32,6 +32,7 @@ import { AddReport } from '../reports-add/reports-add';
 import { About } from '../about/about';
 import { Profile } from '../profile/profile';
 import { EditProfile } from '../profile/edit-profile';
+import { PublicProfile } from '../profile/public-profile';
 import { VulnerabilityDetails } from '../vulnerability-details/vulnerability-details';
 import { ProtocolDetails } from '../protocol-details/protocol-details';
 import { ReportDetails } from '../report-details/report-details';
@@ -52,6 +53,8 @@ import { useMainWindow } from './hooks';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
 import { BookmarkMenu } from './components/BookmarkMenu';
+import { NotificationBell } from '../../../notifications/NotificationBell';
+import { MentionsInbox } from '../../../notifications/MentionsInbox';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { AccentColors } from '../../../../theme';
 import { isAdminOrModerator } from '../../../authentication/authPermissions';
@@ -248,6 +251,7 @@ export const MainWindow: FC = () => {
                 <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
                 <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
               </Menu>
+              {!auth.isLoading && <NotificationBell />}
               {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks} />}
             </>
           ) : (
@@ -351,12 +355,14 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/about`} element={<About />} />
             <Route path={`${environment.basePath}/profile`} element={<Profile />} />
             <Route path={`${environment.basePath}/profile/edit`} element={<EditProfile />} />
+            <Route path={`${environment.basePath}/profile/:id`} element={<PublicProfile />} />
             <Route path={`${environment.basePath}/vulnerability/:id`} element={<VulnerabilityDetails />} />
             <Route path={`${environment.basePath}/protocol/:id`} element={<ProtocolDetails />} />
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
             <Route path={`${environment.basePath}/auditor/:id`} element={<AuditorDetails />} />
             <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
             <Route path={`${environment.basePath}/badge-demo`} element={<BadgeDemoPage />} />
+            <Route path={`${environment.basePath}/mentions`} element={<MentionsInbox />} />
           </Routes>
         </Box>
       </Box>

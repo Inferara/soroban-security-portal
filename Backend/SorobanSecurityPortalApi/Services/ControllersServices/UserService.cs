@@ -128,6 +128,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var loginsViewModel = _mapper.Map<List<LoginSummaryViewModel>>(logins);
             return loginsViewModel;
         }
+
+        public async Task<List<UserSearchResultViewModel>> SearchUsers(string q)
+        {
+            var rows = await _loginProcessor.SearchUsers(q, 5);
+            return rows.Select(l => new UserSearchResultViewModel
+            {
+                Id = l.LoginId,
+                Username = l.Login,
+                DisplayName = string.IsNullOrWhiteSpace(l.FullName) ? l.Login : l.FullName
+            }).ToList();
+        }
     }
 
     public interface IUserService
@@ -140,5 +151,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<bool?> Delete(int loginId);
         Task<bool> ChangePassword(string login, ChangePasswordViewModel changePasswordViewModel);
         Task<List<LoginSummaryViewModel>> List();
+        Task<List<UserSearchResultViewModel>> SearchUsers(string q);
     }
 }

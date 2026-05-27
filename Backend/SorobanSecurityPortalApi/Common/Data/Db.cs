@@ -30,6 +30,10 @@ namespace SorobanSecurityPortalApi.Common.Data
         public virtual DbSet<RatingModel> Rating { get; set; }
         public DbSet<ContentFlagModel> ContentFlag { get; set; }
         public DbSet<ModerationActionModel> ModerationAction { get; set; }
+        public virtual DbSet<CommentModel> Comment { get; set; }
+        public virtual DbSet<VoteModel> Vote { get; set; }
+        public virtual DbSet<MentionModel> Mention { get; set; }
+        public virtual DbSet<NotificationModel> Notification { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
@@ -172,6 +176,29 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .HasIndex(a => new { a.ContentType, a.ContentId, a.CreatedAt });
             builder.Entity<ModerationActionModel>()
                 .HasIndex(a => a.CreatedAt);
+
+            builder.Entity<CommentModel>()
+                .HasIndex(c => new { c.EntityType, c.EntityId });
+            builder.Entity<CommentModel>()
+                .HasIndex(c => c.AuthorId);
+            builder.Entity<CommentModel>()
+                .HasIndex(c => c.ParentCommentId);
+
+            builder.Entity<VoteModel>()
+                .HasIndex(v => new { v.UserId, v.EntityType, v.EntityId })
+                .IsUnique();
+            builder.Entity<VoteModel>()
+                .HasIndex(v => new { v.EntityType, v.EntityId });
+
+            builder.Entity<MentionModel>()
+                .HasIndex(m => m.CommentId);
+            builder.Entity<MentionModel>()
+                .HasIndex(m => m.MentionedUserId);
+
+            builder.Entity<NotificationModel>()
+                .HasIndex(n => new { n.RecipientUserId, n.CreatedAt });
+            builder.Entity<NotificationModel>()
+                .HasIndex(n => new { n.RecipientUserId, n.IsRead });
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function

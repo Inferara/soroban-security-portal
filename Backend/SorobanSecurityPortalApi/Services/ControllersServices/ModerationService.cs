@@ -146,6 +146,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     ContentId = contentIdStr,
                     ContentPreview = info.Preview,
                     FullContent = info.FullContent,
+                    ContextType = info.ContextType,
+                    ContextId = info.ContextId,
                     Author = new ModerationAuthorViewModel
                     {
                         Id = info.AuthorUserId.ToString(),

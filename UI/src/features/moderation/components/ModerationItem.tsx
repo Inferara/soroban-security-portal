@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import {
     Box, Paper, Typography, Button, Avatar, Chip,
-    Collapse, TextField, Stack, Link, useTheme
+    Collapse, TextField, Stack, Link, useTheme, Tooltip
 } from '@mui/material';
 import {
-    Check, Delete, VisibilityOff, AccessTime, OpenInNew
+    Check, Delete, VisibilityOff, AccessTime, OpenInNew, InfoOutlined
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import { FlaggedContent, FlagReason } from '../types';
@@ -21,11 +21,12 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
     const [actionReason, setActionReason] = useState('');
     const [showReasonInput, setShowReasonInput] = useState<'hide' | 'delete' | null>(null);
 
-    // Link to the actual flagged content so a moderator can open it in context.
-    // Ratings have no standalone page (they live on a protocol/auditor), so they
-    // show their preview as plain text instead of a link.
-    const hasDetailLink = item.contentType === 'report' || item.contentType === 'vulnerability';
-    const detailPath = `${environment.basePath}/${item.contentType === 'report' ? 'report' : 'vulnerability'}/${item.contentId}`;
+    // Link to the page where a moderator can see this content in context. The
+    // backend resolves the right target per type: vulnerabilities/reports link to
+    // themselves, comments to their vuln/report discussion, ratings to the
+    // protocol/auditor they're on.
+    const hasDetailLink = !!item.contextType && !!item.contextId;
+    const detailPath = `${environment.basePath}/${item.contextType}/${item.contextId}`;
 
     const handleConfirmAction = () => {
         if (showReasonInput && actionReason) {
@@ -71,7 +72,19 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
                     <Avatar src={item.author.avatarUrl} alt={item.author.name} sx={{ width: 40, height: 40 }} />
                     <Box sx={{ minWidth: 0 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
-                            {item.author.name}
+                            {Number(item.author.id) > 0 ? (
+                                <Link
+                                    component={RouterLink}
+                                    to={`${environment.basePath}/profile/${item.author.id}`}
+                                    state={{ name: item.author.name }}
+                                    underline="hover"
+                                    color="inherit"
+                                >
+                                    {item.author.name}
+                                </Link>
+                            ) : (
+                                item.author.name
+                            )}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
                             Reputation {item.author.reputationScore}
@@ -157,16 +170,41 @@ export const ModerationItem = ({ item, onAction }: ModerationItemProps) => {
             {/* Actions (pending) or the resolution chip (history) */}
             {item.status === 'pending' ? (
                 <>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-                        <Button size="small" startIcon={<Check />} onClick={() => onAction(item.id, 'approve')} sx={approveSx}>
-                            Approve
-                        </Button>
-                        <Button size="small" startIcon={<VisibilityOff />} onClick={() => setShowReasonInput(showReasonInput === 'hide' ? null : 'hide')} sx={hideSx}>
-                            Hide
-                        </Button>
-                        <Button size="small" startIcon={<Delete />} onClick={() => setShowReasonInput(showReasonInput === 'delete' ? null : 'delete')} sx={deleteSx}>
-                            Delete
-                        </Button>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1.5 }}>
+                        {/* Hint so moderators know what each action does, and how Hide differs from Delete. */}
+                        <Tooltip
+                            arrow
+                            title={
+                                <Box sx={{ p: 0.5 }}>
+                                    <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                                        <strong>Approve</strong> — dismiss the reports and keep the content visible.
+                                    </Typography>
+                                    <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                                        <strong>Hide</strong> — take it out of public view for borderline cases. It can be brought back later with Approve.
+                                    </Typography>
+                                    <Typography variant="caption" component="div">
+                                        <strong>Delete</strong> — take it down as a permanent removal for clear violations (still recoverable by an admin if needed).
+                                    </Typography>
+                                </Box>
+                            }
+                        >
+                            <InfoOutlined sx={{ fontSize: 18, color: 'text.disabled', mr: 'auto', cursor: 'help' }} />
+                        </Tooltip>
+                        <Tooltip title="Dismiss the reports and keep the content visible" arrow>
+                            <Button size="small" startIcon={<Check />} onClick={() => onAction(item.id, 'approve')} sx={approveSx}>
+                                Approve
+                            </Button>
+                        </Tooltip>
+                        <Tooltip title="Remove from public view — reversible, for borderline content" arrow>
+                            <Button size="small" startIcon={<VisibilityOff />} onClick={() => setShowReasonInput(showReasonInput === 'hide' ? null : 'hide')} sx={hideSx}>
+                                Hide
+                            </Button>
+                        </Tooltip>
+                        <Tooltip title="Permanent takedown for clear violations" arrow>
+                            <Button size="small" startIcon={<Delete />} onClick={() => setShowReasonInput(showReasonInput === 'delete' ? null : 'delete')} sx={deleteSx}>
+                                Delete
+                            </Button>
+                        </Tooltip>
                     </Box>
 
                     <Collapse in={!!showReasonInput}>

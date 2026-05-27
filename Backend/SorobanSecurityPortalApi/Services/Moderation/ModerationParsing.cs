@@ -11,6 +11,7 @@ namespace SorobanSecurityPortalApi.Services.Moderation
                 case "vulnerability": t = ModeratedContentType.Vulnerability; return true;
                 case "report": t = ModeratedContentType.Report; return true;
                 case "rating": t = ModeratedContentType.Rating; return true;
+                case "comment": t = ModeratedContentType.Comment; return true;
                 default: t = default; return false;
             }
         }
@@ -20,6 +21,7 @@ namespace SorobanSecurityPortalApi.Services.Moderation
             ModeratedContentType.Vulnerability => "vulnerability",
             ModeratedContentType.Report => "report",
             ModeratedContentType.Rating => "rating",
+            ModeratedContentType.Comment => "comment",
             _ => "",
         };
 

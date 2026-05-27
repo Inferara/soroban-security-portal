@@ -37,7 +37,10 @@ namespace SorobanSecurityPortalApi.Services.Moderation
                 FullContent = $"Score: {r.Score}/5 on {on}\n\n{r.Review}",
                 AuthorUserId = r.UserId,
                 IsHidden = r.IsHidden,
-                IsDeleted = r.IsDeleted
+                IsDeleted = r.IsDeleted,
+                // A rating lives on a protocol or auditor page — link there.
+                ContextType = r.EntityType == EntityType.Protocol ? "protocol" : "auditor",
+                ContextId = r.EntityId
             };
         }
 

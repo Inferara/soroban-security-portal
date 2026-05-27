@@ -9,18 +9,30 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public class UserProfileService : IUserProfileService
     {
         private readonly IUserProfileProcessor _processor;
+        private readonly ILoginProcessor _loginProcessor;
         private readonly IMapper _mapper;
 
-        public UserProfileService(IUserProfileProcessor processor, IMapper mapper)
+        public UserProfileService(IUserProfileProcessor processor, ILoginProcessor loginProcessor, IMapper mapper)
         {
             _processor = processor;
+            _loginProcessor = loginProcessor;
             _mapper = mapper;
         }
 
         public async Task<PublicUserProfileViewModel?> GetPublicProfileByLoginIdAsync(int loginId)
         {
             var profile = await _processor.GetByLoginIdAsync(loginId);
-            return profile != null ? _mapper.Map<PublicUserProfileViewModel>(profile) : null;
+            if (profile != null) return _mapper.Map<PublicUserProfileViewModel>(profile);
+
+            // Most users never fill in a profile, but they still author comments/reviews
+            // and should have a viewable page. Return an empty profile for any existing,
+            // enabled user; only a non-existent/disabled login gives null (404).
+            var login = await _loginProcessor.GetById(loginId);
+            if (login is { IsEnabled: true })
+            {
+                return new PublicUserProfileViewModel { LoginId = loginId };
+            }
+            return null;
         }
 
         public async Task<UserProfileViewModel?> GetProfileByLoginIdAsync(int loginId)

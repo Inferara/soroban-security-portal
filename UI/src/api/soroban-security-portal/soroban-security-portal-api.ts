@@ -1,6 +1,7 @@
 import axios from 'axios';
 import RestApi from '../rest-api';
 import { UserItem, CreateUserItem, EditUserItem, SelfEditUserItem } from './models/user';
+import { PublicUserProfile } from './models/profile';
 import { SettingsItem } from './models/settings';
 import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
@@ -15,6 +16,8 @@ import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
 import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
 import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
+import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType, UserSearchResult, CommentEditHistoryEntry } from './models/comment';
+import { Notification, NotificationType } from './models/notification';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -401,6 +404,12 @@ export const selfEditUserCall = async (loginId: number, userItem: SelfEditUserIt
     const response = await client.request(`api/v1/user/self/${loginId}`, 'PUT', userItem);
     return response.data as boolean;
 }
+// Public, privacy-safe profile of any user by login id (no name/email).
+export const getPublicProfileCall = async (loginId: number): Promise<PublicUserProfile> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/profiles/${loginId}`, 'GET');
+    return response.data as PublicUserProfile;
+}
 export const removeUserCall = async (userId: number): Promise<void> => {
     const client = await getRestClient();
     await client.request(`api/v1/user/${userId}`, 'DELETE');
@@ -573,6 +582,82 @@ export const addOrUpdateRatingCall = async (request: CreateRatingRequest): Promi
 export const deleteRatingCall = async (ratingId: number): Promise<void> => {
     const client = await getRestClient();
     await client.request(`api/v1/ratings/${ratingId}`, 'DELETE');
+};
+
+// --- COMMENTS ---
+export const getCommentsCall = async (entityType: CommentEntityType, entityId: number, page = 1): Promise<Comment[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments?entityType=${entityType}&entityId=${entityId}&page=${page}`, 'GET');
+    return response.data as Comment[];
+};
+
+export const getCommentCountCall = async (entityType: CommentEntityType, entityId: number): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/count?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as number;
+};
+
+export const addCommentCall = async (request: CreateCommentRequest): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/comments', 'POST', request);
+    return response.data as Comment;
+};
+
+export const deleteCommentCall = async (id: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/comments/${id}`, 'DELETE');
+};
+
+export const voteCommentCall = async (id: number, voteType: VoteType): Promise<VoteResult> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}/vote`, 'POST', { voteType });
+    return response.data as VoteResult;
+};
+
+export const editCommentCall = async (id: number, content: string): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}`, 'PUT', { content });
+    return response.data as Comment;
+};
+
+// Moderator-only: past versions of an edited comment.
+export const getCommentHistoryCall = async (id: number): Promise<CommentEditHistoryEntry[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}/history`, 'GET');
+    return response.data as CommentEditHistoryEntry[];
+};
+
+// --- USER SEARCH ---
+export const searchUsersCall = async (q: string): Promise<UserSearchResult[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/user/search?q=${encodeURIComponent(q)}`, 'GET');
+    return response.data as UserSearchResult[];
+};
+
+// --- NOTIFICATIONS ---
+export const getNotificationsCall = async (type?: NotificationType, page = 1): Promise<Notification[]> => {
+    const client = await getRestClient();
+    const qs = new URLSearchParams();
+    if (type !== undefined) qs.append('type', String(type));
+    qs.append('page', String(page));
+    const response = await client.request(`api/v1/notifications?${qs.toString()}`, 'GET');
+    return response.data as Notification[];
+};
+
+export const getUnreadCountCall = async (): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/notifications/unread-count', 'GET');
+    return response.data as number;
+};
+
+export const markNotificationReadCall = async (id: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/notifications/${id}/read`, 'POST');
+};
+
+export const markAllNotificationsReadCall = async (): Promise<void> => {
+    const client = await getRestClient();
+    await client.request('api/v1/notifications/read-all', 'POST');
 };
 
 // Rest client

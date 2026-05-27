@@ -30,3 +30,11 @@ spec:
             name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
             port:
               number: 8080
+      # SignalR notifications hub (/hubs/notifications) — Traefik handles the websocket upgrade.
+      - path: /hubs
+        pathType: Prefix
+        backend:
+          service:
+            name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
+            port:
+              number: 8080

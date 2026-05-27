@@ -11,8 +11,8 @@ import { FlaggedContent, ModerationStats } from '../../types';
 // loaded data set so the test exercises the REAL filter, not the mock delay.
 const mockHandleAction = vi.fn();
 
-const baseAuthor = (name: string) => ({
-    id: `author-${name}`,
+const baseAuthor = (name: string, id = '7') => ({
+    id, // login id as string — must be numeric so the name links to /profile/:id
     name,
     email: `${name}@example.com`,
     reputationScore: 10,
@@ -28,6 +28,8 @@ const ITEMS: FlaggedContent[] = [
         contentId: 'cid1',
         contentPreview: 'A flagged vulnerability',
         fullContent: 'A flagged vulnerability',
+        contextType: 'vulnerability',
+        contextId: 1,
         author: baseAuthor('VulnAuthor'),
         flagCount: 1,
         reasons: baseReasons,
@@ -42,7 +44,25 @@ const ITEMS: FlaggedContent[] = [
         contentId: 'rid1',
         contentPreview: 'A flagged report',
         fullContent: 'A flagged report',
+        contextType: 'report',
+        contextId: 2,
         author: baseAuthor('ReportAuthor'),
+        flagCount: 1,
+        reasons: baseReasons,
+        firstFlaggedAt: new Date().toISOString(),
+        lastFlaggedAt: new Date().toISOString(),
+        status: 'pending',
+        moderationHistory: [],
+    },
+    {
+        id: 'cm1',
+        contentType: 'comment',
+        contentId: '9',
+        contentPreview: 'A flagged comment',
+        fullContent: 'A flagged comment',
+        contextType: 'vulnerability',
+        contextId: 1,
+        author: baseAuthor('CommentAuthor'),
         flagCount: 1,
         reasons: baseReasons,
         firstFlaggedAt: new Date().toISOString(),
@@ -165,6 +185,31 @@ describe('ModerationDashboard - filtering', () => {
 
         // The hidden item is a vulnerability, so it remains
         expect(screen.getByText('HiddenAuthor')).toBeInTheDocument();
+    });
+
+    it('content-type filter "Comments" shows only the flagged comment', async () => {
+        const user = userEvent.setup();
+        renderComponent();
+
+        await user.click(screen.getByRole('combobox'));
+        const listbox = within(screen.getByRole('listbox'));
+        await user.click(listbox.getByText('Comments'));
+
+        expect(screen.getByText('CommentAuthor')).toBeInTheDocument();
+        expect(screen.queryByText('VulnAuthor')).not.toBeInTheDocument();
+        expect(screen.queryByText('ReportAuthor')).not.toBeInTheDocument();
+    });
+
+    it('links flagged content to its context page (a comment links to its vulnerability discussion)', () => {
+        renderComponent();
+        const link = screen.getByRole('link', { name: /A flagged comment/i });
+        expect(link).toHaveAttribute('href', expect.stringContaining('/vulnerability/1'));
+    });
+
+    it('links the flagged author name to their public profile', () => {
+        renderComponent();
+        const link = screen.getByRole('link', { name: 'VulnAuthor' });
+        expect(link).toHaveAttribute('href', expect.stringContaining('/profile/7'));
     });
 
     it('an empty queue (e.g. Approved tab with no items) shows the empty-state message', async () => {
