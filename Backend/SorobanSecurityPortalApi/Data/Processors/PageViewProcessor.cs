@@ -80,14 +80,20 @@ namespace SorobanSecurityPortalApi.Data.Processors
             }
             result.TopEntities = result.TopEntities.OrderByDescending(t => t.Views).ToList();
 
-            // Daily human views for the last N days.
-            var since = DateTime.UtcNow.Date.AddDays(-(DailySeriesDays - 1));
-            var daily = await human.Where(p => p.ViewedAt >= since)
-                .GroupBy(p => p.ViewedAt.Date)
+            // Daily human views for the last N days. We bucket IN MEMORY by UTC calendar day
+            // instead of via a SQL GroupBy(p => p.ViewedAt.Date): a database-side group translates
+            // to date_trunc('day', viewed_at), which uses the Postgres SESSION timezone and would
+            // misalign the buckets with the UTC `since` boundary on a non-UTC server. The window is
+            // admin-only and bounded to DailySeriesDays, so materialising the timestamps is cheap.
+            var sinceUtc = DateTime.UtcNow.Date.AddDays(-(DailySeriesDays - 1));
+            var timestamps = await human.Where(p => p.ViewedAt >= sinceUtc)
+                .Select(p => p.ViewedAt)
+                .ToListAsync();
+            result.Daily = timestamps
+                .GroupBy(ts => DateTime.SpecifyKind(ts, DateTimeKind.Utc).Date)
                 .Select(g => new DailyViewsViewModel { Date = g.Key, Views = g.Count() })
                 .OrderBy(d => d.Date)
-                .ToListAsync();
-            result.Daily = daily;
+                .ToList();
 
             return result;
         }
