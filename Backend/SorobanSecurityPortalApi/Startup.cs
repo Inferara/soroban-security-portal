@@ -172,8 +172,8 @@ public class Startup
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Version = "v1",
-                Title = "Soroban Security Portal API",
-                Description = "API to work with Soroban Security Portal. Most endpoints are for administration and configuration. Its required to use Auth Code Flow + PKCE to use them.\n\n" +
+                Title = "Stellar Security Portal API",
+                Description = "API to work with Stellar Security Portal. Most endpoints are for administration and configuration. Its required to use Auth Code Flow + PKCE to use them.\n\n" +
                     "Endpoint for API integration using Basic Authentication:\n\n" +
                     "/api/v1/agents/{agentName}/isEnabled\n\n" +
                     "/api/v1/tags/my\n\n" +

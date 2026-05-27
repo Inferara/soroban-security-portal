@@ -54,7 +54,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             { Id = 7, Title = "Secret pending bug", Description = "hidden", Status = "new", Category = VulnerabilityCategory.Valid });
             var body = Body(await Sut().Vulnerability(7));
             body.Should().NotContain("Secret pending bug");
-            body.Should().Contain("Soroban Security Portal");
+            body.Should().Contain("Stellar Security Portal");
         }
 
         [Fact]
@@ -63,7 +63,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             _vuln.Setup(s => s.Get(It.IsAny<int>())).ReturnsAsync((VulnerabilityViewModel)null!);
             var body = Body(await Sut().Vulnerability(999));
             body.Should().Contain("og:site_name");
-            body.Should().Contain("Soroban Security Portal");
+            body.Should().Contain("Stellar Security Portal");
         }
 
         [Fact]
