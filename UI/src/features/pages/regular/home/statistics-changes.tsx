@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { FC, MouseEvent, ReactNode } from "react";
+import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import HubRoundedIcon from "@mui/icons-material/HubRounded";
@@ -92,8 +93,33 @@ const StatCard: FC<StatCardProps> = ({ icon, total, delta, label, accent }) => {
         {icon}
       </Box>
 
+      {/* delta pill (own line — never overlaps the number) */}
+      <Box sx={{ minHeight: 24, mb: 0.5 }}>
+        {delta > 0 && (
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.4,
+              px: 1,
+              py: 0.25,
+              borderRadius: 999,
+              fontSize: "0.72rem",
+              fontWeight: 700,
+              color: "#7CCF8E",
+              backgroundColor: "rgba(86,158,103,0.16)",
+              border: "1px solid rgba(86,158,103,0.3)",
+            }}
+          >
+            <ArrowUpwardRoundedIcon sx={{ fontSize: 13 }} /> +{delta} this month
+          </Box>
+        )}
+      </Box>
+
       <Box
         sx={{
+          "& .MuiBadge-root": { display: "block" },
           "& .MuiTypography-h1": {
             fontSize: "clamp(2.5rem, 4vw, 3.5rem)",
             fontWeight: 800,
@@ -103,10 +129,9 @@ const StatCard: FC<StatCardProps> = ({ icon, total, delta, label, accent }) => {
             backgroundClip: "text",
             color: "transparent",
           },
-          "& .MuiBadge-badge": { color: "#569e67" },
         }}
       >
-        <AnimatedSuperscriptCounter duration={1200} superDuration={900} targetRaw={total} supRaw={delta} />
+        <AnimatedSuperscriptCounter duration={1200} targetRaw={total} supRaw={0} />
       </Box>
 
       <Typography
