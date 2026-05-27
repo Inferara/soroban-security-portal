@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box';
-import { FC, MouseEvent, useState } from 'react';
+import { FC, MouseEvent, useState, useEffect } from 'react';
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 import './main-window.css';
 import AppBar from '@mui/material/AppBar';
@@ -72,6 +72,15 @@ export const MainWindow: FC = () => {
   // mobile drawer
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleMobile = () => setMobileOpen((prev) => !prev);
+
+  // glass-on-scroll: deepen the AppBar shadow once the page is scrolled
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // avatar state from shared hook
   const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
@@ -170,6 +179,12 @@ export const MainWindow: FC = () => {
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           borderBottom: themeMode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '0px',
+          transition: 'box-shadow .3s ease, backdrop-filter .3s ease',
+          boxShadow: scrolled
+            ? themeMode === 'dark'
+              ? '0 8px 30px rgba(0,0,0,0.45)'
+              : '0 8px 30px rgba(20,30,80,0.12)'
+            : 'none',
         }}
       >
         <Toolbar sx={{ bgcolor: 'background.paper', py: { xs: 0.5, md: 1.25 } }}>

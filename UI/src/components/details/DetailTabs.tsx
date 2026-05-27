@@ -108,11 +108,21 @@ export function DetailTabs({
         onChange={handleChange}
         variant={isMobile ? 'fullWidth' : 'standard'}
         sx={{
+          '& .MuiTabs-indicator': {
+            height: 3,
+            borderRadius: 3,
+            background: 'linear-gradient(90deg, #F5D98B, #D9A441)',
+            boxShadow: '0 0 12px rgba(212,162,60,0.6)',
+          },
           '& .MuiTab-root': {
             textTransform: 'none',
             fontSize: '1rem',
             fontWeight: 600,
             minHeight: 64,
+            borderRadius: '12px 12px 0 0',
+            transition: 'color .2s ease, background-color .2s ease',
+            '&:hover': { backgroundColor: 'action.hover' },
+            '&.Mui-selected': { color: '#D9A441' },
           },
         }}
       >

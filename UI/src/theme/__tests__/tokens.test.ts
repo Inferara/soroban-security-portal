@@ -10,7 +10,7 @@ describe('theme tokens', () => {
     expect(getThemeTokens('light')).toBe(DaylightTokens);
   });
   it('keeps brand accent colors', () => {
-    expect(CosmicTokens.accentGold).toBe('#FFD84D');
+    expect(CosmicTokens.accentGold).toBe('#D4A23C');
     expect(CosmicTokens.accentBlue).toBe('#2D4EFF');
   });
 });
