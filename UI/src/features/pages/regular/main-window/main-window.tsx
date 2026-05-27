@@ -63,7 +63,7 @@ export const MainWindow: FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
-  const { themeMode, toggleTheme } = useTheme();
+  const { themeMode, toggleTheme, tokens } = useTheme();
 
   // user menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -397,7 +397,7 @@ export const MainWindow: FC = () => {
       </Box>
       {/* Footer */}
       {(location.pathname.endsWith('home') || location.pathname === '/' || location.pathname.endsWith('about')) && (
-        <Box sx={{ backgroundColor: 'background.paper', color: 'secondary.main', p: { xs: 2.5, md: 4 }, mt: 'auto' }}>
+        <Box sx={{ backgroundColor: 'background.paper', backgroundImage: tokens.sectionGradient, borderTop: '1px solid', borderColor: 'divider', color: 'secondary.main', p: { xs: 2.5, md: 4 }, mt: 'auto' }}>
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             spacing={{ xs: 3, md: 4 }}
@@ -458,7 +458,14 @@ export const MainWindow: FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: { xs: 'flex-start', md: 'center' },
-                '& .MuiButtonBase-root': { '&:hover': { color: '#2D4EFF' } },
+                '& .MuiButtonBase-root': {
+                  transition: 'color .2s ease, filter .2s ease, transform .2s ease',
+                  '&:hover': {
+                    color: '#FFD84D',
+                    filter: 'drop-shadow(0 0 6px rgba(255,216,77,0.6))',
+                    transform: 'translateY(-2px)',
+                  },
+                },
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'secondary.main' }}>
