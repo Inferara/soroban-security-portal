@@ -170,8 +170,41 @@ public class UserProfileServiceTests
     private SorobanSecurityPortalApi.Services.ControllersServices.UserProfileService BuildService()
     {
         var processorMock = new Moq.Mock<SorobanSecurityPortalApi.Data.Processors.IUserProfileProcessor>();
+        var loginMock = new Moq.Mock<SorobanSecurityPortalApi.Data.Processors.ILoginProcessor>();
         // ExistsAsync is never reached when validation fails — no setup needed.
         return new SorobanSecurityPortalApi.Services.ControllersServices.UserProfileService(
-            processorMock.Object, _mapper);
+            processorMock.Object, loginMock.Object, _mapper);
+    }
+
+    // --- Public profile falls back to an empty profile for users without a profile row ---
+
+    [Fact]
+    public async Task GetPublicProfile_ReturnsEmptyProfile_ForExistingEnabledUserWithoutProfileRow()
+    {
+        var processorMock = new Moq.Mock<SorobanSecurityPortalApi.Data.Processors.IUserProfileProcessor>();
+        processorMock.Setup(p => p.GetByLoginIdAsync(42)).ReturnsAsync((UserProfileModel?)null);
+        var loginMock = new Moq.Mock<SorobanSecurityPortalApi.Data.Processors.ILoginProcessor>();
+        loginMock.Setup(l => l.GetById(42)).ReturnsAsync(new LoginModel { LoginId = 42, IsEnabled = true });
+        var service = new SorobanSecurityPortalApi.Services.ControllersServices.UserProfileService(
+            processorMock.Object, loginMock.Object, _mapper);
+
+        var result = await service.GetPublicProfileByLoginIdAsync(42);
+
+        result.Should().NotBeNull();
+        result!.LoginId.Should().Be(42);
+        result.ReputationScore.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetPublicProfile_ReturnsNull_ForNonexistentUser()
+    {
+        var processorMock = new Moq.Mock<SorobanSecurityPortalApi.Data.Processors.IUserProfileProcessor>();
+        processorMock.Setup(p => p.GetByLoginIdAsync(999)).ReturnsAsync((UserProfileModel?)null);
+        var loginMock = new Moq.Mock<SorobanSecurityPortalApi.Data.Processors.ILoginProcessor>();
+        loginMock.Setup(l => l.GetById(999)).ReturnsAsync((LoginModel?)null);
+        var service = new SorobanSecurityPortalApi.Services.ControllersServices.UserProfileService(
+            processorMock.Object, loginMock.Object, _mapper);
+
+        (await service.GetPublicProfileByLoginIdAsync(999)).Should().BeNull();
     }
 }
