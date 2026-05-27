@@ -260,8 +260,10 @@ export const Reports: FC = () => {
               key={report.id}
               sx={{
                 height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '0px', borderRadius: '20px',
-                backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-                border: '1px solid', position: 'relative'
+                backgroundColor: themeMode === 'light' ? '#fafafa' : '#13131c',
+                border: '1px solid', borderColor: 'divider', position: 'relative',
+                transition: 'transform .25s ease, box-shadow .25s ease',
+                '&:hover': { transform: 'translateY(-3px)', boxShadow: 6, '@media (prefers-reduced-motion: reduce)': { transform: 'none' } }
               }}>
               <CardMedia
                 component="img"
