@@ -132,7 +132,22 @@ export const MainWindow: FC = () => {
             fontSize: isActive ? '1.5rem' : '1.2rem',
             fontWeight: isActive ? 600 : 400,
             textTransform: 'none',
-            '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
+            position: 'relative',
+            transition: 'color .2s ease',
+            '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)', color: AccentColors.navigationActive },
+            '&::after': isActive
+              ? {
+                  content: '""',
+                  position: 'absolute',
+                  left: '12%',
+                  right: '12%',
+                  bottom: 6,
+                  height: 2,
+                  background: AccentColors.navigationActive,
+                  boxShadow: `0 0 8px ${AccentColors.navigationActive}`,
+                  borderRadius: 2,
+                }
+              : undefined,
           }}
           fullWidth
         >
@@ -161,8 +176,19 @@ export const MainWindow: FC = () => {
               alt="Logo"
               sx={{ height: { xs: 44, sm: 56, md: 70 }, mr: { xs: 1, md: 2 } }}
             />
-            <Typography variant="h6" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 700 }}>
-              {/* Optional brand text if you want */}
+            <Typography
+              variant="h6"
+              sx={{
+                display: { xs: 'none', sm: 'block' },
+                fontWeight: 800,
+                letterSpacing: '0.01em',
+                background: 'linear-gradient(90deg, #FFD84D 0%, #2D4EFF 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Stellar Security Portal
             </Typography>
           </Box>
 
@@ -181,14 +207,17 @@ export const MainWindow: FC = () => {
             <MenuIcon />
           </IconButton>
 
-          {/* Theme Toggle (currently hidden per your code) */}
-          <IconButton
-            color="inherit"
-            onClick={toggleTheme}
-            sx={{ mr: 1, visibility: 'hidden' }} // keep your hidden behavior
-          >
-            {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+          {/* Theme Toggle */}
+          <Tooltip title={themeMode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} arrow>
+            <IconButton
+              color="inherit"
+              aria-label="toggle light/dark theme"
+              onClick={toggleTheme}
+              sx={{ mr: 1 }}
+            >
+              {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Tooltip>
 
           {/* Right: Profile/Login */}
           {auth.isAuthenticated && auth.user ? (
