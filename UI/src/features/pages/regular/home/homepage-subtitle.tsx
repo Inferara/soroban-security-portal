@@ -30,7 +30,7 @@ export const HomepageSubtitle: FC<HomepageSubtitleProps> = ({
                 justifyContent: isCompact ? 'center' : { xs: 'center', sm: 'center', md: isLeft ? 'flex-end' : 'flex-start' }
             }}>
                 <Typography variant={isCompact ? 'h4' : 'h2'} sx={{
-                    color: 'primary.contrastText',
+                    color: 'text.primary',
                     textTransform: "uppercase",
                     whiteSpace: 'nowrap',
                     textAlign: isCompact ? 'center' : { xs: 'center', sm: 'center', md: isLeft ? 'right' : 'left' },

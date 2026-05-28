@@ -120,6 +120,12 @@ export const MainWindow: FC = () => {
     ? [...baseNavigationItems, { label: 'Admin', path: '/admin' }]
     : baseNavigationItems;
 
+  // Theme-aware nav colors: in light mode the bright gold is too low-contrast on the
+  // light header, so use a deeper gold for the active item and a neutral for inactive.
+  const navActiveColor = tokens.accentGoldBright;
+  const navInactiveColor = themeMode === 'dark' ? AccentColors.navigationInactive : 'text.secondary';
+  const navHoverBg = themeMode === 'dark' ? 'rgba(255, 216, 77, 0.10)' : 'rgba(168, 116, 10, 0.10)';
+
   const navButtons = navigationItems.map((item) => {
     const isActive = isActiveRoute(item.path);
     const fullPath = `${window.location.origin}${environment.basePath}${item.path}`;
@@ -140,15 +146,15 @@ export const MainWindow: FC = () => {
       >
         <Button
           sx={{
-            color: isActive ? AccentColors.navigationActive : AccentColors.navigationInactive,
+            color: isActive ? navActiveColor : navInactiveColor,
             height: '54px',
             backgroundColor: 'transparent',
             fontSize: isActive ? '1.5rem' : '1.2rem',
-            fontWeight: isActive ? 600 : 400,
+            fontWeight: isActive ? 700 : 500,
             textTransform: 'none',
             position: 'relative',
             transition: 'color .2s ease',
-            '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)', color: AccentColors.navigationActive },
+            '&:hover': { backgroundColor: navHoverBg, color: navActiveColor },
             '&::after': isActive
               ? {
                   content: '""',
@@ -157,8 +163,8 @@ export const MainWindow: FC = () => {
                   right: '12%',
                   bottom: 6,
                   height: 2,
-                  background: AccentColors.navigationActive,
-                  boxShadow: `0 0 8px ${AccentColors.navigationActive}`,
+                  background: navActiveColor,
+                  boxShadow: themeMode === 'dark' ? `0 0 8px ${navActiveColor}` : 'none',
                   borderRadius: 2,
                 }
               : undefined,

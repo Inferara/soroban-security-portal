@@ -59,8 +59,8 @@ export const CosmicTokens: ThemeTokens = {
 };
 
 export const DaylightTokens: ThemeTokens = {
-  accentGold: '#B8860B',
-  accentGoldBright: '#9a7b1f',
+  accentGold: '#A8740A',
+  accentGoldBright: '#8B6914',
   goldGradient: 'linear-gradient(135deg, #C9942A 0%, #B5861F 50%, #8a6514 100%)',
   accentBlue: '#2D4EFF',
   heroBackground:
