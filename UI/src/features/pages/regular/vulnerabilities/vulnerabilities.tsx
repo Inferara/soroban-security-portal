@@ -41,7 +41,7 @@ import 'katex/dist/katex.min.css';
 import './katex.css';
 import ReactGA from 'react-ga4';
 import { VulnerabilityCard } from './vulnerability-card';
-import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { downloadReportPDF, getVulnerabilityDescriptionCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
 
@@ -172,13 +172,23 @@ export const Vulnerabilities: FC = () => {
     return tag;
   };
 
-  const handleCardClick = (vulnerability: Vulnerability) => {
-    if (selectedVulnerability === vulnerability) {
+  const handleCardClick = async (vulnerability: Vulnerability) => {
+    if (selectedVulnerability?.id === vulnerability.id) {
       setSelectedVulnerability(null);
+      return;
     }
-    else {
-      setSelectedVulnerability(vulnerability);
-      ReactGA.event({ category: "Vulnerability", action: "view", label: "Open Vulnerability Preview" });
+    setSelectedVulnerability(vulnerability);
+    ReactGA.event({ category: "Vulnerability", action: "view", label: "Open Vulnerability Preview" });
+    // The list payload omits Description for performance; fetch it lazily on first expand.
+    if (!vulnerability.description) {
+      try {
+        const description = await getVulnerabilityDescriptionCall(vulnerability.id);
+        setSelectedVulnerability(prev =>
+          prev && prev.id === vulnerability.id ? { ...prev, description } : prev
+        );
+      } catch {
+        // Leave description empty; the card still renders every other field.
+      }
     }
   };
 

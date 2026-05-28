@@ -343,6 +343,11 @@ export const getVulnerabilityByIdCall = async (vulnerabilityId: number): Promise
     const response = await client.request(`api/v1/vulnerabilities/${vulnerabilityId}`, 'GET');
     return response.data as Vulnerability;
 };
+export const getVulnerabilityDescriptionCall = async (vulnerabilityId: number): Promise<string> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/vulnerabilities/${vulnerabilityId}/description`, 'GET');
+    return (response.data as { description: string }).description;
+};
 export const editVulnerabilityCall = async (vulnerability: Vulnerability | FormData): Promise<boolean> => {
     const client = await getRestClient();
     let vulnerabilityId: number;
