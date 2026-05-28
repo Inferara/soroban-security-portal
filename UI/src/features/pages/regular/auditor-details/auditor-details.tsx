@@ -23,6 +23,7 @@ import {
   Dashboard,
   StarRounded,
 } from '@mui/icons-material';
+import { ViewCountLabel } from '../../../../components/common/ViewCountLabel';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useAuditorDetails } from './hooks/auditor-details.hook';
@@ -44,6 +45,8 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong, formatMonthYear } from '../../../../utils';
+import { usePageViewTracking } from '../../../../hooks/usePageViewTracking';
+import { PageViewEntityType } from '../../../../api/soroban-security-portal/models/analytics';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
@@ -60,6 +63,8 @@ export const AuditorDetails: FC = () => {
   } = useAuditorDetails();
 
   const { tabValue, tabProps } = useDetailTabs(0);
+
+  const views = usePageViewTracking(PageViewEntityType.Auditor, auditor?.id);
 
   // Calculate fix rate
   const fixedValidVulns = statistics?.vulnerabilitiesByCategory![VulnerabilityCategory.Valid] || 0;
@@ -144,6 +149,7 @@ export const AuditorDetails: FC = () => {
             title={auditor.name}
             subtitle="Security Auditor"
             description={`Since ${formatDateLong(auditor.date)}`}
+            metaInline={views ? <ViewCountLabel count={views} /> : undefined}
             websiteUrl={auditor.url}
             actions={
               canAddReport && (

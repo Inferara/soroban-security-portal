@@ -25,6 +25,7 @@ import {
   Grading,
   StarRounded,
 } from '@mui/icons-material';
+import { ViewCountLabel } from '../../../../components/common/ViewCountLabel';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useProtocolDetails } from './hooks/protocol-details.hook';
@@ -45,6 +46,8 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
+import { usePageViewTracking } from '../../../../hooks/usePageViewTracking';
+import { PageViewEntityType } from '../../../../api/soroban-security-portal/models/analytics';
 
 export const ProtocolDetails: FC = () => {
   const navigate = useNavigate();
@@ -61,6 +64,8 @@ export const ProtocolDetails: FC = () => {
   } = useProtocolDetails();
 
   const { tabValue, tabProps } = useDetailTabs(0);
+
+  const views = usePageViewTracking(PageViewEntityType.Protocol, protocol?.id);
 
   // Prepare chart data using utility functions (memoized for performance)
   const severityChartData = useMemo(
@@ -178,6 +183,7 @@ export const ProtocolDetails: FC = () => {
               entityId={protocol.id}
               title={protocol.name}
               subtitle={company ? `by ${company.name}` : undefined}
+              metaInline={views ? <ViewCountLabel count={views} /> : undefined}
               websiteUrl={protocol.url}
               actions={
                 <>

@@ -50,6 +50,7 @@ import { Layout, AccentColors } from '../../../../theme';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { useResponsive } from '../../../../hooks';
 import { ModerationDashboard } from '../../../moderation/pages/ModerationDashboard';
+import { Statistics } from '../statistics/statistics.tsx';
 
 const drawerWidth = Layout.drawerWidth;
 const drawerMarginLeft = Layout.drawerMarginLeft;
@@ -292,6 +293,8 @@ export const AdminMainWindow: FC = () => {
           <Route path={`${environment.basePath}/admin/tags`} element={<ListTags />} />
           <Route path={`${environment.basePath}/admin/tags/add`} element={<AddTag />} />
           <Route path={`${environment.basePath}/admin/tags/edit`} element={<EditTag />} />
+
+          <Route path={`${environment.basePath}/admin/statistics`} element={<Statistics />} />
 
           <Route path={`${environment.basePath}/admin/moderation`} element={<ModerationDashboard />} />
 

@@ -22,12 +22,14 @@ namespace SorobanSecurityPortalApi.Controllers
         private readonly IVulnerabilityService _vulnerabilityService;
         private readonly IReportService _reportService;
         private readonly Config _config;
+        private readonly IPageViewService _pageViewService;
 
-        public OgController(IVulnerabilityService vulnerabilityService, IReportService reportService, Config config)
+        public OgController(IVulnerabilityService vulnerabilityService, IReportService reportService, Config config, IPageViewService pageViewService)
         {
             _vulnerabilityService = vulnerabilityService;
             _reportService = reportService;
             _config = config;
+            _pageViewService = pageViewService;
         }
 
         // Config.AppUrl is "https://<domain>/api/v1"; the public site base is that minus "/api/v1".
@@ -45,6 +47,7 @@ namespace SorobanSecurityPortalApi.Controllers
             if (v == null || v.Status != VulnerabilityModelStatus.Approved || v.Category == VulnerabilityCategory.Invalid)
                 return Generic(pageUrl);
 
+            await RecordCrawlerView(EntityType.Vulnerability, id);
             return Page(v.Title, Truncate(v.Description, MaxDescriptionLength), LogoUrl, pageUrl);
         }
 
@@ -59,7 +62,23 @@ namespace SorobanSecurityPortalApi.Controllers
             var image = (r.Image != null && r.Image.Length > 0)
                 ? $"{_config.AppUrl}/reports/{id}/image.png"
                 : LogoUrl;
+            await RecordCrawlerView(EntityType.Report, id);
             return Page(r.Name, $"Security audit report: {r.Name}", image, pageUrl);
+        }
+
+        // Records a crawler/link-preview hit. Best-effort: a failure here must never break the
+        // OpenGraph response that social crawlers depend on.
+        private async Task RecordCrawlerView(EntityType entityType, int id)
+        {
+            try
+            {
+                var ua = Request.Headers.UserAgent.ToString();
+                await _pageViewService.RecordView(entityType, id, Request.GetClientIp(), ua, PageViewSource.Crawler);
+            }
+            catch
+            {
+                // swallow — analytics must not affect link previews
+            }
         }
 
         private IActionResult Generic(string pageUrl) =>

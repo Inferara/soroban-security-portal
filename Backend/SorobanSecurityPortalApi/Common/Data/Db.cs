@@ -34,6 +34,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public virtual DbSet<VoteModel> Vote { get; set; }
         public virtual DbSet<MentionModel> Mention { get; set; }
         public virtual DbSet<NotificationModel> Notification { get; set; }
+        public DbSet<PageViewModel> PageView { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
@@ -199,6 +200,14 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .HasIndex(n => new { n.RecipientUserId, n.CreatedAt });
             builder.Entity<NotificationModel>()
                 .HasIndex(n => new { n.RecipientUserId, n.IsRead });
+
+            builder.Entity<PageViewModel>()
+                .HasIndex(p => new { p.EntityType, p.EntityId });
+            builder.Entity<PageViewModel>()
+                .HasIndex(p => p.ViewedAt);
+            // Supports the per-day dedupe lookup (same visitor, same entity, same day).
+            builder.Entity<PageViewModel>()
+                .HasIndex(p => new { p.EntityType, p.EntityId, p.VisitorHash });
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function

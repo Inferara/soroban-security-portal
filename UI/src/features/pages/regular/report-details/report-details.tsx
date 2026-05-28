@@ -30,6 +30,7 @@ import {
   Forum,
 } from '@mui/icons-material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import { ViewCountLabel } from '../../../../components/common/ViewCountLabel';
 import { useNavigate } from 'react-router-dom';
 import { useReportDetails } from './hooks/report-details.hook';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
@@ -64,6 +65,8 @@ import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
 import { SeoHead } from '../../../../components/common/SeoHead';
 import { ShareButtons } from '../../../../components/common/ShareButtons';
+import { usePageViewTracking } from '../../../../hooks/usePageViewTracking';
+import { PageViewEntityType } from '../../../../api/soroban-security-portal/models/analytics';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -89,6 +92,8 @@ export const ReportDetails: FC = () => {
 
   const { tabValue, tabProps } = useDetailTabs(0);
   const { isBookmarked, toggleBookmark } = useBookmarks();
+
+  const views = usePageViewTracking(PageViewEntityType.Report, report?.id);
 
   const [commentCount, setCommentCount] = useState<number | null>(null);
   useEffect(() => {
@@ -229,6 +234,7 @@ export const ReportDetails: FC = () => {
               title={report.name}
               subtitle={auditor ? `by ${auditor.name}` : undefined}
               description={`Published: ${formatDateLong(report.date)}`}
+              metaInline={views ? <ViewCountLabel count={views} /> : undefined}
               actions={
                 <>
                   <Button

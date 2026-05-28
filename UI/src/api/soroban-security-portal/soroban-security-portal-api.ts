@@ -18,6 +18,7 @@ import { FlaggedContent, ModerationStats } from '../../features/moderation/types
 import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
 import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType, UserSearchResult, CommentEditHistoryEntry } from './models/comment';
 import { Notification, NotificationType } from './models/notification';
+import { PageViewEntityType, PageViewCount, AnalyticsStatistics } from './models/analytics';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -658,6 +659,25 @@ export const markNotificationReadCall = async (id: number): Promise<void> => {
 export const markAllNotificationsReadCall = async (): Promise<void> => {
     const client = await getRestClient();
     await client.request('api/v1/notifications/read-all', 'POST');
+};
+
+// --- ANALYTICS ---
+export const recordPageViewCall = async (entityType: PageViewEntityType, entityId: number): Promise<void> => {
+    const client = await getRestClient();
+    // ignoreError=true: a failed view-record must never surface an error to the visitor.
+    await client.request('api/v1/analytics/view', 'POST', { entityType, entityId }, true);
+};
+
+export const getPageViewCountCall = async (entityType: PageViewEntityType, entityId: number): Promise<PageViewCount> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/analytics/view/${entityType}/${entityId}`, 'GET', undefined, true);
+    return response.data as PageViewCount;
+};
+
+export const getAnalyticsStatisticsCall = async (): Promise<AnalyticsStatistics> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/analytics/statistics', 'GET');
+    return response.data as AnalyticsStatistics;
 };
 
 // Rest client

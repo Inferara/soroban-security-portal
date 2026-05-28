@@ -37,6 +37,8 @@ export interface DetailPageHeaderProps {
   actions?: ReactNode;
   /** Content to render in the header area (e.g., bookmark button) */
   headerExtra?: ReactNode;
+  /** Inline meta content shown on the byline next to the description (e.g. a view counter) */
+  metaInline?: ReactNode;
 }
 
 /**
@@ -98,6 +100,7 @@ export function DetailPageHeader({
   onBack,
   actions,
   headerExtra,
+  metaInline,
 }: DetailPageHeaderProps) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -144,10 +147,20 @@ export function DetailPageHeader({
               {subtitle}
             </Typography>
           )}
-          {description && (
-            <Typography variant="body2" color="text.secondary">
-              {description}
-            </Typography>
+          {(description || metaInline) && (
+            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75 }}>
+              {description && (
+                <Typography variant="body2" color="text.secondary">
+                  {description}
+                </Typography>
+              )}
+              {description && metaInline && (
+                <Typography variant="body2" color="text.secondary" component="span" aria-hidden>
+                  ·
+                </Typography>
+              )}
+              {metaInline}
+            </Box>
           )}
         </Box>
         {headerExtra}

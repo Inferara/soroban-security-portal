@@ -8,6 +8,7 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import TaskIcon from '@mui/icons-material/Task';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -47,6 +48,12 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
       label: 'Moderation',
       icon: <GavelIcon />,
       path: 'admin/moderation',
+      visible: isAdminOrModerator(auth),
+    },
+    {
+      label: 'Statistics',
+      icon: <QueryStatsIcon />,
+      path: 'admin/statistics',
       visible: isAdminOrModerator(auth),
     },
     {

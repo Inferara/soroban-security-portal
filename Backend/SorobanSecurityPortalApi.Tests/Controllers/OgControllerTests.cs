@@ -15,6 +15,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
     {
         private readonly Mock<IVulnerabilityService> _vuln = new();
         private readonly Mock<IReportService> _report = new();
+        private readonly Mock<IPageViewService> _pageViews = new();
         // Config's constructor validates every key, so supply a complete settings blob.
         private readonly Config _config = new(@"{
             ""ProductVersion"": ""1.0"",
@@ -32,7 +33,13 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             ""AppUrl"": ""https://sorobanshield.ru/api/v1""
         }");
 
-        private OgController Sut() => new(_vuln.Object, _report.Object, _config);
+        private OgController Sut()
+        {
+            var ctrl = new OgController(_vuln.Object, _report.Object, _config, _pageViews.Object);
+            ctrl.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() };
+            return ctrl;
+        }
 
         private static string Body(IActionResult r) => ((ContentResult)r).Content!;
 
@@ -92,6 +99,19 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             _report.Setup(s => s.Get(3)).ReturnsAsync(new ReportViewModel { Id = 3, Name = "Draft", Status = "new" });
             var body = Body(await Sut().Report(3));
             body.Should().NotContain("Draft");
+        }
+
+        [Fact]
+        public async Task Vulnerability_RecordingThrows_StillReturnsOgHtml()
+        {
+            _vuln.Setup(s => s.Get(7)).ReturnsAsync(new VulnerabilityViewModel
+            { Id = 7, Title = "Reentrancy", Description = "bug", Status = "approved", Category = VulnerabilityCategory.Valid });
+            _pageViews.Setup(p => p.RecordView(It.IsAny<EntityType>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PageViewSource?>()))
+                      .ThrowsAsync(new Exception("db down"));
+
+            var body = Body(await Sut().Vulnerability(7));
+
+            body.Should().Contain("og:title");
         }
     }
 }
