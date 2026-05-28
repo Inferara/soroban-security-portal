@@ -381,7 +381,7 @@ export const AddVulnerability: FC = () => {
             {/* Basic Information Section */}
             <Grid size={12}>
               <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                   Basic Information
                 </Typography>
               </Box>
@@ -409,7 +409,7 @@ export const AddVulnerability: FC = () => {
             {/* Classification Section */}
             <Grid size={12}>
               <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                   Classification
                 </Typography>
               </Box>
@@ -531,7 +531,7 @@ export const AddVulnerability: FC = () => {
             </Grid>
             <Grid size={12}>
               <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                   Images (Optional). Files Container Guid: {picturesContainerGuid}
                 </Typography>
               </Box>

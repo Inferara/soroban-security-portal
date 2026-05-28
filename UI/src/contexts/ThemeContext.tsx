@@ -132,6 +132,10 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     localStorage.setItem('themeMode', themeMode);
     const root = document.documentElement;
+    // Drive the inherited document text color from the active theme. index.css sets a
+    // near-white :root color (fine for the old dark-only default), which otherwise leaks
+    // through as white-on-white text in the light theme for any element that inherits.
+    root.style.color = theme.palette.text.primary;
     if (themeMode === 'dark') {
       root.style.setProperty('--highlight-bg', '#1a1a1a');
       root.style.setProperty('--highlight-border', '#90caf9');
@@ -139,7 +143,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       root.style.setProperty('--highlight-bg', '#f0f8ff');
       root.style.setProperty('--highlight-border', '#1976d2');
     }
-  }, [themeMode]);
+  }, [themeMode, theme.palette.text.primary]);
 
   return (
     <ThemeContext.Provider value={{ themeMode, toggleTheme, theme, tokens }}>

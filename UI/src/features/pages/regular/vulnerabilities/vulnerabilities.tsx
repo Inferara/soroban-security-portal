@@ -541,12 +541,12 @@ export const Vulnerabilities: FC = () => {
             onClick={toggleFilters}
             sx={{
               border: 1,
-              borderColor: 'divider',
-              bgcolor: showFilters ? 'inherit' : 'transparent',
-              color: showFilters ? 'white' : 'inherit',
+              borderColor: showFilters ? 'primary.main' : 'divider',
+              bgcolor: showFilters ? 'primary.main' : 'transparent',
+              color: showFilters ? 'primary.contrastText' : 'inherit',
               '&:hover': {
-                // bgcolor: showFilters ? 'primary.dark' : 'action.hover'
-                borderColor: showFilters ? 'primary.main' : 'divider'
+                bgcolor: showFilters ? 'primary.dark' : 'action.hover',
+                borderColor: 'primary.main',
               }
             }}
           >

@@ -15,7 +15,7 @@ import { getUserInitials } from '../../../../utils/user-utils';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
-  color: '#ffffff',
+  color: theme.palette.text.primary,
   padding: theme.spacing(3),
 }));
 
@@ -38,7 +38,7 @@ const ContentSection = styled(Paper)(({ theme }) => ({
 const SectionTitle = styled(Typography)(({ theme }) => ({
   fontSize: '18px',
   fontWeight: 'bold',
-  color: '#ffffff',
+  color: theme.palette.text.primary,
   marginBottom: theme.spacing(2),
 }));
 
@@ -66,9 +66,9 @@ const AccountIcon = styled(Box)(({ theme }) => ({
   justifyContent: 'center',
 }));
 
-const AccountName = styled(Typography)(() => ({
+const AccountName = styled(Typography)(({ theme }) => ({
   fontSize: '14px',
-  color: '#ffffff',
+  color: theme.palette.text.primary,
   fontWeight: 500,
 }));
 
@@ -201,7 +201,7 @@ export const EditProfile: React.FC = () => {
               />
             </Grid>
             <Grid size={12}>
-              <Typography variant="body2" sx={{ color: '#ffffff', mb: 1 }}>
+              <Typography variant="body2" sx={{ color: 'text.primary', mb: 1 }}>
                 About you
               </Typography>
               <Editor
