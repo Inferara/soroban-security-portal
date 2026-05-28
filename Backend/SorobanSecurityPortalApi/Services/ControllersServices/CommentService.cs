@@ -26,6 +26,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
     public class CommentService : ICommentService
     {
+        // Maximum thread depth (top-level comment = level 1).
+        private const int MaxCommentDepth = 5;
+
         private readonly ICommentProcessor _processor;
         private readonly IContentFilterService _contentFilter;
         private readonly IUserContextAccessor _userContext;
@@ -59,46 +62,65 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             pageSize = Math.Max(1, Math.Min(100, pageSize));
 
             var top = await _processor.ListByEntity(entityType, entityId, page, pageSize, includeSuppressed: false);
-            var topIds = top.Select(c => c.Id).ToList();
-            var replies = await _processor.ListReplies(entityType, entityId, topIds);
+
+            // Fetch the reply subtrees breadth-first, one level at a time, down to MaxCommentDepth.
+            // (top-level = level 1, so we fetch up to MaxCommentDepth-1 further levels.) A "seen" set
+            // guards against pathological cycles and stops the walk once a level yields nothing new.
+            var replyModels = new List<CommentModel>();
+            var seen = new HashSet<int>(top.Select(c => c.Id));
+            var frontier = top.Select(c => c.Id).ToList();
+            for (var level = 1; level < MaxCommentDepth && frontier.Count > 0; level++)
+            {
+                var rs = await _processor.ListReplies(entityType, entityId, frontier) ?? new List<CommentModel>();
+                var next = new List<int>();
+                foreach (var r in rs)
+                {
+                    if (!r.ParentCommentId.HasValue || !seen.Add(r.Id)) continue;
+                    replyModels.Add(r);
+                    next.Add(r.Id);
+                }
+                frontier = next;
+            }
 
             var names = await _processor.GetAuthorNames(
-                top.Select(c => c.AuthorId).Concat(replies.Select(r => r.AuthorId)).Distinct().ToList());
+                top.Select(c => c.AuthorId).Concat(replyModels.Select(r => r.AuthorId)).Distinct().ToList());
 
             CommentViewModel ToVm(CommentModel c)
             {
                 var vm = _mapper.Map<CommentViewModel>(c);
                 vm.AuthorName = names.TryGetValue(c.AuthorId, out var n) && !string.IsNullOrWhiteSpace(n) ? n : "Anonymous";
+                vm.Replies = new List<CommentViewModel>();
                 return vm;
             }
 
-            var repliesByParent = replies.GroupBy(r => r.ParentCommentId!.Value)
-                .ToDictionary(g => g.Key, g => g.Select(ToVm).ToList());
-
+            var byId = new Dictionary<int, CommentViewModel>();
             var result = new List<CommentViewModel>(top.Count);
             foreach (var c in top)
             {
                 var vm = ToVm(c);
-                if (repliesByParent.TryGetValue(c.Id, out var rs))
-                {
-                    vm.Replies = rs;
-                    vm.ReplyCount = rs.Count;
-                }
+                byId[c.Id] = vm;
                 result.Add(vm);
             }
+            // replyModels are in BFS order, so each parent VM already exists when its child is attached.
+            foreach (var r in replyModels)
+            {
+                var vm = ToVm(r);
+                byId[r.Id] = vm;
+                if (byId.TryGetValue(r.ParentCommentId!.Value, out var parentVm))
+                    parentVm.Replies.Add(vm);
+            }
+            foreach (var vm in byId.Values) vm.ReplyCount = vm.Replies.Count;
 
             // Surface the requesting user's own vote + IsOwn flag on each comment (anonymous → skipped).
             var viewerId = await _userContext.GetLoginIdOrNullAsync() ?? 0;
             if (viewerId != 0)
             {
-                var allIds = result.Select(c => c.Id).Concat(result.SelectMany(c => c.Replies).Select(r => r.Id)).ToList();
-                var myVotes = await _voteProcessor.GetUserVotesForComments(viewerId, allIds);
-                void Apply(CommentViewModel c)
+                var myVotes = await _voteProcessor.GetUserVotesForComments(viewerId, byId.Keys.ToList());
+                foreach (var vm in byId.Values)
                 {
-                    c.IsOwn = c.AuthorId == viewerId;
-                    if (myVotes.TryGetValue(c.Id, out var vt)) c.CurrentUserVote = VoteService.ToStr(vt);
+                    vm.IsOwn = vm.AuthorId == viewerId;
+                    if (myVotes.TryGetValue(vm.Id, out var vt)) vm.CurrentUserVote = VoteService.ToStr(vt);
                 }
-                foreach (var c in result) { Apply(c); foreach (var r in c.Replies) Apply(r); }
             }
             return result;
         }
@@ -130,8 +152,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (filterResult.IsBlocked)
                 throw new InvalidOperationException($"Comment blocked: {string.Join("; ", filterResult.Warnings)}");
 
-            // Single-level threading: a reply always attaches to a TOP-LEVEL comment.
-            // Replying to a reply re-parents to that reply's own top-level ancestor.
+            // Threaded comments up to MaxCommentDepth levels. A reply attaches to the actual
+            // comment it answers; once the chain reaches the max depth, further replies are rejected.
             int? parentId = null;
             int? repliedToAuthorId = null;
             if (request.ParentCommentId.HasValue)
@@ -140,7 +162,22 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 if (parent == null || parent.IsDeleted
                     || parent.EntityType != request.EntityType || parent.EntityId != request.EntityId)
                     throw new KeyNotFoundException($"Parent comment {request.ParentCommentId} not found on this entity.");
-                parentId = parent.ParentCommentId ?? parent.Id;
+
+                // Walk up the ancestor chain to find the parent's depth (1-based). The walk is
+                // bounded by MaxCommentDepth, so it costs at most a handful of lookups.
+                var parentDepth = 1;
+                var ancestorParentId = parent.ParentCommentId;
+                while (ancestorParentId.HasValue && parentDepth < MaxCommentDepth)
+                {
+                    var ancestor = await _processor.Get(ancestorParentId.Value);
+                    if (ancestor == null) break;
+                    parentDepth++;
+                    ancestorParentId = ancestor.ParentCommentId;
+                }
+                if (parentDepth >= MaxCommentDepth)
+                    throw new InvalidOperationException($"Maximum comment depth of {MaxCommentDepth} levels reached.");
+
+                parentId = parent.Id;
                 repliedToAuthorId = parent.AuthorId;   // notify the comment actually replied to
             }
 

@@ -188,20 +188,38 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
-        public async Task AddComment_Flattens_Reply_To_Top_Level_Parent()
+        public async Task AddComment_Reply_To_Reply_Attaches_To_Actual_Parent()
         {
             _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
             _processor.Setup(p => p.EntityExists(EntityType.Report, 9)).ReturnsAsync(true);
             AllowFilter();
             _processor.Setup(p => p.GetAuthorNames(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, string>());
-            // The user replies to comment 50, which is itself a reply to top-level 1.
+            // The user replies to comment 50, which is itself a reply to top-level 1 (depth 2).
             _processor.Setup(p => p.Get(50)).ReturnsAsync(new CommentModel { Id = 50, ParentCommentId = 1, EntityType = EntityType.Report, EntityId = 9 });
+            _processor.Setup(p => p.Get(1)).ReturnsAsync(new CommentModel { Id = 1, ParentCommentId = null, EntityType = EntityType.Report, EntityId = 9 });
             CommentModel? saved = null;
             _processor.Setup(p => p.Add(It.IsAny<CommentModel>())).ReturnsAsync((CommentModel c) => { saved = c; return c; });
 
             await Build().AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, ParentCommentId = 50, Content = "nested" });
 
-            saved!.ParentCommentId.Should().Be(1); // flattened to the top-level ancestor
+            saved!.ParentCommentId.Should().Be(50); // attaches to the actual parent (multi-level threading)
+        }
+
+        [Fact]
+        public async Task AddComment_Rejects_Reply_Beyond_Max_Depth()
+        {
+            _userContext.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(5);
+            _processor.Setup(p => p.EntityExists(EntityType.Report, 9)).ReturnsAsync(true);
+            AllowFilter();
+            // A full depth-5 chain: 5 -> 4 -> 3 -> 2 -> 1 (top). Replying to 5 would be level 6.
+            _processor.Setup(p => p.Get(5)).ReturnsAsync(new CommentModel { Id = 5, ParentCommentId = 4, EntityType = EntityType.Report, EntityId = 9 });
+            _processor.Setup(p => p.Get(4)).ReturnsAsync(new CommentModel { Id = 4, ParentCommentId = 3, EntityType = EntityType.Report, EntityId = 9 });
+            _processor.Setup(p => p.Get(3)).ReturnsAsync(new CommentModel { Id = 3, ParentCommentId = 2, EntityType = EntityType.Report, EntityId = 9 });
+            _processor.Setup(p => p.Get(2)).ReturnsAsync(new CommentModel { Id = 2, ParentCommentId = 1, EntityType = EntityType.Report, EntityId = 9 });
+            _processor.Setup(p => p.Get(1)).ReturnsAsync(new CommentModel { Id = 1, ParentCommentId = null, EntityType = EntityType.Report, EntityId = 9 });
+
+            await Build().Invoking(s => s.AddComment(new CreateCommentRequest { EntityType = EntityType.Report, EntityId = 9, ParentCommentId = 5, Content = "too deep" }))
+                .Should().ThrowAsync<InvalidOperationException>().WithMessage("*depth*");
         }
 
         [Fact]
