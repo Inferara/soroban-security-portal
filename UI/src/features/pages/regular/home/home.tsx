@@ -11,7 +11,6 @@ import { StatisticsChanges } from './statistics-changes';
 import { useState, useEffect } from 'react';
 import { RolesInfo } from './roles-info';
 import { RevealOnScroll } from '../../../../components/common/RevealOnScroll';
-import { AuroraBackground } from '../../../../components/common/AuroraBackground';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useReducedMotion } from '../../../../hooks/useReducedMotion';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
@@ -58,9 +57,6 @@ export const Home: FC = () => {
 
   return (
     <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', elevation: 0, background: tokens.heroBackground }}>
-      {/* Animated aurora / gradient-mesh depth layer */}
-      <AuroraBackground />
-
       {/* Content Overlay */}
       <Box
         id="hero"
@@ -106,25 +102,6 @@ export const Home: FC = () => {
             transition: reduced ? 'none' : 'transform .3s cubic-bezier(.22,.61,.36,1)',
           }}
         >
-          {/* Glow bloom behind the headline */}
-          <Box
-            aria-hidden
-            sx={{
-              position: 'absolute',
-              top: '40%',
-              left: '50%',
-              width: { xs: 360, md: 720 },
-              height: { xs: 200, md: 320 },
-              transform: 'translate(-50%, -50%)',
-              background:
-                themeMode === 'dark'
-                  ? 'radial-gradient(closest-side, rgba(45,78,255,0.45), rgba(212,162,60,0.18), transparent 75%)'
-                  : 'radial-gradient(closest-side, rgba(45,78,255,0.16), rgba(184,134,11,0.12), transparent 75%)',
-              filter: 'blur(40px)',
-              pointerEvents: 'none',
-              zIndex: -1,
-            }}
-          />
           {/* Eyebrow */}
           <Box
             sx={{
