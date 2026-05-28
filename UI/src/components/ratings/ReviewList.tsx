@@ -13,6 +13,8 @@ interface ReviewListProps {
   onLoadMore: () => void;
   /** Show the "report" flag on each review (only when the viewer is signed in). */
   canFlag?: boolean;
+  /** The signed-in viewer's own rating id, if any — the flag is hidden on their own review. */
+  ownRatingId?: number;
 }
 
 /**
@@ -20,7 +22,7 @@ interface ReviewListProps {
  * Review text is rendered as plain text — React escapes it, so user content
  * cannot inject markup. A "Load more" button appears while more remain.
  */
-export const ReviewList: FC<ReviewListProps> = ({ reviews, total, loadingMore, onLoadMore, canFlag = false }) => {
+export const ReviewList: FC<ReviewListProps> = ({ reviews, total, loadingMore, onLoadMore, canFlag = false, ownRatingId }) => {
   if (reviews.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
@@ -58,7 +60,7 @@ export const ReviewList: FC<ReviewListProps> = ({ reviews, total, loadingMore, o
                   <Typography variant="caption" color="text.secondary">
                     {formatDateLong(r.createdAt)}
                   </Typography>
-                  {canFlag && <FlagButton contentType="rating" contentId={r.id} />}
+                  {canFlag && r.id !== ownRatingId && <FlagButton contentType="rating" contentId={r.id} />}
                 </Box>
               </Box>
               <RatingStars value={r.score} readOnly size="small" sx={{ mt: 0.25 }} />

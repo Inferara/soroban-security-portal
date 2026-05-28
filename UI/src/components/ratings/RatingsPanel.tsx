@@ -116,6 +116,7 @@ export const RatingsPanel: FC<RatingsPanelProps> = ({ entityType, entityId }) =>
             loadingMore={loadingMore}
             onLoadMore={loadMore}
             canFlag={isAuthenticated}
+            ownRatingId={myRating?.id}
           />
         </CardContent>
       </Card>
