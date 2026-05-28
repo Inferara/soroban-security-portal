@@ -179,6 +179,31 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return report;
         }
 
+        // Slim query for the public image endpoint: returns only the last-modified timestamp
+        // (used to build the ETag/cache key) and never de-TOASTs the image/PDF bytes. Returns
+        // null when the report is missing, hidden, soft-deleted, or has no image.
+        public async Task<DateTime?> GetImageLastModified(int reportId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Report
+                .AsNoTracking()
+                .Where(r => r.Id == reportId && !r.IsHidden && !r.IsDeleted && r.Image != null)
+                .Select(r => (DateTime?)r.LastActionAt)
+                .FirstOrDefaultAsync();
+        }
+
+        // Slim query for the public image endpoint: selects ONLY the Image column, never the
+        // PDF BinFile, MdFile or embedding. Applies the same moderation filter as GetImageLastModified.
+        public async Task<byte[]?> GetImageBytes(int reportId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Report
+                .AsNoTracking()
+                .Where(r => r.Id == reportId && !r.IsHidden && !r.IsDeleted)
+                .Select(r => r.Image)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task Approve(ReportModel reportModel, int userId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -304,6 +329,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<ReportModel> Edit(ReportModel reportModel, int userId);
         Task<ReportModel> Get(int reportId);
         Task<ReportModel?> GetPublic(int reportId);
+        Task<DateTime?> GetImageLastModified(int reportId);
+        Task<byte[]?> GetImageBytes(int reportId);
         Task Approve(ReportModel reportModel, int userId);
         Task Reject(ReportModel reportModel, int userId);
         Task Remove(int reportId);

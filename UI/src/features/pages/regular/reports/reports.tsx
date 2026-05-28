@@ -283,6 +283,7 @@ export const Reports: FC = () => {
               }}>
               <CardMedia
                 component="img"
+                loading="lazy"
                 sx={{
                   objectFit: 'cover',
                   objectPosition: 'top',

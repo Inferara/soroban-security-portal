@@ -323,7 +323,8 @@ public class ReportsControllerExtractVulnerabilitiesTests
             _extractionServiceMock.Object,
             _userContextAccessorMock.Object,
             _httpClientFactoryMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            Mock.Of<IReportImageService>());
 
         // Setup HttpContext for controller
         controller.ControllerContext = new ControllerContext
