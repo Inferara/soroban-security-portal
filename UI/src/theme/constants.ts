@@ -1,5 +1,5 @@
 /**
- * Centralized theme constants for the Soroban Security Portal UI.
+ * Centralized theme constants for the Stellar Security Portal UI.
  *
  * Design decisions:
  * - PascalCase for exported objects (matching existing SeverityColors pattern in ThemeContext)
@@ -41,15 +41,15 @@ export const Spacing = {
  */
 export const AccentColors = {
   /** Gold accent for active navigation, highlights */
-  navigationActive: '#FFD84D',
+  navigationActive: '#E9C46A',
   /** Muted gold for inactive navigation, subtle text */
-  navigationInactive: '#DDCDB1',
+  navigationInactive: '#C9B79A',
   /** Purple background for user avatars - WCAG AA compliant with white text */
   avatarBackground: '#6B5B95',
   /** Gold border for avatars, loading indicators */
-  avatarBorder: '#FCD34D',
+  avatarBorder: '#D4A23C',
   /** Loading spinner color */
-  loadingIndicator: '#FCD34D',
+  loadingIndicator: '#D4A23C',
   /** Primary brand blue */
   brandPrimary: '#2D4EFF',
   /** Brand blue hover state */
@@ -65,7 +65,7 @@ export const AccentColors = {
  */
 export const FocusStyles = {
   /** Focus indicator outline color */
-  outlineColor: '#FFD84D',
+  outlineColor: '#E9C46A',
   /** Focus indicator outline width */
   outlineWidth: '2px',
   /** Focus indicator outline offset */

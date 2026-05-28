@@ -15,8 +15,8 @@ namespace SorobanSecurityPortalApi.Controllers
     [Route("api/v1/og")]
     public class OgController : ControllerBase
     {
-        private const string SiteName = "Soroban Security Portal";
-        private const string GenericDescription = "Soroban security portal - audits, reports, and vulnerabilities.";
+        private const string SiteName = "Stellar Security Portal";
+        private const string GenericDescription = "Stellar security portal - audits, reports, and vulnerabilities.";
         private const int MaxDescriptionLength = 160;
 
         private readonly IVulnerabilityService _vulnerabilityService;

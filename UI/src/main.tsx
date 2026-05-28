@@ -66,7 +66,7 @@ export function AppWrapper() {
   }, []);
 
   useEffect(() => {
-    document.title = "Soroban Security Portal";
+    document.title = "Stellar Security Portal";
   }, []);
 
   useEffect(() => {

@@ -58,14 +58,31 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<int> CountByEntity(EntityType entityType, int entityId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var visible = db.Comment.AsNoTracking()
-                .Where(c => c.EntityType == entityType && c.EntityId == entityId && !c.IsHidden && !c.IsDeleted);
-            // Replies whose top-level parent is hidden/deleted are not shown in the thread
-            // (GetComments only fetches replies for visible top-level comments), so they must
-            // not be counted either — keep the count badge consistent with the rendered list.
-            var visibleTopLevelIds = visible.Where(c => c.ParentCommentId == null).Select(c => c.Id);
-            return await visible.CountAsync(c => c.ParentCommentId == null
-                || visibleTopLevelIds.Contains(c.ParentCommentId.Value));
+            // Count every visible comment that is reachable from a visible top-level comment
+            // through an unbroken chain of visible ancestors (any depth). A comment whose
+            // ancestor is hidden/deleted is orphaned — it is not rendered, so it is not counted.
+            var rows = await db.Comment.AsNoTracking()
+                .Where(c => c.EntityType == entityType && c.EntityId == entityId && !c.IsHidden && !c.IsDeleted)
+                .Select(c => new { c.Id, c.ParentCommentId })
+                .ToListAsync();
+
+            var childrenByParent = rows
+                .Where(r => r.ParentCommentId.HasValue)
+                .GroupBy(r => r.ParentCommentId!.Value)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToList());
+
+            var count = 0;
+            var seen = new HashSet<int>();
+            var queue = new Queue<int>(rows.Where(r => r.ParentCommentId == null).Select(r => r.Id));
+            while (queue.Count > 0)
+            {
+                var id = queue.Dequeue();
+                if (!seen.Add(id)) continue;
+                count++;
+                if (childrenByParent.TryGetValue(id, out var kids))
+                    foreach (var k in kids) queue.Enqueue(k);
+            }
+            return count;
         }
 
         public async Task<List<CommentModel>> ListReplies(EntityType entityType, int entityId, List<int> parentIds)

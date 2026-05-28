@@ -68,8 +68,14 @@ describe('CommentItem', () => {
     expect(screen.queryByRole('button', { name: /reply/i })).not.toBeInTheDocument();
   });
 
-  it('does not show Reply button when isReply is true', () => {
-    render(<CommentItem comment={make()} {...defaultProps} canReply isReply onReply={vi.fn()} />);
+  it('shows Reply button on a mid-level reply (below max depth)', () => {
+    render(<CommentItem comment={make()} {...defaultProps} canReply depth={1} onReply={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /reply/i })).toBeInTheDocument();
+  });
+
+  it('does not show Reply button at the maximum depth', () => {
+    // MAX_COMMENT_DEPTH = 5 → depth 4 is the deepest level and cannot be replied to.
+    render(<CommentItem comment={make()} {...defaultProps} canReply depth={4} onReply={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /reply/i })).not.toBeInTheDocument();
   });
 

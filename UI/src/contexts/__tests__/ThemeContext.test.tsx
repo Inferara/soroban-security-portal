@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { renderHook } from '@testing-library/react';
 import { ThemeProvider, useTheme, SeverityColors, SeverityColorsLight, SeverityTextColorsLight, SeverityTextColorsDark } from '../ThemeContext';
+import type { ReactNode } from 'react';
+import { CosmicTokens } from '../../theme/tokens';
 
 describe('ThemeContext', () => {
   // Mock localStorage
@@ -314,5 +316,18 @@ describe('ThemeContext', () => {
       expect(getDarknessScore(SeverityTextColorsDark.high))
         .toBeGreaterThan(getDarknessScore(SeverityTextColorsLight.high));
     });
+  });
+});
+
+describe('ThemeContext redesign tokens', () => {
+  it('exposes cosmic tokens in dark mode by default', () => {
+    localStorage.setItem('themeMode', 'dark');
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ThemeProvider>{children}</ThemeProvider>
+    );
+    const { result } = renderHook(() => useTheme(), { wrapper });
+    expect(result.current.themeMode).toBe('dark');
+    expect(result.current.tokens).toBe(CosmicTokens);
+    expect(result.current.theme.palette.primary.main).toBe('#2D4EFF');
   });
 });

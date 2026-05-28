@@ -256,12 +256,30 @@ export const Reports: FC = () => {
           }}
         >
           {reportsList.map((report) => (
-            <Card 
+            <Card
               key={report.id}
+              onMouseMove={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
+                e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
+              }}
               sx={{
                 height: '100%', display: 'flex', flexDirection: 'column', paddingTop: '0px', borderRadius: '20px',
-                backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-                border: '1px solid', position: 'relative'
+                backgroundColor: themeMode === 'light' ? '#fafafa' : '#13131c',
+                border: '1px solid', borderColor: 'divider', position: 'relative', overflow: 'hidden',
+                transition: 'transform .25s ease, box-shadow .25s ease, border-color .25s ease',
+                '&::after': {
+                  content: '""', position: 'absolute', inset: 0, borderRadius: 'inherit',
+                  background: 'radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), rgba(212,162,60,0.18), transparent 60%)',
+                  opacity: 0, transition: 'opacity .25s ease', pointerEvents: 'none', zIndex: 2,
+                },
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  borderColor: 'rgba(212,162,60,0.55)',
+                  boxShadow: '0 0 0 1px rgba(212,162,60,0.35), 0 14px 40px rgba(45,78,255,0.25)',
+                  '@media (prefers-reduced-motion: reduce)': { transform: 'none' },
+                },
+                '&:hover::after': { opacity: 1 },
               }}>
               <CardMedia
                 component="img"

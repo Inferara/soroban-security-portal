@@ -15,7 +15,7 @@ export const ShareButtons: FC<ShareButtonsProps> = ({ title, url }) => {
     const [shareError, setShareError] = useState(false);
 
     const handleTwitterShare = () => {
-        const text = `Check out "${title}" on Soroban Security Portal`;
+        const text = `Check out "${title}" on Stellar Security Portal`;
         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
         window.open(twitterUrl, '_blank', 'noopener,noreferrer');
     };

@@ -106,7 +106,7 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
                 </Typography>
                 {(isAdmin || isModerator || isContributor) && (
                   <Typography variant="body2" sx={{ textAlign: "center", mt: 1 }}>
-                    Thank you for contributing to the Soroban Security Portal!
+                    Thank you for contributing to the Stellar Security Portal!
                   </Typography>
                 )}
               </Box>

@@ -304,7 +304,7 @@ export const AddReport: FC = () => {
               {/* Basic Information Section */}
               <Grid size={12}>
                 <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                     Basic Information
                   </Typography>
                 </Box>
@@ -415,7 +415,7 @@ export const AddReport: FC = () => {
               </Grid>
               <Grid size={12}>
                 <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                     File Upload
                   </Typography>
                 </Box>

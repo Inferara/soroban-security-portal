@@ -38,14 +38,14 @@ export const About: FC = () => {
   return (
     <Box component="div" sx={{ p: 3, minHeight: '80vh', width: { xs: '80%', md: '80%', lg: '50%' }, textAlign: 'justify' }}>
       <Typography variant="h4" component="h2">
-        Welcome to The Soroban Security Portal
+        Welcome to The Stellar Security Portal
       </Typography>
       <TextBlock>
         Your premier resource for everything related to securing projects on the <ExternalLink url="https://stellar.org/developers" text="Soroban smart contract platform"/>.
       </TextBlock>
       <H5 text="Mission" />
       <TextBlock>
-        As Soroban&apos;s capabilities grow, so do the stakes. Deployed on Stellar&apos;s robust layer-1 blockchain, Soroban brings powerful smart contract functionality — but also attracts scrutiny in an inherently adversarial environment. The Soroban Security Portal is dedicated to supporting developers, auditors, and builders with clear, centralized guidance, tools, and insights to build securely from the ground up.
+        As Soroban&apos;s capabilities grow, so do the stakes. Deployed on Stellar&apos;s robust layer-1 blockchain, Soroban brings powerful smart contract functionality — but also attracts scrutiny in an inherently adversarial environment. The Stellar Security Portal is dedicated to supporting developers, auditors, and builders with clear, centralized guidance, tools, and insights to build securely from the ground up.
       </TextBlock>
       <H5 text="What you can find in the Portal" />
       <TextBlock>
@@ -102,7 +102,7 @@ export const About: FC = () => {
         alt="Stellar Community Fund"
       />
       <TextBlock>
-        The development of the <ExternalLink url="https://communityfund.stellar.org/dashboard/projects/recy31Stl9XP0x7EA" text="Soroban Security Portal" /> was proudly supported by the{' '}
+        The development of the <ExternalLink url="https://communityfund.stellar.org/dashboard/projects/recy31Stl9XP0x7EA" text="Stellar Security Portal" /> was proudly supported by the{' '}
         <ExternalLink url="https://communityfund.stellar.org/" text="Stellar Community Fund" />.
       </TextBlock>
       <TextBlock>We are deeply grateful to the Stellar community for recognizing the importance of security in the Soroban ecosystem and for providing the resources to turn this vision into reality. This sponsorship not only helped us launch the portal but also reinforced the shared belief that secure smart contracts are the foundation of trust and adoption on Stellar.</TextBlock>

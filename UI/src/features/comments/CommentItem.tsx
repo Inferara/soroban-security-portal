@@ -10,6 +10,9 @@ import { highlightMentions } from './mentions';
 import { FlagButton } from '../../components/FlagButton';
 import { CommentHistoryButton } from './CommentHistoryButton';
 
+/** Maximum thread depth (top-level = depth 0, so 5 levels = depths 0..4). */
+const MAX_COMMENT_DEPTH = 5;
+
 interface CommentItemProps {
   comment: Comment;
   canReply: boolean;
@@ -20,7 +23,8 @@ interface CommentItemProps {
   onDelete: (id: number) => void;
   isAdmin: boolean;
   isAdminOrModerator?: boolean;
-  isReply?: boolean;
+  /** Nesting depth (0 = top-level). */
+  depth?: number;
 }
 
 export const CommentItem: FC<CommentItemProps> = ({
@@ -33,7 +37,7 @@ export const CommentItem: FC<CommentItemProps> = ({
   onDelete,
   isAdmin,
   isAdminOrModerator = false,
-  isReply = false,
+  depth = 0,
 }) => {
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -42,9 +46,11 @@ export const CommentItem: FC<CommentItemProps> = ({
   const canEdit =
     comment.isOwn &&
     Date.now() - new Date(comment.createdAt).getTime() < 30 * 60 * 1000;
+  // Replies are allowed until the chain reaches the max depth.
+  const canReplyHere = canReply && depth < MAX_COMMENT_DEPTH - 1;
 
   return (
-    <Box sx={{ display: 'flex', gap: 1.5, py: 1.5, ...(isReply ? { ml: 5, borderLeft: 2, borderColor: 'divider', pl: 2 } : {}) }}>
+    <Box sx={{ display: 'flex', gap: 1.5, py: 1.5, ...(depth > 0 ? { ml: { xs: 1, sm: 2 }, borderLeft: 2, borderColor: 'divider', pl: { xs: 1.5, sm: 2 } } : {}) }}>
       <EntityAvatar entityType="user" entityId={comment.authorId} size="small" fallbackText={comment.authorName} />
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
@@ -94,7 +100,7 @@ export const CommentItem: FC<CommentItemProps> = ({
           <>
             <MarkdownView content={highlightMentions(comment.content)} sx={{ p: 0, mt: 0.5 }} />
             <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-              {canReply && !isReply && (
+              {canReplyHere && (
                 <Button size="small" onClick={() => setReplying((r) => !r)}>
                   {replying ? 'Cancel' : 'Reply'}
                 </Button>
@@ -155,7 +161,7 @@ export const CommentItem: FC<CommentItemProps> = ({
                 onDelete={onDelete}
                 isAdmin={isAdmin}
                 isAdminOrModerator={isAdminOrModerator}
-                isReply
+                depth={depth + 1}
               />
             ))}
           </Box>
