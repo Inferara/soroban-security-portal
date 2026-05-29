@@ -157,6 +157,17 @@ edit/detail, hooks, MUI):
   moderation before going public — the agent never publishes directly.
 - Existing content-filter / validation on report & vulnerability creation still applies
   on promotion.
+- **HARD DEPLOY PREREQUISITE (Plan 3): the unauthenticated `/api/v1/agent-runs/internal/*`
+  endpoints must be blocked from public Ingress before this is deployed.** The current
+  Traefik IngressRoute matches `PathPrefix('/api')` with no sub-path exclusion, so these
+  endpoints would otherwise be publicly reachable — `internal/{id}/submit` would let an
+  unauthenticated caller poison an in-flight run's results before admin review, and
+  `internal/claim-next` would leak run payloads. "Cluster-internal trust" is only true
+  once Plan 3 adds the Ingress exclusion for the `internal/` prefix. The `internal/`
+  path segment exists specifically so that exclusion is a simple prefix rule.
+  Residual-risk mitigation option if the network boundary is later deemed insufficient:
+  add an application-layer shared-secret header check on the two internal endpoints
+  (revisits the "no token" decision — confirm with the user before adding).
 
 ## Testing
 - Backend unit tests: `AgentRun` processor, controller authorization, the Approve
