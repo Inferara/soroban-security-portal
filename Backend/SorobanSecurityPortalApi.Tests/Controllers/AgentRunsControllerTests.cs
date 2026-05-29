@@ -84,4 +84,38 @@ public class AgentRunsControllerTests
         (await Controller().SubmitResult(7, new SubmitAgentRunResultViewModel { Success = true }))
             .Should().BeOfType<OkResult>();
     }
+
+    [Fact]
+    public async Task List_Returns_Ok()
+    {
+        _service.Setup(s => s.List(1, 20)).ReturnsAsync(new AgentRunListResultViewModel { Total = 0 });
+        (await Controller().List(1, 20)).Should().BeOfType<OkObjectResult>();
+    }
+
+    [Fact]
+    public async Task Rerun_Ok_Returns_Ok_With_Payload()
+    {
+        _service.Setup(s => s.Rerun(8))
+            .ReturnsAsync(new Result<AgentRunViewModel, string>.Ok(new AgentRunViewModel { Id = 9 }));
+        var result = await Controller().Rerun(8);
+        result.Should().BeOfType<OkObjectResult>();
+        ((OkObjectResult)result).Value.Should().BeOfType<AgentRunViewModel>().Which.Id.Should().Be(9);
+    }
+
+    [Fact]
+    public async Task Rerun_Err_Returns_BadRequest()
+    {
+        _service.Setup(s => s.Rerun(404))
+            .ReturnsAsync(new Result<AgentRunViewModel, string>.Err("missing"));
+        (await Controller().Rerun(404)).Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task SubmitResult_Err_Returns_BadRequest()
+    {
+        _service.Setup(s => s.SubmitResult(404, It.IsAny<SubmitAgentRunResultViewModel>()))
+            .ReturnsAsync(new Result<bool, string>.Err("missing"));
+        (await Controller().SubmitResult(404, new SubmitAgentRunResultViewModel { Success = false }))
+            .Should().BeOfType<BadRequestObjectResult>();
+    }
 }
