@@ -19,6 +19,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IAgentRunProcessor _runProcessor;
         private readonly IReportProcessor _reportProcessor;
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
+        private readonly IProtocolProcessor _protocolProcessor;
+        private readonly IAuditorProcessor _auditorProcessor;
         private readonly IUserContextAccessor _userContextAccessor;
 
         public AgentRunService(
@@ -26,12 +28,16 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IAgentRunProcessor runProcessor,
             IReportProcessor reportProcessor,
             IVulnerabilityProcessor vulnerabilityProcessor,
+            IProtocolProcessor protocolProcessor,
+            IAuditorProcessor auditorProcessor,
             IUserContextAccessor userContextAccessor)
         {
             _mapper = mapper;
             _runProcessor = runProcessor;
             _reportProcessor = reportProcessor;
             _vulnerabilityProcessor = vulnerabilityProcessor;
+            _protocolProcessor = protocolProcessor;
+            _auditorProcessor = auditorProcessor;
             _userContextAccessor = userContextAccessor;
         }
 
@@ -83,7 +89,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return new Result<AgentRunViewModel, string>.Ok(ToViewModel(run));
         }
 
-        public async Task<Result<bool, string>> Approve(int id)
+        public async Task<Result<bool, string>> Approve(int id, ApproveAgentRunViewModel payload)
         {
             var run = await _runProcessor.Get(id);
             if (run == null)
@@ -92,7 +98,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 return new Result<bool, string>.Err("Only a succeeded run can be approved.");
 
             var loginId = await _userContextAccessor.GetLoginIdAsync();
-            var findings = ParseFindings(run.FindingsJson);
 
             int reportId;
             if (run.ReportId.HasValue)
@@ -101,19 +106,25 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
             else
             {
+                var auditorId = await ResolveAuditorId(payload.AuditorName, loginId);
+                var protocolId = await ResolveProtocolId(payload.ProtocolName, loginId);
+                var name = !string.IsNullOrWhiteSpace(payload.ReportTitle) ? payload.ReportTitle
+                    : (!string.IsNullOrWhiteSpace(run.SourceUrl) ? run.SourceUrl : $"Agent run {run.Id}");
                 var report = await _reportProcessor.Add(new ReportModel
                 {
-                    Name = string.IsNullOrWhiteSpace(run.SourceUrl) ? $"Agent run {run.Id}" : run.SourceUrl,
-                    Date = DateTime.UtcNow,
+                    Name = name,
+                    Date = payload.ReportDate ?? DateTime.UtcNow,
                     Status = ReportModelStatus.New,
-                    MdFile = run.ArticleMarkdown,
+                    MdFile = payload.ArticleMarkdown,
+                    ProtocolId = protocolId,
+                    AuditorId = auditorId,
                     CreatedBy = loginId,
                 });
                 reportId = report.Id;
             }
 
             var createdVulnIds = new List<int>();
-            foreach (var f in findings)
+            foreach (var f in payload.Findings)
             {
                 var vuln = await _vulnerabilityProcessor.Add(new VulnerabilityModel
                 {
@@ -136,6 +147,28 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _runProcessor.SetProvenance(id, reportId, createdVulnIds);
             await _runProcessor.SetStatus(id, AgentRunStatus.Approved);
             return new Result<bool, string>.Ok(true);
+        }
+
+        private async Task<int?> ResolveAuditorId(string? name, int loginId)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var trimmed = name.Trim();
+            var all = await _auditorProcessor.List() ?? new List<AuditorModel>();
+            var existing = all.FirstOrDefault(a => string.Equals(a.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
+            if (existing != null) return existing.Id;
+            var created = await _auditorProcessor.Add(new AuditorModel { Name = trimmed, Date = DateTime.UtcNow, CreatedBy = loginId });
+            return created.Id;
+        }
+
+        private async Task<int?> ResolveProtocolId(string? name, int loginId)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var trimmed = name.Trim();
+            var all = await _protocolProcessor.List() ?? new List<ProtocolModel>();
+            var existing = all.FirstOrDefault(p => string.Equals(p.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
+            if (existing != null) return existing.Id;
+            var created = await _protocolProcessor.Add(new ProtocolModel { Name = trimmed, Date = DateTime.UtcNow, CreatedBy = loginId });
+            return created.Id;
         }
 
         public async Task<Result<bool, string>> Reject(int id)
@@ -210,7 +243,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<AgentRunListResultViewModel> List(int page, int pageSize);
         Task<AgentRunViewModel?> Get(int id);
         Task<Result<AgentRunViewModel, string>> Rerun(int id);
-        Task<Result<bool, string>> Approve(int id);
+        Task<Result<bool, string>> Approve(int id, ApproveAgentRunViewModel payload);
         Task<Result<bool, string>> Reject(int id);
         Task<AgentRunViewModel?> ClaimNext();
         Task<Result<bool, string>> SubmitResult(int id, SubmitAgentRunResultViewModel result);

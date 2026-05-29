@@ -49,6 +49,16 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public DateTime? ReportDate { get; set; }
     }
 
+    public class ApproveAgentRunViewModel
+    {
+        public string ReportTitle { get; set; } = "";
+        public string ProtocolName { get; set; } = "";
+        public string AuditorName { get; set; } = "";
+        public DateTime? ReportDate { get; set; }
+        public string ArticleMarkdown { get; set; } = "";
+        public List<AgentFinding> Findings { get; set; } = new();
+    }
+
     // Worker→backend submit payload (mirrors AgentRunResult).
     public class SubmitAgentRunResultViewModel
     {

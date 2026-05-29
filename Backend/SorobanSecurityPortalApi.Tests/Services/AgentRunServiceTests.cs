@@ -25,7 +25,9 @@ namespace SorobanSecurityPortalApi.Tests.Services
         private static AgentRunService BuildService(
             Mock<IAgentRunProcessor> runProc,
             Mock<IReportProcessor>? reportProc = null,
-            Mock<IVulnerabilityProcessor>? vulnProc = null)
+            Mock<IVulnerabilityProcessor>? vulnProc = null,
+            Mock<IProtocolProcessor>? protocolProc = null,
+            Mock<IAuditorProcessor>? auditorProc = null)
         {
             var userCtx = new Mock<IUserContextAccessor>();
             userCtx.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(99);
@@ -34,6 +36,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 runProc.Object,
                 (reportProc ?? new Mock<IReportProcessor>()).Object,
                 (vulnProc ?? new Mock<IVulnerabilityProcessor>()).Object,
+                (protocolProc ?? new Mock<IProtocolProcessor>()).Object,
+                (auditorProc ?? new Mock<IAuditorProcessor>()).Object,
                 userCtx.Object);
         }
 
@@ -156,76 +160,133 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 .Should().BeOfType<Result<bool, string>.Err>();
         }
 
+        private static ApproveAgentRunViewModel Payload(params AgentFinding[] findings) => new()
+        {
+            ReportTitle = "Rozo Audit", ProtocolName = "Rozo", AuditorName = "Hacken",
+            ArticleMarkdown = "# Audit", Findings = findings.ToList()
+        };
+
         [Fact]
-        public async Task Approve_Succeeded_Run_Creates_Report_And_Vulnerabilities_In_New_Status()
+        public async Task Approve_Creates_Report_With_Article_And_Selected_Findings()
         {
             var runProc = new Mock<IAgentRunProcessor>();
-            runProc.Setup(p => p.Get(10)).ReturnsAsync(new AgentRunModel
-            {
-                Id = 10, Status = AgentRunStatus.Succeeded, SourceUrl = "https://x/r",
-                ArticleMarkdown = "# Audit of X",
-                FindingsJson = "[{\"Title\":\"Bug A\",\"Description\":\"d\",\"Severity\":\"high\",\"Tags\":[\"t\"],\"Category\":0}]"
-            });
+            runProc.Setup(p => p.Get(10)).ReturnsAsync(new AgentRunModel { Id = 10, Status = AgentRunStatus.Succeeded });
             var reportProc = new Mock<IReportProcessor>();
-            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>()))
-                .ReturnsAsync((ReportModel r) => { r.Id = 55; return r; });
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 55; return r; });
             var vulnProc = new Mock<IVulnerabilityProcessor>();
-            vulnProc.Setup(p => p.Add(It.IsAny<VulnerabilityModel>()))
-                .ReturnsAsync((VulnerabilityModel v) => { v.Id = 200; return v; });
-            var svc = BuildService(runProc, reportProc, vulnProc);
+            vulnProc.Setup(p => p.Add(It.IsAny<VulnerabilityModel>())).ReturnsAsync((VulnerabilityModel v) => { v.Id = 200; return v; });
+            var protoProc = new Mock<IProtocolProcessor>();
+            protoProc.Setup(p => p.List()).ReturnsAsync(new List<ProtocolModel>());
+            protoProc.Setup(p => p.Add(It.IsAny<ProtocolModel>())).ReturnsAsync((ProtocolModel p) => { p.Id = 7; return p; });
+            var audProc = new Mock<IAuditorProcessor>();
+            audProc.Setup(a => a.List()).ReturnsAsync(new List<AuditorModel>());
+            audProc.Setup(a => a.Add(It.IsAny<AuditorModel>())).ReturnsAsync((AuditorModel a) => { a.Id = 9; return a; });
+            var svc = BuildService(runProc, reportProc, vulnProc, protoProc, audProc);
 
-            var result = await svc.Approve(10);
+            var payload = Payload(
+                new AgentFinding { Title = "Bug A", Description = "d", Severity = "high", Tags = new() { "t" }, Category = VulnerabilityCategory.Valid },
+                new AgentFinding { Title = "Bug B", Description = "d2", Severity = "low", Tags = new(), Category = VulnerabilityCategory.Valid });
+            var result = await svc.Approve(10, payload);
 
             result.Should().BeOfType<Result<bool, string>.Ok>();
             reportProc.Verify(p => p.Add(It.Is<ReportModel>(r =>
-                r.MdFile == "# Audit of X" && r.Status == ReportModelStatus.New && r.CreatedBy == 99)), Times.Once);
-            vulnProc.Verify(p => p.Add(It.Is<VulnerabilityModel>(v =>
-                v.Title == "Bug A" && v.Severity == "high" && v.ReportId == 55 && v.CreatedBy == 99)), Times.Once);
-            runProc.Verify(p => p.SetProvenance(10, 55, It.Is<List<int>>(l => l.Contains(200))), Times.Once);
+                r.Name == "Rozo Audit" && r.MdFile == "# Audit" && r.Status == ReportModelStatus.New &&
+                r.ProtocolId == 7 && r.AuditorId == 9 && r.CreatedBy == 99)), Times.Once);
+            vulnProc.Verify(p => p.Add(It.IsAny<VulnerabilityModel>()), Times.Exactly(2));
+            vulnProc.Verify(p => p.Add(It.Is<VulnerabilityModel>(v => v.Title == "Bug A" && v.Severity == "high" && v.ReportId == 55)), Times.Once);
             runProc.Verify(p => p.SetStatus(10, AgentRunStatus.Approved), Times.Once);
         }
 
         [Fact]
-        public async Task Approve_NonSucceeded_Run_Returns_Err()
+        public async Task Approve_Creates_New_Auditor_And_Protocol_When_Names_Are_New()
         {
             var runProc = new Mock<IAgentRunProcessor>();
-            runProc.Setup(p => p.Get(11)).ReturnsAsync(new AgentRunModel { Id = 11, Status = AgentRunStatus.Queued });
-            var svc = BuildService(runProc);
+            runProc.Setup(p => p.Get(11)).ReturnsAsync(new AgentRunModel { Id = 11, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 1; return r; });
+            var protoProc = new Mock<IProtocolProcessor>();
+            protoProc.Setup(p => p.List()).ReturnsAsync(new List<ProtocolModel>());
+            protoProc.Setup(p => p.Add(It.IsAny<ProtocolModel>())).ReturnsAsync((ProtocolModel p) => { p.Id = 7; return p; });
+            var audProc = new Mock<IAuditorProcessor>();
+            audProc.Setup(a => a.List()).ReturnsAsync(new List<AuditorModel>());
+            audProc.Setup(a => a.Add(It.IsAny<AuditorModel>())).ReturnsAsync((AuditorModel a) => { a.Id = 9; return a; });
+            var svc = BuildService(runProc, reportProc, vulnProc: null, protoProc, audProc);
 
-            (await svc.Approve(11)).Should().BeOfType<Result<bool, string>.Err>();
+            await svc.Approve(11, Payload());
+
+            protoProc.Verify(p => p.Add(It.Is<ProtocolModel>(x => x.Name == "Rozo")), Times.Once);
+            audProc.Verify(a => a.Add(It.Is<AuditorModel>(x => x.Name == "Hacken")), Times.Once);
         }
 
         [Fact]
-        public async Task Approve_Already_Approved_Run_Returns_Err()
+        public async Task Approve_Reuses_Existing_Auditor_And_Protocol_CaseInsensitive()
         {
             var runProc = new Mock<IAgentRunProcessor>();
-            runProc.Setup(p => p.Get(12)).ReturnsAsync(new AgentRunModel { Id = 12, Status = AgentRunStatus.Approved });
-            var svc = BuildService(runProc);
+            runProc.Setup(p => p.Get(12)).ReturnsAsync(new AgentRunModel { Id = 12, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 1; return r; });
+            var protoProc = new Mock<IProtocolProcessor>();
+            protoProc.Setup(p => p.List()).ReturnsAsync(new List<ProtocolModel> { new() { Id = 3, Name = "Rozo" } });
+            var audProc = new Mock<IAuditorProcessor>();
+            audProc.Setup(a => a.List()).ReturnsAsync(new List<AuditorModel> { new() { Id = 4, Name = "Hacken" } });
+            var svc = BuildService(runProc, reportProc, null, protoProc, audProc);
 
-            (await svc.Approve(12)).Should().BeOfType<Result<bool, string>.Err>();
+            var payload = new ApproveAgentRunViewModel { ReportTitle = "T", ProtocolName = "rozo", AuditorName = "HACKEN", Findings = new() };
+            await svc.Approve(12, payload);
+
+            protoProc.Verify(p => p.Add(It.IsAny<ProtocolModel>()), Times.Never);
+            audProc.Verify(a => a.Add(It.IsAny<AuditorModel>()), Times.Never);
+            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.ProtocolId == 3 && r.AuditorId == 4)), Times.Once);
         }
 
         [Fact]
-        public async Task Approve_Run_Against_Existing_Report_Does_Not_Create_New_Report()
+        public async Task Approve_Blank_Names_Leave_Protocol_Auditor_Null()
         {
             var runProc = new Mock<IAgentRunProcessor>();
-            runProc.Setup(p => p.Get(13)).ReturnsAsync(new AgentRunModel
-            {
-                Id = 13, Status = AgentRunStatus.Succeeded, ReportId = 77,
-                FindingsJson = "[{\"Title\":\"Bug\",\"Severity\":\"low\",\"Tags\":[],\"Category\":0}]"
-            });
+            runProc.Setup(p => p.Get(13)).ReturnsAsync(new AgentRunModel { Id = 13, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 1; return r; });
+            var protoProc = new Mock<IProtocolProcessor>();
+            var audProc = new Mock<IAuditorProcessor>();
+            var svc = BuildService(runProc, reportProc, null, protoProc, audProc);
+
+            await svc.Approve(13, new ApproveAgentRunViewModel { ReportTitle = "T", Findings = new() });
+
+            protoProc.Verify(p => p.List(), Times.Never);
+            audProc.Verify(a => a.List(), Times.Never);
+            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.ProtocolId == null && r.AuditorId == null)), Times.Once);
+        }
+
+        [Fact]
+        public async Task Approve_NonSucceeded_Returns_Err()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(14)).ReturnsAsync(new AgentRunModel { Id = 14, Status = AgentRunStatus.Queued });
+            (await BuildService(runProc).Approve(14, Payload())).Should().BeOfType<Result<bool, string>.Err>();
+        }
+
+        [Fact]
+        public async Task Approve_Missing_Run_Returns_Err()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(404)).ReturnsAsync((AgentRunModel?)null);
+            (await BuildService(runProc).Approve(404, Payload())).Should().BeOfType<Result<bool, string>.Err>();
+        }
+
+        [Fact]
+        public async Task Approve_Run_Against_Existing_Report_Reuses_It()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(15)).ReturnsAsync(new AgentRunModel { Id = 15, Status = AgentRunStatus.Succeeded, ReportId = 77 });
             var reportProc = new Mock<IReportProcessor>();
             var vulnProc = new Mock<IVulnerabilityProcessor>();
-            vulnProc.Setup(p => p.Add(It.IsAny<VulnerabilityModel>()))
-                .ReturnsAsync((VulnerabilityModel v) => { v.Id = 201; return v; });
+            vulnProc.Setup(p => p.Add(It.IsAny<VulnerabilityModel>())).ReturnsAsync((VulnerabilityModel v) => { v.Id = 1; return v; });
             var svc = BuildService(runProc, reportProc, vulnProc);
 
-            var result = await svc.Approve(13);
+            await svc.Approve(15, Payload(new AgentFinding { Title = "X", Severity = "low", Tags = new(), Category = VulnerabilityCategory.Valid }));
 
-            result.Should().BeOfType<Result<bool, string>.Ok>();
             reportProc.Verify(p => p.Add(It.IsAny<ReportModel>()), Times.Never);
             vulnProc.Verify(p => p.Add(It.Is<VulnerabilityModel>(v => v.ReportId == 77)), Times.Once);
-            runProc.Verify(p => p.SetProvenance(13, 77, It.IsAny<List<int>>()), Times.Once);
         }
 
         [Fact]
@@ -237,16 +298,6 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             (await svc.Reject(14)).Should().BeOfType<Result<bool, string>.Ok>();
             runProc.Verify(p => p.SetStatus(14, AgentRunStatus.Rejected), Times.Once);
-        }
-
-        [Fact]
-        public async Task Approve_Missing_Run_Returns_Err()
-        {
-            var runProc = new Mock<IAgentRunProcessor>();
-            runProc.Setup(p => p.Get(404)).ReturnsAsync((AgentRunModel?)null);
-            var svc = BuildService(runProc);
-
-            (await svc.Approve(404)).Should().BeOfType<Result<bool, string>.Err>();
         }
 
         [Fact]

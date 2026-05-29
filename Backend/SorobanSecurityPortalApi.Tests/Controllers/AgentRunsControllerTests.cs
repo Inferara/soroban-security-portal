@@ -51,15 +51,15 @@ public class AgentRunsControllerTests
     [Fact]
     public async Task Approve_Ok_Returns_Ok()
     {
-        _service.Setup(s => s.Approve(5)).ReturnsAsync(new Result<bool, string>.Ok(true));
-        (await Controller().Approve(5)).Should().BeOfType<OkResult>();
+        _service.Setup(s => s.Approve(5, It.IsAny<ApproveAgentRunViewModel>())).ReturnsAsync(new Result<bool, string>.Ok(true));
+        (await Controller().Approve(5, new ApproveAgentRunViewModel())).Should().BeOfType<OkResult>();
     }
 
     [Fact]
     public async Task Approve_Err_Returns_BadRequest()
     {
-        _service.Setup(s => s.Approve(5)).ReturnsAsync(new Result<bool, string>.Err("nope"));
-        (await Controller().Approve(5)).Should().BeOfType<BadRequestObjectResult>();
+        _service.Setup(s => s.Approve(5, It.IsAny<ApproveAgentRunViewModel>())).ReturnsAsync(new Result<bool, string>.Err("nope"));
+        (await Controller().Approve(5, new ApproveAgentRunViewModel())).Should().BeOfType<BadRequestObjectResult>();
     }
 
     [Fact]

@@ -47,9 +47,9 @@ namespace SorobanSecurityPortalApi.Controllers
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPost("{id}/approve")]
-        public async Task<IActionResult> Approve(int id)
+        public async Task<IActionResult> Approve(int id, [FromBody] ApproveAgentRunViewModel payload)
         {
-            var result = await _service.Approve(id);
+            var result = await _service.Approve(id, payload);
             return result switch
             {
                 Result<bool, string>.Ok => Ok(),
