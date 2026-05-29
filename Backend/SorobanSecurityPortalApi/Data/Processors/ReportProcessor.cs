@@ -204,6 +204,31 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .FirstOrDefaultAsync();
         }
 
+        // Backfill helper: ids of reports that still have their source PDF, so their cover can be
+        // re-rendered. Selects only the id; the BinFile != null check runs in SQL and never loads bytes.
+        public async Task<List<int>> GetReportIdsWithBinFile()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Report
+                .AsNoTracking()
+                .Where(r => r.BinFile != null)
+                .OrderBy(r => r.Id)
+                .Select(r => r.Id)
+                .ToListAsync();
+        }
+
+        // Backfill helper: replaces the stored cover and bumps LastActionAt so the image endpoint's
+        // ETag and on-disk cache key (both derived from LastActionAt.Ticks) refresh.
+        public async Task UpdateImage(int reportId, byte[] image)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var existing = await db.Report.FirstAsync(item => item.Id == reportId);
+            existing.Image = image;
+            existing.LastActionAt = DateTime.UtcNow;
+            db.Report.Update(existing);
+            await db.SaveChangesAsync();
+        }
+
         public async Task Approve(ReportModel reportModel, int userId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -339,6 +364,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<List<ReportModel>> GetListForFix();
         Task UpdateEmbedding(int reportId, Vector embedding);
         Task UpdateMdFile(int reportId, string mdFile);
+        Task<List<int>> GetReportIdsWithBinFile();
+        Task UpdateImage(int reportId, byte[] image);
         Task<ReportStatisticsChangesViewModel> GetStatisticsChanges();
     }
 }
