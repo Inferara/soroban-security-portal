@@ -80,8 +80,66 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return new Result<AgentRunViewModel, string>.Ok(ToViewModel(run));
         }
 
-        public Task<Result<bool, string>> Approve(int id) => throw new NotImplementedException();
-        public Task<Result<bool, string>> Reject(int id) => throw new NotImplementedException();
+        public async Task<Result<bool, string>> Approve(int id)
+        {
+            var run = await _runProcessor.Get(id);
+            if (run == null)
+                return new Result<bool, string>.Err($"Agent run {id} not found.");
+            if (run.Status != AgentRunStatus.Succeeded)
+                return new Result<bool, string>.Err("Only a succeeded run can be approved.");
+
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            var findings = ParseFindings(run.FindingsJson);
+
+            int reportId;
+            if (run.ReportId.HasValue)
+            {
+                reportId = run.ReportId.Value;
+            }
+            else
+            {
+                var report = await _reportProcessor.Add(new ReportModel
+                {
+                    Name = string.IsNullOrWhiteSpace(run.SourceUrl) ? $"Agent run {run.Id}" : run.SourceUrl,
+                    Date = DateTime.UtcNow,
+                    Status = ReportModelStatus.New,
+                    MdFile = run.ArticleMarkdown,
+                    CreatedBy = loginId,
+                });
+                reportId = report.Id;
+            }
+
+            var createdVulnIds = new List<int>();
+            foreach (var f in findings)
+            {
+                var vuln = await _vulnerabilityProcessor.Add(new VulnerabilityModel
+                {
+                    Title = f.Title,
+                    Description = f.Description,
+                    Severity = f.Severity,
+                    Tags = f.Tags,
+                    Category = f.Category,
+                    ReportId = reportId,
+                    Date = DateTime.UtcNow,
+                    Status = VulnerabilityModelStatus.New,
+                    CreatedBy = loginId,
+                });
+                createdVulnIds.Add(vuln.Id);
+            }
+
+            await _runProcessor.SetProvenance(id, reportId, createdVulnIds);
+            await _runProcessor.SetStatus(id, AgentRunStatus.Approved);
+            return new Result<bool, string>.Ok(true);
+        }
+
+        public async Task<Result<bool, string>> Reject(int id)
+        {
+            var run = await _runProcessor.Get(id);
+            if (run == null)
+                return new Result<bool, string>.Err($"Agent run {id} not found.");
+            await _runProcessor.SetStatus(id, AgentRunStatus.Rejected);
+            return new Result<bool, string>.Ok(true);
+        }
 
         public async Task<AgentRunViewModel?> ClaimNext()
         {
