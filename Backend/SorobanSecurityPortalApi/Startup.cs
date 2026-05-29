@@ -1,4 +1,5 @@
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Caching;
 using System.Reflection;
 using SorobanSecurityPortalApi.Authorization;
 using HealthChecks.UI.Client;
@@ -43,8 +44,7 @@ public class Startup
 
         services.AddSingleton(_config);
         services.AddMemoryCache();
-        services.AddSingleton<SorobanSecurityPortalApi.Common.Caching.ILookupCache,
-                              SorobanSecurityPortalApi.Common.Caching.LookupCache>();
+        services.AddSingleton<ILookupCache, LookupCache>();
         services.AddSingleton<IDataSourceProvider, DataSourceProvider>(e => new DataSourceProvider(_config));
         services.ForInterfacesMatching("^I.*Processor$")
             .OfAssemblies(Assembly.GetExecutingAssembly())

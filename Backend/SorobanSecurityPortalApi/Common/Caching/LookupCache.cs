@@ -30,6 +30,8 @@ namespace SorobanSecurityPortalApi.Common.Caching
 
         public async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan? ttl = null)
         {
+            // Not locked: on a cold key, concurrent callers may each run the factory once and the
+            // last Set wins. Acceptable for idempotent lookup data; avoids holding a lock across await.
             if (_cache.TryGetValue(key, out T? cached))
                 return cached!;
             var value = await factory();
