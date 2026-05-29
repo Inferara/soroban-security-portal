@@ -99,7 +99,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(vulnerabilitySearchModel.SearchText);
                 vulnerabilitySearchModel.Embedding = new Vector(embeddingArray);
             }
-            return await _vulnerabilityProcessor.SearchTotal(_mapper.Map<Models.DbModels.VulnerabilitySearchModel>(vulnerabilitySearchModel));
+            return await _vulnerabilityProcessor.SearchTotal(vulnerabilitySearchModel!);
         }
 
         public async Task<(List<VulnerabilityViewModel> Items, int Total)> SearchWithTotal(VulnerabilitySearchViewModel? vulnerabilitySearchViewModel)

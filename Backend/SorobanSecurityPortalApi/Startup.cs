@@ -39,6 +39,7 @@ public class Startup
                 .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader()
+                .WithExposedHeaders("X-Total-Count")
             );
         });
 
