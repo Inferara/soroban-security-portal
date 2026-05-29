@@ -20,6 +20,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         // Output (heavy text — excluded from list projection)
         public string ArticleMarkdown { get; set; } = "";
+        // Raw agent output, stored as plain text on purpose: defaults to "" (invalid jsonb), the agent's output may be imperfect, and we only ever deserialize it in-process — never query inside it.
         public string FindingsJson { get; set; } = "";
         public string Transcript { get; set; } = "";
         public string Error { get; set; } = "";
@@ -33,6 +34,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public DateTime? FinishedAt { get; set; }
 
         // Provenance (set on approve)
+        // Provenance only: deliberately a bare id with no FK so the audit trail survives even if the created report is later deleted.
         public int? CreatedReportId { get; set; }
         [Column(TypeName = "jsonb")]
         public List<int>? CreatedVulnerabilityIds { get; set; }
