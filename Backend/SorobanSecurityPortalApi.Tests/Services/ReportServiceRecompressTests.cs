@@ -1,6 +1,8 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Caching;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Services.ControllersServices;
@@ -16,7 +18,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 new UserContextAccessor(
                     Mock.Of<IHttpContextAccessor>(),
                     Mock.Of<ILoginProcessor>()),
-                Mock.Of<IGeminiEmbeddingService>());
+                Mock.Of<IGeminiEmbeddingService>(),
+                new LookupCache(new MemoryCache(new MemoryCacheOptions())));
 
         [Fact]
         public async Task RecompressAllImages_SkipsReportsWithEmptyBinFile()

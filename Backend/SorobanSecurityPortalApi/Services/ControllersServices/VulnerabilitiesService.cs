@@ -1,6 +1,7 @@
 using AutoMapper;
 using Pgvector;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Caching;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.ViewModels;
@@ -16,6 +17,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IGeminiEmbeddingService _embeddingService;
         private readonly UserContextAccessor _userContextAccessor;
         private readonly IContentFilterService _contentFilter;
+        private readonly ILookupCache _lookupCache;
 
         public VulnerabilityService(
             IMapper mapper,
@@ -24,7 +26,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IFileProcessor fileProcessor,
             IGeminiEmbeddingService embeddingService,
             UserContextAccessor userContextAccessor,
-            IContentFilterService contentFilter)
+            IContentFilterService contentFilter,
+            ILookupCache lookupCache)
         {
             _mapper = mapper;
             _vulnerabilityProcessor = vulnerabilityProcessor;
@@ -33,6 +36,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _embeddingService = embeddingService;
             _userContextAccessor = userContextAccessor;
             _contentFilter = contentFilter;
+            _lookupCache = lookupCache;
         }
 
         public async Task<List<IdValue>> ListSeverities()
@@ -50,25 +54,28 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<List<IdValueUrl>> ListSources()
         {
-            var reports = await _reportProcessor.GetList();
-            var result = new List<IdValueUrl>();
-            foreach (var report in reports) {
+            return await _lookupCache.GetOrCreateAsync(LookupCacheKeys.Sources, async () =>
+            {
+                var reports = await _reportProcessor.GetList();
+                var result = new List<IdValueUrl>();
+                foreach (var report in reports) {
+                    result.Add(new IdValueUrl
+                    {
+                        Id = report.Id,
+                        Name = report.Name,
+                        Url = "",
+                        ProtocolId = report.Protocol?.Id,
+                        AuditorId = report.Auditor?.Id
+                    });
+                }
                 result.Add(new IdValueUrl
                 {
-                    Id = report.Id,
-                    Name = report.Name,
-                    Url = "",
-                    ProtocolId = report.Protocol?.Id,
-                    AuditorId = report.Auditor?.Id
+                    Id = 0,
+                    Name = "External",
+                    Url = ""
                 });
-            }
-            result.Add(new IdValueUrl
-            {
-                Id = 0,
-                Name = "External",
-                Url = ""
+                return result;
             });
-            return result;
         }
 
         public async Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearchViewModel)
