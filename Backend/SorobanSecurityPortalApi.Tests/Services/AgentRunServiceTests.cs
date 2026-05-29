@@ -298,5 +298,44 @@ namespace SorobanSecurityPortalApi.Tests.Services
             vm.Findings[0].Category.Should().Be(VulnerabilityCategory.ValidNotFixed);
             vm.Findings[0].Severity.Should().Be("medium");
         }
+
+        [Fact]
+        public async Task Get_Malformed_FindingsJson_Sets_FindingsUnparseable_True()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(40)).ReturnsAsync(new AgentRunModel
+            { Id = 40, Status = AgentRunStatus.Succeeded, FindingsJson = "{not valid json" });
+            var svc = BuildService(runProc);
+
+            var vm = await svc.Get(40);
+
+            vm!.FindingsUnparseable.Should().BeTrue();
+            vm.Findings.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Get_Valid_Empty_Array_Is_Not_Unparseable()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(41)).ReturnsAsync(new AgentRunModel
+            { Id = 41, Status = AgentRunStatus.Succeeded, FindingsJson = "[]" });
+            var svc = BuildService(runProc);
+
+            var vm = await svc.Get(41);
+
+            vm!.FindingsUnparseable.Should().BeFalse();
+            vm.Findings.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Get_Empty_FindingsJson_Is_Not_Unparseable()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(42)).ReturnsAsync(new AgentRunModel
+            { Id = 42, Status = AgentRunStatus.Succeeded, FindingsJson = "" });
+            var svc = BuildService(runProc);
+
+            (await svc.Get(42))!.FindingsUnparseable.Should().BeFalse();
+        }
     }
 }

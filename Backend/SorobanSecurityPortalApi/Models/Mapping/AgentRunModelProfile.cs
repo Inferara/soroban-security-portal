@@ -10,6 +10,7 @@ public class AgentRunModelProfile : Profile
     {
         CreateMap<AgentRunModel, AgentRunListItemViewModel>();
         CreateMap<AgentRunModel, AgentRunViewModel>()
-            .ForMember(dst => dst.Findings, opt => opt.Ignore());
+            .ForMember(dst => dst.Findings, opt => opt.Ignore())
+            .ForMember(dst => dst.FindingsUnparseable, opt => opt.Ignore());
     }
 }

@@ -42,6 +42,7 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public List<AgentFinding> Findings { get; set; } = new();
         public string Transcript { get; set; } = "";
         public List<int>? CreatedVulnerabilityIds { get; set; }
+        public bool FindingsUnparseable { get; set; }
     }
 
     // Worker→backend submit payload (mirrors AgentRunResult).

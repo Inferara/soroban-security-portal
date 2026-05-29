@@ -176,21 +176,26 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private AgentRunViewModel ToViewModel(AgentRunModel run)
         {
             var vm = _mapper.Map<AgentRunViewModel>(run);
-            vm.Findings = ParseFindings(run.FindingsJson);
+            var (findings, parsedOk) = ParseFindingsWithStatus(run.FindingsJson);
+            vm.Findings = findings;
+            vm.FindingsUnparseable = !string.IsNullOrWhiteSpace(run.FindingsJson) && !parsedOk;
             return vm;
         }
 
         internal static List<AgentFinding> ParseFindings(string? findingsJson)
+            => ParseFindingsWithStatus(findingsJson).findings;
+
+        internal static (List<AgentFinding> findings, bool parsedOk) ParseFindingsWithStatus(string? findingsJson)
         {
-            if (string.IsNullOrWhiteSpace(findingsJson)) return new List<AgentFinding>();
+            if (string.IsNullOrWhiteSpace(findingsJson)) return (new List<AgentFinding>(), true);
             try
             {
-                return JsonSerializer.Deserialize<List<AgentFinding>>(findingsJson, JsonOpts)
-                    ?? new List<AgentFinding>();
+                return (JsonSerializer.Deserialize<List<AgentFinding>>(findingsJson, JsonOpts)
+                    ?? new List<AgentFinding>(), true);
             }
             catch (JsonException)
             {
-                return new List<AgentFinding>();
+                return (new List<AgentFinding>(), false);
             }
         }
     }
