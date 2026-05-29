@@ -6,11 +6,11 @@ on:
       apiUrl:
         description: 'API URL'
         required: false
-        default: 'https://sorobansecurity.com'
+        default: 'https://stellarsecurityportal.com'
       hostName:
         description: 'Host name'
         required: false
-        default: 'sorobansecurity.com'
+        default: 'stellarsecurityportal.com'
       envName:
         description: 'Environment name'
         required: false
