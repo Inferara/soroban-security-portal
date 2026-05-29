@@ -102,6 +102,19 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return await _vulnerabilityProcessor.SearchTotal(_mapper.Map<Models.DbModels.VulnerabilitySearchModel>(vulnerabilitySearchModel));
         }
 
+        public async Task<(List<VulnerabilityViewModel> Items, int Total)> SearchWithTotal(VulnerabilitySearchViewModel? vulnerabilitySearchViewModel)
+        {
+            var model = _mapper.Map<Models.DbModels.VulnerabilitySearchModel>(vulnerabilitySearchViewModel);
+            if (model != null && !string.IsNullOrEmpty(model.SearchText))
+            {
+                var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(model.SearchText);
+                model.Embedding = new Vector(embeddingArray);
+            }
+            var items = _mapper.Map<List<VulnerabilityViewModel>>(await _vulnerabilityProcessor.Search(model!));
+            var total = await _vulnerabilityProcessor.SearchTotal(model!);
+            return (items, total);
+        }
+
         public async Task<Result<VulnerabilityViewModel, string>> Add(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
         {
             var loginId = await _userContextAccessor.GetLoginIdAsync();
@@ -257,6 +270,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<IdValueUrl>> ListSources();
         Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearch);
         Task<int> SearchTotal(VulnerabilitySearchViewModel? vulnerabilitySearch);
+        Task<(List<VulnerabilityViewModel> Items, int Total)> SearchWithTotal(VulnerabilitySearchViewModel? vulnerabilitySearch);
         Task<Result<VulnerabilityViewModel, string>> Add(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task<Result<bool, string>> Approve(int vulnerabilityId);
         Task<Result<bool, string>> Reject(int vulnerabilityId);
