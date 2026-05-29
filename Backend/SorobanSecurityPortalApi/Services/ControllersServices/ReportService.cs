@@ -131,6 +131,38 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ReportStatisticsChangesViewModel>(stats);
         }
 
+        // One-time/idempotent maintenance: re-render every report cover that still has its source
+        // PDF into the new compact WebP format. Processes one report at a time to avoid loading all
+        // PDFs into memory. Per-report failures are counted, not fatal, so a single bad PDF cannot
+        // abort the whole run; re-running is safe.
+        public async Task<RecompressImagesResultViewModel> RecompressAllImages()
+        {
+            var result = new RecompressImagesResultViewModel();
+            var ids = await _reportProcessor.GetReportIdsWithBinFile();
+            foreach (var id in ids)
+            {
+                try
+                {
+                    var report = await _reportProcessor.Get(id);
+                    if (report.BinFile == null || report.BinFile.Length == 0)
+                    {
+                        result.Skipped++;
+                        continue;
+                    }
+                    result.BytesBefore += report.Image?.Length ?? 0;
+                    var webp = ReportCoverImage.RenderCoverWebp(report.BinFile);
+                    result.BytesAfter += webp.Length;
+                    await _reportProcessor.UpdateImage(id, webp);
+                    result.Processed++;
+                }
+                catch
+                {
+                    result.Failed++;
+                }
+            }
+            return result;
+        }
+
         private async Task<bool> CanApproveReport(ReportModel reportModel, int loginId)
         {
             return reportModel.CreatedBy != loginId || await _userContextAccessor.IsLoginIdAdmin(loginId);
@@ -154,5 +186,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task Remove(int reportId);
         Task<List<ReportViewModel>> GetList(bool includeNotApproved = false);
         Task<ReportStatisticsChangesViewModel> GetStatisticsChanges();
+        Task<RecompressImagesResultViewModel> RecompressAllImages();
     }
 }
