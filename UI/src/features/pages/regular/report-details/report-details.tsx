@@ -70,7 +70,7 @@ import { PageViewEntityType } from '../../../../api/soroban-security-portal/mode
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
-  const { auth } = useAppAuth();
+  const { auth, login } = useAppAuth();
 
   const {
     report,
@@ -763,7 +763,7 @@ export const ReportDetails: FC = () => {
                       <Button
                         variant="contained"
                         color="primary"
-                        onClick={() => showMessage('Log in to view the full report')}
+                        onClick={login}
                       >
                         Log In
                       </Button>
