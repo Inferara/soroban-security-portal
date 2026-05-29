@@ -10,13 +10,6 @@ import { useListAgentRuns } from './hooks';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 import { AgentRunListItem, AgentRunStatus } from '../../../../../api/soroban-security-portal/models/agent-run';
 
-const currentPageState: CurrentPageState = {
-  pageName: 'Agent Runs',
-  pageCode: 'agentRuns',
-  pageUrl: window.location.pathname,
-  routePath: 'admin/agent-runs',
-};
-
 const statusColor = (status: string): 'default' | 'info' | 'success' | 'error' | 'warning' => {
   switch (status) {
     case AgentRunStatus.Succeeded: return 'success';
@@ -30,6 +23,12 @@ const statusColor = (status: string): 'default' | 'info' | 'success' | 'error' |
 
 export const AgentRunManagement: FC = () => {
   const navigate = useNavigate();
+  const currentPageState: CurrentPageState = useMemo(() => ({
+    pageName: 'Agent Runs',
+    pageCode: 'agentRuns',
+    pageUrl: window.location.pathname,
+    routePath: 'admin/agent-runs',
+  }), []);
   const { agentRuns, approve, reject, rerun } = useListAgentRuns({ currentPageState });
 
   const columns: GridColDef<AgentRunListItem>[] = useMemo(() => [

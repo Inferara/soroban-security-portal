@@ -19,6 +19,7 @@ export const useListAgentRuns = (props: UseListAgentRunsProps) => {
   const [agentRuns, setAgentRuns] = useState<AgentRunListItem[]>([]);
 
   const refresh = useCallback(async (): Promise<void> => {
+    // v1: fetches the first 100 runs; add server-side pagination (using result.total) when the dataset grows.
     const result = await getAgentRunsCall();
     setAgentRuns(result.items);
   }, []);
