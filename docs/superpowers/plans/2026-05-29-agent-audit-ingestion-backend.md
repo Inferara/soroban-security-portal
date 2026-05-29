@@ -603,7 +603,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
             Mock<IReportProcessor>? reportProc = null,
             Mock<IVulnerabilityProcessor>? vulnProc = null)
         {
-            var userCtx = new Mock<UserContextAccessor>(MockBehavior.Loose, null!, null!);
+            var userCtx = new Mock<IUserContextAccessor>();
             userCtx.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(99);
             return new AgentRunService(
                 BuildMapper(),
@@ -722,14 +722,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IAgentRunProcessor _runProcessor;
         private readonly IReportProcessor _reportProcessor;
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
-        private readonly UserContextAccessor _userContextAccessor;
+        private readonly IUserContextAccessor _userContextAccessor;
 
         public AgentRunService(
             IMapper mapper,
             IAgentRunProcessor runProcessor,
             IReportProcessor reportProcessor,
             IVulnerabilityProcessor vulnerabilityProcessor,
-            UserContextAccessor userContextAccessor)
+            IUserContextAccessor userContextAccessor)
         {
             _mapper = mapper;
             _runProcessor = runProcessor;
