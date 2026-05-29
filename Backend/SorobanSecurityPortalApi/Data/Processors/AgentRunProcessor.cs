@@ -61,6 +61,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<AgentRunModel?> ClaimNextQueued()
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
+            // Single-worker design: read-then-update without a row lock is safe because only one worker claims jobs. If a second worker is ever added, switch to SELECT ... FOR UPDATE SKIP LOCKED.
             var next = await db.AgentRun
                 .Where(r => r.Status == AgentRunStatus.Queued)
                 .OrderBy(r => r.Id)
@@ -89,7 +90,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await db.SaveChangesAsync();
         }
 
-        public async Task SetStatus(int id, string status, int userId)
+        public async Task SetStatus(int id, string status)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             var run = await db.AgentRun.FirstAsync(r => r.Id == id);
@@ -117,7 +118,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<int> GetListTotal();
         Task<AgentRunModel?> ClaimNextQueued();
         Task SubmitResult(int id, AgentRunResult result);
-        Task SetStatus(int id, string status, int userId);
+        Task SetStatus(int id, string status);
         Task SetProvenance(int id, int createdReportId, List<int> createdVulnerabilityIds);
     }
 }

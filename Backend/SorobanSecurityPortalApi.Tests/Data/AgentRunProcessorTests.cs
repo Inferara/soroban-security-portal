@@ -116,9 +116,38 @@ namespace SorobanSecurityPortalApi.Tests.Data
             var list = new List<AgentRunModel> { new() { Id = 7, Status = AgentRunStatus.Succeeded } };
             var processor = new AgentRunProcessor(BuildFactory(list).Object);
 
-            await processor.SetStatus(7, AgentRunStatus.Rejected, userId: 3);
+            await processor.SetStatus(7, AgentRunStatus.Rejected);
 
             list.Single().Status.Should().Be(AgentRunStatus.Rejected);
+        }
+
+        [Fact]
+        public async Task GetList_Omits_Heavy_Columns_And_Orders_By_Id_Desc()
+        {
+            var list = new List<AgentRunModel>
+            {
+                new() { Id = 1, Status = AgentRunStatus.Succeeded, ArticleMarkdown = "big", FindingsJson = "[{}]", Transcript = "trace" },
+                new() { Id = 2, Status = AgentRunStatus.Queued },
+            };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            var page = await processor.GetList(page: 1, pageSize: 10);
+
+            page.Should().HaveCount(2);
+            page[0].Id.Should().Be(2); // OrderByDescending(Id)
+            page.Should().OnlyContain(r => r.ArticleMarkdown == "" && r.FindingsJson == "" && r.Transcript == "");
+        }
+
+        [Fact]
+        public async Task SetProvenance_Stores_CreatedReportId_And_VulnerabilityIds()
+        {
+            var list = new List<AgentRunModel> { new() { Id = 9, Status = AgentRunStatus.Succeeded } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.SetProvenance(9, createdReportId: 55, createdVulnerabilityIds: new List<int> { 200, 201 });
+
+            list.Single().CreatedReportId.Should().Be(55);
+            list.Single().CreatedVulnerabilityIds.Should().BeEquivalentTo(new[] { 200, 201 });
         }
     }
 }
