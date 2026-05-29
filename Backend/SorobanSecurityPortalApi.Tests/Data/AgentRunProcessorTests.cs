@@ -1,0 +1,124 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Moq;
+using SorobanSecurityPortalApi.Common.Data;
+using SorobanSecurityPortalApi.Data.Processors;
+using SorobanSecurityPortalApi.Models.DbModels;
+using SorobanSecurityPortalApi.Tests.Services; // TestAsyncQueryProvider<T> / TestAsyncEnumerator<T>
+using Xunit;
+
+namespace SorobanSecurityPortalApi.Tests.Data
+{
+    public class AgentRunProcessorTests
+    {
+        private static Mock<DbSet<T>> CreateDbSetMock<T>(List<T> source) where T : class
+        {
+            var q = source.AsQueryable();
+            var m = new Mock<DbSet<T>>();
+            m.As<IQueryable<T>>().Setup(x => x.Provider).Returns(new TestAsyncQueryProvider<T>(q.Provider));
+            m.As<IQueryable<T>>().Setup(x => x.Expression).Returns(q.Expression);
+            m.As<IQueryable<T>>().Setup(x => x.ElementType).Returns(q.ElementType);
+            m.As<IQueryable<T>>().Setup(x => x.GetEnumerator()).Returns(q.GetEnumerator());
+            m.As<IAsyncEnumerable<T>>().Setup(x => x.GetAsyncEnumerator(It.IsAny<CancellationToken>()))
+                .Returns(new TestAsyncEnumerator<T>(q.GetEnumerator()));
+            m.Setup(d => d.Add(It.IsAny<T>())).Callback<T>(source.Add);
+            return m;
+        }
+
+        private static Mock<IDbContextFactory<Db>> BuildFactory(List<AgentRunModel> list)
+        {
+            var dbMock = new Mock<Db>(
+                new Mock<IDbQuery>().Object,
+                new Mock<Microsoft.Extensions.Logging.ILogger<Db>>().Object,
+                new Mock<IDataSourceProvider>().Object) { CallBase = true };
+            dbMock.Setup(d => d.AgentRun).Returns(CreateDbSetMock(list).Object);
+            dbMock.Setup(d => d.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+            var factory = new Mock<IDbContextFactory<Db>>();
+            factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dbMock.Object);
+            return factory;
+        }
+
+        [Fact]
+        public async Task Add_Defaults_Status_To_Queued_And_Persists()
+        {
+            var list = new List<AgentRunModel>();
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            var result = await processor.Add(new AgentRunModel { SourceUrl = "https://x/report" });
+
+            result.Status.Should().Be(AgentRunStatus.Queued);
+            list.Should().ContainSingle();
+        }
+
+        [Fact]
+        public async Task ClaimNextQueued_Marks_Oldest_Queued_As_Processing()
+        {
+            var list = new List<AgentRunModel>
+            {
+                new() { Id = 1, Status = AgentRunStatus.Succeeded },
+                new() { Id = 2, Status = AgentRunStatus.Queued },
+                new() { Id = 3, Status = AgentRunStatus.Queued },
+            };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            var claimed = await processor.ClaimNextQueued();
+
+            claimed!.Id.Should().Be(2);
+            claimed.Status.Should().Be(AgentRunStatus.Processing);
+            claimed.StartedAt.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task ClaimNextQueued_Returns_Null_When_None_Queued()
+        {
+            var list = new List<AgentRunModel> { new() { Id = 1, Status = AgentRunStatus.Succeeded } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            (await processor.ClaimNextQueued()).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task SubmitResult_Success_Sets_Succeeded_And_Stores_Output()
+        {
+            var list = new List<AgentRunModel> { new() { Id = 5, Status = AgentRunStatus.Processing } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.SubmitResult(5, new AgentRunResult
+            {
+                Success = true, ArticleMarkdown = "# A", FindingsJson = "[]", Transcript = "...", DurationMs = 1234
+            });
+
+            var run = list.Single();
+            run.Status.Should().Be(AgentRunStatus.Succeeded);
+            run.ArticleMarkdown.Should().Be("# A");
+            run.FinishedAt.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task SubmitResult_Failure_Sets_Failed_And_Stores_Error()
+        {
+            var list = new List<AgentRunModel> { new() { Id = 6, Status = AgentRunStatus.Processing } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.SubmitResult(6, new AgentRunResult { Success = false, Error = "timeout", Transcript = "boom" });
+
+            list.Single().Status.Should().Be(AgentRunStatus.Failed);
+            list.Single().Error.Should().Be("timeout");
+        }
+
+        [Fact]
+        public async Task SetStatus_Updates_Status()
+        {
+            var list = new List<AgentRunModel> { new() { Id = 7, Status = AgentRunStatus.Succeeded } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.SetStatus(7, AgentRunStatus.Rejected, userId: 3);
+
+            list.Single().Status.Should().Be(AgentRunStatus.Rejected);
+        }
+    }
+}
