@@ -116,5 +116,44 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             (await svc.Rerun(404)).Should().BeOfType<Result<AgentRunViewModel, string>.Err>();
         }
+
+        [Fact]
+        public async Task List_Returns_Items_And_Total()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.GetList(1, 20)).ReturnsAsync(new List<AgentRunModel>
+            {
+                new() { Id = 1, Status = AgentRunStatus.Queued },
+                new() { Id = 2, Status = AgentRunStatus.Succeeded },
+            });
+            runProc.Setup(p => p.GetListTotal()).ReturnsAsync(2);
+            var svc = BuildService(runProc);
+
+            var result = await svc.List(1, 20);
+
+            result.Items.Should().HaveCount(2);
+            result.Total.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task ClaimNext_Returns_Null_When_Nothing_Queued()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.ClaimNextQueued()).ReturnsAsync((AgentRunModel?)null);
+            var svc = BuildService(runProc);
+
+            (await svc.ClaimNext()).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task SubmitResult_For_Missing_Run_Returns_Err()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(404)).ReturnsAsync((AgentRunModel?)null);
+            var svc = BuildService(runProc);
+
+            (await svc.SubmitResult(404, new SubmitAgentRunResultViewModel { Success = true }))
+                .Should().BeOfType<Result<bool, string>.Err>();
+        }
     }
 }
