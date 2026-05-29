@@ -42,6 +42,9 @@ public class Startup
         });
 
         services.AddSingleton(_config);
+        services.AddMemoryCache();
+        services.AddSingleton<SorobanSecurityPortalApi.Common.Caching.ILookupCache,
+                              SorobanSecurityPortalApi.Common.Caching.LookupCache>();
         services.AddSingleton<IDataSourceProvider, DataSourceProvider>(e => new DataSourceProvider(_config));
         services.ForInterfacesMatching("^I.*Processor$")
             .OfAssemblies(Assembly.GetExecutingAssembly())
