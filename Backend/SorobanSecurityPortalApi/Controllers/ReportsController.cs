@@ -255,6 +255,19 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok();
         }
 
+        // One-time/idempotent maintenance: re-render all existing report covers into compact WebP.
+        // Admin-only; run manually after deploy. See spec 2026-05-29-report-cover-image-compression.
+        [RoleAuthorize(Role.Admin)]
+        [HttpPost("recompress-images")]
+        public async Task<IActionResult> RecompressImages()
+        {
+            var result = await _reportService.RecompressAllImages();
+            _logger.LogInformation(
+                "Report cover recompress complete: processed={Processed} skipped={Skipped} failed={Failed} bytesBefore={BytesBefore} bytesAfter={BytesAfter}",
+                result.Processed, result.Skipped, result.Failed, result.BytesBefore, result.BytesAfter);
+            return Ok(result);
+        }
+
         [HttpGet("{reportId}")]
         public async Task<IActionResult> Get(int reportId)
         {
