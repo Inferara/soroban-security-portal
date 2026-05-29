@@ -238,5 +238,47 @@ namespace SorobanSecurityPortalApi.Tests.Services
             (await svc.Reject(14)).Should().BeOfType<Result<bool, string>.Ok>();
             runProc.Verify(p => p.SetStatus(14, AgentRunStatus.Rejected), Times.Once);
         }
+
+        [Fact]
+        public async Task Approve_Missing_Run_Returns_Err()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(404)).ReturnsAsync((AgentRunModel?)null);
+            var svc = BuildService(runProc);
+
+            (await svc.Approve(404)).Should().BeOfType<Result<bool, string>.Err>();
+        }
+
+        [Fact]
+        public async Task Reject_Missing_Run_Returns_Err()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(404)).ReturnsAsync((AgentRunModel?)null);
+            var svc = BuildService(runProc);
+
+            (await svc.Reject(404)).Should().BeOfType<Result<bool, string>.Err>();
+        }
+
+        [Fact]
+        public async Task Reject_Approved_Run_Returns_Err_And_Does_Not_Touch_Status()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(20)).ReturnsAsync(new AgentRunModel { Id = 20, Status = AgentRunStatus.Approved });
+            var svc = BuildService(runProc);
+
+            (await svc.Reject(20)).Should().BeOfType<Result<bool, string>.Err>();
+            runProc.Verify(p => p.SetStatus(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Reject_Failed_Run_Sets_Rejected()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(21)).ReturnsAsync(new AgentRunModel { Id = 21, Status = AgentRunStatus.Failed });
+            var svc = BuildService(runProc);
+
+            (await svc.Reject(21)).Should().BeOfType<Result<bool, string>.Ok>();
+            runProc.Verify(p => p.SetStatus(21, AgentRunStatus.Rejected), Times.Once);
+        }
     }
 }

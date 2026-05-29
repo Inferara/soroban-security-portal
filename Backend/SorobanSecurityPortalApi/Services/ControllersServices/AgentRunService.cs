@@ -127,6 +127,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 createdVulnIds.Add(vuln.Id);
             }
 
+            // v1: no DB transaction wraps report+vuln creation and the status flip. If this throws
+            // mid-way the run stays Succeeded and can be re-approved (which would duplicate rows).
+            // Acceptable for an admin-triggered, human-reviewed flow; revisit if it becomes a problem.
             await _runProcessor.SetProvenance(id, reportId, createdVulnIds);
             await _runProcessor.SetStatus(id, AgentRunStatus.Approved);
             return new Result<bool, string>.Ok(true);
@@ -137,6 +140,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var run = await _runProcessor.Get(id);
             if (run == null)
                 return new Result<bool, string>.Err($"Agent run {id} not found.");
+            if (run.Status != AgentRunStatus.Succeeded && run.Status != AgentRunStatus.Failed)
+                return new Result<bool, string>.Err("Only a succeeded or failed run can be rejected.");
             await _runProcessor.SetStatus(id, AgentRunStatus.Rejected);
             return new Result<bool, string>.Ok(true);
         }
