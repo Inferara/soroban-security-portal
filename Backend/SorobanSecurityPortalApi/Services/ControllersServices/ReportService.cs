@@ -1,9 +1,7 @@
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
-using PDFtoImage;
 using Pgvector;
-using SkiaSharp;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Models.DbModels;
@@ -64,7 +62,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
         {
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
-            reportModel.Image = reportModel.BinFile != null ? RenderFirstPageAsPng(reportModel.BinFile, dpi: 150) : null;
+            reportModel.Image = reportModel.BinFile != null ? ReportCoverImage.RenderCoverWebp(reportModel.BinFile) : null;
             reportModel.MdFile = reportModel.BinFile != null ? PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile) : string.Empty;
             var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile ?? string.Empty);
             reportModel.Embedding = new Vector(embeddingArray);
@@ -79,7 +77,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var loginId = await _userContextAccessor.GetLoginIdAsync();
             if (reportModel.BinFile != null && reportModel.BinFile.Length > 0)
             {
-                reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
+                reportModel.Image = ReportCoverImage.RenderCoverWebp(reportModel.BinFile);
                 reportModel.MdFile = PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile);
                 var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
                 reportModel.Embedding = new Vector(embeddingArray);
@@ -90,16 +88,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
             var updatedReport = await _reportProcessor.Edit(reportModel, loginId);
             return _mapper.Map<ReportViewModel>(updatedReport);
-        }
-
-        private static byte[] RenderFirstPageAsPng(byte[] file, int dpi = 150)
-        {
-            var bitmap = Conversion.ToImage(file, 0);
-            using (var image = SKImage.FromBitmap(bitmap))
-            using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
-            {
-                return data.ToArray();
-            }
         }
 
         public async Task<Result<bool, string>> Approve(int reportId)
