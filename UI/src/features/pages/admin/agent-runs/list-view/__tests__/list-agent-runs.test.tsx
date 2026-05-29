@@ -8,7 +8,6 @@ import { AgentRunManagement } from '../list-agent-runs';
 import currentPageReducer from '../../../admin-main-window/current-page-slice';
 
 const mockNavigate = vi.fn();
-const mockApprove = vi.fn();
 const mockReject = vi.fn();
 const mockRerun = vi.fn();
 let mockRuns: unknown[] = [];
@@ -16,7 +15,6 @@ let mockRuns: unknown[] = [];
 vi.mock('../hooks', () => ({
   useListAgentRuns: () => ({
     agentRuns: mockRuns,
-    approve: mockApprove,
     reject: mockReject,
     rerun: mockRerun,
     refresh: vi.fn(),
@@ -48,19 +46,6 @@ describe('AgentRunManagement', () => {
     renderComponent();
     expect(screen.getByText('New agent run')).toBeInTheDocument();
     expect(screen.getByText('https://x/r')).toBeInTheDocument();
-  });
-
-  it('approve is enabled for succeeded and calls approve with the row id', () => {
-    mockRuns = [{ id: 7, status: 'succeeded', sourceUrl: 's', model: 'm', createdAt: 'd', error: '', createdBy: 1 }];
-    renderComponent();
-    fireEvent.click(screen.getByLabelText('Approve run'));
-    expect(mockApprove).toHaveBeenCalledWith(7);
-  });
-
-  it('approve is disabled for a non-succeeded run', () => {
-    mockRuns = [{ id: 8, status: 'queued', sourceUrl: 's', model: 'm', createdAt: 'd', error: '', createdBy: 1 }];
-    renderComponent();
-    expect(screen.getByLabelText('Approve run')).toBeDisabled();
   });
 
   it('view navigates to the detail page', () => {

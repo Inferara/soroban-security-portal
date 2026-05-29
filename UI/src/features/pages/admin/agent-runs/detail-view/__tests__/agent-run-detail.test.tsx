@@ -35,9 +35,13 @@ const renderComponent = () => render(
 
 const succeededRun = {
   id: 5, status: 'succeeded', sourceUrl: 'https://x/r', model: 'claude', error: '', createdBy: 1, createdAt: 'd',
-  promptVersion: '', articleMarkdown: '# Audit', transcript: 'thinking...', findings: [
-    { title: 'Reentrancy', description: 'd', severity: 'high', tags: ['t'], category: 0 },
-  ], findingsUnparseable: false,
+  promptVersion: '', articleMarkdown: '# Audit', transcript: 'thinking...',
+  reportTitle: 'My Audit Report', protocolName: 'MyProtocol', auditorName: 'AuditCo', reportDate: '2026-01-01',
+  findings: [
+    { title: 'Reentrancy', description: 'desc1', severity: 'high', tags: ['t1'], category: 0 },
+    { title: 'Integer Overflow', description: 'desc2', severity: 'medium', tags: ['t2'], category: 1 },
+  ],
+  findingsUnparseable: false,
 };
 
 describe('AgentRunDetail', () => {
@@ -49,20 +53,37 @@ describe('AgentRunDetail', () => {
     expect(screen.getByText('Loading run...')).toBeInTheDocument();
   });
 
-  it('renders article, findings, and reasoning for a succeeded run', () => {
+  it('renders editable fields pre-filled from the run', () => {
     mockRun = succeededRun;
     renderComponent();
-    expect(screen.getByText('Reentrancy')).toBeInTheDocument();
-    expect(screen.getByText('Valid')).toBeInTheDocument();
-    expect(screen.getByText(/Extracted vulnerabilities \(1\)/)).toBeInTheDocument();
-    expect(screen.getByText('Agent reasoning')).toBeInTheDocument();
+    // Article textarea should contain the run's articleMarkdown
+    expect(screen.getByDisplayValue('# Audit')).toBeInTheDocument();
+    // First finding title should be visible in an input
+    expect(screen.getByDisplayValue('Reentrancy')).toBeInTheDocument();
+    // Report title field
+    expect(screen.getByDisplayValue('My Audit Report')).toBeInTheDocument();
   });
 
-  it('Approve is enabled for succeeded and navigates back on success', async () => {
+  it('Approve selected excludes unchecked findings and navigates on success', async () => {
     mockRun = succeededRun;
     renderComponent();
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+
+    // Both findings are included by default; uncheck the first one
+    const checkboxes = screen.getAllByRole('checkbox');
+    // checkboxes[0] is the first finding's include checkbox
+    fireEvent.click(checkboxes[0]);
+
+    // Click approve
+    const approveBtn = screen.getByRole('button', { name: /Approve selected/i });
+    fireEvent.click(approveBtn);
+
     await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+
+    // The payload passed to approve should have only 1 finding (the second one)
+    const payload = mockApprove.mock.calls[0][0];
+    expect(payload.findings.length).toBe(1);
+    expect(payload.findings[0].title).toBe('Integer Overflow');
+
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/admin/agent-runs'));
   });
 

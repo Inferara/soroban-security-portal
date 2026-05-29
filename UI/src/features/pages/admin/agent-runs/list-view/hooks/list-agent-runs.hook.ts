@@ -3,7 +3,6 @@ import { useAppDispatch } from '../../../../../../app/hooks';
 import { setCurrentPage, CurrentPageState } from '../../../admin-main-window/current-page-slice';
 import {
   getAgentRunsCall,
-  approveAgentRunCall,
   rejectAgentRunCall,
   rerunAgentRunCall,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
@@ -24,11 +23,6 @@ export const useListAgentRuns = (props: UseListAgentRunsProps) => {
     setAgentRuns(result.items);
   }, []);
 
-  const approve = useCallback(async (id: number): Promise<void> => {
-    await approveAgentRunCall(id);
-    await refresh();
-  }, [refresh]);
-
   const reject = useCallback(async (id: number): Promise<void> => {
     await rejectAgentRunCall(id);
     await refresh();
@@ -44,5 +38,5 @@ export const useListAgentRuns = (props: UseListAgentRunsProps) => {
     void refresh();
   }, [dispatch, currentPageState, refresh]);
 
-  return { agentRuns, approve, reject, rerun, refresh };
+  return { agentRuns, reject, rerun, refresh };
 };

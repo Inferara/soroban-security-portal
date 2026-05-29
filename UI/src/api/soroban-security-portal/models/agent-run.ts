@@ -29,6 +29,19 @@ export interface AgentRun extends AgentRunListItem {
   transcript: string;
   createdVulnerabilityIds?: number[];
   findingsUnparseable: boolean;
+  reportTitle: string;
+  protocolName: string;
+  auditorName: string;
+  reportDate?: string;
+}
+
+export interface ApproveAgentRun {
+  reportTitle: string;
+  protocolName: string;
+  auditorName: string;
+  reportDate?: string;
+  articleMarkdown: string;
+  findings: AgentFinding[];
 }
 
 export interface AgentRunListResult {

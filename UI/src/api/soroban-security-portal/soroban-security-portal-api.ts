@@ -19,7 +19,7 @@ import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRe
 import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType, UserSearchResult, CommentEditHistoryEntry } from './models/comment';
 import { Notification, NotificationType } from './models/notification';
 import { PageViewEntityType, PageViewCount, AnalyticsStatistics } from './models/analytics';
-import { AgentRun, AgentRunListResult, EnqueueAgentRun } from './models/agent-run';
+import { AgentRun, AgentRunListResult, EnqueueAgentRun, ApproveAgentRun } from './models/agent-run';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -699,9 +699,9 @@ export const getAgentRunByIdCall = async (id: number): Promise<AgentRun> => {
     return response.data as AgentRun;
 };
 
-export const approveAgentRunCall = async (id: number): Promise<void> => {
+export const approveAgentRunCall = async (id: number, payload: ApproveAgentRun): Promise<void> => {
     const client = await getRestClient();
-    await client.request(`api/v1/agent-runs/${id}/approve`, 'POST');
+    await client.request(`api/v1/agent-runs/${id}/approve`, 'POST', payload);
 };
 
 export const rejectAgentRunCall = async (id: number): Promise<void> => {

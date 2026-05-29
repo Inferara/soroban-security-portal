@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Button, Chip, IconButton, Tooltip } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ReplayIcon from '@mui/icons-material/Replay';
 import { useListAgentRuns } from './hooks';
@@ -29,7 +28,7 @@ export const AgentRunManagement: FC = () => {
     pageUrl: window.location.pathname,
     routePath: 'admin/agent-runs',
   }), []);
-  const { agentRuns, approve, reject, rerun } = useListAgentRuns({ currentPageState });
+  const { agentRuns, reject, rerun } = useListAgentRuns({ currentPageState });
 
   const columns: GridColDef<AgentRunListItem>[] = useMemo(() => [
     {
@@ -44,13 +43,6 @@ export const AgentRunManagement: FC = () => {
             <IconButton aria-label="View run" onClick={() => navigate(`/admin/agent-runs/detail?runId=${params.row.id}`)}>
               <VisibilityIcon />
             </IconButton>
-          </Tooltip>
-          <Tooltip title="Approve">
-            <span>
-              <IconButton aria-label="Approve run" disabled={params.row.status !== AgentRunStatus.Succeeded} onClick={() => approve(params.row.id)}>
-                <CheckCircleIcon sx={{ color: params.row.status === AgentRunStatus.Succeeded ? 'green' : undefined }} />
-              </IconButton>
-            </span>
           </Tooltip>
           <Tooltip title="Reject">
             <span>
@@ -78,7 +70,7 @@ export const AgentRunManagement: FC = () => {
     { field: 'sourceUrl', headerName: 'Source', width: 420 },
     { field: 'model', headerName: 'Model', width: 160 },
     { field: 'createdAt', headerName: 'Created', width: 200 },
-  ], [navigate, approve, reject, rerun]);
+  ], [navigate, reject, rerun]);
 
   return (
     <Box sx={{ p: 2 }}>

@@ -9,7 +9,7 @@ import {
   rerunAgentRunCall,
   enqueueAgentRunCall,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { AgentRun, EnqueueAgentRun } from '../../../../../../api/soroban-security-portal/models/agent-run';
+import { AgentRun, ApproveAgentRun, EnqueueAgentRun } from '../../../../../../api/soroban-security-portal/models/agent-run';
 
 interface UseAgentRunDetailProps {
   currentPageState: CurrentPageState;
@@ -31,9 +31,9 @@ export const useAgentRunDetail = (props: UseAgentRunDetailProps) => {
     }
   }, [runId]);
 
-  const approve = useCallback(async (): Promise<boolean> => {
+  const approve = useCallback(async (payload: ApproveAgentRun): Promise<boolean> => {
     if (!runId) return false;
-    await approveAgentRunCall(runId);
+    await approveAgentRunCall(runId, payload);
     return true;
   }, [runId]);
 
