@@ -33,7 +33,9 @@ namespace SorobanSecurityPortalApi.Common.DataParsers
                 resized = source.Resize(
                     new SKImageInfo(newWidth, newHeight),
                     new SKSamplingOptions(SKCubicResampler.Mitchell));
-                toEncode = resized ?? source;
+                if (resized == null)
+                    throw new InvalidOperationException($"SKBitmap.Resize to {newWidth}x{newHeight} failed.");
+                toEncode = resized;
             }
 
             using (var image = SKImage.FromBitmap(toEncode))
