@@ -11,6 +11,16 @@ import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 import { showError } from '../../../../dialog-handler/dialog-handler';
 import { AgentRunStatus } from '../../../../../api/soroban-security-portal/models/agent-run';
 
+const categoryLabel = (c: number): string => {
+  switch (c) {
+    case 0: return 'Valid';
+    case 1: return 'Valid (not fixed)';
+    case 2: return 'Valid (partially fixed)';
+    case 3: return 'Invalid';
+    default: return 'N/A';
+  }
+};
+
 export const AgentRunDetail: FC = () => {
   const navigate = useNavigate();
   const currentPageState: CurrentPageState = useMemo(() => ({
@@ -72,10 +82,10 @@ export const AgentRunDetail: FC = () => {
       )}
       {run.findings.length > 0 && (
         <Table size="small">
-          <TableHead><TableRow><TableCell>Title</TableCell><TableCell>Severity</TableCell><TableCell>Tags</TableCell></TableRow></TableHead>
+          <TableHead><TableRow><TableCell>Title</TableCell><TableCell>Severity</TableCell><TableCell>Category</TableCell><TableCell>Tags</TableCell></TableRow></TableHead>
           <TableBody>
             {run.findings.map((f, i) => (
-              <TableRow key={i}><TableCell>{f.title}</TableCell><TableCell>{f.severity}</TableCell><TableCell>{f.tags.join(', ')}</TableCell></TableRow>
+              <TableRow key={i}><TableCell>{f.title}</TableCell><TableCell>{f.severity}</TableCell><TableCell>{categoryLabel(f.category)}</TableCell><TableCell>{f.tags.join(', ')}</TableCell></TableRow>
             ))}
           </TableBody>
         </Table>

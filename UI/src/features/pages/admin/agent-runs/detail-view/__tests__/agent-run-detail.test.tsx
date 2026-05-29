@@ -53,6 +53,7 @@ describe('AgentRunDetail', () => {
     mockRun = succeededRun;
     renderComponent();
     expect(screen.getByText('Reentrancy')).toBeInTheDocument();
+    expect(screen.getByText('Valid')).toBeInTheDocument();
     expect(screen.getByText(/Extracted vulnerabilities \(1\)/)).toBeInTheDocument();
     expect(screen.getByText('Agent reasoning')).toBeInTheDocument();
   });
