@@ -76,7 +76,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             var result = await controller.GetImage(5);
 
             var file = Assert.IsType<FileContentResult>(result);
-            Assert.Equal("image/png", file.ContentType);
+            Assert.Equal("image/webp", file.ContentType);
             Assert.Equal("\"r5-123\"", ctx.Response.Headers.ETag.ToString());
             Assert.Equal("public, max-age=3600", ctx.Response.Headers.CacheControl.ToString());
         }

@@ -97,7 +97,7 @@ namespace SorobanSecurityPortalApi.Controllers
             if (content == null)
                 return NotFound();
 
-            return File(content.Bytes, "image/png");
+            return File(content.Bytes, "image/webp");
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator, Role.Contributor)]

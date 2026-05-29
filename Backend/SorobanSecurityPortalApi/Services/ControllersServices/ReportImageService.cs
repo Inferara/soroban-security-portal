@@ -68,7 +68,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             Directory.CreateDirectory(dir);
             var utc = DateTime.SpecifyKind(lastModified, DateTimeKind.Utc);
             // Filename is built only from the integer id and numeric ticks -> no path traversal.
-            return Path.Combine(dir, $"report-{reportId}-{utc.Ticks}.png");
+            return Path.Combine(dir, $"report-{reportId}-{utc.Ticks}.webp");
         }
 
         private static void WriteAtomic(string path, byte[] bytes)

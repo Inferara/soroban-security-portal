@@ -62,7 +62,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _processor.Setup(p => p.GetImageBytes(7)).ThrowsAsync(new Exception("should not hit DB"));
             var second = await svc.GetImageContentAsync(7);
             second!.Bytes.Should().Equal(png);
-            File.Exists(Path.Combine(_cacheDir, $"report-7-{ts.Ticks}.png")).Should().BeTrue();
+            File.Exists(Path.Combine(_cacheDir, $"report-7-{ts.Ticks}.webp")).Should().BeTrue();
         }
 
         [Fact]
