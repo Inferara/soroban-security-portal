@@ -140,6 +140,17 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        // Lazy-loaded on the vulnerabilities list page when a card is expanded. The list payload
+        // omits Description for performance; this returns just that field for one vulnerability.
+        [HttpGet("{vulnerabilityId}/description")]
+        public async Task<IActionResult> GetDescription(int vulnerabilityId)
+        {
+            var description = await _vulnerabilityService.GetDescription(vulnerabilityId);
+            if (description == null)
+                return NotFound();
+            return Ok(new { description });
+        }
+
         [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpPut("{vulnerabilityId}")]
         [RequestSizeLimit(25_000_000)]

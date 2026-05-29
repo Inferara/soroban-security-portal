@@ -78,7 +78,8 @@ public class ReportsControllerDownloadTests
             _extractionServiceMock.Object,
             _userContextAccessorMock.Object,
             _httpClientFactoryMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            Mock.Of<IReportImageService>());
 
         controller.ControllerContext = new ControllerContext
         {

@@ -31,6 +31,7 @@ public interface IExtendedConfig
     bool ProfanityFilterEnabled { get; }
     List<string> ProfanityWords { get; }
     List<string> TrustedDomains { get; }
+    string ReportImageCacheDir { get; }
     void Reset();
 }
 
@@ -86,6 +87,12 @@ public class ExtendedConfig : IExtendedConfig
     [Description("Proxy")]
     [Tooltip("Proxy is used to route all requests through a proxy server. Can be used for debug purposes, i.e. to use Fiddler. Sample: http://host.docker.internal:8888")]
     public string Proxy => GetValue<string>("Proxy");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
+    [Description("Report image on-disk cache directory")]
+    [Tooltip("Directory where rendered report cover images are cached on disk to avoid re-reading them from the database. Ephemeral; rebuilt from the database on miss. Defaults to a folder under the system temp path.")]
+    public string ReportImageCacheDir =>
+        GetValue<string>("ReportImageCacheDir", Path.Combine(Path.GetTempPath(), "soroban-report-image-cache"));
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]

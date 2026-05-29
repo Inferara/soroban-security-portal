@@ -175,6 +175,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<VulnerabilityViewModel>(vulnerability);
         }
 
+        // Lazy description loading for the vulnerabilities list page: returns just the Markdown
+        // body, or null when the vulnerability is missing/hidden/soft-deleted.
+        public async Task<string?> GetDescription(int vulnerabilityId)
+        {
+            return await _vulnerabilityProcessor.GetDescription(vulnerabilityId);
+        }
+
         public async Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
         {
             var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
@@ -248,6 +255,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<Result<bool, string>> Reject(int vulnerabilityId);
         Task Remove(int vulnerabilityId);
         Task<VulnerabilityViewModel> Get(int vulnerabilityId);
+        Task<string?> GetDescription(int vulnerabilityId);
         Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task<List<VulnerabilityViewModel>> GetList();
         Task<VulnerabilitiesStatisticsViewModel> GetStatistics();
