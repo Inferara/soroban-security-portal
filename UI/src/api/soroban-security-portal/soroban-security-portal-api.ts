@@ -1,5 +1,7 @@
+import axios from 'axios';
 import RestApi from '../rest-api';
 import { UserItem, CreateUserItem, EditUserItem, SelfEditUserItem } from './models/user';
+import { PublicUserProfile } from './models/profile';
 import { SettingsItem } from './models/settings';
 import { ClientSsoItem } from './models/client-sso';
 import { Subscription } from './models/subscription';
@@ -12,6 +14,11 @@ import { ProtocolItem } from './models/protocol';
 import { TagItem } from './models/tag';
 import { CompanyItem } from './models/company';
 import { Bookmark, CreateBookmark } from './models/bookmark';
+import { FlaggedContent, ModerationStats } from '../../features/moderation/types';
+import { RatingEntityType, RatingSummary, PublicRating, MyRating, CreateRatingRequest } from './models/rating';
+import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType, UserSearchResult, CommentEditHistoryEntry } from './models/comment';
+import { Notification, NotificationType } from './models/notification';
+import { PageViewEntityType, PageViewCount, AnalyticsStatistics } from './models/analytics';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -336,6 +343,11 @@ export const getVulnerabilityByIdCall = async (vulnerabilityId: number): Promise
     const response = await client.request(`api/v1/vulnerabilities/${vulnerabilityId}`, 'GET');
     return response.data as Vulnerability;
 };
+export const getVulnerabilityDescriptionCall = async (vulnerabilityId: number): Promise<string> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/vulnerabilities/${vulnerabilityId}/description`, 'GET');
+    return (response.data as { description: string }).description;
+};
 export const editVulnerabilityCall = async (vulnerability: Vulnerability | FormData): Promise<boolean> => {
     const client = await getRestClient();
     let vulnerabilityId: number;
@@ -397,6 +409,12 @@ export const selfEditUserCall = async (loginId: number, userItem: SelfEditUserIt
     const client = await getRestClient();
     const response = await client.request(`api/v1/user/self/${loginId}`, 'PUT', userItem);
     return response.data as boolean;
+}
+// Public, privacy-safe profile of any user by login id (no name/email).
+export const getPublicProfileCall = async (loginId: number): Promise<PublicUserProfile> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/profiles/${loginId}`, 'GET');
+    return response.data as PublicUserProfile;
 }
 export const removeUserCall = async (userId: number): Promise<void> => {
     const client = await getRestClient();
@@ -480,6 +498,45 @@ export const getBookmarkByIdCall = async (bookmarkId: number): Promise<Bookmark>
     return response.data as Bookmark;
 };
 
+// --- MODERATION ---
+export const flagContentCall = async (contentType: string, contentId: number, reason: string, comment?: string): Promise<boolean> => {
+    // Calls axios directly (bypassing RestApi) ONLY so the caller can read error.response.status —
+    // RestApi.request swallows the HTTP status, which the 409 "already reported" handling needs.
+    const authHeader = getAuthHeader();
+    const response = await axios.request({
+        url: `${environment.apiUrl}/api/v1/content-flags`,
+        method: 'POST',
+        data: { contentType, contentId, reason, comment },
+        headers: {
+            'Content-Type': 'application/json',
+            ...(authHeader ? { Authorization: authHeader } : {}),
+        },
+    });
+    return response.data as boolean;
+};
+
+export const getModerationQueueCall = async (status?: string, contentType?: string, page = 1): Promise<FlaggedContent[]> => {
+    const client = await getRestClient();
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (contentType) qs.set('contentType', contentType);
+    qs.set('page', String(page));
+    const response = await client.request(`api/v1/moderation/queue?${qs.toString()}`, 'GET');
+    return response.data as FlaggedContent[];
+};
+
+export const takeModerationActionCall = async (contentType: string, contentId: number, action: string, reason?: string): Promise<boolean> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/moderation/action', 'POST', { contentType, contentId, action, reason });
+    return response.data as boolean;
+};
+
+export const getModerationStatsCall = async (): Promise<ModerationStats> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/moderation/stats', 'GET');
+    return response.data as ModerationStats;
+};
+
 // Helper function to create FormData for entity operations with image support
 const createEntityFormData = (dataFieldName: string, entityData: object, imageBase64?: string): FormData => {
     const formData = new FormData();
@@ -499,11 +556,138 @@ const createEntityFormData = (dataFieldName: string, entityData: object, imageBa
     return formData;
 };
 
+// Builds the Authorization header value from the stored access token.
+// Single source of truth for the auth scheme used by all API calls.
+const getAuthHeader = (): string => {
+    const accessToken = getAccessToken();
+    return accessToken ? `Bearer ${accessToken}` : '';
+};
+
+// --- RATINGS ---
+export const getRatingSummaryCall = async (entityType: RatingEntityType, entityId: number): Promise<RatingSummary> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings/summary?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as RatingSummary;
+};
+export const getRatingsCall = async (entityType: RatingEntityType, entityId: number, page = 1): Promise<PublicRating[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings?entityType=${entityType}&entityId=${entityId}&page=${page}`, 'GET');
+    return response.data as PublicRating[];
+};
+export const getMyRatingCall = async (entityType: RatingEntityType, entityId: number): Promise<MyRating | null> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/ratings/mine?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    // 204 No Content => the caller has not rated this entity yet.
+    if (response.status === 204 || !response.data) return null;
+    return response.data as MyRating;
+};
+export const addOrUpdateRatingCall = async (request: CreateRatingRequest): Promise<void> => {
+    const client = await getRestClient();
+    await client.request('api/v1/ratings', 'POST', request);
+};
+export const deleteRatingCall = async (ratingId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/ratings/${ratingId}`, 'DELETE');
+};
+
+// --- COMMENTS ---
+export const getCommentsCall = async (entityType: CommentEntityType, entityId: number, page = 1): Promise<Comment[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments?entityType=${entityType}&entityId=${entityId}&page=${page}`, 'GET');
+    return response.data as Comment[];
+};
+
+export const getCommentCountCall = async (entityType: CommentEntityType, entityId: number): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/count?entityType=${entityType}&entityId=${entityId}`, 'GET');
+    return response.data as number;
+};
+
+export const addCommentCall = async (request: CreateCommentRequest): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/comments', 'POST', request);
+    return response.data as Comment;
+};
+
+export const deleteCommentCall = async (id: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/comments/${id}`, 'DELETE');
+};
+
+export const voteCommentCall = async (id: number, voteType: VoteType): Promise<VoteResult> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}/vote`, 'POST', { voteType });
+    return response.data as VoteResult;
+};
+
+export const editCommentCall = async (id: number, content: string): Promise<Comment> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}`, 'PUT', { content });
+    return response.data as Comment;
+};
+
+// Moderator-only: past versions of an edited comment.
+export const getCommentHistoryCall = async (id: number): Promise<CommentEditHistoryEntry[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/comments/${id}/history`, 'GET');
+    return response.data as CommentEditHistoryEntry[];
+};
+
+// --- USER SEARCH ---
+export const searchUsersCall = async (q: string): Promise<UserSearchResult[]> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/user/search?q=${encodeURIComponent(q)}`, 'GET');
+    return response.data as UserSearchResult[];
+};
+
+// --- NOTIFICATIONS ---
+export const getNotificationsCall = async (type?: NotificationType, page = 1): Promise<Notification[]> => {
+    const client = await getRestClient();
+    const qs = new URLSearchParams();
+    if (type !== undefined) qs.append('type', String(type));
+    qs.append('page', String(page));
+    const response = await client.request(`api/v1/notifications?${qs.toString()}`, 'GET');
+    return response.data as Notification[];
+};
+
+export const getUnreadCountCall = async (): Promise<number> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/notifications/unread-count', 'GET');
+    return response.data as number;
+};
+
+export const markNotificationReadCall = async (id: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/notifications/${id}/read`, 'POST');
+};
+
+export const markAllNotificationsReadCall = async (): Promise<void> => {
+    const client = await getRestClient();
+    await client.request('api/v1/notifications/read-all', 'POST');
+};
+
+// --- ANALYTICS ---
+export const recordPageViewCall = async (entityType: PageViewEntityType, entityId: number): Promise<void> => {
+    const client = await getRestClient();
+    // ignoreError=true: a failed view-record must never surface an error to the visitor.
+    await client.request('api/v1/analytics/view', 'POST', { entityType, entityId }, true);
+};
+
+export const getPageViewCountCall = async (entityType: PageViewEntityType, entityId: number): Promise<PageViewCount> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/analytics/view/${entityType}/${entityId}`, 'GET', undefined, true);
+    return response.data as PageViewCount;
+};
+
+export const getAnalyticsStatisticsCall = async (): Promise<AnalyticsStatistics> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/analytics/statistics', 'GET');
+    return response.data as AnalyticsStatistics;
+};
+
 // Rest client
 const getRestClient = async (): Promise<RestApi> => {
-    const accessToken = getAccessToken();
-    const authHeader = accessToken ? `Bearer ${accessToken}` : '';
-    const restClient = new RestApi(environment.apiUrl, authHeader);
+    const restClient = new RestApi(environment.apiUrl, getAuthHeader());
     return restClient;
 };
 

@@ -1,4 +1,5 @@
 using Npgsql;
+using Pgvector;
 
 namespace SorobanSecurityPortalApi.Common.Data
 {
@@ -10,6 +11,7 @@ namespace SorobanSecurityPortalApi.Common.Data
                 $"Pooling=true;Minimum Pool Size=0;Maximum Pool Size={config.DbPgPoolSize};Timeout={config.DbConnectionTimeout};CommandTimeout={config.DbTimeout};";
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
             dataSourceBuilder.EnableDynamicJson();
+            dataSourceBuilder.UseVector();
             DataSource = dataSourceBuilder.Build();
         }
 

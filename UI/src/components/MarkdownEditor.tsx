@@ -1,6 +1,7 @@
 import { FC, useState } from 'react';
 import { Box, Typography, Tabs, Tab, useTheme } from '@mui/material';
 import { Editor } from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
 import { useTheme as useThemeContext } from '../contexts/ThemeContext';
 import { MarkdownView } from './MarkdownView';
 
@@ -10,6 +11,8 @@ interface MarkdownEditorProps {
   label?: string;
   height?: string;
   required?: boolean;
+  /** Optional Monaco setup hook (e.g. to register completion providers). Called once before the editor mounts. */
+  beforeMount?: (monaco: Monaco) => void;
 }
 
 export const MarkdownEditor: FC<MarkdownEditorProps> = ({
@@ -18,6 +21,7 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
   label = 'Description',
   height = '40vh',
   required = false,
+  beforeMount,
 }) => {
   const { themeMode } = useThemeContext();
   const theme = useTheme();
@@ -44,12 +48,13 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
         overflow: 'hidden'
       }}>
         {activeTab === 0 ? (
-          <Editor              
+          <Editor
             height={height}
-            language="markdown"          
+            language="markdown"
             value={value}
-            theme={themeMode === 'light' ? 'vs' : 'vs-dark'} 
+            theme={themeMode === 'light' ? 'vs' : 'vs-dark'}
             onChange={(newValue) => onChange(newValue ?? '')}
+            beforeMount={beforeMount}
             options={{
               wordWrap: 'on',
               wrappingIndent: 'indent',

@@ -8,6 +8,7 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import TaskIcon from '@mui/icons-material/Task';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -15,11 +16,11 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import { useTheme } from '@mui/material/styles';
 import { FC } from 'react';
-import { AuthContextProps, useAuth } from 'react-oidc-context';
+import { useAuth } from 'react-oidc-context';
 import './admin-left-menu.css';
 import { environment } from '../../../../environments/environment';
 import { useNavigate } from 'react-router-dom';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
+import { isAdmin, isAdminOrModerator } from '../../../authentication/authPermissions';
 
 interface AdminLeftMenuProps {
   /** Callback when a menu item is clicked (for closing drawer on mobile) */
@@ -35,9 +36,6 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
     navigate(`${environment.basePath}/${path}`);
     onNavigate?.(); // Close drawer on mobile
   };
-  const isAdmin = (auth: AuthContextProps) => auth.user?.profile.role === Role.Admin;
-  const isAdminOrModerator = (auth: AuthContextProps) =>
-    auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator;
 
   const menuStructure = [
     {
@@ -50,6 +48,12 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
       label: 'Moderation',
       icon: <GavelIcon />,
       path: 'admin/moderation',
+      visible: isAdminOrModerator(auth),
+    },
+    {
+      label: 'Statistics',
+      icon: <QueryStatsIcon />,
+      path: 'admin/statistics',
       visible: isAdminOrModerator(auth),
     },
     {
@@ -122,7 +126,7 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
   return (
     <>
       <div className="leftMenuTopSection">
-        <img src="/static/images/logo.png" alt="Soroban Security Portal" className="leftMenuLogo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} />
+        <img src="/static/images/logo.png" alt="Stellar Security Portal" className="leftMenuLogo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} />
       </div>
       <Divider />
       <List disablePadding component="nav">

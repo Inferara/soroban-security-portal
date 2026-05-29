@@ -31,6 +31,7 @@ public interface IExtendedConfig
     bool ProfanityFilterEnabled { get; }
     List<string> ProfanityWords { get; }
     List<string> TrustedDomains { get; }
+    string ReportImageCacheDir { get; }
     void Reset();
 }
 
@@ -86,6 +87,12 @@ public class ExtendedConfig : IExtendedConfig
     [Description("Proxy")]
     [Tooltip("Proxy is used to route all requests through a proxy server. Can be used for debug purposes, i.e. to use Fiddler. Sample: http://host.docker.internal:8888")]
     public string Proxy => GetValue<string>("Proxy");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
+    [Description("Report image on-disk cache directory")]
+    [Tooltip("Directory where rendered report cover images are cached on disk to avoid re-reading them from the database. Ephemeral; rebuilt from the database on miss. Defaults to a folder under the system temp path.")]
+    public string ReportImageCacheDir =>
+        GetValue<string>("ReportImageCacheDir", Path.Combine(Path.GetTempPath(), "soroban-report-image-cache"));
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
@@ -191,43 +198,41 @@ public class ExtendedConfig : IExtendedConfig
     [Tooltip("Enables the profanity filter for user-generated content. When enabled, content containing profane words will be flagged for moderation.")]
     public bool ProfanityFilterEnabled => GetValue<bool>("ProfanityFilterEnabled", false);
 
+    // H-3: stored/displayed as a raw string so the settings UI never serialises a List<T>.
+    // The persisted setting key MUST remain "ProfanityWords" (the key PR #115 introduced and the
+    // settings screen reads/writes); the property is named accordingly so reflection keys it the same.
     [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Multiline)]
     [Description("Custom Profanity Words (one per line)")]
     [Tooltip("Additional words to filter beyond the default dictionary. Enter one word per line. Words are matched case-insensitively. The system will notify you if a word already exists in the default dictionary.")]
-    public List<string> ProfanityWords
-    {
-        get
-        {
-            var words = GetValue<string>("ProfanityWords", "");
-            return string.IsNullOrWhiteSpace(words)
-                ? new List<string>()
-                : words.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                       .Select(w => w.Trim())
-                       .Where(w => !string.IsNullOrWhiteSpace(w))
-                       .ToList();
-        }
-    }
+    public string ProfanityWords => GetValue<string>("ProfanityWords", "");
+
+    // Parsed list for ContentFilterService — exposed only via IExtendedConfig (explicit impl is
+    // invisible to the settings reflection), so the UI shows/saves the raw string above.
+    List<string> IExtendedConfig.ProfanityWords =>
+        ProfanityWords.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(w => w.Trim())
+                      .Where(w => !string.IsNullOrWhiteSpace(w))
+                      .ToList();
 
     [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Link)]
     [Description("View Default Profanity Dictionary")]
     [Tooltip("Click to view the built-in profanity words that are always active. These words cannot be modified, but you can add custom words above.")]
-    public string DefaultProfanityWordsLink => "/api/settings/default-profanity-words";
+    public string DefaultProfanityWordsLink => "/api/v1/settings/default-profanity-words";
 
+    // H-3: stored/displayed as a raw string; persisted key stays "TrustedDomains".
     [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
     [Description("Trusted Domains")]
     [Tooltip("Comma-separated list of trusted domains for URLs in content (e.g., github.com,stellar.org). If empty, all HTTPS URLs are allowed but flagged for moderation.")]
-    public List<string> TrustedDomains
-    {
-        get
-        {
-            var domains = GetValue<string>("TrustedDomains", "");
-            return string.IsNullOrWhiteSpace(domains)
-                ? new List<string>()
-                : domains.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(d => d.Trim()).ToList();
-        }
-    }
+    public string TrustedDomains => GetValue<string>("TrustedDomains", "");
+
+    // Parsed list for ContentFilterService — exposed only via IExtendedConfig.
+    List<string> IExtendedConfig.TrustedDomains =>
+        TrustedDomains.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(d => d.Trim())
+                      .Where(d => !string.IsNullOrWhiteSpace(d))
+                      .ToList();
 
 }
 

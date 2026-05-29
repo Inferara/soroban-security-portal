@@ -25,15 +25,15 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         /// <summary>
-        /// Get user profile by user ID (public endpoint)
+        /// Get public user profile by login ID (public endpoint — no PII)
         /// </summary>
-        [HttpGet("{userId}")]
+        [HttpGet("{loginId}")]
         [AllowAnonymous]
-        public async Task<ActionResult<UserProfileViewModel>> GetProfile(int userId)
+        public async Task<ActionResult<PublicUserProfileViewModel>> GetProfile(int loginId)
         {
             try
             {
-                var profile = await _profileService.GetProfileByUserIdAsync(userId);
+                var profile = await _profileService.GetPublicProfileByLoginIdAsync(loginId);
                 if (profile == null)
                 {
                     return NotFound(new { message = "Profile not found" });
@@ -43,7 +43,7 @@ namespace SorobanSecurityPortalApi.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving profile for userId: {UserId}", userId);
+                _logger.LogError(ex, "Error retrieving profile for loginId: {LoginId}", loginId);
                 return StatusCode(500, new { message = "An error occurred while retrieving the profile" });
             }
         }
@@ -87,18 +87,23 @@ namespace SorobanSecurityPortalApi.Controllers
                 var loginId = await _userContext.GetLoginIdAsync();
 
                 var existingProfile = await _profileService.GetProfileByLoginIdAsync(loginId);
-                UserProfileViewModel updatedProfile;
+                Result<UserProfileViewModel, string> result;
 
                 if (existingProfile == null)
                 {
-                    updatedProfile = await _profileService.CreateProfileAsync(loginId, profileDto);
+                    result = await _profileService.CreateProfileAsync(loginId, profileDto);
                 }
                 else
                 {
-                    updatedProfile = await _profileService.UpdateProfileAsync(loginId, profileDto);
+                    result = await _profileService.UpdateProfileAsync(loginId, profileDto);
                 }
 
-                return Ok(updatedProfile);
+                if (result is Result<UserProfileViewModel, string>.Ok ok)
+                    return Ok(ok.Value);
+                else if (result is Result<UserProfileViewModel, string>.Err err)
+                    return BadRequest(new { message = err.Error });
+
+                return StatusCode(500, new { message = "An error occurred while updating your profile" });
             }
             catch (Exception ex)
             {

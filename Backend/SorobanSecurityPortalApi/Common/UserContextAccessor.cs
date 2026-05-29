@@ -8,6 +8,7 @@ namespace SorobanSecurityPortalApi.Common
     public interface IUserContextAccessor
     {
         Task<int> GetLoginIdAsync();
+        Task<int?> GetLoginIdOrNullAsync();
         Task<string> GetLoginNameAsync();
         bool HasRole(string role);
         Task<bool> IsLoginAdmin(string login);
@@ -37,6 +38,17 @@ namespace SorobanSecurityPortalApi.Common
                 await LoadUserData();
             }
             return _loginId!.Value;
+        }
+
+        // Like GetLoginIdAsync but returns null for an anonymous request instead of
+        // throwing — used by publicly-readable endpoints (e.g. reading comments).
+        public async Task<int?> GetLoginIdOrNullAsync()
+        {
+            if (!_loginId.HasValue)
+            {
+                await LoadUserData();
+            }
+            return _loginId;
         }
 
         public async Task<string> GetLoginNameAsync()

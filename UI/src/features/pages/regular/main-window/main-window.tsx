@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box';
-import { FC, MouseEvent, useState } from 'react';
+import { FC, MouseEvent, useState, useEffect } from 'react';
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 import './main-window.css';
 import AppBar from '@mui/material/AppBar';
@@ -32,17 +32,19 @@ import { AddReport } from '../reports-add/reports-add';
 import { About } from '../about/about';
 import { Profile } from '../profile/profile';
 import { EditProfile } from '../profile/edit-profile';
+import { PublicProfile } from '../profile/public-profile';
 import { VulnerabilityDetails } from '../vulnerability-details/vulnerability-details';
 import { ProtocolDetails } from '../protocol-details/protocol-details';
 import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
 import { CompanyDetails } from '../company-details/company-details';
+import { BadgeDemoPage } from '../../BadgeDemoPage';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import MailOutlinedIcon from '@mui/icons-material/MailOutlined';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import TelegramIcon from '@mui/icons-material/Telegram';
 import TwitterIcon from '@mui/icons-material/X';
@@ -50,16 +52,18 @@ import ChatIcon from '@mui/icons-material/Chat';
 import { useMainWindow } from './hooks';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import ErrorDialog from '../../admin/admin-main-window/error-dialog';
-import { Role } from '../../../../api/soroban-security-portal/models/role';
 import { BookmarkMenu } from './components/BookmarkMenu';
+import { NotificationBell } from '../../../notifications/NotificationBell';
+import { MentionsInbox } from '../../../notifications/MentionsInbox';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { AccentColors } from '../../../../theme';
+import { isAdminOrModerator } from '../../../authentication/authPermissions';
 
 export const MainWindow: FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
-  const { themeMode, toggleTheme } = useTheme();
+  const { themeMode, toggleTheme, tokens } = useTheme();
 
   // user menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -68,6 +72,15 @@ export const MainWindow: FC = () => {
   // mobile drawer
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleMobile = () => setMobileOpen((prev) => !prev);
+
+  // glass-on-scroll: deepen the AppBar shadow once the page is scrolled
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // avatar state from shared hook
   const { avatarUrl, avatarLoading, avatarError, handleAvatarLoad, handleAvatarError } = useToolbarAvatar();
@@ -91,19 +104,27 @@ export const MainWindow: FC = () => {
     return location.pathname === `${environment.basePath}${path}`;
   };
 
+  // The home page renders full-bleed (no contrasting card frame) so its cosmic
+  // background blends seamlessly with the header and footer.
+  const isHomeRoute =
+    isActiveRoute('/') || location.pathname === '/' || location.pathname.endsWith('/home');
+
   const baseNavigationItems = [
     { label: 'Home', path: '/' },
     { label: 'Reports', path: '/reports' },
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
     { label: 'About', path: '/about' },
   ];
-  const isAdminUser =
-    auth.isAuthenticated &&
-    auth.user &&
-    (auth.user?.profile.role === Role.Admin || auth.user?.profile.role === Role.Moderator);
+  const isAdminUser = isAdminOrModerator(auth);
   const navigationItems = isAdminUser
     ? [...baseNavigationItems, { label: 'Admin', path: '/admin' }]
     : baseNavigationItems;
+
+  // Theme-aware nav colors: in light mode the bright gold is too low-contrast on the
+  // light header, so use a deeper gold for the active item and a neutral for inactive.
+  const navActiveColor = tokens.accentGoldBright;
+  const navInactiveColor = themeMode === 'dark' ? AccentColors.navigationInactive : 'text.secondary';
+  const navHoverBg = themeMode === 'dark' ? 'rgba(255, 216, 77, 0.10)' : 'rgba(168, 116, 10, 0.10)';
 
   const navButtons = navigationItems.map((item) => {
     const isActive = isActiveRoute(item.path);
@@ -125,13 +146,28 @@ export const MainWindow: FC = () => {
       >
         <Button
           sx={{
-            color: isActive ? AccentColors.navigationActive : AccentColors.navigationInactive,
+            color: isActive ? navActiveColor : navInactiveColor,
             height: '54px',
             backgroundColor: 'transparent',
             fontSize: isActive ? '1.5rem' : '1.2rem',
-            fontWeight: isActive ? 600 : 400,
+            fontWeight: isActive ? 700 : 500,
             textTransform: 'none',
-            '&:hover': { backgroundColor: 'rgba(255, 216, 77, 0.1)' },
+            position: 'relative',
+            transition: 'color .2s ease',
+            '&:hover': { backgroundColor: navHoverBg, color: navActiveColor },
+            '&::after': isActive
+              ? {
+                  content: '""',
+                  position: 'absolute',
+                  left: '12%',
+                  right: '12%',
+                  bottom: 6,
+                  height: 2,
+                  background: navActiveColor,
+                  boxShadow: themeMode === 'dark' ? `0 0 8px ${navActiveColor}` : 'none',
+                  borderRadius: 2,
+                }
+              : undefined,
           }}
           fullWidth
         >
@@ -149,6 +185,12 @@ export const MainWindow: FC = () => {
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           borderBottom: themeMode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '0px',
+          transition: 'box-shadow .3s ease, backdrop-filter .3s ease',
+          boxShadow: scrolled
+            ? themeMode === 'dark'
+              ? '0 8px 30px rgba(0,0,0,0.45)'
+              : '0 8px 30px rgba(20,30,80,0.12)'
+            : 'none',
         }}
       >
         <Toolbar sx={{ bgcolor: 'background.paper', py: { xs: 0.5, md: 1.25 } }}>
@@ -160,8 +202,34 @@ export const MainWindow: FC = () => {
               alt="Logo"
               sx={{ height: { xs: 44, sm: 56, md: 70 }, mr: { xs: 1, md: 2 } }}
             />
-            <Typography variant="h6" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 700 }}>
-              {/* Optional brand text if you want */}
+            <Typography
+              variant="h6"
+              component="span"
+              sx={{
+                display: { xs: 'none', sm: 'flex' },
+                alignItems: 'baseline',
+                gap: '0.35ch',
+                fontSize: '1.3rem',
+                letterSpacing: '-0.01em',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  fontWeight: 800,
+                  backgroundImage: tokens.goldGradient,
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Stellar
+              </Box>
+              <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                Security Portal
+              </Box>
             </Typography>
           </Box>
 
@@ -180,14 +248,17 @@ export const MainWindow: FC = () => {
             <MenuIcon />
           </IconButton>
 
-          {/* Theme Toggle (currently hidden per your code) */}
-          <IconButton
-            color="inherit"
-            onClick={toggleTheme}
-            sx={{ mr: 1, visibility: 'hidden' }} // keep your hidden behavior
-          >
-            {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+          {/* Theme Toggle */}
+          <Tooltip title={themeMode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} arrow>
+            <IconButton
+              color="inherit"
+              aria-label="toggle light/dark theme"
+              onClick={toggleTheme}
+              sx={{ mr: 1 }}
+            >
+              {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Tooltip>
 
           {/* Right: Profile/Login */}
           {auth.isAuthenticated && auth.user ? (
@@ -250,6 +321,7 @@ export const MainWindow: FC = () => {
                 <MenuItem onClick={() => navigate('/profile')}>My Profile</MenuItem>
                 <MenuItem onClick={handleUserMenuItemLogoutClick}>Log out</MenuItem>
               </Menu>
+              {!auth.isLoading && <NotificationBell />}
               {!auth.isLoading && <BookmarkMenu bookmarks={bookmarks} />}
             </>
           ) : (
@@ -275,7 +347,7 @@ export const MainWindow: FC = () => {
         <Box role="presentation" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
             <Box component="img" src="/static/images/logo.png" alt="Logo" sx={{ height: 40, mr: 1 }} />
-            <Typography variant="h6" fontWeight={700}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Menu
             </Typography>
           </Box>
@@ -302,7 +374,7 @@ export const MainWindow: FC = () => {
                     primary={item.label}
                     slotProps={{
                       primary: {
-                        fontWeight: isActive ? 700 : 500,
+                        sx: { fontWeight: isActive ? 700 : 500 },
                       },
                     }}
                   />
@@ -342,7 +414,11 @@ export const MainWindow: FC = () => {
       {/* Main content area */}
       <Box sx={{ flexGrow: 1, p: 0 }}>
         <Box
-          sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: { xs: 2, md: 3 }, minHeight: '91vh' }}
+          sx={
+            isHomeRoute
+              ? { bgcolor: 'transparent', borderRadius: 0, boxShadow: 0, p: 0, minHeight: '91vh' }
+              : { bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1, p: { xs: 2, md: 3 }, minHeight: '91vh' }
+          }
         >
           <Routes>
             <Route path={`${environment.basePath}/`} element={<Home />} />
@@ -353,26 +429,28 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/about`} element={<About />} />
             <Route path={`${environment.basePath}/profile`} element={<Profile />} />
             <Route path={`${environment.basePath}/profile/edit`} element={<EditProfile />} />
+            <Route path={`${environment.basePath}/profile/:id`} element={<PublicProfile />} />
             <Route path={`${environment.basePath}/vulnerability/:id`} element={<VulnerabilityDetails />} />
             <Route path={`${environment.basePath}/protocol/:id`} element={<ProtocolDetails />} />
             <Route path={`${environment.basePath}/report/:id`} element={<ReportDetails />} />
             <Route path={`${environment.basePath}/auditor/:id`} element={<AuditorDetails />} />
             <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
+            <Route path={`${environment.basePath}/badge-demo`} element={<BadgeDemoPage />} />
+            <Route path={`${environment.basePath}/mentions`} element={<MentionsInbox />} />
           </Routes>
         </Box>
       </Box>
       {/* Footer */}
       {(location.pathname.endsWith('home') || location.pathname === '/' || location.pathname.endsWith('about')) && (
-        <Box sx={{ backgroundColor: 'background.paper', color: 'secondary.main', p: { xs: 2.5, md: 4 }, mt: 'auto' }}>
+        <Box sx={{ backgroundColor: 'background.paper', backgroundImage: tokens.sectionGradient, borderTop: '1px solid', borderColor: 'divider', color: 'secondary.main', p: { xs: 2.5, md: 4 }, mt: 'auto' }}>
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             spacing={{ xs: 3, md: 4 }}
-            alignItems={{ xs: 'stretch', md: 'flex-start' }}
-            justifyContent="space-between"
+            sx={{ alignItems: { xs: 'stretch', md: 'flex-start' }, justifyContent: 'space-between' }}
           >
             {/* Subscribe Section */}
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'secondary.main' }}>
                 Subscribe to updates
               </Typography>
 
@@ -425,10 +503,17 @@ export const MainWindow: FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: { xs: 'flex-start', md: 'center' },
-                '& .MuiButtonBase-root': { '&:hover': { color: '#2D4EFF' } },
+                '& .MuiButtonBase-root': {
+                  transition: 'color .2s ease, filter .2s ease, transform .2s ease',
+                  '&:hover': {
+                    color: '#FFD84D',
+                    filter: 'drop-shadow(0 0 6px rgba(255,216,77,0.6))',
+                    transform: 'translateY(-2px)',
+                  },
+                },
               }}
             >
-              <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'secondary.main' }}>
                 &nbsp;
               </Typography>
               <Stack direction="row" spacing={2}>
@@ -441,7 +526,7 @@ export const MainWindow: FC = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <MailOutlineIcon />
+                    <MailOutlinedIcon />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Follow us on X (Twitter)" arrow>

@@ -89,7 +89,12 @@ namespace SorobanSecurityPortalApi.Controllers
                 }
             }
             var result = await _vulnerabilityService.Add(vulnerabilityModel, files);
-            return Ok(result);
+            return result switch
+            {
+                Result<VulnerabilityViewModel, string>.Ok ok => Ok(ok.Value),
+                Result<VulnerabilityViewModel, string>.Err err => BadRequest(err.Error),
+                _ => throw new InvalidOperationException("Unexpected result type")
+            };
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
@@ -130,7 +135,20 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> Get(int vulnerabilityId)
         {
             var result = await _vulnerabilityService.Get(vulnerabilityId);
+            if (result == null)
+                return NotFound();
             return Ok(result);
+        }
+
+        // Lazy-loaded on the vulnerabilities list page when a card is expanded. The list payload
+        // omits Description for performance; this returns just that field for one vulnerability.
+        [HttpGet("{vulnerabilityId}/description")]
+        public async Task<IActionResult> GetDescription(int vulnerabilityId)
+        {
+            var description = await _vulnerabilityService.GetDescription(vulnerabilityId);
+            if (description == null)
+                return NotFound();
+            return Ok(new { description });
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator)]
@@ -178,6 +196,9 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        // Returns ALL vulnerabilities including hidden/deleted/unapproved — admin/moderator dashboard only.
+        // The public site browses via the Search endpoint, never this one.
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpGet]
         public async Task<IActionResult> GetList()
         {

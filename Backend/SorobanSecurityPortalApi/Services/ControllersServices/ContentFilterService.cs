@@ -10,14 +10,20 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
     public class ContentFilterService : IContentFilterService
     {
-        private readonly IHtmlSanitizer _sanitizer;
         private readonly ICacheAccessor _cacheAccessor;
         private readonly IModerationLogProcessor _moderationLogProcessor;
         private readonly IExtendedConfig _config;
         private readonly ILogger<ContentFilterService> _logger;
-        private readonly HashSet<string> _defaultProfanityWords;
+
+        // Profanity words are read from disk once and cached process-wide (the file never changes at runtime).
+        private static readonly Lazy<HashSet<string>> _sharedDefaultProfanityWords = new(LoadDefaultProfanityWordsStatic, LazyThreadSafetyMode.ExecutionAndPublication);
+
+        // Markdig pipeline is immutable and thread-safe once built, so it is shared.
+        private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
         private static readonly string[] AllowedTags = { "p", "br", "strong", "em", "code", "pre", "a", "ul", "ol", "li", "blockquote" };
+        private static readonly Regex AnchorHrefRegex = new(@"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex MarkdownLinkRegex = new(@"(?<!!)\[[^\]\r\n]+\]\(([^)\r\n]+)\)", RegexOptions.Compiled);
         private const int MaxLinksAllowed = 5;
         private const int RateLimitPerMinute = 10;
         private const string RateLimitKeyPrefix = "content_filter_rate_limit:";
@@ -33,76 +39,58 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _moderationLogProcessor = moderationLogProcessor;
             _config = config;
             _logger = logger;
-
-            _sanitizer = new HtmlSanitizer();
-            ConfigureSanitizer();
-
-            _defaultProfanityWords = LoadDefaultProfanityWords();
         }
 
-        private HashSet<string> LoadDefaultProfanityWords()
+        private static HashSet<string> LoadDefaultProfanityWordsStatic()
         {
             try
             {
-                if (File.Exists(DefaultProfanityWordsFile))
+                // Resolve relative to the deployed assembly, not the (possibly different) process CWD.
+                var path = Path.Combine(AppContext.BaseDirectory, DefaultProfanityWordsFile);
+                if (File.Exists(path))
                 {
-                    var words = File.ReadAllLines(DefaultProfanityWordsFile)
+                    return File.ReadAllLines(path)
                         .Select(w => w.Trim().ToLowerInvariant())
                         .Where(w => !string.IsNullOrWhiteSpace(w))
                         .ToHashSet();
-
-                    _logger.LogInformation("Loaded {Count} default profanity words", words.Count);
-                    return words;
                 }
-                else
-                {
-                    _logger.LogWarning("Default profanity words file not found at {Path}", DefaultProfanityWordsFile);
-                    return new HashSet<string>();
-                }
+                return new HashSet<string>();
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError(ex, "Failed to load default profanity words");
                 return new HashSet<string>();
             }
         }
 
-        public HashSet<string> GetDefaultProfanityWords() => _defaultProfanityWords;
+        // Ganss HtmlSanitizer is not safe for concurrent Sanitize() calls on a single instance, so a
+        // fresh (cheap) instance is built per call. Configuration is centralised here.
+        private static IHtmlSanitizer CreateSanitizerInstance()
+        {
+            var sanitizer = new HtmlSanitizer();
+            sanitizer.AllowedTags.Clear();
+            foreach (var tag in AllowedTags)
+            {
+                sanitizer.AllowedTags.Add(tag);
+            }
+            sanitizer.AllowedAttributes.Clear();
+            sanitizer.AllowedAttributes.Add("href");
+            sanitizer.AllowedAttributes.Add("class");
+            sanitizer.AllowedSchemes.Clear();
+            sanitizer.AllowedSchemes.Add("http");
+            sanitizer.AllowedSchemes.Add("https");
+            return sanitizer;
+        }
+
+        public HashSet<string> GetDefaultProfanityWords() => _sharedDefaultProfanityWords.Value;
 
         public HashSet<string> GetAllProfanityWords()
         {
-            var allWords = new HashSet<string>(_defaultProfanityWords, StringComparer.OrdinalIgnoreCase);
+            var allWords = new HashSet<string>(_sharedDefaultProfanityWords.Value, StringComparer.OrdinalIgnoreCase);
             foreach (var word in _config.ProfanityWords)
             {
                 allWords.Add(word.ToLowerInvariant());
             }
             return allWords;
-        }
-
-        private void ConfigureSanitizer()
-        {
-            _sanitizer.AllowedTags.Clear();
-            foreach (var tag in AllowedTags)
-            {
-                _sanitizer.AllowedTags.Add(tag);
-            }
-
-            _sanitizer.AllowedAttributes.Clear();
-            _sanitizer.AllowedAttributes.Add("href");
-            _sanitizer.AllowedAttributes.Add("class");
-
-            _sanitizer.AllowedSchemes.Clear();
-            _sanitizer.AllowedSchemes.Add("http");
-            _sanitizer.AllowedSchemes.Add("https");
-
-            _sanitizer.RemovingAttribute += (sender, args) =>
-            {
-                if (args.Attribute.Name.StartsWith("on", StringComparison.OrdinalIgnoreCase))
-                {
-                    args.Cancel = false;
-                    _logger.LogWarning("Removed dangerous attribute: {AttributeName}", args.Attribute.Name);
-                }
-            };
         }
 
         public async Task<ContentFilterResult> FilterContentAsync(string content, int userId)
@@ -118,9 +106,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 return result;
             }
 
-            var markdownHtml = Markdown.ToHtml(content, new MarkdownPipelineBuilder().UseAdvancedExtensions().Build());
+            var markdownHtml = Markdown.ToHtml(content, MarkdownPipeline);
 
-            var sanitizedHtml = _sanitizer.Sanitize(markdownHtml);
+            // Per-call sanitizer instance — HtmlSanitizer is not concurrency-safe (see CreateSanitizerInstance).
+            var sanitizedHtml = CreateSanitizerInstance().Sanitize(markdownHtml);
 
             result.SanitizedContent = sanitizedHtml;
 
@@ -128,9 +117,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             CheckProfanity(result, originalContent);
 
-            CheckLinkFlooding(result, sanitizedHtml);
+            CheckLinkFlooding(result, markdownHtml);
 
-            ValidateUrls(result, sanitizedHtml);
+            ValidateUrls(result, ExtractLinkTargets(markdownHtml, originalContent));
 
             if (result.IsBlocked || result.RequiresModeration)
             {
@@ -160,13 +149,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 {
                     var lowerContent = content.ToLowerInvariant();
                     var foundProfanity = allWords
-                        .Where(word => lowerContent.Contains(word))
+                        .Where(word => Regex.IsMatch(lowerContent, $@"\b{Regex.Escape(word)}\b", RegexOptions.IgnoreCase))
                         .ToList();
 
                     if (foundProfanity.Any())
                     {
                         result.RequiresModeration = true;
-                        result.Warnings.Add($"Profanity detected: {string.Join(", ", foundProfanity)}");
+                        result.Warnings.Add($"Profanity detected: {foundProfanity.Count} word(s) matched");
                         _logger.LogWarning("Profanity detected in content from user");
                     }
                 }
@@ -175,7 +164,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         private void CheckLinkFlooding(ContentFilterResult result, string html)
         {
-            var linkMatches = Regex.Matches(html, @"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase);
+            var linkMatches = AnchorHrefRegex.Matches(html);
             if (linkMatches.Count > MaxLinksAllowed)
             {
                 result.IsBlocked = true;
@@ -184,75 +173,131 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
         }
 
-        private void ValidateUrls(ContentFilterResult result, string html)
+        private static IEnumerable<string> ExtractLinkTargets(string html, string markdown)
         {
-            var linkMatches = Regex.Matches(html, @"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase);
+            var seenTargets = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (Match match in AnchorHrefRegex.Matches(html))
+            {
+                if (match.Groups.Count <= 1)
+                {
+                    continue;
+                }
+
+                var target = System.Net.WebUtility.HtmlDecode(match.Groups[1].Value).Trim();
+                if (!string.IsNullOrWhiteSpace(target) && seenTargets.Add(target))
+                {
+                    yield return target;
+                }
+            }
+
+            foreach (Match match in MarkdownLinkRegex.Matches(markdown))
+            {
+                if (match.Groups.Count <= 1)
+                {
+                    continue;
+                }
+
+                var target = NormalizeMarkdownLinkTarget(match.Groups[1].Value);
+                if (!string.IsNullOrWhiteSpace(target) && seenTargets.Add(target))
+                {
+                    yield return target;
+                }
+            }
+        }
+
+        private static string NormalizeMarkdownLinkTarget(string rawTarget)
+        {
+            var target = rawTarget.Trim();
+            if (target.StartsWith("<", StringComparison.Ordinal))
+            {
+                var closingAngleIndex = target.IndexOf('>');
+                if (closingAngleIndex > 1)
+                {
+                    return target[1..closingAngleIndex].Trim();
+                }
+            }
+
+            var whitespaceIndex = target.IndexOfAny(new[] { ' ', '\t', '\r', '\n' });
+            if (whitespaceIndex > 0)
+            {
+                var firstToken = target[..whitespaceIndex];
+                if (Uri.TryCreate(firstToken, UriKind.Absolute, out _))
+                {
+                    return firstToken;
+                }
+            }
+
+            return target.Trim('"', '\'');
+        }
+
+        private void ValidateUrls(ContentFilterResult result, IEnumerable<string> urls)
+        {
             var trustedDomains = _config.TrustedDomains;
 
-            foreach (Match match in linkMatches)
+            foreach (var url in urls)
             {
-                if (match.Groups.Count > 1)
+                if (!string.IsNullOrWhiteSpace(url))
                 {
-                    var url = match.Groups[1].Value;
-                    if (!string.IsNullOrWhiteSpace(url))
+                    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
                     {
-                        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                        result.RequiresModeration = true;
+                        result.Warnings.Add($"Invalid URL detected: {url}");
+                        continue;
+                    }
+
+                    if (uri.Scheme != "http" && uri.Scheme != "https")
+                    {
+                        result.IsBlocked = true;
+                        result.Warnings.Add($"Non-HTTP(S) URL detected: {url}");
+                        continue;
+                    }
+
+                    if (trustedDomains.Count > 0)
+                    {
+                        var isDomainTrusted = trustedDomains.Any(domain =>
+                            uri.Host.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
+                            uri.Host.EndsWith($".{domain}", StringComparison.OrdinalIgnoreCase));
+
+                        if (!isDomainTrusted)
                         {
                             result.RequiresModeration = true;
-                            result.Warnings.Add($"Invalid URL detected: {url}");
-                            continue;
-                        }
-
-                        if (uri.Scheme != "http" && uri.Scheme != "https")
-                        {
-                            result.IsBlocked = true;
-                            result.Warnings.Add($"Non-HTTP(S) URL detected: {url}");
-                            continue;
-                        }
-
-                        if (trustedDomains.Count > 0)
-                        {
-                            var isDomainTrusted = trustedDomains.Any(domain =>
-                                uri.Host.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
-                                uri.Host.EndsWith($".{domain}", StringComparison.OrdinalIgnoreCase));
-
-                            if (!isDomainTrusted)
-                            {
-                                result.RequiresModeration = true;
-                                result.Warnings.Add($"Untrusted domain detected: {uri.Host}");
-                            }
+                            result.Warnings.Add($"Untrusted domain detected: {uri.Host}");
                         }
                     }
                 }
             }
         }
 
-        public async Task<bool> CheckRateLimitAsync(int userId)
+        // Fixed-window rate limiter keyed by the current calendar minute (UTC). The bucket key name
+        // itself rolls over at each minute boundary, so the count resets every minute regardless of
+        // how many times the TTL is re-written, and a stale bucket key self-expires after its TTL.
+        // NOTE: ICacheAccessor wraps IDistributedCache, which exposes neither an atomic INCR nor the
+        // remaining TTL, so the read-then-write within a single minute is not atomic — concurrent
+        // requests in the same minute can over-count slightly. That residual race is acceptable here.
+        public Task<bool> CheckRateLimitAsync(int userId)
         {
-            var cacheKey = $"{RateLimitKeyPrefix}{userId}";
-            var currentCount = _cacheAccessor.GetCacheValue(cacheKey);
+            var bucket = DateTime.UtcNow.ToString("yyyyMMddHHmm");
+            var cacheKey = $"{RateLimitKeyPrefix}{userId}_{bucket}";
 
-            if (string.IsNullOrEmpty(currentCount))
+            var currentValue = _cacheAccessor.GetCacheValue(cacheKey);
+            var count = int.TryParse(currentValue, out var parsed) ? parsed : 0;
+
+            var newCount = count + 1;
+            // TTL of 120s comfortably outlives the 1-minute window so the bucket survives until it is
+            // no longer relevant, then self-expires.
+            _cacheAccessor.SetCacheValue(cacheKey, newCount.ToString(), 120);
+
+            if (newCount > RateLimitPerMinute)
             {
-                _cacheAccessor.SetCacheValue(cacheKey, "1", 60);
-                return true;
+                _logger.LogWarning("Rate limit exceeded for user {UserId}: {Count} attempts", userId, newCount);
+                return Task.FromResult(false);
             }
 
-            if (int.TryParse(currentCount, out var count))
-            {
-                if (count >= RateLimitPerMinute)
-                {
-                    _logger.LogWarning("Rate limit exceeded for user {UserId}: {Count} attempts", userId, count);
-                    return false;
-                }
-
-                _cacheAccessor.SetCacheValue(cacheKey, (count + 1).ToString(), 60);
-                return true;
-            }
-
-            _cacheAccessor.SetCacheValue(cacheKey, "1", 60);
-            return true;
+            return Task.FromResult(true);
         }
+
+        private const int MaxStoredContentLength = 2000;
 
         private async Task LogModerationAsync(int userId, string originalContent, string sanitizedContent, string reason, ContentFilterResult result)
         {
@@ -261,7 +306,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var log = new ModerationLogModel
                 {
                     UserId = userId,
-                    OriginalContent = originalContent,
+                    OriginalContent = originalContent.Length > MaxStoredContentLength
+                        ? originalContent[..MaxStoredContentLength]
+                        : originalContent,
                     SanitizedContent = sanitizedContent,
                     FilterReason = reason,
                     IsBlocked = result.IsBlocked,

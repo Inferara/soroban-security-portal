@@ -45,11 +45,24 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        [HttpGet("mine")]
+        [Authorize]
+        public async Task<IActionResult> GetMine([FromQuery] EntityType entityType, [FromQuery] int entityId)
+        {
+            if (entityId <= 0)
+            {
+                return BadRequest("EntityId must be a positive integer.");
+            }
+
+            var result = await _ratingService.GetMyRating(entityType, entityId);
+            if (result == null) return NoContent();
+            return Ok(result);
+        }
+
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> CreateOrUpdate([FromBody] CreateRatingRequest request)
         {
-            
             if (request == null)
             {
                 return BadRequest("Request body cannot be null.");
@@ -59,9 +72,29 @@ namespace SorobanSecurityPortalApi.Controllers
             {
                 return BadRequest("Score must be between 1 and 5.");
             }
-            
-            var result = await _ratingService.AddOrUpdateRating(request);
-            return Ok(result);
+
+            if (request.Review?.Length > 2000)
+            {
+                return BadRequest("Review must not exceed 2000 characters.");
+            }
+
+            // Review is stored in a NOT NULL column; treat an omitted/null review as empty.
+            request.Review ??= string.Empty;
+
+            try
+            {
+                var result = await _ratingService.AddOrUpdateRating(request);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Content guard rejected the review (rate limit / spam / profanity).
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]

@@ -16,7 +16,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public interface IRatingService
     {
         Task<RatingSummaryViewModel> GetSummary(EntityType entityType, int entityId);
-        Task<List<RatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10);
+        Task<List<PublicRatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10);
+        Task<RatingViewModel?> GetMyRating(EntityType entityType, int entityId);
         Task<RatingViewModel> AddOrUpdateRating(CreateRatingRequest request);
         Task DeleteRating(int id);
     }
@@ -27,25 +28,32 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IDistributedCache _cache;
         private readonly UserContextAccessor _userContext;
         private readonly IMapper _mapper;
+        private readonly IContentFilterService _contentFilter;
 
-        public RatingService(Db db, IDistributedCache cache, UserContextAccessor userContext, IMapper mapper)
+        public RatingService(Db db, IDistributedCache cache, UserContextAccessor userContext, IMapper mapper, IContentFilterService contentFilter)
         {
             _db = db;
             _cache = cache;
             _userContext = userContext;
             _mapper = mapper;
+            _contentFilter = contentFilter;
         }
+
+        // Single source of truth for the summary cache key, shared with the moderation
+        // target so hide/restore/delete can invalidate the same entry.
+        public static string SummaryCacheKey(EntityType entityType, int entityId)
+            => $"ratings_summary_{entityType}_{entityId}";
 
         public async Task<RatingSummaryViewModel> GetSummary(EntityType entityType, int entityId)
         {
-            string cacheKey = $"ratings_summary_{entityType}_{entityId}";
-            
+            string cacheKey = SummaryCacheKey(entityType, entityId);
+
             // Try get from Cache (Using helper method)
             var cached = await GetCachedAsync<RatingSummaryViewModel>(cacheKey);
             if (cached != null) return cached;
 
             var aggregated = await _db.Rating
-                .Where(r => r.EntityType == entityType && r.EntityId == entityId)
+                .Where(r => r.EntityType == entityType && r.EntityId == entityId && !r.IsHidden && !r.IsDeleted)
                 .GroupBy(r => 1)
                 .Select(g => new
                 {
@@ -75,31 +83,91 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 }
             };
 
+            summary.WeightedAverageScore = await ComputeWeightedAverage(entityType, entityId, summary.AverageScore);
+
             // Cache for 10 minutes (Using helper method)
             await SetCachedAsync(cacheKey, summary, TimeSpan.FromMinutes(10));
 
             return summary;
         }
 
-        public async Task<List<RatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10)
+        public async Task<List<PublicRatingViewModel>> GetRatings(EntityType entityType, int entityId, int page, int pageSize = 10)
         {
-            var query = _db.Rating
-                .AsNoTracking()
-                .Where(r => r.EntityType == entityType && r.EntityId == entityId)
-                .OrderByDescending(r => r.CreatedAt);
+            page = Math.Max(1, page);
+            pageSize = Math.Max(1, Math.Min(100, pageSize));
 
-            var ratings = await query
+            var ratings = await _db.Rating
+                .AsNoTracking()
+                .Where(r => r.EntityType == entityType && r.EntityId == entityId && !r.IsHidden && !r.IsDeleted)
+                .OrderByDescending(r => r.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            return _mapper.Map<List<RatingViewModel>>(ratings);
+            var result = _mapper.Map<List<PublicRatingViewModel>>(ratings);
+
+            // Populate author display name + id with a single extra single-set query.
+            // Only the public display name is exposed — never email or other PII.
+            var userIds = ratings.Select(r => r.UserId).Distinct().ToList();
+            if (userIds.Count > 0)
+            {
+                var names = await _db.Login
+                    .AsNoTracking()
+                    .Where(l => userIds.Contains(l.LoginId))
+                    .Select(l => new { l.LoginId, l.FullName, l.Login })
+                    .ToListAsync();
+                var nameById = names.ToDictionary(
+                    n => n.LoginId,
+                    n => !string.IsNullOrWhiteSpace(n.FullName) ? n.FullName : n.Login);
+
+                for (int i = 0; i < result.Count; i++)
+                {
+                    var uid = ratings[i].UserId;
+                    result[i].AuthorId = uid;
+                    result[i].AuthorName = nameById.TryGetValue(uid, out var nm) && !string.IsNullOrWhiteSpace(nm)
+                        ? nm
+                        : "Anonymous";
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<RatingViewModel?> GetMyRating(EntityType entityType, int entityId)
+        {
+            var userId = await _userContext.GetLoginIdAsync();
+            if (userId == 0) return null;
+
+            var rating = await _db.Rating
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.UserId == userId && r.EntityType == entityType && r.EntityId == entityId);
+
+            return rating == null ? null : _mapper.Map<RatingViewModel>(rating);
         }
 
         public async Task<RatingViewModel> AddOrUpdateRating(CreateRatingRequest request)
         {
             var userId = await _userContext.GetLoginIdAsync();
             if (userId == 0) throw new UnauthorizedAccessException("User not logged in.");
+
+            // Reject ratings for entities that don't exist, to avoid orphan rows.
+            var entityExists = request.EntityType == EntityType.Protocol
+                ? await _db.Protocol.AnyAsync(p => p.Id == request.EntityId)
+                : await _db.Auditor.AnyAsync(a => a.Id == request.EntityId);
+            if (!entityExists)
+                throw new KeyNotFoundException($"{request.EntityType} with id {request.EntityId} not found.");
+
+            // Run the shared content guard over the (optional) review text: rate-limit
+            // writes and block spam/profanity. Empty reviews skip the filter (score-only).
+            if (!await _contentFilter.CheckRateLimitAsync(userId))
+                throw new InvalidOperationException("Rate limit exceeded. Please wait a moment before submitting again.");
+
+            if (!string.IsNullOrWhiteSpace(request.Review))
+            {
+                var filterResult = await _contentFilter.FilterContentAsync(request.Review, userId);
+                if (filterResult.IsBlocked)
+                    throw new InvalidOperationException($"Review blocked: {string.Join("; ", filterResult.Warnings)}");
+            }
 
             var existing = await _db.Rating
                 .FirstOrDefaultAsync(r => r.UserId == userId && r.EntityType == request.EntityType && r.EntityId == request.EntityId);
@@ -141,10 +209,39 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await InvalidateSummaryCache(rating.EntityType, rating.EntityId);
         }
 
+        // Reputation-weighted average: each score is weighted by (1 + reviewer ReputationScore).
+        // Reviewers without a profile default to reputation 0 (weight 1). Falls back to the plain
+        // average when there are no ratings or no weight could be accumulated.
+        private async Task<float> ComputeWeightedAverage(EntityType entityType, int entityId, float plainAverage)
+        {
+            var scored = await _db.Rating
+                .AsNoTracking()
+                .Where(r => r.EntityType == entityType && r.EntityId == entityId && !r.IsHidden && !r.IsDeleted)
+                .Select(r => new { r.UserId, r.Score })
+                .ToListAsync();
+
+            if (scored.Count == 0) return 0f;
+
+            var ids = scored.Select(s => s.UserId).Distinct().ToList();
+            var reputationByUser = await _db.UserProfiles
+                .AsNoTracking()
+                .Where(up => ids.Contains(up.LoginId))
+                .ToDictionaryAsync(up => up.LoginId, up => up.ReputationScore);
+
+            double weightedSum = 0, weightTotal = 0;
+            foreach (var s in scored)
+            {
+                var weight = 1.0 + (reputationByUser.TryGetValue(s.UserId, out var rep) ? rep : 0);
+                weightedSum += s.Score * weight;
+                weightTotal += weight;
+            }
+
+            return weightTotal > 0 ? (float)Math.Round(weightedSum / weightTotal, 1) : plainAverage;
+        }
+
         private async Task InvalidateSummaryCache(EntityType type, int id)
         {
-            string cacheKey = $"ratings_summary_{type}_{id}";
-            await _cache.RemoveAsync(cacheKey);
+            await _cache.RemoveAsync(SummaryCacheKey(type, id));
         }
 
         // --- HELPER METHODS FOR CACHING ---

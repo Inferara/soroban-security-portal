@@ -20,6 +20,7 @@ namespace SorobanSecurityPortalApi.Controllers
         private readonly UserContextAccessor _userContextAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ReportsController> _logger;
+        private readonly IReportImageService _reportImageService;
 
         // Maximum PDF size for URL downloads (50MB)
         private const int MaxPdfSizeBytes = 50 * 1024 * 1024;
@@ -29,13 +30,15 @@ namespace SorobanSecurityPortalApi.Controllers
             IVulnerabilityExtractionService extractionService,
             UserContextAccessor userContextAccessor,
             IHttpClientFactory httpClientFactory,
-            ILogger<ReportsController> logger)
+            ILogger<ReportsController> logger,
+            IReportImageService reportImageService)
         {
             _reportService = reportService;
             _extractionService = extractionService;
             _userContextAccessor = userContextAccessor;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _reportImageService = reportImageService;
         }
 
         [HttpPost]
@@ -50,6 +53,11 @@ namespace SorobanSecurityPortalApi.Controllers
         public async Task<IActionResult> GetFile(int reportId)
         {
             var result = await _reportService.Get(reportId);
+            if (!CanDownloadReport(result))
+            {
+                return Forbid();
+            }
+
             if (result.BinFile == null || result.BinFile.Length == 0)
             {
                 return BadRequest("Report is not found.");
@@ -57,15 +65,39 @@ namespace SorobanSecurityPortalApi.Controllers
             return File(result.BinFile, "application/pdf", $"{result.Name}.pdf");
         }
 
+        private bool CanDownloadReport(ReportViewModel report)
+        {
+            return report.Status == ReportModelStatus.Approved
+                || UserHasAnyRole(Role.Admin, Role.Moderator, Role.Contributor);
+        }
+
+        private bool UserHasAnyRole(params Role[] roles)
+        {
+            return roles.Any(role => User.IsInRole(role.ToString()));
+        }
+
         [HttpGet("{reportId}/image.png")]
         public async Task<IActionResult> GetImage(int reportId)
         {
-            var result = await _reportService.Get(reportId);
-            if (result.Image == null || result.Image.Length == 0)
-            {
-                return BadRequest("Report is not found.");
-            }
-            return File(result.Image, "image/png", $"image.png");
+            // Cheap metadata query first (timestamp only, never de-TOASTs the image/PDF bytes).
+            var meta = await _reportImageService.GetImageMetaAsync(reportId);
+            if (meta == null)
+                return NotFound();
+
+            Response.Headers.ETag = meta.ETag;
+            Response.Headers.LastModified = meta.LastModified.ToString("R");
+            Response.Headers.CacheControl = "public, max-age=3600";
+
+            // Honor conditional requests without ever fetching the image bytes.
+            var ifNoneMatch = Request.Headers.IfNoneMatch.ToString();
+            if (!string.IsNullOrEmpty(ifNoneMatch) && ifNoneMatch.Contains(meta.ETag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
+            var content = await _reportImageService.GetImageContentAsync(reportId);
+            if (content == null)
+                return NotFound();
+
+            return File(content.Bytes, "image/png");
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator, Role.Contributor)]
@@ -226,7 +258,9 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpGet("{reportId}")]
         public async Task<IActionResult> Get(int reportId)
         {
-            var result = await _reportService.Get(reportId);
+            var result = await _reportService.GetPublic(reportId);
+            if (result == null)
+                return NotFound();
             result.Image = null;
             result.BinFile = null;
             return Ok(result);
@@ -247,6 +281,9 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
+        // Returns ALL reports including hidden/deleted/unapproved — admin/moderator dashboard only.
+        // The public site browses via the Search endpoint and the filtered GetList, never this one.
+        [RoleAuthorize(Role.Admin, Role.Moderator)]
         [HttpGet("all")]
         public async Task<IActionResult> GetListAll()
         {

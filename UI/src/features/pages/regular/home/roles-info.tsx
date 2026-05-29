@@ -26,13 +26,12 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
     {
       name: "Contributor",
       permissions: ["read", "download", "create"],
-      description: "Contributors are Pilots (see the handbook) or those who expressed interest in contributing",
+      description: "Contributors are SCF Navigators and SCF Projects (see the handbook) or those who expressed interest in contributing",
     },
     {
       name: "Moderator",
       permissions: ["read", "download", "create", "approve"],
-      description:
-        "Granted manually to active community members who are looking after the content integrity and quality",
+      description: "Granted to SCF Pilots and active community members who are looking after the content integrity and quality",
     },
   ];
 
@@ -64,6 +63,9 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
         backgroundImage: "none",
         boxShadow: "none",
         overflow: "hidden",
+        width: "100%",
+        maxWidth: 1200,
+        mx: "auto",
       }}
     >
       <HomepageSubtitle title={isAuthenticated ? `Welcome, ${userName}!` : "How to contribute"} isCompact={isCompact} />
@@ -104,21 +106,27 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
                 </Typography>
                 {(isAdmin || isModerator || isContributor) && (
                   <Typography variant="body2" sx={{ textAlign: "center", mt: 1 }}>
-                    Thank you for contributing to the Soroban Security Portal!
+                    Thank you for contributing to the Stellar Security Portal!
                   </Typography>
                 )}
               </Box>
             </Box>
             <Box
               sx={{
-                display: "flex",
-                flexDirection: { xs: "column", md: "row" },
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) minmax(220px, 1fr)" },
                 alignItems: "center",
-                justifyContent: "center",
                 gap: { xs: 3, md: 5 },
               }}
             >
-              <Box sx={{ flex: 1, textAlign: { xs: "center", md: "right" } }}>
+              <Box
+                sx={{
+                  width: "100%",
+                  maxWidth: 640,
+                  justifySelf: { xs: "center", md: "end" },
+                  textAlign: { xs: "center", md: "right" },
+                }}
+              >
                 <Typography variant="body1" sx={{ mb: 2 }}>
                   Your contributions help improve the Portal and secure the Soroban ecosystem.
                 </Typography>
@@ -132,8 +140,8 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
               </Box>
               <Box
                 sx={{
-                  flex: 1,
                   display: "flex",
+                  width: "100%",
                   justifyContent: { xs: "center", sm: "center", md: "flex-start" },
                 }}
               >
@@ -147,37 +155,34 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
           // Non-authenticated User View
           <Box
             sx={{
-              display: "flex",
-              flexDirection: { xs: "column", md: "row" },
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) minmax(220px, 1fr)" },
               alignItems: "center",
-              justifyContent: "center",
               gap: { xs: 3, md: 5 },
             }}
           >
-            <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
-              <Box
-                sx={{
-                  flex: { xs: "0 1 auto", md: 1 },
-                  textAlign: { xs: "center", md: "right" },
-                  width: "100%",
-                  maxWidth: 640,
-                }}
-              >
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  Your contributions help improve the Portal and secure the Soroban ecosystem.
-                </Typography>
-                <Typography variant="body1">
-                  Claim your role by authorizing with your Discord account in{" "}
-                  <a href="https://discord.gg/UAnpE7pa" target="_blank" rel="noopener noreferrer">
-                    Stellar Developers Discord Server
-                  </a>
-                </Typography>
-              </Box>
+            <Box
+              sx={{
+                width: "100%",
+                maxWidth: 640,
+                justifySelf: { xs: "center", md: "end" },
+                textAlign: { xs: "center", md: "right" },
+              }}
+            >
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                Your contributions help improve the Portal and secure the Soroban ecosystem.
+              </Typography>
+              <Typography variant="body1">
+                Claim your role by authorizing with your Discord account in{" "}
+                <a href="https://discord.gg/UAnpE7pa" target="_blank" rel="noopener noreferrer">
+                  Stellar Developers Discord Server
+                </a>
+              </Typography>
             </Box>
             <Box
               sx={{
-                flex: 1,
                 display: "flex",
+                width: "100%",
                 justifyContent: { xs: "center", sm: "center", md: "flex-start" },
               }}
             >
@@ -189,47 +194,49 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
         )}
         <Box
           sx={{
-            display: "flex",
-            flexDirection: { xs: "column", md: "row-reverse" },
+            display: "grid",
+            gridTemplateAreas: { xs: '"copy" "visual"', md: '"visual copy"' },
+            gridTemplateColumns: { xs: "1fr", md: "minmax(220px, 1fr) minmax(0, 1fr)" },
             alignItems: "center",
             gap: { xs: 3, md: 5 },
           }}
         >
-          <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
-            <Box
-              sx={{
-                flex: { xs: "0 1 auto", md: 1 },
-                textAlign: { xs: "center", md: "left" },
-                width: "100%",
-                maxWidth: 640,
-              }}
-            >
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                Roles are automatically granted according to the Stellar community guidelines.
-              </Typography>
-              <Typography variant="body1">
-                Defined in the{" "}
-                <a
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  href="https://stellarcommunityfund.gitbook.io/scf-handbook/governance/verified-members/how-to-become-verified"
-                >
-                  Stellar Community Fund Handbook
-                </a>
-              </Typography>
-            </Box>
+          <Box
+            sx={{
+              gridArea: "copy",
+              width: "100%",
+              maxWidth: 640,
+              justifySelf: { xs: "center", md: "start" },
+              textAlign: { xs: "center", md: "left" },
+            }}
+          >
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Roles are automatically granted according to the Stellar community guidelines.
+            </Typography>
+            <Typography variant="body1">
+              Defined in the{" "}
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="https://stellarcommunityfund.gitbook.io/scf-handbook/governance/verified-members/how-to-become-verified"
+              >
+                Stellar Community Fund Handbook
+              </a>
+            </Typography>
           </Box>
           <Box
             sx={{
-              flex: 1,
+              gridArea: "visual",
               display: "flex",
+              width: "100%",
               justifyContent: { xs: "center", sm: "center", md: "flex-end" },
             }}
           >
             <Box
               component="img"
               src="/static/images/handbook-logo.avif"
-              sx={{ width: { xs: "60%", sm: "40%", md: "10%" } }}
+              alt="Stellar Community Fund Handbook"
+              sx={{ width: { xs: "min(220px, 60%)", sm: 220, md: 120 }, height: "auto" }}
             />
           </Box>
         </Box>

@@ -155,5 +155,9 @@ namespace SorobanSecurityPortalApi.Controllers
             var result = await _userService.ChangePassword(currentUser!, changePasswordViewModel);
             return Ok(result);
         }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string? q)
+            => Ok(await _userService.SearchUsers(q ?? string.Empty));
     }
 }

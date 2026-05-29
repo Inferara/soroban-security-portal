@@ -7,7 +7,9 @@ namespace SorobanSecurityPortalApi.Models.DbModels
     public enum EntityType
     {
         Protocol = 0,
-        Auditor = 1
+        Auditor = 1,
+        Vulnerability = 2,
+        Report = 3
     }
 
     [Table("rating")]
@@ -33,5 +35,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+
+        // Moderation suppression flags (mirror vulnerability/report). Hidden or
+        // soft-deleted ratings are excluded from all public reads.
+        public bool IsHidden { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

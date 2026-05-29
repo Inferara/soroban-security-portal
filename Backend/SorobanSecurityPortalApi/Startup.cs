@@ -8,8 +8,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Common.Data;
 using AspNetCore.Authentication.Basic;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using SorobanSecurityPortalApi.Services.ControllersServices;
+using SorobanSecurityPortalApi.Services.Moderation;
+using SorobanSecurityPortalApi.Services.Realtime;
 
 namespace SorobanSecurityPortalApi;
 
@@ -44,11 +46,32 @@ public class Startup
         services.ForInterfacesMatching("^I.*Processor$")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddScoped();
+        // ContentFilterService is registered before the convention scan so the scan skips it (sees it already registered).
+        // Singleton is safe: ModerationLogProcessor uses IDbContextFactory (creates its own DbContext per call),
+        // IExtendedConfig and ICacheAccessor are also singleton-safe. The expensive file I/O and sanitizer
+        // construction are handled by static Lazy fields inside the service.
+        services.AddSingleton<IContentFilterService, ContentFilterService>();
+
+        // Explicit Scoped registration before the convention scan so the scan skips IRatingService.
+        // Scoped is correct: RatingService depends on Db (DbContext) which is Scoped.
+        services.AddScoped<IRatingService, RatingService>();
+        // Explicit Scoped registration before the convention scan so the scan skips ICommentService.
+        services.AddScoped<ICommentService, CommentService>();
+        services.AddScoped<IVoteService, VoteService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IRealtimePublisher, SignalRNotificationPublisher>();
+
+        // Moderation target resolvers registered before the convention scan so the scan skips them.
+        // Multiple IModerationTarget registrations are intentional: ModerationTargetRegistry collects all via IEnumerable<IModerationTarget>.
+        services.AddScoped<IModerationTarget, VulnerabilityModerationTarget>();
+        services.AddScoped<IModerationTarget, ReportModerationTarget>();
+        services.AddScoped<IModerationTarget, RatingModerationTarget>();
+        services.AddScoped<IModerationTarget, CommentModerationTarget>();
+        services.AddScoped<IModerationTargetRegistry, ModerationTargetRegistry>();
+
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
             .AddTransients();
-
-        services.AddScoped<IRatingService, RatingService>();
 
         services.AddStackExchangeRedisCache(options =>
         {
@@ -57,6 +80,22 @@ public class Startup
             {
                 EndPoints = { _config.DistributedCacheUrl },
                 Password = _config.DistributedCachePassword,
+            };
+        });
+        services.AddSignalR(options =>
+        {
+            // Ping connected clients every 15s so the browser's serverTimeout
+            // (60s, see notificationConnection.ts) is never tripped during quiet
+            // periods, and give the server 60s before it considers a client gone.
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+        }).AddStackExchangeRedis(options =>
+        {
+            options.Configuration = new StackExchange.Redis.ConfigurationOptions
+            {
+                EndPoints = { _config.DistributedCacheUrl },
+                Password = _config.DistributedCachePassword,
+                AbortOnConnectFail = false
             };
         });
         services.AddScoped<Db>();
@@ -106,10 +145,25 @@ public class Startup
                     return JwtBearerDefaults.AuthenticationScheme;
                 };
             })
-            .AddJwtBearer(options => { options.TokenValidationParameters = tokenValidationParameters; })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = tokenValidationParameters;
+                // SignalR sends the JWT on the websocket handshake as ?access_token=...
+                options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                            context.Token = accessToken;
+                        return Task.CompletedTask;
+                    }
+                };
+            })
             .AddBasic<BasicUserValidationService>(options => { options.SuppressWWWAuthenticateHeader = true; });
 
-        services.AddAutoMapper(typeof(Startup));
+        services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
         services.AddHealthChecks();
         services.AddControllers().AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
         services.AddEndpointsApiExplorer();
@@ -118,8 +172,8 @@ public class Startup
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Version = "v1",
-                Title = "Soroban Security Portal API",
-                Description = "API to work with Soroban Security Portal. Most endpoints are for administration and configuration. Its required to use Auth Code Flow + PKCE to use them.\n\n" +
+                Title = "Stellar Security Portal API",
+                Description = "API to work with Stellar Security Portal. Most endpoints are for administration and configuration. Its required to use Auth Code Flow + PKCE to use them.\n\n" +
                     "Endpoint for API integration using Basic Authentication:\n\n" +
                     "/api/v1/agents/{agentName}/isEnabled\n\n" +
                     "/api/v1/tags/my\n\n" +
@@ -141,18 +195,11 @@ public class Startup
                 In = ParameterLocation.Header,
                 Description = "Basic Authorization header, login:password encoded with Base64."
             });
-            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
             {
                 {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Basic"
-                        }
-                    },
-                    new string[] {}
+                    new OpenApiSecuritySchemeReference("Basic", document, null),
+                    new List<string>()
                 }
             });
         });
@@ -183,6 +230,7 @@ public class Startup
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
+            endpoints.MapHub<SorobanSecurityPortalApi.Hubs.NotificationHub>("/hubs/notifications");
             endpoints.MapHealthChecks("/health", new HealthCheckOptions
             {
                 ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse

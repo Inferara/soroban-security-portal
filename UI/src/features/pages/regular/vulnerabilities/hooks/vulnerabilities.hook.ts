@@ -82,6 +82,8 @@ export const useVulnerabilities = () => {
       vulnerabilitySearch.page = vulnerabilitySearch.page || currentPage;
       vulnerabilitySearch.pageSize = vulnerabilitySearch.pageSize || pageSize;
     }
+    // This page lazy-loads each description on card expand, so keep the list payload light.
+    vulnerabilitySearch.includeDescription = false;
     setIsLoadingInitial(true);
     const response = await getVulnerabilitiesCall(vulnerabilitySearch);
     setVulnerabilitiesList(response);

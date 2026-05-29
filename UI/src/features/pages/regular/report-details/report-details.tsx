@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Card,
@@ -27,8 +27,10 @@ import {
   GetApp,
   Description,
   Dashboard,
+  Forum,
 } from '@mui/icons-material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import { ViewCountLabel } from '../../../../components/common/ViewCountLabel';
 import { useNavigate } from 'react-router-dom';
 import { useReportDetails } from './hooks/report-details.hook';
 import { showMessage } from '../../../dialog-handler/dialog-handler';
@@ -40,9 +42,12 @@ import {
   VulnerabilityCategory,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { BookmarkButton } from '../../../../components/BookmarkButton';
+import { FlagButton } from '../../../../components/FlagButton';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
-import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { downloadReportPDF, getCommentCountCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { DiscussionPanel } from '../../../comments/DiscussionPanel';
+import { CommentEntityType } from '../../../../api/soroban-security-portal/models/comment';
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
 import { EntityAvatar } from '../../../../components/EntityAvatar';
@@ -58,6 +63,10 @@ import {
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
+import { SeoHead } from '../../../../components/common/SeoHead';
+import { ShareButtons } from '../../../../components/common/ShareButtons';
+import { usePageViewTracking } from '../../../../hooks/usePageViewTracking';
+import { PageViewEntityType } from '../../../../api/soroban-security-portal/models/analytics';
 
 export const ReportDetails: FC = () => {
   const navigate = useNavigate();
@@ -72,6 +81,7 @@ export const ReportDetails: FC = () => {
     statistics,
     loading,
     error,
+    reportId,
     // PDF handling from hook
     pdfBlobUrl,
     pdfLoading,
@@ -82,6 +92,17 @@ export const ReportDetails: FC = () => {
 
   const { tabValue, tabProps } = useDetailTabs(0);
   const { isBookmarked, toggleBookmark } = useBookmarks();
+
+  const views = usePageViewTracking(PageViewEntityType.Report, report?.id);
+
+  const [commentCount, setCommentCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (reportId > 0) {
+      getCommentCountCall(CommentEntityType.Report, reportId)
+        .then(setCommentCount)
+        .catch(() => {});
+    }
+  }, [reportId]);
 
   // Calculate fix metrics (memoized)
   const { fixedValidVulns, notFixedValidVulns, fixRate } = useMemo(() => {
@@ -188,6 +209,7 @@ export const ReportDetails: FC = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
     { id: 'full-report', label: 'Full Report', icon: <Description /> },
+    { id: 'discussion', label: commentCount != null ? `Discussion (${commentCount})` : 'Discussion', icon: <Forum /> },
   ];
 
   return (
@@ -199,6 +221,11 @@ export const ReportDetails: FC = () => {
     >
       {report && (
         <>
+          <SeoHead
+            title={report.name}
+            description={`Security audit report for ${report.name}`}
+            url={window.location.href}
+          />
           {/* Header */}
           <Box sx={{ mb: 3 }}>
             <DetailPageHeader
@@ -207,6 +234,7 @@ export const ReportDetails: FC = () => {
               title={report.name}
               subtitle={auditor ? `by ${auditor.name}` : undefined}
               description={`Published: ${formatDateLong(report.date)}`}
+              metaInline={views ? <ViewCountLabel count={views} /> : undefined}
               actions={
                 <>
                   <Button
@@ -232,14 +260,20 @@ export const ReportDetails: FC = () => {
                 </>
               }
               headerExtra={
-                auth.isAuthenticated && (
-                  <BookmarkButton
-                    itemId={report.id ?? 0}
-                    bookmarkType={BookmarkType.Report}
-                    isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
-                    onToggle={toggleBookmark}
-                  />
-                )
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                  <ShareButtons title={report.name} url={window.location.href} />
+                  {auth.isAuthenticated && (
+                    <>
+                      <FlagButton contentType="report" contentId={report.id ?? 0} />
+                      <BookmarkButton
+                        itemId={report.id ?? 0}
+                        bookmarkType={BookmarkType.Report}
+                        isBookmarked={isBookmarked(report.id ?? 0, BookmarkType.Report)}
+                        onToggle={toggleBookmark}
+                      />
+                    </>
+                  )}
+                </Stack>
               }
             />
           </Box>
@@ -599,6 +633,14 @@ export const ReportDetails: FC = () => {
             </Box>
           )}
 
+          {/* Discussion Tab Content */}
+          {tabValue === 2 && (
+            <DiscussionPanel
+              entityType={CommentEntityType.Report}
+              entityId={reportId}
+            />
+          )}
+
           {/* Second Tab - Full Report */}
           {tabValue === 1 && (
             <Box>
@@ -667,7 +709,7 @@ export const ReportDetails: FC = () => {
                             <Typography color="text.secondary" sx={{ mb: 3 }}>
                               The PDF viewer encountered an authentication error. You can still download the report.
                             </Typography>
-                            <Stack direction="row" spacing={2} justifyContent="center">
+                            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
                               <Button
                                 variant="contained"
                                 color="primary"

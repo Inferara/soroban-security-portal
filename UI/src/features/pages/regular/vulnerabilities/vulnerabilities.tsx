@@ -41,7 +41,7 @@ import 'katex/dist/katex.min.css';
 import './katex.css';
 import ReactGA from 'react-ga4';
 import { VulnerabilityCard } from './vulnerability-card';
-import { downloadReportPDF } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { downloadReportPDF, getVulnerabilityDescriptionCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
 
@@ -172,13 +172,23 @@ export const Vulnerabilities: FC = () => {
     return tag;
   };
 
-  const handleCardClick = (vulnerability: Vulnerability) => {
-    if (selectedVulnerability === vulnerability) {
+  const handleCardClick = async (vulnerability: Vulnerability) => {
+    if (selectedVulnerability?.id === vulnerability.id) {
       setSelectedVulnerability(null);
+      return;
     }
-    else {
-      setSelectedVulnerability(vulnerability);
-      ReactGA.event({ category: "Vulnerability", action: "view", label: "Open Vulnerability Preview" });
+    setSelectedVulnerability(vulnerability);
+    ReactGA.event({ category: "Vulnerability", action: "view", label: "Open Vulnerability Preview" });
+    // The list payload omits Description for performance; fetch it lazily on first expand.
+    if (!vulnerability.description) {
+      try {
+        const description = await getVulnerabilityDescriptionCall(vulnerability.id);
+        setSelectedVulnerability(prev =>
+          prev && prev.id === vulnerability.id ? { ...prev, description } : prev
+        );
+      } catch {
+        // Leave description empty; the card still renders every other field.
+      }
     }
   };
 
@@ -541,12 +551,12 @@ export const Vulnerabilities: FC = () => {
             onClick={toggleFilters}
             sx={{
               border: 1,
-              borderColor: 'divider',
-              bgcolor: showFilters ? 'inherit' : 'transparent',
-              color: showFilters ? 'white' : 'inherit',
+              borderColor: showFilters ? 'primary.main' : 'divider',
+              bgcolor: showFilters ? 'primary.main' : 'transparent',
+              color: showFilters ? 'primary.contrastText' : 'inherit',
               '&:hover': {
-                // bgcolor: showFilters ? 'primary.dark' : 'action.hover'
-                borderColor: showFilters ? 'primary.main' : 'divider'
+                bgcolor: showFilters ? 'primary.dark' : 'action.hover',
+                borderColor: 'primary.main',
               }
             }}
           >
@@ -605,26 +615,25 @@ export const Vulnerabilities: FC = () => {
                   sx={{ minWidth: 200 }}
                 />
               )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={index}
-                    label={(option as VulnerabilitySeverity).name}
-                    size="small"
-                    sx={{
-                      bgcolor: (() => {
-                        const vs = (option as VulnerabilitySeverity).name.toLocaleLowerCase();
-                        if (vs in SeverityColors) {
-                          return SeverityColors[vs];
-                        }
-                        return theme.palette.grey[400];
-                      })(),
-                      color: '#F2F2F2',
-                      fontWeight: 700,
-                    }}
-                  />
-                ))
+              renderValue={(value, getItemProps) =>
+                value.map((option, index) => {
+                  const { key, ...itemProps } = getItemProps({ index });
+                  const vs = (option as VulnerabilitySeverity).name.toLocaleLowerCase();
+                  const bgcolor = vs in SeverityColors ? SeverityColors[vs] : theme.palette.grey[400];
+                  return (
+                    <Chip
+                      key={key}
+                      {...itemProps}
+                      label={(option as VulnerabilitySeverity).name}
+                      size="small"
+                      sx={{
+                        bgcolor,
+                        color: '#F2F2F2',
+                        fontWeight: 700,
+                      }}
+                    />
+                  );
+                })
               }
             />
             <Autocomplete
@@ -641,20 +650,23 @@ export const Vulnerabilities: FC = () => {
                   sx={{ minWidth: 200 }}
                 />
               )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={index}
-                    label={(option as TagItem).name}
-                    size="small"
-                    sx={{
-                      bgcolor: (option as TagItem).bgColor,
-                      color: (option as TagItem).textColor,
-                      fontWeight: 700,
-                    }}
-                  />
-                ))
+              renderValue={(value, getItemProps) =>
+                value.map((option, index) => {
+                  const { key, ...itemProps } = getItemProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      {...itemProps}
+                      label={(option as TagItem).name}
+                      size="small"
+                      sx={{
+                        bgcolor: (option as TagItem).bgColor,
+                        color: (option as TagItem).textColor,
+                        fontWeight: 700,
+                      }}
+                    />
+                  );
+                })
               }
             />
             <Autocomplete
@@ -671,16 +683,19 @@ export const Vulnerabilities: FC = () => {
                   sx={{ minWidth: 200 }}
                 />
               )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={index}
-                    label={(option as CompanyItem).name}
-                    size="small"
-                    sx={{ bgcolor: '#2b7fa2', color: '#F2F2F2' }}
-                  />
-                ))
+              renderValue={(value, getItemProps) =>
+                value.map((option, index) => {
+                  const { key, ...itemProps } = getItemProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      {...itemProps}
+                      label={(option as CompanyItem).name}
+                      size="small"
+                      sx={{ bgcolor: '#2b7fa2', color: '#F2F2F2' }}
+                    />
+                  );
+                })
               }
             />
             <Autocomplete
@@ -697,16 +712,19 @@ export const Vulnerabilities: FC = () => {
                   sx={{ minWidth: 200 }}
                 />
               )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={index}
-                    label={(option as ProtocolItem).name}
-                    size="small"
-                    sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
-                  />
-                ))
+              renderValue={(value, getItemProps) =>
+                value.map((option, index) => {
+                  const { key, ...itemProps } = getItemProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      {...itemProps}
+                      label={(option as ProtocolItem).name}
+                      size="small"
+                      sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
+                    />
+                  );
+                })
               }
             />
             <Autocomplete
@@ -723,16 +741,19 @@ export const Vulnerabilities: FC = () => {
                   sx={{ minWidth: 200 }}
                 />
               )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={index}
-                    label={(option as AuditorItem).name}
-                    size="small"
-                    sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
-                  />
-                ))
+              renderValue={(value, getItemProps) =>
+                value.map((option, index) => {
+                  const { key, ...itemProps } = getItemProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      {...itemProps}
+                      label={(option as AuditorItem).name}
+                      size="small"
+                      sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
+                    />
+                  );
+                })
               }
             />
             <Autocomplete
@@ -749,16 +770,19 @@ export const Vulnerabilities: FC = () => {
                   sx={{ minWidth: 200 }}
                 />
               )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={index}
-                    label={(option as VulnerabilitySource).name}
-                    size="small"
-                    sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }}
-                  />
-                ))
+              renderValue={(value, getItemProps) =>
+                value.map((option, index) => {
+                  const { key, ...itemProps } = getItemProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      {...itemProps}
+                      label={(option as VulnerabilitySource).name}
+                      size="small"
+                      sx={{ bgcolor: '#0288d1', color: '#F2F2F2' }}
+                    />
+                  );
+                })
               }
             />
             <Autocomplete
@@ -831,7 +855,7 @@ export const Vulnerabilities: FC = () => {
                         }
                         arrow
                         placement="right"
-                        componentsProps={{
+                        slotProps={{
                           tooltip: {
                             sx: {
                               maxWidth: 400,
@@ -859,20 +883,23 @@ export const Vulnerabilities: FC = () => {
                   sx={{ minWidth: 200 }}
                 />
               )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={index}
-                    label={(option as VulnerabilityCategoryInfo).label}
-                    size="small"
-                    sx={{
-                      bgcolor: option.color,
-                      color: '#F2F2F2',
-                      fontWeight: 700,
-                    }}
-                  />
-                ))
+              renderValue={(value, getItemProps) =>
+                value.map((option, index) => {
+                  const { key, ...itemProps } = getItemProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      {...itemProps}
+                      label={(option as VulnerabilityCategoryInfo).label}
+                      size="small"
+                      sx={{
+                        bgcolor: option.color,
+                        color: '#F2F2F2',
+                        fontWeight: 700,
+                      }}
+                    />
+                  );
+                })
               }
             />
           </Box>
@@ -951,25 +978,51 @@ export const Vulnerabilities: FC = () => {
                 </Box>
               </Grid>
             )}
-            {!isLoading && vulnerabilitiesList.map(vuln => (
+            {!isLoading && vulnerabilitiesList.map(vuln => {
+              const sevColor = SeverityColors[vuln.severity.toLocaleLowerCase()] || '#388e3c';
+              return (
               <Box key={vuln.id}>
                 <Card
+                  onMouseMove={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
+                    e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
+                  }}
                   sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
                     mr: 1,
                     borderRadius: '20px',
                     border: '1px solid',
-                    backgroundColor: themeMode === 'light' ? '#fafafa' : '#1A1A1A',
-                    borderLeft: `10px solid ${SeverityColors[vuln.severity.toLocaleLowerCase()] || '#388e3c'}`,
+                    backgroundColor: themeMode === 'light' ? '#fafafa' : '#13131c',
+                    borderColor: 'divider',
+                    borderLeft: `6px solid ${sevColor}`,
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
+                    transition: 'transform .25s ease, box-shadow .25s ease, border-color .25s ease, border-left-width .2s ease',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      inset: 0,
+                      background: `radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), ${sevColor}26, transparent 60%)`,
+                      opacity: 0,
+                      transition: 'opacity .25s ease',
+                      pointerEvents: 'none',
+                    },
+                    '&:hover': {
+                      transform: 'translateY(-3px)',
+                      borderLeftWidth: '10px',
+                      boxShadow: `0 10px 30px ${sevColor}40, 0 0 0 1px ${sevColor}55`,
+                      '@media (prefers-reduced-motion: reduce)': { transform: 'none' },
+                    },
+                    '&:hover::before': { opacity: 1 },
                     ...(selectedVulnerability?.id === vuln.id && {
-                      backgroundColor: '#6a6a6a',
+                      boxShadow: `0 0 0 1px ${sevColor}, 0 8px 24px ${sevColor}40`,
                     })
                   }}
                   onClick={() => handleCardClick(vuln)}
                 >
                   <CardContent sx={{ flexGrow: 1, paddingBottom: '8px !important' }}>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
                       <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1, textTransform: 'uppercase' }}>
                         {vuln.title}
                       </Typography>
@@ -983,7 +1036,7 @@ export const Vulnerabilities: FC = () => {
                         <img loading="lazy" src="static/images/vulnerability_categories/valid-partially-fixed.png" alt="Valid Partially Fixed" width={24} height={24} />
                       )}
                     </Stack>
-                    <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
                       {vuln.tags.map((tag, index) => (
                         <Chip key={`${vuln.id}-tag-${index}`} label={tag} size="small" sx={{ bgcolor: getTag(tag)?.bgColor, color: getTag(tag)?.textColor }} />
                       ))}
@@ -992,7 +1045,8 @@ export const Vulnerabilities: FC = () => {
                   </CardContent>
                 </Card>
               </Box>
-            ))}
+              );
+            })}
           </Stack>
           {/* Vulnerability Profile Section */}
           {selectedVulnerability && (

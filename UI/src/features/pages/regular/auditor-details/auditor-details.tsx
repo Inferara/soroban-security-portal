@@ -21,7 +21,9 @@ import {
   Person,
   Timeline as TimelineIcon,
   Dashboard,
+  StarRounded,
 } from '@mui/icons-material';
+import { ViewCountLabel } from '../../../../components/common/ViewCountLabel';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useNavigate } from 'react-router-dom';
 import { useAuditorDetails } from './hooks/auditor-details.hook';
@@ -29,6 +31,8 @@ import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { useAppAuth } from '../../../../features/authentication/useAppAuth';
 import { getCategoryColor, getCategoryLabel, VulnerabilityCategory } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { EntityAvatar } from '../../../../components/EntityAvatar';
+import { RatingsPanel } from '../../../../components/ratings';
+import { RatingEntityType } from '../../../../api/soroban-security-portal/models/rating';
 import {
   DetailPageLayout,
   DetailPageHeader,
@@ -41,6 +45,8 @@ import {
   transformCategoryBreakdown,
 } from '../../../../components/details';
 import { formatDateLong, formatMonthYear } from '../../../../utils';
+import { usePageViewTracking } from '../../../../hooks/usePageViewTracking';
+import { PageViewEntityType } from '../../../../api/soroban-security-portal/models/analytics';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
@@ -57,6 +63,8 @@ export const AuditorDetails: FC = () => {
   } = useAuditorDetails();
 
   const { tabValue, tabProps } = useDetailTabs(0);
+
+  const views = usePageViewTracking(PageViewEntityType.Auditor, auditor?.id);
 
   // Calculate fix rate
   const fixedValidVulns = statistics?.vulnerabilitiesByCategory![VulnerabilityCategory.Valid] || 0;
@@ -122,6 +130,7 @@ export const AuditorDetails: FC = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <Dashboard /> },
     { id: 'activity', label: 'Activity', icon: <TimelineIcon /> },
+    { id: 'reviews', label: 'Reviews', icon: <StarRounded /> },
   ];
 
   return (
@@ -140,6 +149,7 @@ export const AuditorDetails: FC = () => {
             title={auditor.name}
             subtitle="Security Auditor"
             description={`Since ${formatDateLong(auditor.date)}`}
+            metaInline={views ? <ViewCountLabel count={views} /> : undefined}
             websiteUrl={auditor.url}
             actions={
               canAddReport && (
@@ -370,6 +380,11 @@ export const AuditorDetails: FC = () => {
                 </CardContent>
               </Card>
             </Box>
+          )}
+
+          {/* Reviews Tab Content */}
+          {tabValue === 2 && (
+            <RatingsPanel entityType={RatingEntityType.Auditor} entityId={auditor.id} />
           )}
         </>
       )}

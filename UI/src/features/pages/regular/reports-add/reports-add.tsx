@@ -13,7 +13,6 @@ import {
   IconButton,
   useTheme,
   Autocomplete,
-  Chip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -305,7 +304,7 @@ export const AddReport: FC = () => {
               {/* Basic Information Section */}
               <Grid size={12}>
                 <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                     Basic Information
                   </Typography>
                 </Box>
@@ -336,17 +335,6 @@ export const AddReport: FC = () => {
                       required
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        {...getTagProps({ index })}
-                        key={index}
-                        label={(option as CompanyItem).name}
-                        size="small"
-                        sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
-                      />
-                    ))
-                  }
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                   {isContributor ? "Company missed? Please contact a moderator or admin." : (
@@ -369,17 +357,6 @@ export const AddReport: FC = () => {
                       required
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        {...getTagProps({ index })}
-                        key={index}
-                        label={(option as ProtocolItem).name}
-                        size="small"
-                        sx={{ bgcolor: '#7b1fa2', color: '#F2F2F2' }}
-                      />
-                    ))
-                  }
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                   {isContributor ? "Protocol missed? Please contact a moderator or admin." : (
@@ -402,17 +379,6 @@ export const AddReport: FC = () => {
                       required
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        {...getTagProps({ index })}
-                        key={index}
-                        label={(option as AuditorItem).name}
-                        size="small"
-                        sx={{ bgcolor: '#0918d1', color: '#F2F2F2' }}
-                      />
-                    ))
-                  }
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                   {isContributor ? "Auditor missed? Please contact a moderator or admin." : (
@@ -449,7 +415,7 @@ export const AddReport: FC = () => {
               </Grid>
               <Grid size={12}>
                 <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                     File Upload
                   </Typography>
                 </Box>

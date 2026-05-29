@@ -16,6 +16,10 @@ namespace SorobanSecurityPortalApi.Models.Mapping
                 .ForMember(dest => dest.ConnectedAccounts,
                     opt => opt.MapFrom(src => src.Login.ConnectedAccounts));
 
+            CreateMap<UserProfileModel, PublicUserProfileViewModel>()
+                .ForMember(dest => dest.LoginId, opt => opt.MapFrom(src => src.LoginId))
+                .ForMember(dest => dest.ReputationScore, opt => opt.MapFrom(src => src.ReputationScore));
+
             CreateMap<UpdateUserProfileViewModel, UserProfileModel>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         }

@@ -15,6 +15,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IFileProcessor _fileProcessor;
         private readonly IGeminiEmbeddingService _embeddingService;
         private readonly UserContextAccessor _userContextAccessor;
+        private readonly IContentFilterService _contentFilter;
 
         public VulnerabilityService(
             IMapper mapper,
@@ -22,7 +23,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IReportProcessor reportProcessor,
             IFileProcessor fileProcessor,
             IGeminiEmbeddingService embeddingService,
-            UserContextAccessor userContextAccessor)
+            UserContextAccessor userContextAccessor,
+            IContentFilterService contentFilter)
         {
             _mapper = mapper;
             _vulnerabilityProcessor = vulnerabilityProcessor;
@@ -30,6 +32,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _fileProcessor = fileProcessor;
             _embeddingService = embeddingService;
             _userContextAccessor = userContextAccessor;
+            _contentFilter = contentFilter;
         }
 
         public async Task<List<IdValue>> ListSeverities()
@@ -92,9 +95,32 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return await _vulnerabilityProcessor.SearchTotal(_mapper.Map<Models.DbModels.VulnerabilitySearchModel>(vulnerabilitySearchModel));
         }
 
-        public async Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
+        public async Task<Result<VulnerabilityViewModel, string>> Add(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
         {
             var loginId = await _userContextAccessor.GetLoginIdAsync();
+
+            // Rate-limit check always runs (independent of whether there is text to filter).
+            if (!await _contentFilter.CheckRateLimitAsync(loginId))
+                return new Result<VulnerabilityViewModel, string>.Err("Rate limit exceeded. Please wait before submitting again.");
+
+            // I-3: an empty Description was valid before this PR (no [Required]), and the filter blocks
+            // empty content. Only run the content filter when there is actual text to inspect.
+            if (!string.IsNullOrWhiteSpace(vulnerabilityViewModel.Description))
+            {
+                var filterResult = await _contentFilter.FilterContentAsync(vulnerabilityViewModel.Description, loginId);
+
+                // Only IsBlocked rejects the submission. I-1: RequiresModeration results are recorded in the
+                // moderation log inside FilterContentAsync but are intentionally NOT hard-blocked here.
+                if (filterResult.IsBlocked)
+                    return new Result<VulnerabilityViewModel, string>.Err(
+                        $"Submission blocked: {string.Join("; ", filterResult.Warnings)}");
+
+                // I-2: Description is stored and rendered as MARKDOWN (UI uses ReactMarkdown via MarkdownView).
+                // FilterContentAsync.SanitizedContent is HTML (Markdown.ToHtml -> sanitized), so overwriting
+                // would corrupt the markdown round-trip (double render / raw HTML in the editor). We therefore
+                // run the filter for its protective effects only and persist the ORIGINAL markdown unchanged.
+            }
+
             foreach (var file in files)
             {
                 if (file.BinFile != null && file.BinFile.Length > 0)
@@ -109,7 +135,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var vulnerabilityModel = _mapper.Map<Models.DbModels.VulnerabilityModel>(vulnerabilityViewModel);
             vulnerabilityModel.CreatedBy = loginId;
             var addedVulnerability = await _vulnerabilityProcessor.Add(vulnerabilityModel);
-            return _mapper.Map<VulnerabilityViewModel>(addedVulnerability);
+            return new Result<VulnerabilityViewModel, string>.Ok(_mapper.Map<VulnerabilityViewModel>(addedVulnerability));
         }
 
         public async Task<Result<bool, string>> Approve(int vulnerabilityId)
@@ -141,10 +167,19 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _vulnerabilityProcessor.Remove(vulnerabilityId);
         }
 
+        // Public detail endpoint (anonymous GET /{vulnerabilityId}). Must not serve hidden/soft-deleted
+        // content, so it goes through GetPublic. Approve/Reject use the unfiltered processor.Get directly.
         public async Task<VulnerabilityViewModel> Get(int vulnerabilityId)
         {
-            var vulnerability = await _vulnerabilityProcessor.Get(vulnerabilityId);
+            var vulnerability = await _vulnerabilityProcessor.GetPublic(vulnerabilityId);
             return _mapper.Map<VulnerabilityViewModel>(vulnerability);
+        }
+
+        // Lazy description loading for the vulnerabilities list page: returns just the Markdown
+        // body, or null when the vulnerability is missing/hidden/soft-deleted.
+        public async Task<string?> GetDescription(int vulnerabilityId)
+        {
+            return await _vulnerabilityProcessor.GetDescription(vulnerabilityId);
         }
 
         public async Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerabilityViewModel, List<FileViewModel> files)
@@ -215,11 +250,12 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<IdValueUrl>> ListSources();
         Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearch);
         Task<int> SearchTotal(VulnerabilitySearchViewModel? vulnerabilitySearch);
-        Task<VulnerabilityViewModel> Add(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
+        Task<Result<VulnerabilityViewModel, string>> Add(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task<Result<bool, string>> Approve(int vulnerabilityId);
         Task<Result<bool, string>> Reject(int vulnerabilityId);
         Task Remove(int vulnerabilityId);
         Task<VulnerabilityViewModel> Get(int vulnerabilityId);
+        Task<string?> GetDescription(int vulnerabilityId);
         Task<VulnerabilityViewModel> Update(VulnerabilityViewModel vulnerability, List<FileViewModel> files);
         Task<List<VulnerabilityViewModel>> GetList();
         Task<VulnerabilitiesStatisticsViewModel> GetStatistics();

@@ -2,15 +2,16 @@ import { useState } from 'react';
 import {
     Box, Container, Typography, Tab, Tabs,
     FormControl, InputLabel, Select, MenuItem, Paper,
-    CircularProgress
+    CircularProgress, Button
 } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useModerationQueue } from '../hooks/useModerationQueue';
 import { ModerationStats } from '../components/ModerationStats';
 import { ModerationItem } from '../components/ModerationItem';
 import { ContentType, ModerationStatus } from '../types';
 
 export const ModerationDashboard = () => {
-    const { items, stats, loading, handleAction } = useModerationQueue();
+    const { items, stats, loading, handleAction, refetch } = useModerationQueue();
     const [currentTab, setCurrentTab] = useState<ModerationStatus>('pending');
     const [contentTypeFilter, setContentTypeFilter] = useState<ContentType | 'all'>('all');
 
@@ -31,7 +32,7 @@ export const ModerationDashboard = () => {
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}>
             <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" fontWeight="bold" gutterBottom>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }} gutterBottom>
                     Moderation Dashboard
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
@@ -52,7 +53,23 @@ export const ModerationDashboard = () => {
                 </Box>
 
                 <Box sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, mb: 3 }}>
+                        <Button
+                            size="small"
+                            startIcon={<RefreshIcon />}
+                            onClick={() => refetch()}
+                            sx={{
+                                fontWeight: 600,
+                                bgcolor: 'transparent',
+                                color: 'text.secondary',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: 'none',
+                                '&:hover': { bgcolor: 'action.hover', borderColor: 'text.secondary', color: 'text.primary' },
+                            }}
+                        >
+                            Refresh
+                        </Button>
                         <FormControl size="small" sx={{ minWidth: 200 }}>
                             <InputLabel>Content Type</InputLabel>
                             <Select
@@ -61,10 +78,10 @@ export const ModerationDashboard = () => {
                                 onChange={(e) => setContentTypeFilter(e.target.value as ContentType | 'all')}
                             >
                                 <MenuItem value="all">All Content</MenuItem>
-                                <MenuItem value="comment">Comments</MenuItem>
-                                <MenuItem value="report">Reports</MenuItem>
-                                <MenuItem value="user_profile">User Profiles</MenuItem>
                                 <MenuItem value="vulnerability">Vulnerabilities</MenuItem>
+                                <MenuItem value="report">Reports</MenuItem>
+                                <MenuItem value="rating">Ratings</MenuItem>
+                                <MenuItem value="comment">Comments</MenuItem>
                             </Select>
                         </FormControl>
                     </Box>

@@ -40,16 +40,21 @@ export const getUserRole = (auth: AuthContextProps): Role | null => {
 // Basic Role Checks
 // ============================================================================
 
+export const hasAnyRole = (auth: AuthContextProps, ...roles: Role[]): boolean => {
+  const userRole = getUserRole(auth);
+  return userRole !== null && roles.includes(userRole);
+};
+
 export const isAdmin = (auth: AuthContextProps): boolean => {
-  return auth.isAuthenticated && auth.user?.profile.role === Role.Admin;
+  return hasAnyRole(auth, Role.Admin);
 };
 
 export const isModerator = (auth: AuthContextProps): boolean => {
-  return auth.isAuthenticated && auth.user?.profile.role === Role.Moderator;
+  return hasAnyRole(auth, Role.Moderator);
 };
 
 export const isContributor = (auth: AuthContextProps): boolean => {
-  return auth.isAuthenticated && auth.user?.profile.role === Role.Contributor;
+  return hasAnyRole(auth, Role.Contributor);
 };
 
 // ============================================================================
@@ -61,7 +66,7 @@ export const isContributor = (auth: AuthContextProps): boolean => {
  * Used for approval/rejection actions, editing others' content, etc.
  */
 export const isAdminOrModerator = (auth: AuthContextProps): boolean => {
-  return isAdmin(auth) || isModerator(auth);
+  return hasAnyRole(auth, Role.Admin, Role.Moderator);
 };
 
 /**
@@ -69,7 +74,7 @@ export const isAdminOrModerator = (auth: AuthContextProps): boolean => {
  * Used for creating and editing own content.
  */
 export const canEdit = (auth: AuthContextProps): boolean => {
-  return isAdmin(auth) || isModerator(auth) || isContributor(auth);
+  return hasAnyRole(auth, Role.Admin, Role.Moderator, Role.Contributor);
 };
 
 /**
@@ -84,7 +89,7 @@ export const canAddReport = (auth: AuthContextProps): boolean => {
  * Check if user is authorized (any logged-in user with a valid role).
  */
 export const isAuthorized = (auth: AuthContextProps): boolean => {
-  return auth.isAuthenticated && !!auth.user?.profile.role;
+  return getUserRole(auth) !== null;
 };
 
 /**

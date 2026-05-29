@@ -381,7 +381,7 @@ export const AddVulnerability: FC = () => {
             {/* Basic Information Section */}
             <Grid size={12}>
               <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                   Basic Information
                 </Typography>
               </Box>
@@ -409,7 +409,7 @@ export const AddVulnerability: FC = () => {
             {/* Classification Section */}
             <Grid size={12}>
               <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                   Classification
                 </Typography>
               </Box>
@@ -445,20 +445,23 @@ export const AddVulnerability: FC = () => {
                     sx={{ width: '100%' }}
                   />
                 )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={index}
-                      label={(option as TagItem).name}
-                      size="small"
-                      sx={{
-                        bgcolor: (option as TagItem).bgColor,
-                        color: (option as TagItem).textColor,
-                        fontWeight: 700,
-                      }}
-                    />
-                  ))
+                renderValue={(value, getItemProps) =>
+                  value.map((option, index) => {
+                    const { key, ...itemProps } = getItemProps({ index });
+                    return (
+                      <Chip
+                        key={key}
+                        {...itemProps}
+                        label={(option as TagItem).name}
+                        size="small"
+                        sx={{
+                          bgcolor: (option as TagItem).bgColor,
+                          color: (option as TagItem).textColor,
+                          fontWeight: 700,
+                        }}
+                      />
+                    );
+                  })
                 }
               />
             </Grid>
@@ -528,7 +531,7 @@ export const AddVulnerability: FC = () => {
             </Grid>
             <Grid size={12}>
               <Box sx={{ bgcolor: 'background.default', px: 2, py: 1.5, borderRadius: 2, mb: 2, mt: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.contrastText' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                   Images (Optional). Files Container Guid: {picturesContainerGuid}
                 </Typography>
               </Box>

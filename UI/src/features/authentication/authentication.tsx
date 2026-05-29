@@ -12,6 +12,7 @@ import {
 import { useAuth } from 'react-oidc-context';
 import { environment } from './../../environments/environment';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   errorText: string;
@@ -20,6 +21,7 @@ interface Props {
 
 export const Authentication: FC<Props> = (props: Props) => {
   const auth = useAuth();
+  const { tokens } = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -203,21 +205,23 @@ export const Authentication: FC<Props> = (props: Props) => {
                     opacity: 1,
                   },
                 }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() => togglePasswordVisibility()}
-                        edge="end"
-                        sx={{
-                          color: 'black',
-                        }}
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={() => togglePasswordVisibility()}
+                          edge="end"
+                          sx={{
+                            color: 'black',
+                          }}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Box>
@@ -342,7 +346,7 @@ export const Authentication: FC<Props> = (props: Props) => {
         sx={{
           width: { xs: '100%', sm: '50%', md: '60%' },
           height: { xs: '10vh', sm: '100%' },
-          backgroundColor: '#2c2c2c',
+          background: tokens.heroBackground,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -361,8 +365,9 @@ export const Authentication: FC<Props> = (props: Props) => {
           {/* Logo */}
           <img
             src="/static/images/logo.png"
-            alt="Soroban Security Portal"
+            alt="Stellar Security Portal"
             style={{
+              filter: 'drop-shadow(0 0 28px rgba(255,216,77,0.45))',
               maxWidth: '100%',
               maxHeight: '100%',
               objectFit: 'contain',
