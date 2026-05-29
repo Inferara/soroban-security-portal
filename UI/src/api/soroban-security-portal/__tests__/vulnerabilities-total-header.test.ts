@@ -29,4 +29,23 @@ describe('getVulnerabilitiesWithTotalCall', () => {
     expect(res.items).toHaveLength(2);
     expect(res.total).toBe(57);
   });
+
+  it('falls back to items.length when the X-Total-Count header is absent', async () => {
+    mockRequest.mockResolvedValue({
+      data: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      headers: {},
+    });
+    const res = await getVulnerabilitiesWithTotalCall({ page: 1, pageSize: 10 } as any);
+    expect(res.items).toHaveLength(3);
+    expect(res.total).toBe(3);
+  });
+
+  it('guards a non-numeric X-Total-Count header to 0', async () => {
+    mockRequest.mockResolvedValue({
+      data: [{ id: 1 }],
+      headers: { 'x-total-count': 'abc' },
+    });
+    const res = await getVulnerabilitiesWithTotalCall({ page: 1, pageSize: 10 } as any);
+    expect(res.total).toBe(0);
+  });
 });
