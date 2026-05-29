@@ -900,7 +900,7 @@ Approve promotes a succeeded run into pending-review content: it creates a `Repo
             vulnProc.Verify(p => p.Add(It.Is<VulnerabilityModel>(v =>
                 v.Title == "Bug A" && v.Severity == "high" && v.ReportId == 55 && v.CreatedBy == 99)), Times.Once);
             runProc.Verify(p => p.SetProvenance(10, 55, It.Is<List<int>>(l => l.Contains(200))), Times.Once);
-            runProc.Verify(p => p.SetStatus(10, AgentRunStatus.Approved, 99), Times.Once);
+            runProc.Verify(p => p.SetStatus(10, AgentRunStatus.Approved), Times.Once);
         }
 
         [Fact]
@@ -954,7 +954,7 @@ Approve promotes a succeeded run into pending-review content: it creates a `Repo
             var svc = BuildService(runProc);
 
             (await svc.Reject(14)).Should().BeOfType<Result<bool, string>.Ok>();
-            runProc.Verify(p => p.SetStatus(14, AgentRunStatus.Rejected, 99), Times.Once);
+            runProc.Verify(p => p.SetStatus(14, AgentRunStatus.Rejected), Times.Once);
         }
 ```
 
@@ -1014,7 +1014,7 @@ Expected: FAIL — Approve/Reject throw `NotImplementedException`.
             }
 
             await _runProcessor.SetProvenance(id, reportId, createdVulnIds);
-            await _runProcessor.SetStatus(id, AgentRunStatus.Approved, loginId);
+            await _runProcessor.SetStatus(id, AgentRunStatus.Approved);
             return new Result<bool, string>.Ok(true);
         }
 
@@ -1023,8 +1023,7 @@ Expected: FAIL — Approve/Reject throw `NotImplementedException`.
             var run = await _runProcessor.Get(id);
             if (run == null)
                 return new Result<bool, string>.Err($"Agent run {id} not found.");
-            var loginId = await _userContextAccessor.GetLoginIdAsync();
-            await _runProcessor.SetStatus(id, AgentRunStatus.Rejected, loginId);
+            await _runProcessor.SetStatus(id, AgentRunStatus.Rejected);
             return new Result<bool, string>.Ok(true);
         }
 ```
