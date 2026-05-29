@@ -262,7 +262,7 @@ export const AdminMainWindow: FC = () => {
       <Main leftMenuOpen={leftMenuOpen} isTemporary={isMobile} className="mainWindowMain">
         <DrawerHeader />
         <Routes>
-          <Route path={`${environment.basePath}/admin`} element={<VulnerabilityManagement />} />
+          <Route path={`${environment.basePath}/admin`} element={<VulnerabilityManagement />} end />
 
           <Route path={`${environment.basePath}/admin/settings`} element={<Settings />} />
 

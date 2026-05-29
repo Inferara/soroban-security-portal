@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Box, Container, Typography, Tab, Tabs,
     FormControl, InputLabel, Select, MenuItem, Paper,
@@ -9,11 +9,28 @@ import { useModerationQueue } from '../hooks/useModerationQueue';
 import { ModerationStats } from '../components/ModerationStats';
 import { ModerationItem } from '../components/ModerationItem';
 import { ContentType, ModerationStatus } from '../types';
+import { useAppDispatch } from '../../../app/hooks';
+import { setCurrentPage } from '../../pages/admin/admin-main-window/current-page-slice';
 
 export const ModerationDashboard = () => {
+    const dispatch = useAppDispatch();
     const { items, stats, loading, handleAction, refetch } = useModerationQueue();
     const [currentTab, setCurrentTab] = useState<ModerationStatus>('pending');
     const [contentTypeFilter, setContentTypeFilter] = useState<ContentType | 'all'>('all');
+
+    const currentPageState = useMemo(
+        () => ({
+            pageName: 'Moderation',
+            pageCode: 'moderation',
+            pageUrl: window.location.pathname,
+            routePath: 'admin/moderation',
+        }),
+        [],
+    );
+
+    useEffect(() => {
+        dispatch(setCurrentPage(currentPageState));
+    }, [dispatch, currentPageState]);
 
     if (loading || !stats) {
         return (
