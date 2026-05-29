@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AutoMapper;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Data.Processors;
@@ -9,8 +10,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
     public class AgentRunService : IAgentRunService
     {
-        private static readonly JsonSerializerOptions JsonOpts =
-            new(JsonSerializerDefaults.Web);
+        private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web)
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
 
         private readonly IMapper _mapper;
         private readonly IAgentRunProcessor _runProcessor;

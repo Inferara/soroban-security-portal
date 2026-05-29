@@ -280,5 +280,23 @@ namespace SorobanSecurityPortalApi.Tests.Services
             (await svc.Reject(21)).Should().BeOfType<Result<bool, string>.Ok>();
             runProc.Verify(p => p.SetStatus(21, AgentRunStatus.Rejected), Times.Once);
         }
+
+        [Fact]
+        public async Task Get_Parses_String_Category_And_Severity_In_Findings()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(30)).ReturnsAsync(new AgentRunModel
+            {
+                Id = 30, Status = AgentRunStatus.Succeeded,
+                FindingsJson = "[{\"Title\":\"X\",\"Severity\":\"medium\",\"Tags\":[],\"Category\":\"ValidNotFixed\"}]"
+            });
+            var svc = BuildService(runProc);
+
+            var vm = await svc.Get(30);
+
+            vm!.Findings.Should().ContainSingle();
+            vm.Findings[0].Category.Should().Be(VulnerabilityCategory.ValidNotFixed);
+            vm.Findings[0].Severity.Should().Be("medium");
+        }
     }
 }
