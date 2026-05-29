@@ -337,5 +337,23 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             (await svc.Get(42))!.FindingsUnparseable.Should().BeFalse();
         }
+
+        [Fact]
+        public async Task Get_Returns_Report_Metadata()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(60)).ReturnsAsync(new AgentRunModel
+            {
+                Id = 60, Status = AgentRunStatus.Succeeded,
+                ReportTitle = "Rozo Audit", ProtocolName = "Rozo", AuditorName = "Hacken"
+            });
+            var svc = BuildService(runProc);
+
+            var vm = await svc.Get(60);
+
+            vm!.ReportTitle.Should().Be("Rozo Audit");
+            vm.ProtocolName.Should().Be("Rozo");
+            vm.AuditorName.Should().Be("Hacken");
+        }
     }
 }

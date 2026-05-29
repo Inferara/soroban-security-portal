@@ -43,6 +43,10 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string Transcript { get; set; } = "";
         public List<int>? CreatedVulnerabilityIds { get; set; }
         public bool FindingsUnparseable { get; set; }
+        public string ReportTitle { get; set; } = "";
+        public string ProtocolName { get; set; } = "";
+        public string AuditorName { get; set; } = "";
+        public DateTime? ReportDate { get; set; }
     }
 
     // Worker→backend submit payload (mirrors AgentRunResult).
@@ -55,5 +59,9 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public int? TokensUsed { get; set; }
         public long? DurationMs { get; set; }
         public string? Error { get; set; }
+        public string? ReportTitle { get; set; }
+        public string? ProtocolName { get; set; }
+        public string? AuditorName { get; set; }
+        public DateTime? ReportDate { get; set; }
     }
 }

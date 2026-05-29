@@ -85,6 +85,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
             run.Error = result.Error ?? "";
             run.TokensUsed = result.TokensUsed;
             run.DurationMs = result.DurationMs;
+            run.ReportTitle = result.ReportTitle ?? "";
+            run.ProtocolName = result.ProtocolName ?? "";
+            run.AuditorName = result.AuditorName ?? "";
+            run.ReportDate = result.ReportDate;
             run.FinishedAt = DateTime.UtcNow;
             db.AgentRun.Update(run);
             await db.SaveChangesAsync();

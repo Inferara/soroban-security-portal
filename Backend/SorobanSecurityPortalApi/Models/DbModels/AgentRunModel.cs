@@ -17,6 +17,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public ReportModel? Report { get; set; }
         public string Model { get; set; } = "";
         public string PromptVersion { get; set; } = "";
+        public string ReportTitle { get; set; } = "";
+        public string ProtocolName { get; set; } = "";
+        public string AuditorName { get; set; } = "";
+        public DateTime? ReportDate { get; set; }
 
         // Output (heavy text — excluded from list projection)
         public string ArticleMarkdown { get; set; } = "";
@@ -68,5 +72,9 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public int? TokensUsed { get; set; }
         public long? DurationMs { get; set; }
         public string? Error { get; set; }
+        public string? ReportTitle { get; set; }
+        public string? ProtocolName { get; set; }
+        public string? AuditorName { get; set; }
+        public DateTime? ReportDate { get; set; }
     }
 }

@@ -169,6 +169,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 TokensUsed = result.TokensUsed,
                 DurationMs = result.DurationMs,
                 Error = result.Error,
+                ReportTitle = result.ReportTitle,
+                ProtocolName = result.ProtocolName,
+                AuditorName = result.AuditorName,
+                ReportDate = result.ReportDate,
             });
             return new Result<bool, string>.Ok(true);
         }

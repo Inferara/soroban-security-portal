@@ -149,5 +149,24 @@ namespace SorobanSecurityPortalApi.Tests.Data
             list.Single().CreatedReportId.Should().Be(55);
             list.Single().CreatedVulnerabilityIds.Should().BeEquivalentTo(new[] { 200, 201 });
         }
+
+        [Fact]
+        public async Task SubmitResult_Stores_Report_Metadata()
+        {
+            var list = new List<AgentRunModel> { new() { Id = 50, Status = AgentRunStatus.Processing } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.SubmitResult(50, new AgentRunResult
+            {
+                Success = true, ReportTitle = "Rozo Audit", ProtocolName = "Rozo",
+                AuditorName = "Hacken", ReportDate = new DateTime(2026, 4, 13, 0, 0, 0, DateTimeKind.Utc)
+            });
+
+            var run = list.Single();
+            run.ReportTitle.Should().Be("Rozo Audit");
+            run.ProtocolName.Should().Be("Rozo");
+            run.AuditorName.Should().Be("Hacken");
+            run.ReportDate.Should().Be(new DateTime(2026, 4, 13, 0, 0, 0, DateTimeKind.Utc));
+        }
     }
 }
