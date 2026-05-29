@@ -186,6 +186,16 @@ edit/detail, hooks, MUI):
 - Reuses existing `Report` / `Vulnerability` entities, moderation, `MarkdownView`,
   Helm chart, embeddings background job, and role authorization.
 
+## Follow-ups carried into later phases (from Plan 1 review)
+- **Plan 2 (admin UI):** the run detail card must visually distinguish "0 findings parsed"
+  from "findings JSON was unparseable" — `ParseFindings` returns an empty list in both
+  cases (it swallows malformed JSON by design). Surface a warning when `FindingsJson` is
+  non-empty but parsed to zero findings, so a garbled agent output isn't mistaken for a
+  clean no-findings run.
+- **Plan 3 (worker contract):** `findings.json` `Category`/`Severity` — the backend now
+  accepts both numeric and string enum forms for `Category` (string-enum converter added),
+  but the worker's prompt/schema should still pin a single canonical form.
+
 ## Open questions for later phases
 - Automatic discovery source (Airtable was dropped in favor of a future in-product
   registry + CSV import) — revisit after the Georgy discussion.
