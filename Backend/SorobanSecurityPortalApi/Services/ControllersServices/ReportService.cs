@@ -158,6 +158,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 catch
                 {
                     result.Failed++;
+                    result.FailedIds.Add(id);
                 }
             }
             return result;

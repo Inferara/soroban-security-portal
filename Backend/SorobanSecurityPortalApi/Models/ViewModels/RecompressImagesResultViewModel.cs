@@ -7,5 +7,6 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public int Failed { get; set; }
         public long BytesBefore { get; set; }
         public long BytesAfter { get; set; }
+        public List<int> FailedIds { get; set; } = new();
     }
 }
