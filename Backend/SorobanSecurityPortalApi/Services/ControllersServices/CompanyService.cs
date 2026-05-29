@@ -3,6 +3,7 @@ using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Caching;
 
 namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
@@ -11,19 +12,23 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IMapper _mapper;
         private readonly ICompanyProcessor _companyProcessor;
         private readonly UserContextAccessor _userContextAccessor;
+        private readonly ILookupCache _lookupCache;
 
         public CompanyService(
             IMapper mapper,
             ICompanyProcessor companyProcessor,
-            UserContextAccessor userContextAccessor)
+            UserContextAccessor userContextAccessor,
+            ILookupCache lookupCache)
         {
             _mapper = mapper;
             _companyProcessor = companyProcessor;
             _userContextAccessor = userContextAccessor;
+            _lookupCache = lookupCache;
         }
 
         public async Task<CompanyViewModel> Add(CompanyViewModel companyViewModel)
         {
+            _lookupCache.Remove(LookupCacheKeys.Companies);
             var companyModel = _mapper.Map<CompanyModel>(companyViewModel);
             companyModel.CreatedBy = await _userContextAccessor.GetLoginIdAsync();
             companyModel.Date = DateTime.UtcNow;
@@ -31,10 +36,17 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<CompanyViewModel>(companyModel);
         }
 
+        // Returns a shared cached instance — callers must treat the result as read-only (do not mutate items).
         public async Task<List<CompanyViewModel>> List()
         {
-            var companies = await _companyProcessor.List();
-            return _mapper.Map<List<CompanyViewModel>>(companies);
+            return await _lookupCache.GetOrCreateAsync(LookupCacheKeys.Companies, async () =>
+            {
+                var companies = await _companyProcessor.List();
+                var result = _mapper.Map<List<CompanyViewModel>>(companies);
+                // Image bytes are served by /companies/{id}/image.png; do not inline them in the bulk list.
+                foreach (var c in result) c.ImageData = null;
+                return result;
+            });
         }
 
         public async Task<CompanyModel?> GetById(int id)
@@ -44,11 +56,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task Delete(int id)
         {
+            _lookupCache.Remove(LookupCacheKeys.Companies);
             await _companyProcessor.Delete(id);
         }
 
         public async Task<Result<CompanyViewModel, string>> Update(CompanyViewModel companyViewModel)
         {
+            _lookupCache.Remove(LookupCacheKeys.Companies);
             var companyModel = _mapper.Map<CompanyModel>(companyViewModel);
             var loginId = await _userContextAccessor.GetLoginIdAsync();
             if (!await CanUpdateCompany(companyModel, loginId))
