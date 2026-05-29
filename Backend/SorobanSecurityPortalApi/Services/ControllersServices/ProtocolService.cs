@@ -36,6 +36,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ProtocolViewModel>(protocolModel);
         }
 
+        // Returns a shared cached instance — callers must treat the result as read-only (do not mutate items).
         public async Task<List<ProtocolViewModel>> List()
         {
             return await _lookupCache.GetOrCreateAsync(LookupCacheKeys.Protocols, async () =>
