@@ -1,4 +1,4 @@
-name: Deploy Soroban Security Portal
+name: Deploy Stellar Security Portal
 
 on:
   workflow_dispatch:
