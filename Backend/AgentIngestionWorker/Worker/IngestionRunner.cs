@@ -43,7 +43,7 @@ public sealed class IngestionRunner
         try
         {
             var prompt = await _prompt.BuildAsync(run, ct);
-            var result = await _runner.RunAsync(prompt, ct);
+            var result = await _runner.RunAsync(prompt, seedFiles: null, onProgress: null, ct);
             submit = MapToSubmit(result);
         }
         catch (Exception ex)

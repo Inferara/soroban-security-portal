@@ -11,6 +11,7 @@ public sealed class ProcessSpec
     public Dictionary<string, string> Env { get; init; } = new();
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(7);
     public TimeSpan StallTimeout { get; init; } = TimeSpan.FromSeconds(90);
+    public Action<string>? OnStdoutLine { get; init; }
 }
 
 public sealed class ProcessResult
@@ -95,6 +96,7 @@ public sealed class RealProcessRunner : IProcessRunner
             {
                 stdout.AppendLine(line);
                 lastOutput = DateTime.UtcNow;
+                try { spec.OnStdoutLine?.Invoke(line); } catch { /* handler exception must not break the loop */ }
             }
             await process.WaitForExitAsync(timeoutCts.Token);
         }

@@ -70,7 +70,7 @@ public class IngestionRunnerTests
         result.Should().BeFalse();
         api.Verify(a => a.SubmitAsync(It.IsAny<int>(), It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        runner.Verify(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+        runner.Verify(r => r.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SeedFile>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -97,7 +97,7 @@ public class IngestionRunnerTests
            .Returns(Task.CompletedTask);
 
         var runner = new Mock<IOpenCodeRunner>();
-        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SeedFile>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
               .ReturnsAsync(SuccessResult(resultJson, "# A"));
 
         SubmitResultDto? captured = null;
@@ -138,7 +138,7 @@ public class IngestionRunnerTests
            .Returns(Task.CompletedTask);
 
         var runner = new Mock<IOpenCodeRunner>();
-        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SeedFile>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
               .ReturnsAsync(new OpenCodeResult { Success = false, Error = "timeout", DurationMs = 9000 });
 
         var sut = BuildRunner(api, runner);
@@ -165,7 +165,7 @@ public class IngestionRunnerTests
            .Returns(Task.CompletedTask);
 
         var runner = new Mock<IOpenCodeRunner>();
-        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SeedFile>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
               .ReturnsAsync(SuccessResult("{not json", "# Broken"));
 
         var sut = BuildRunner(api, runner);
@@ -193,7 +193,7 @@ public class IngestionRunnerTests
            .Returns(Task.CompletedTask);
 
         var runner = new Mock<IOpenCodeRunner>();
-        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SeedFile>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
               .ThrowsAsync(new InvalidOperationException("network error"));
 
         var sut = BuildRunner(api, runner);
