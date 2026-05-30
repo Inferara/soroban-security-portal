@@ -1,18 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Box, Container, Typography, Tab, Tabs,
     FormControl, InputLabel, Select, MenuItem, Paper,
     CircularProgress, Button
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { useAppDispatch } from '../../../app/hooks';
+import { setCurrentPage } from '../../pages/admin/admin-main-window/current-page-slice';
 import { useModerationQueue } from '../hooks/useModerationQueue';
 import { ModerationStats } from '../components/ModerationStats';
 import { ModerationItem } from '../components/ModerationItem';
 import { ContentType, ModerationStatus } from '../types';
 
 export const ModerationDashboard = () => {
+    const dispatch = useAppDispatch();
     const { items, stats, loading, handleAction, refetch } = useModerationQueue();
     const [currentTab, setCurrentTab] = useState<ModerationStatus>('pending');
+
+    useEffect(() => {
+        dispatch(setCurrentPage({
+            pageName: 'Moderation',
+            pageCode: 'moderation',
+            pageUrl: window.location.pathname,
+            routePath: 'moderation',
+        }));
+    }, []);
     const [contentTypeFilter, setContentTypeFilter] = useState<ContentType | 'all'>('all');
 
     if (loading || !stats) {
