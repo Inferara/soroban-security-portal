@@ -1,7 +1,10 @@
+using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Extensions;
+using SorobanSecurityPortalApi.Common.Security;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.ViewModels;
@@ -18,12 +21,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             Converters = { new JsonStringEnumConverter() }
         };
 
+        private const long MaxPdfSizeBytes = 50L * 1024 * 1024;
+
         private readonly IMapper _mapper;
         private readonly IAgentRunProcessor _runProcessor;
         private readonly IReportProcessor _reportProcessor;
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
         private readonly IProtocolProcessor _protocolProcessor;
         private readonly IAuditorProcessor _auditorProcessor;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IUserContextAccessor _userContextAccessor;
 
         public AgentRunService(
@@ -33,6 +39,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IVulnerabilityProcessor vulnerabilityProcessor,
             IProtocolProcessor protocolProcessor,
             IAuditorProcessor auditorProcessor,
+            IHttpClientFactory httpClientFactory,
             IUserContextAccessor userContextAccessor)
         {
             _mapper = mapper;
@@ -41,6 +48,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _protocolProcessor = protocolProcessor;
             _auditorProcessor = auditorProcessor;
+            _httpClientFactory = httpClientFactory;
             _userContextAccessor = userContextAccessor;
         }
 
@@ -113,12 +121,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var protocolId = await ResolveProtocolId(payload.ProtocolName, loginId);
                 var name = !string.IsNullOrWhiteSpace(payload.ReportTitle) ? payload.ReportTitle
                     : (!string.IsNullOrWhiteSpace(run.SourceUrl) ? run.SourceUrl : $"Agent run {run.Id}");
+                var pdf = await TryFetchReportPdf(payload.ReportPdfUrl);
                 var report = await _reportProcessor.Add(new ReportModel
                 {
                     Name = name,
                     Date = payload.ReportDate ?? DateTime.UtcNow,
                     Status = ReportModelStatus.New,
                     MdFile = payload.ArticleMarkdown,
+                    BinFile = pdf,
                     ProtocolId = protocolId,
                     AuditorId = auditorId,
                     CreatedBy = loginId,
@@ -150,6 +160,32 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _runProcessor.SetProvenance(id, reportId, createdVulnIds);
             await _runProcessor.SetStatus(id, AgentRunStatus.Approved);
             return new Result<bool, string>.Ok(true);
+        }
+
+        private async Task<byte[]?> TryFetchReportPdf(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return null;
+            if (!UrlValidator.IsUrlSafeForFetch(url, out _)) return null;
+            try
+            {
+                var http = _httpClientFactory.CreateClient(HttpClients.ReportFetchClient);
+                using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                if (!resp.IsSuccessStatusCode) return null;
+                if (resp.Content.Headers.ContentLength is > MaxPdfSizeBytes) return null;
+                await using var stream = await resp.Content.ReadAsStreamAsync();
+                using var ms = new MemoryStream();
+                var buffer = new byte[8192];
+                long total = 0; int read;
+                while ((read = await stream.ReadAsync(buffer)) > 0)
+                {
+                    total += read;
+                    if (total > MaxPdfSizeBytes) return null;
+                    await ms.WriteAsync(buffer.AsMemory(0, read));
+                }
+                var bytes = ms.ToArray();
+                return bytes.IsPdf() ? bytes : null;
+            }
+            catch { return null; } // never fail approve on a bad PDF url
         }
 
         private async Task<int?> ResolveAuditorId(string? name, int loginId)
@@ -237,6 +273,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 ProtocolName = result.ProtocolName,
                 AuditorName = result.AuditorName,
                 ReportDate = result.ReportDate,
+                ReportPdfUrl = result.ReportPdfUrl,
             });
             return new Result<bool, string>.Ok(true);
         }

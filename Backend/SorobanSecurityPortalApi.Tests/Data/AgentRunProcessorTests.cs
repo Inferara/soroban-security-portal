@@ -196,5 +196,20 @@ namespace SorobanSecurityPortalApi.Tests.Data
 
             list.Single().Transcript.Should().Be("step 1\nstep 2");
         }
+
+        [Fact]
+        public async Task SubmitResult_Stores_ReportPdfUrl()
+        {
+            var list = new List<AgentRunModel> { new() { Id = 52, Status = AgentRunStatus.Processing } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.SubmitResult(52, new AgentRunResult
+            {
+                Success = true,
+                ReportPdfUrl = "https://example.com/report.pdf"
+            });
+
+            list.Single().ReportPdfUrl.Should().Be("https://example.com/report.pdf");
+        }
     }
 }

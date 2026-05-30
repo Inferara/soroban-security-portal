@@ -29,6 +29,9 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string Transcript { get; set; } = "";
         public string Error { get; set; } = "";
 
+        // Input (continued)
+        public string ReportPdfUrl { get; set; } = "";
+
         // Meta
         public int? TokensUsed { get; set; }
         public long? DurationMs { get; set; }
@@ -76,5 +79,6 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public string? ProtocolName { get; set; }
         public string? AuditorName { get; set; }
         public DateTime? ReportDate { get; set; }
+        public string? ReportPdfUrl { get; set; }
     }
 }

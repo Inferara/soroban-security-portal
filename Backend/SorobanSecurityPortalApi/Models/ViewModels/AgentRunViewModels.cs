@@ -47,6 +47,7 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string ProtocolName { get; set; } = "";
         public string AuditorName { get; set; } = "";
         public DateTime? ReportDate { get; set; }
+        public string ReportPdfUrl { get; set; } = "";
     }
 
     public class ApproveAgentRunViewModel
@@ -57,6 +58,7 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public DateTime? ReportDate { get; set; }
         public string ArticleMarkdown { get; set; } = "";
         public List<AgentFinding> Findings { get; set; } = new();
+        public string ReportPdfUrl { get; set; } = "";
     }
 
     public class AgentExampleArticle { public string Title { get; set; } = ""; public string Markdown { get; set; } = ""; }
@@ -87,5 +89,6 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string? ProtocolName { get; set; }
         public string? AuditorName { get; set; }
         public DateTime? ReportDate { get; set; }
+        public string? ReportPdfUrl { get; set; }
     }
 }

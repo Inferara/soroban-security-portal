@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FluentAssertions;
@@ -27,7 +29,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
             Mock<IReportProcessor>? reportProc = null,
             Mock<IVulnerabilityProcessor>? vulnProc = null,
             Mock<IProtocolProcessor>? protocolProc = null,
-            Mock<IAuditorProcessor>? auditorProc = null)
+            Mock<IAuditorProcessor>? auditorProc = null,
+            Mock<IHttpClientFactory>? httpFactory = null)
         {
             var userCtx = new Mock<IUserContextAccessor>();
             userCtx.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(99);
@@ -38,7 +41,25 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 (vulnProc ?? new Mock<IVulnerabilityProcessor>()).Object,
                 (protocolProc ?? new Mock<IProtocolProcessor>()).Object,
                 (auditorProc ?? new Mock<IAuditorProcessor>()).Object,
+                (httpFactory ?? new Mock<IHttpClientFactory>()).Object,
                 userCtx.Object);
+        }
+
+        private static Mock<IHttpClientFactory> HttpFactoryReturning(byte[] body)
+        {
+            var handler = new StubHandler(body);
+            var client = new HttpClient(handler);
+            var f = new Mock<IHttpClientFactory>();
+            f.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
+            return f;
+        }
+
+        private sealed class StubHandler : HttpMessageHandler
+        {
+            private readonly byte[] _body;
+            public StubHandler(byte[] body) { _body = body; }
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+                => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(_body) });
         }
 
         [Fact]
@@ -464,6 +485,97 @@ namespace SorobanSecurityPortalApi.Tests.Services
             vm!.ReportTitle.Should().Be("Rozo Audit");
             vm.ProtocolName.Should().Be("Rozo");
             vm.AuditorName.Should().Be("Hacken");
+        }
+
+        [Fact]
+        public async Task Approve_With_Valid_PdfUrl_Sets_BinFile()
+        {
+            var pdfBytes = System.Text.Encoding.ASCII.GetBytes("%PDF-1.4\n%test");
+            var httpFactory = HttpFactoryReturning(pdfBytes);
+
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(70)).ReturnsAsync(new AgentRunModel { Id = 70, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 100; return r; });
+            var protoProc = new Mock<IProtocolProcessor>();
+            protoProc.Setup(p => p.List()).ReturnsAsync(new List<ProtocolModel>());
+            protoProc.Setup(p => p.Add(It.IsAny<ProtocolModel>())).ReturnsAsync((ProtocolModel p) => { p.Id = 1; return p; });
+            var audProc = new Mock<IAuditorProcessor>();
+            audProc.Setup(a => a.List()).ReturnsAsync(new List<AuditorModel>());
+            audProc.Setup(a => a.Add(It.IsAny<AuditorModel>())).ReturnsAsync((AuditorModel a) => { a.Id = 2; return a; });
+            var svc = BuildService(runProc, reportProc, null, protoProc, audProc, httpFactory);
+
+            var payload = new ApproveAgentRunViewModel
+            {
+                ReportTitle = "Pdf Audit", ProtocolName = "Proto", AuditorName = "Aud",
+                ArticleMarkdown = "<article>", Findings = new(),
+                ReportPdfUrl = "https://example.com/r.pdf"
+            };
+            var result = await svc.Approve(70, payload);
+
+            result.Should().BeOfType<Result<bool, string>.Ok>();
+            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r =>
+                r.BinFile != null && r.BinFile.Length > 0 && r.MdFile == "<article>")), Times.Once);
+        }
+
+        [Fact]
+        public async Task Approve_With_NonPdf_Url_Leaves_BinFile_Null_But_Succeeds()
+        {
+            var nonPdfBytes = System.Text.Encoding.ASCII.GetBytes("<html>not a pdf</html>");
+            var httpFactory = HttpFactoryReturning(nonPdfBytes);
+
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(71)).ReturnsAsync(new AgentRunModel { Id = 71, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 101; return r; });
+            var protoProc = new Mock<IProtocolProcessor>();
+            protoProc.Setup(p => p.List()).ReturnsAsync(new List<ProtocolModel>());
+            protoProc.Setup(p => p.Add(It.IsAny<ProtocolModel>())).ReturnsAsync((ProtocolModel p) => { p.Id = 1; return p; });
+            var audProc = new Mock<IAuditorProcessor>();
+            audProc.Setup(a => a.List()).ReturnsAsync(new List<AuditorModel>());
+            audProc.Setup(a => a.Add(It.IsAny<AuditorModel>())).ReturnsAsync((AuditorModel a) => { a.Id = 2; return a; });
+            var svc = BuildService(runProc, reportProc, null, protoProc, audProc, httpFactory);
+
+            var payload = new ApproveAgentRunViewModel
+            {
+                ReportTitle = "Html Audit", ProtocolName = "Proto", AuditorName = "Aud",
+                ArticleMarkdown = "# Art", Findings = new(),
+                ReportPdfUrl = "https://example.com/notpdf.html"
+            };
+            var result = await svc.Approve(71, payload);
+
+            result.Should().BeOfType<Result<bool, string>.Ok>();
+            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.BinFile == null)), Times.Once);
+        }
+
+        [Fact]
+        public async Task Approve_With_Blank_PdfUrl_No_Fetch()
+        {
+            var httpFactory = new Mock<IHttpClientFactory>();
+
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(72)).ReturnsAsync(new AgentRunModel { Id = 72, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 102; return r; });
+            var protoProc = new Mock<IProtocolProcessor>();
+            protoProc.Setup(p => p.List()).ReturnsAsync(new List<ProtocolModel>());
+            protoProc.Setup(p => p.Add(It.IsAny<ProtocolModel>())).ReturnsAsync((ProtocolModel p) => { p.Id = 1; return p; });
+            var audProc = new Mock<IAuditorProcessor>();
+            audProc.Setup(a => a.List()).ReturnsAsync(new List<AuditorModel>());
+            audProc.Setup(a => a.Add(It.IsAny<AuditorModel>())).ReturnsAsync((AuditorModel a) => { a.Id = 2; return a; });
+            var svc = BuildService(runProc, reportProc, null, protoProc, audProc, httpFactory);
+
+            var payload = new ApproveAgentRunViewModel
+            {
+                ReportTitle = "Blank Url Audit", ProtocolName = "Proto", AuditorName = "Aud",
+                ArticleMarkdown = "# Art", Findings = new(),
+                ReportPdfUrl = ""
+            };
+            var result = await svc.Approve(72, payload);
+
+            result.Should().BeOfType<Result<bool, string>.Ok>();
+            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.BinFile == null)), Times.Once);
+            httpFactory.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
         }
     }
 }

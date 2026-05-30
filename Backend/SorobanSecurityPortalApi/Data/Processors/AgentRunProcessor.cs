@@ -96,6 +96,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     ? DateTime.SpecifyKind(result.ReportDate.Value, DateTimeKind.Utc)
                     : result.ReportDate.Value.ToUniversalTime())
                 : null;
+            run.ReportPdfUrl = result.ReportPdfUrl ?? "";
             run.FinishedAt = DateTime.UtcNow;
             db.AgentRun.Update(run);
             await db.SaveChangesAsync();
