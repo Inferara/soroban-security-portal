@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { 
-  getSeveritiesCall, 
-  getTagsCall, 
-  getProtocolListDataCall, 
+import {
+  getSeveritiesCall,
+  getTagsCall,
+  getProtocolListDataCall,
   getAuditorListDataCall,
-  getSourceCall, 
-  getVulnerabilitiesCall,
+  getSourceCall,
   getReportListDataCall,
   getCompanyListDataCall,
-  getVulnerabilitiesTotalCall
+  getVulnerabilitiesWithTotalCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppDispatch } from '../../../../../app/hooks';
 import { 
@@ -85,15 +84,10 @@ export const useVulnerabilities = () => {
     // This page lazy-loads each description on card expand, so keep the list payload light.
     vulnerabilitySearch.includeDescription = false;
     setIsLoadingInitial(true);
-    const response = await getVulnerabilitiesCall(vulnerabilitySearch);
-    setVulnerabilitiesList(response);
-    await getTotalItems(vulnerabilitySearch);
+    const response = await getVulnerabilitiesWithTotalCall(vulnerabilitySearch);
+    setVulnerabilitiesList(response.items);
+    setTotalItems(response.total);
     setIsLoadingInitial(false);
-  };
-
-  const getTotalItems = async (vulnerabilitySearch?: VulnerabilitySearch): Promise<void> => {
-    const response = await getVulnerabilitiesTotalCall(vulnerabilitySearch);
-    setTotalItems(response);
   };
 
   const getReports = async (): Promise<void> => {
