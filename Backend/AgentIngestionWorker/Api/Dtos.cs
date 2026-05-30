@@ -21,3 +21,30 @@ public sealed class SubmitResultDto
     public string? AuditorName { get; set; }
     public DateTime? ReportDate { get; set; }
 }
+
+public sealed class AgentExampleArticleDto
+{
+    public string Title { get; set; } = "";
+    public string Markdown { get; set; } = "";
+}
+
+public sealed class AgentExampleVulnDto
+{
+    public string Title { get; set; } = "";
+    public string Severity { get; set; } = "";
+    public int Category { get; set; }
+    public List<string> Tags { get; set; } = new();
+    public string Description { get; set; } = "";
+}
+
+public sealed class AgentExamplesDto
+{
+    public List<AgentExampleArticleDto> Articles { get; set; } = new();
+    public List<AgentExampleVulnDto> Vulnerabilities { get; set; } = new();
+    public List<string> ExistingFindingTitles { get; set; } = new();
+}
+
+public sealed class AgentProgressDto
+{
+    public string? Transcript { get; set; }
+}

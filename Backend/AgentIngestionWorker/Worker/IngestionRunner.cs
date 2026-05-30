@@ -39,11 +39,27 @@ public sealed class IngestionRunner
         var run = await _api.ClaimNextAsync(ct);
         if (run == null) return false;
 
+        AgentExamplesDto examples;
+        try
+        {
+            examples = await _api.GetExamplesAsync(ct);
+        }
+        catch
+        {
+            examples = new AgentExamplesDto();
+        }
+
         SubmitResultDto submit;
         try
         {
-            var prompt = await _prompt.BuildAsync(run, ct);
-            var result = await _runner.RunAsync(prompt, seedFiles: null, onProgress: null, ct);
+            var build = await _prompt.BuildAsync(run, examples, ct);
+
+            Action<string> onProgress = transcript =>
+            {
+                try { _ = _api.ProgressAsync(run.Id, transcript, ct); } catch { /* best effort */ }
+            };
+
+            var result = await _runner.RunAsync(build.PromptText, build.SeedFiles, onProgress, ct);
             submit = MapToSubmit(result);
         }
         catch (Exception ex)

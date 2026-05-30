@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using AgentIngestionWorker.Api;
 using AgentIngestionWorker.Pdf;
 using AgentIngestionWorker.Worker;
@@ -27,8 +28,31 @@ public class IngestionPromptTests
 
     private static ClaimedRun MakeRun(string url) => new() { Id = 1, SourceUrl = url, Model = "test" };
 
+    private static AgentExamplesDto EmptyExamples() => new();
+
+    private static AgentExamplesDto RichExamples() => new()
+    {
+        Articles = new()
+        {
+            new AgentExampleArticleDto { Title = "My First Audit", Markdown = "# My First Audit\ncontent" },
+            new AgentExampleArticleDto { Title = "Second Report Here", Markdown = "# Second Report\ncontent2" },
+        },
+        Vulnerabilities = new()
+        {
+            new AgentExampleVulnDto
+            {
+                Title = "Reentrancy Attack",
+                Severity = "high",
+                Category = 0,
+                Tags = new List<string> { "defi", "reentrancy" },
+                Description = "Reentrancy vulnerability."
+            },
+        },
+        ExistingFindingTitles = new() { "Old Finding One", "Old Finding Two" },
+    };
+
     // -------------------------------------------------------------------------
-    // NonPdf_Url_PromptContainsUrl_NoDownload
+    // NonPdf_Url_PromptContainsUrl_NoDownload (empty examples)
     // -------------------------------------------------------------------------
     [Fact]
     public async Task NonPdf_Url_PromptContainsUrl_NoDownload()
@@ -39,21 +63,23 @@ public class IngestionPromptTests
         var http = new HttpClient(handler);
 
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var prompt = await sut.BuildAsync(MakeRun(url), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
 
         // Prompt must contain the URL
-        prompt.Should().Contain(url);
+        build.PromptText.Should().Contain(url);
         // Schema must be present in both branches
-        prompt.Should().Contain("result.json");
-        prompt.Should().Contain("findings");
+        build.PromptText.Should().Contain("result.json");
+        build.PromptText.Should().Contain("findings");
         // No HTTP call should have been made
         handler.RequestCount.Should().Be(0);
         // Extractor must never have been called
         extractorMock.Verify(e => e.ExtractText(It.IsAny<byte[]>()), Times.Never);
+        // Empty examples → no seed files
+        build.SeedFiles.Should().BeEmpty();
     }
 
     // -------------------------------------------------------------------------
-    // Pdf_Url_DownloadsAndEmbedsExtractedText
+    // Pdf_Url_DownloadsAndEmbedsExtractedText (empty examples)
     // -------------------------------------------------------------------------
     [Fact]
     public async Task Pdf_Url_DownloadsAndEmbedsExtractedText()
@@ -67,19 +93,21 @@ public class IngestionPromptTests
 
         var http = MakeHttpClient(pdfBytes);
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var prompt = await sut.BuildAsync(MakeRun(url), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
 
         // Must embed the extracted text
-        prompt.Should().Contain(extractedText);
+        build.PromptText.Should().Contain(extractedText);
         // Must NOT instruct the agent to fetch the PDF URL
-        prompt.Should().NotContain($"Fetch and read the audit report at: {url}");
+        build.PromptText.Should().NotContain($"Fetch and read the audit report at: {url}");
         // Must tell the agent NOT to fetch a URL
-        prompt.Should().Contain("Do NOT fetch any URL");
+        build.PromptText.Should().Contain("Do NOT fetch any URL");
         // Schema must be present
-        prompt.Should().Contain("result.json");
-        prompt.Should().Contain("findings");
+        build.PromptText.Should().Contain("result.json");
+        build.PromptText.Should().Contain("findings");
         // Extractor was called once
         extractorMock.Verify(e => e.ExtractText(It.IsAny<byte[]>()), Times.Once);
+        // Empty examples → no seed files
+        build.SeedFiles.Should().BeEmpty();
     }
 
     // -------------------------------------------------------------------------
@@ -96,11 +124,11 @@ public class IngestionPromptTests
 
         var http = MakeHttpClient(new byte[] { 0x25, 0x50, 0x44, 0x46 });
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var prompt = await sut.BuildAsync(MakeRun(url), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
 
         // Should have gone through PDF path
-        prompt.Should().Contain(extractedText);
-        prompt.Should().Contain("Do NOT fetch any URL");
+        build.PromptText.Should().Contain(extractedText);
+        build.PromptText.Should().Contain("Do NOT fetch any URL");
     }
 
     // -------------------------------------------------------------------------
@@ -116,14 +144,14 @@ public class IngestionPromptTests
 
         var http = MakeHttpClient(new byte[] { 0x25, 0x50, 0x44, 0x46 });
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var prompt = await sut.BuildAsync(MakeRun(url), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
 
         // Should fall back to URL-based prompt
-        prompt.Should().Contain(url);
-        prompt.Should().NotContain("Do NOT fetch any URL");
+        build.PromptText.Should().Contain(url);
+        build.PromptText.Should().NotContain("Do NOT fetch any URL");
         // Schema still present
-        prompt.Should().Contain("result.json");
-        prompt.Should().Contain("findings");
+        build.PromptText.Should().Contain("result.json");
+        build.PromptText.Should().Contain("findings");
     }
 
     // -------------------------------------------------------------------------
@@ -157,11 +185,128 @@ public class IngestionPromptTests
 
         var http = MakeHttpClient(new byte[] { 1, 2, 3 });
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var prompt = await sut.BuildAsync(MakeRun(url), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
 
-        prompt.Should().Contain("result.json");
-        prompt.Should().Contain("findings");
-        prompt.Should().Contain("article.md");
+        build.PromptText.Should().Contain("result.json");
+        build.PromptText.Should().Contain("findings");
+        build.PromptText.Should().Contain("article.md");
+    }
+
+    // -------------------------------------------------------------------------
+    // RichExamples_SeedFilesBuiltCorrectly
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task RichExamples_SeedFilesBuiltCorrectly()
+    {
+        const string url = "https://x/report";
+        var extractorMock = new Mock<IPdfTextExtractor>();
+        var http = MakeHttpClient();
+        var sut = new IngestionPrompt(http, extractorMock.Object);
+
+        var build = await sut.BuildAsync(MakeRun(url), RichExamples(), CancellationToken.None);
+
+        // Two articles + vulnerabilities.json + existing-finding-titles.txt = 4 seed files
+        build.SeedFiles.Should().HaveCount(4);
+
+        // Articles indexed with 2-digit prefix and slugified title
+        build.SeedFiles.Should().Contain(sf => sf.RelativePath == "examples/articles/00-my-first-audit.md");
+        build.SeedFiles.Should().Contain(sf => sf.RelativePath == "examples/articles/01-second-report-here.md");
+
+        // Article content preserved
+        var art0 = build.SeedFiles.First(sf => sf.RelativePath == "examples/articles/00-my-first-audit.md");
+        art0.Content.Should().Be("# My First Audit\ncontent");
+
+        // Vulnerabilities JSON seed
+        var vulnSeed = build.SeedFiles.First(sf => sf.RelativePath == "examples/vulnerabilities.json");
+        var parsed = JsonSerializer.Deserialize<List<AgentExampleVulnDto>>(vulnSeed.Content,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        parsed.Should().HaveCount(1);
+        parsed![0].Title.Should().Be("Reentrancy Attack");
+
+        // Existing finding titles
+        var titlesSeed = build.SeedFiles.First(sf => sf.RelativePath == "examples/existing-finding-titles.txt");
+        titlesSeed.Content.Should().Be("Old Finding One\nOld Finding Two");
+    }
+
+    // -------------------------------------------------------------------------
+    // RichExamples_PromptContainsDedupSection
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task RichExamples_PromptContainsDedupSection()
+    {
+        const string url = "https://x/report";
+        var extractorMock = new Mock<IPdfTextExtractor>();
+        var http = MakeHttpClient();
+        var sut = new IngestionPrompt(http, extractorMock.Object);
+
+        var build = await sut.BuildAsync(MakeRun(url), RichExamples(), CancellationToken.None);
+
+        build.PromptText.Should().Contain("de-duplication");
+        build.PromptText.Should().Contain("existing-finding-titles.txt");
+        // Schema still present
+        build.PromptText.Should().Contain("result.json");
+        build.PromptText.Should().Contain("findings");
+        // URL still present
+        build.PromptText.Should().Contain(url);
+    }
+
+    // -------------------------------------------------------------------------
+    // EmptyExamples_NoSeedFilesAndNoDedupSection
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task EmptyExamples_NoSeedFilesAndNoDedupSection()
+    {
+        const string url = "https://x/report";
+        var extractorMock = new Mock<IPdfTextExtractor>();
+        var http = MakeHttpClient();
+        var sut = new IngestionPrompt(http, extractorMock.Object);
+
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+
+        build.SeedFiles.Should().BeEmpty();
+        build.PromptText.Should().NotContain("de-duplication");
+        build.PromptText.Should().NotContain("existing-finding-titles.txt");
+        // Core schema still present
+        build.PromptText.Should().Contain("result.json");
+    }
+
+    // -------------------------------------------------------------------------
+    // Pdf_Path_WithEmptyExamples_ReturnsBuild (PDF path still works with new sig)
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task Pdf_Path_WithEmptyExamples_ReturnsBuild()
+    {
+        const string url = "https://x/report.pdf";
+        const string extractedText = "PDF CONTENT";
+
+        var extractorMock = new Mock<IPdfTextExtractor>();
+        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns(extractedText);
+
+        var http = MakeHttpClient(new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        var sut = new IngestionPrompt(http, extractorMock.Object);
+
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+
+        build.PromptText.Should().Contain(extractedText);
+        build.PromptText.Should().Contain("Do NOT fetch any URL");
+        build.SeedFiles.Should().BeEmpty();
+    }
+
+    // -------------------------------------------------------------------------
+    // Slug helper tests
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("My First Audit", "my-first-audit")]
+    [InlineData("Second Report Here", "second-report-here")]
+    [InlineData("", "article")]
+    [InlineData("   ", "article")]
+    [InlineData("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z", "a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r-s-t")]
+    public void Slug_ProducesCorrectOutput(string title, string expectedPrefix)
+    {
+        var result = IngestionPrompt.Slug(title);
+        result.Should().StartWith(expectedPrefix.Length > 40 ? expectedPrefix[..40] : expectedPrefix);
+        result.Length.Should().BeLessThanOrEqualTo(40);
     }
 }
 

@@ -1,15 +1,20 @@
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using AgentIngestionWorker.Api;
+using AgentIngestionWorker.OpenCode;
 using AgentIngestionWorker.Pdf;
 
 namespace AgentIngestionWorker.Worker;
 
 public interface IIngestionPrompt
 {
-    Task<string> BuildAsync(ClaimedRun run, CancellationToken ct);
+    Task<PromptBuild> BuildAsync(ClaimedRun run, AgentExamplesDto examples, CancellationToken ct);
 }
 
 public sealed class IngestionPrompt : IIngestionPrompt
 {
+    private static readonly JsonSerializerOptions WebOptions = new(JsonSerializerDefaults.Web);
+
     private readonly HttpClient _http;
     private readonly IPdfTextExtractor _extractor;
 
@@ -37,8 +42,21 @@ public sealed class IngestionPrompt : IIngestionPrompt
         }
     }
 
-    public async Task<string> BuildAsync(ClaimedRun run, CancellationToken ct)
+    /// <summary>
+    /// Converts a title into a URL-safe slug: lowercase, non-alphanumeric chars → '-', trimmed, max ~40 chars.
+    /// </summary>
+    internal static string Slug(string title)
     {
+        if (string.IsNullOrWhiteSpace(title)) return "article";
+        var slug = Regex.Replace(title.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+        if (string.IsNullOrEmpty(slug)) return "article";
+        return slug.Length > 40 ? slug[..40].TrimEnd('-') : slug;
+    }
+
+    public async Task<PromptBuild> BuildAsync(ClaimedRun run, AgentExamplesDto examples, CancellationToken ct)
+    {
+        string promptText;
+
         if (IsPdfUrl(run.SourceUrl))
         {
             string text;
@@ -53,12 +71,24 @@ public sealed class IngestionPrompt : IIngestionPrompt
             }
 
             if (!string.IsNullOrWhiteSpace(text))
-                return BuildPdfPrompt(text);
+            {
+                promptText = BuildPdfPrompt(text);
+                return new PromptBuild
+                {
+                    PromptText = AppendExamplesSection(promptText, examples),
+                    SeedFiles = BuildSeedFiles(examples),
+                };
+            }
 
             // Fall back to URL-based prompt if extraction yielded nothing
         }
 
-        return BuildUrlPrompt(run.SourceUrl);
+        promptText = BuildUrlPrompt(run.SourceUrl);
+        return new PromptBuild
+        {
+            PromptText = AppendExamplesSection(promptText, examples),
+            SeedFiles = BuildSeedFiles(examples),
+        };
     }
 
     // -------------------------------------------------------------------------
@@ -86,4 +116,49 @@ public sealed class IngestionPrompt : IIngestionPrompt
         Fetch and read the audit report at: {sourceUrl}
         {SchemaInstructions}
         """;
+
+    // -------------------------------------------------------------------------
+    // Few-shot examples section
+    // -------------------------------------------------------------------------
+
+    private static bool HasExamples(AgentExamplesDto examples) =>
+        examples.Articles.Count > 0
+        || examples.Vulnerabilities.Count > 0
+        || examples.ExistingFindingTitles.Count > 0;
+
+    private static string AppendExamplesSection(string basePrompt, AgentExamplesDto examples)
+    {
+        if (!HasExamples(examples)) return basePrompt;
+
+        return basePrompt + """
+
+
+            ## Consistency & de-duplication
+            The `examples/` folder contains existing portal content: `examples/articles/*.md` (past articles) and `examples/vulnerabilities.json` (past vulnerabilities with their severity/category/tags). Read them and match their structure, tone, severity wording, category values, and TAG VOCABULARY exactly so the portal stays uniform. `examples/existing-finding-titles.txt` lists titles that already exist in the portal — do NOT emit a finding whose title duplicates any of them; only include genuinely new findings from THIS report.
+            """;
+    }
+
+    private static List<SeedFile> BuildSeedFiles(AgentExamplesDto examples)
+    {
+        if (!HasExamples(examples)) return new List<SeedFile>();
+
+        var seeds = new List<SeedFile>();
+
+        for (int i = 0; i < examples.Articles.Count; i++)
+        {
+            var article = examples.Articles[i];
+            var path = $"examples/articles/{i:00}-{Slug(article.Title)}.md";
+            seeds.Add(new SeedFile(path, article.Markdown));
+        }
+
+        seeds.Add(new SeedFile(
+            "examples/vulnerabilities.json",
+            JsonSerializer.Serialize(examples.Vulnerabilities, WebOptions)));
+
+        seeds.Add(new SeedFile(
+            "examples/existing-finding-titles.txt",
+            string.Join("\n", examples.ExistingFindingTitles)));
+
+        return seeds;
+    }
 }

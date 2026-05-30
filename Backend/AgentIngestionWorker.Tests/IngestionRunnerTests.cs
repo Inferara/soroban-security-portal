@@ -13,14 +13,20 @@ public class IngestionRunnerTests
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Builds a stub IIngestionPrompt that always returns a fixed prompt string.
-    /// Used so IngestionRunner tests don't depend on IngestionPrompt internals.
+    /// Builds a stub IIngestionPrompt that always returns a fixed PromptBuild.
     /// </summary>
-    private static IIngestionPrompt StubPrompt(string prompt = "test prompt")
+    private static IIngestionPrompt StubPrompt(
+        string promptText = "test prompt",
+        List<SeedFile>? seedFiles = null)
     {
+        var build = new PromptBuild
+        {
+            PromptText = promptText,
+            SeedFiles = seedFiles ?? new List<SeedFile>(),
+        };
         var mock = new Mock<IIngestionPrompt>();
-        mock.Setup(p => p.BuildAsync(It.IsAny<ClaimedRun>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(prompt);
+        mock.Setup(p => p.BuildAsync(It.IsAny<ClaimedRun>(), It.IsAny<AgentExamplesDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(build);
         return mock.Object;
     }
 
@@ -50,6 +56,13 @@ public class IngestionRunnerTests
         ResultJson = resultJson,
         Transcript = "log",
         DurationMs = 100,
+    };
+
+    private static AgentExamplesDto MakeExamples() => new()
+    {
+        Articles = new() { new AgentExampleArticleDto { Title = "Foo", Markdown = "# Foo" } },
+        Vulnerabilities = new() { new AgentExampleVulnDto { Title = "Re-entrancy", Severity = "high", Category = 0 } },
+        ExistingFindingTitles = new() { "Old Finding" },
     };
 
     // -------------------------------------------------------------------------
@@ -93,6 +106,7 @@ public class IngestionRunnerTests
         var run = MakeRun(5);
         var api = new Mock<IInternalApiClient>();
         api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(MakeExamples());
         api.Setup(a => a.SubmitAsync(It.IsAny<int>(), It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
            .Returns(Task.CompletedTask);
 
@@ -123,6 +137,124 @@ public class IngestionRunnerTests
     }
 
     // -------------------------------------------------------------------------
+    // ProcessOne_RunnerReceivesSeedFilesAndNonNullProgress
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task ProcessOne_RunnerReceivesSeedFilesAndNonNullProgress()
+    {
+        var seeds = new List<SeedFile>
+        {
+            new("examples/articles/00-foo.md", "# Foo"),
+            new("examples/vulnerabilities.json", "[]"),
+        };
+
+        var run = MakeRun(5);
+        var api = new Mock<IInternalApiClient>();
+        api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(MakeExamples());
+        api.Setup(a => a.SubmitAsync(It.IsAny<int>(), It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
+           .Returns(Task.CompletedTask);
+
+        IReadOnlyList<SeedFile>? capturedSeeds = null;
+        Action<string>? capturedProgress = null;
+
+        var runner = new Mock<IOpenCodeRunner>();
+        runner.Setup(r => r.RunAsync(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<SeedFile>?>(),
+                It.IsAny<Action<string>?>(),
+                It.IsAny<CancellationToken>()))
+              .Callback<string, IReadOnlyList<SeedFile>?, Action<string>?, CancellationToken>(
+                  (_, sf, op, _) =>
+                  {
+                      capturedSeeds = sf;
+                      capturedProgress = op;
+                  })
+              .ReturnsAsync(SuccessResult());
+
+        var sut = BuildRunner(api, runner, StubPrompt("prompt", seeds));
+        await sut.ProcessOneAsync(CancellationToken.None);
+
+        // Runner received the 2 seed files from the PromptBuild
+        capturedSeeds.Should().NotBeNull();
+        capturedSeeds!.Count.Should().Be(2);
+        // onProgress must be non-null
+        capturedProgress.Should().NotBeNull();
+    }
+
+    // -------------------------------------------------------------------------
+    // ProcessOne_GetExamplesFailure_StillProcesses
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task ProcessOne_GetExamplesFailure_StillProcesses()
+    {
+        var run = MakeRun(5);
+        var api = new Mock<IInternalApiClient>();
+        api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>()))
+           .ThrowsAsync(new HttpRequestException("backend down"));
+        api.Setup(a => a.SubmitAsync(It.IsAny<int>(), It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
+           .Returns(Task.CompletedTask);
+
+        var runner = new Mock<IOpenCodeRunner>();
+        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SeedFile>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(SuccessResult());
+
+        SubmitResultDto? captured = null;
+        api.Setup(a => a.SubmitAsync(5, It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
+           .Callback<int, SubmitResultDto, CancellationToken>((_, dto, _) => captured = dto)
+           .Returns(Task.CompletedTask);
+
+        var sut = BuildRunner(api, runner);
+        var processed = await sut.ProcessOneAsync(CancellationToken.None);
+
+        // Run still completes successfully despite GetExamples failure
+        processed.Should().BeTrue();
+        captured.Should().NotBeNull();
+        captured!.Success.Should().BeTrue();
+    }
+
+    // -------------------------------------------------------------------------
+    // ProcessOne_OnProgress_CallsProgressAsync
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task ProcessOne_OnProgress_CallsProgressAsync()
+    {
+        var run = MakeRun(42);
+        var api = new Mock<IInternalApiClient>();
+        api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentExamplesDto());
+        api.Setup(a => a.SubmitAsync(It.IsAny<int>(), It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
+           .Returns(Task.CompletedTask);
+        api.Setup(a => a.ProgressAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+           .Returns(Task.CompletedTask);
+
+        Action<string>? capturedProgress = null;
+
+        var runner = new Mock<IOpenCodeRunner>();
+        runner.Setup(r => r.RunAsync(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyList<SeedFile>?>(),
+                It.IsAny<Action<string>?>(),
+                It.IsAny<CancellationToken>()))
+              .Callback<string, IReadOnlyList<SeedFile>?, Action<string>?, CancellationToken>(
+                  (_, _, op, _) => capturedProgress = op)
+              .ReturnsAsync(SuccessResult());
+
+        var sut = BuildRunner(api, runner);
+        await sut.ProcessOneAsync(CancellationToken.None);
+
+        capturedProgress.Should().NotBeNull();
+        // Invoke the captured progress callback
+        capturedProgress!("some transcript line");
+
+        // Allow fire-and-forget task to complete
+        await Task.Delay(50);
+
+        api.Verify(a => a.ProgressAsync(42, "some transcript line", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------------------------------------------------------------------------
     // ProcessOne_RunnerFailure_SubmitsFailed
     // -------------------------------------------------------------------------
     [Fact]
@@ -131,6 +263,7 @@ public class IngestionRunnerTests
         var run = MakeRun(7);
         var api = new Mock<IInternalApiClient>();
         api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentExamplesDto());
 
         SubmitResultDto? captured = null;
         api.Setup(a => a.SubmitAsync(7, It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
@@ -158,6 +291,7 @@ public class IngestionRunnerTests
         var run = MakeRun(3);
         var api = new Mock<IInternalApiClient>();
         api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentExamplesDto());
 
         SubmitResultDto? captured = null;
         api.Setup(a => a.SubmitAsync(3, It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
@@ -186,6 +320,7 @@ public class IngestionRunnerTests
         var run = MakeRun(9);
         var api = new Mock<IInternalApiClient>();
         api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentExamplesDto());
 
         SubmitResultDto? captured = null;
         api.Setup(a => a.SubmitAsync(9, It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
