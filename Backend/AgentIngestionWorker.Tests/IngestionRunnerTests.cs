@@ -436,6 +436,55 @@ public class IngestionRunnerTests
     }
 
     [Fact]
+    public void MapToSubmit_WithReportPdfUrl_MapsField()
+    {
+        const string json = """
+            {
+                "reportTitle": "My Report",
+                "protocolName": "MyProto",
+                "auditorName": "Sec Corp",
+                "reportPdfUrl": "https://x/report.pdf",
+                "findings": []
+            }
+            """;
+
+        var result = new OpenCodeResult
+        {
+            Success = true,
+            ResultJson = json,
+            DurationMs = 10,
+        };
+
+        var dto = IngestionRunner.MapToSubmit(result);
+
+        dto.ReportPdfUrl.Should().Be("https://x/report.pdf");
+    }
+
+    [Fact]
+    public void MapToSubmit_AbsentReportPdfUrl_IsNull()
+    {
+        const string json = """
+            {
+                "reportTitle": "My Report",
+                "protocolName": "MyProto",
+                "auditorName": "Sec Corp",
+                "findings": []
+            }
+            """;
+
+        var result = new OpenCodeResult
+        {
+            Success = true,
+            ResultJson = json,
+            DurationMs = 10,
+        };
+
+        var dto = IngestionRunner.MapToSubmit(result);
+
+        dto.ReportPdfUrl.Should().BeNull();
+    }
+
+    [Fact]
     public void MapToSubmit_NullReportDate_LeavesReportDateNull()
     {
         const string json = """{"reportTitle":"T","protocolName":"P","auditorName":"A","reportDate":null,"findings":[]}""";

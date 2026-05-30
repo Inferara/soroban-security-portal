@@ -20,6 +20,7 @@ public sealed class SubmitResultDto
     public string? ProtocolName { get; set; }
     public string? AuditorName { get; set; }
     public DateTime? ReportDate { get; set; }
+    public string? ReportPdfUrl { get; set; }
 }
 
 public sealed class AgentExampleArticleDto

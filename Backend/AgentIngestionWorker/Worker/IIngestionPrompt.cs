@@ -98,8 +98,9 @@ public sealed class IngestionPrompt : IIngestionPrompt
     private const string SchemaInstructions = """
         Write EXACTLY two files in the current directory:
         1. article.md — a consistent Markdown article (title, metadata, ## Summary, ## Scope, ## Findings with one ### per finding).
-        2. result.json — { "reportTitle": string, "protocolName": string (audited project), "auditorName": string, "reportDate": "YYYY-MM-DD" or null, "findings": [ { "title": string, "description": string, "severity": "critical"|"high"|"medium"|"low"|"note", "tags": string[], "category": 0|1|2|3|100 } ] }.
+        2. result.json — { "reportTitle": string, "protocolName": string (audited project), "auditorName": string, "reportDate": "YYYY-MM-DD" or null, "reportPdfUrl": string, "findings": [ { "title": string, "description": string, "severity": "critical"|"high"|"medium"|"low"|"note", "tags": string[], "category": 0|1|2|3|100 } ] }.
         Map observation/informational to "note"; if a finding is fixed/resolved use category 0. Extract ALL findings. Output ONLY those two files.
+        Also find the direct download link to the ORIGINAL report document (a PDF) on the page — e.g. the href behind a 'Download' / 'Download report' / 'PDF' button — and put that absolute URL in `reportPdfUrl`. If the source URL you were given is itself a PDF, use it. Use an empty string if there is genuinely no downloadable PDF.
         """;
 
     private static string BuildPdfPrompt(string reportText) => $"""

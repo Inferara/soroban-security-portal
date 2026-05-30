@@ -293,6 +293,26 @@ public class IngestionPromptTests
     }
 
     // -------------------------------------------------------------------------
+    // SchemaInstructions contains reportPdfUrl field and Download instruction
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("https://x/report")]       // URL branch
+    [InlineData("https://x/report.pdf")]   // PDF branch (extractor returns text)
+    public async Task BothBranches_ContainReportPdfUrlFieldAndDownloadInstruction(string url)
+    {
+        var extractorMock = new Mock<IPdfTextExtractor>();
+        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns("some text");
+
+        var http = MakeHttpClient(new byte[] { 1, 2, 3 });
+        var sut = new IngestionPrompt(http, extractorMock.Object);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+
+        build.PromptText.Should().Contain("reportPdfUrl");
+        build.PromptText.Should().Contain("Download");
+    }
+
+    // -------------------------------------------------------------------------
     // Slug helper tests
     // -------------------------------------------------------------------------
 

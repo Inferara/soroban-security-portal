@@ -121,6 +121,7 @@ public sealed class IngestionRunner
             dto.ReportTitle = GetStr(root, "reportTitle");
             dto.ProtocolName = GetStr(root, "protocolName");
             dto.AuditorName = GetStr(root, "auditorName");
+            dto.ReportPdfUrl = GetStr(root, "reportPdfUrl");
 
             if (root.TryGetProperty("reportDate", out var rd)
                 && rd.ValueKind == JsonValueKind.String
