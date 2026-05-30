@@ -1,9 +1,9 @@
-import React, { FC, useEffect, useMemo, useState } from 'react';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Checkbox,
-  Chip, FormControl, FormControlLabel, InputLabel, MenuItem, Paper, Select,
-  TextField, Typography,
+  Chip, FormControl, FormControlLabel, InputLabel, LinearProgress, MenuItem,
+  Paper, Select, TextField, Typography,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { MarkdownView } from '../../../../../components/MarkdownView';
@@ -39,10 +39,16 @@ export const AgentRunDetail: FC = () => {
   const [reportDate, setReportDate] = useState('');
   const [articleMarkdown, setArticleMarkdown] = useState('');
   const [findings, setFindings] = useState<EditableFinding[]>([]);
+  const initializedRef = useRef(false);
 
-  // Populate state when run loads
+  // Populate editable state ONCE when run first reaches a reviewable status
+  const isReviewable = run?.status === AgentRunStatus.Succeeded
+    || run?.status === AgentRunStatus.Approved
+    || run?.status === AgentRunStatus.Rejected;
+
   useEffect(() => {
-    if (run) {
+    if (run && isReviewable && !initializedRef.current) {
+      initializedRef.current = true;
       setReportTitle(run.reportTitle ?? '');
       setProtocolName(run.protocolName ?? '');
       setAuditorName(run.auditorName ?? '');
@@ -59,7 +65,15 @@ export const AgentRunDetail: FC = () => {
         }))
       );
     }
-  }, [run]);
+  }, [run, isReviewable]);
+
+  // Reasoning accordion — controlled; auto-expand while processing
+  const [reasoningOpen, setReasoningOpen] = useState(false);
+  useEffect(() => {
+    if (run?.status === AgentRunStatus.Processing) {
+      setReasoningOpen(true);
+    }
+  }, [run?.status]);
 
   const back = () => navigate('/admin/agent-runs');
 
@@ -97,6 +111,9 @@ export const AgentRunDetail: FC = () => {
 
   const includedCount = findings.filter((f) => f.include).length;
 
+  const isProcessingOrQueued = run.status === AgentRunStatus.Processing
+    || run.status === AgentRunStatus.Queued;
+
   const handleApprove = async () => {
     const payload: ApproveAgentRun = {
       reportTitle,
@@ -118,8 +135,9 @@ export const AgentRunDetail: FC = () => {
     if (ok) back(); else showError('Failed to approve');
   };
 
-  return (
-    <Paper elevation={6} sx={{ p: 3 }}>
+  // Shared header rendered in both views
+  const header = (
+    <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <Typography variant="h4">Agent run #{run.id}</Typography>
         <Chip label={run.status} />
@@ -127,6 +145,48 @@ export const AgentRunDetail: FC = () => {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Source: {run.sourceUrl || '—'} &middot; Model: {run.model || '—'}
       </Typography>
+    </>
+  );
+
+  // Shared reasoning accordion
+  const reasoningAccordion = (
+    <Accordion
+      expanded={reasoningOpen}
+      onChange={(_, v) => setReasoningOpen(v)}
+      sx={{ mt: 3 }}
+    >
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography>Agent reasoning</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <MarkdownView content={run.transcript} emptyMessage="No reasoning captured yet." />
+      </AccordionDetails>
+    </Accordion>
+  );
+
+  if (isProcessingOrQueued) {
+    return (
+      <Paper elevation={6} sx={{ p: 3 }}>
+        {header}
+        {run.status === AgentRunStatus.Processing && (
+          <>
+            <LinearProgress sx={{ mb: 1 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              The agent is working…
+            </Typography>
+          </>
+        )}
+        {reasoningAccordion}
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+          <Button variant="contained" onClick={back}>Back</Button>
+        </Box>
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper elevation={6} sx={{ p: 3 }}>
+      {header}
 
       {run.status === AgentRunStatus.Failed && run.error && (
         <Alert severity="error" sx={{ my: 2 }}>{run.error}</Alert>
@@ -250,16 +310,7 @@ export const AgentRunDetail: FC = () => {
       ))}
 
       {/* Transcript */}
-      <Accordion sx={{ mt: 3 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Agent reasoning</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box component="pre" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 13, m: 0 }}>
-            {run.transcript || 'No transcript captured.'}
-          </Box>
-        </AccordionDetails>
-      </Accordion>
+      {reasoningAccordion}
 
       {/* Actions */}
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>

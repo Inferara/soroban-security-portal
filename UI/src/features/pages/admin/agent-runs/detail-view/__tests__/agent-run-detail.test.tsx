@@ -44,6 +44,14 @@ const succeededRun = {
   findingsUnparseable: false,
 };
 
+const processingRun = {
+  id: 7, status: 'processing', sourceUrl: 'https://x/r2', model: 'claude', error: '', createdBy: 1, createdAt: 'd',
+  promptVersion: '', articleMarkdown: '', transcript: 'Reading the report...',
+  reportTitle: '', protocolName: '', auditorName: '', reportDate: '',
+  findings: [],
+  findingsUnparseable: false,
+};
+
 describe('AgentRunDetail', () => {
   beforeEach(() => { vi.clearAllMocks(); mockRunId = 5; mockRun = undefined; });
 
@@ -99,5 +107,34 @@ describe('AgentRunDetail', () => {
     renderComponent();
     expect(screen.getByText('New agent run')).toBeInTheDocument();
     expect(screen.getByLabelText('Report source URL')).toBeInTheDocument();
+  });
+
+  it('processing run: shows status chip, reasoning accordion, transcript text, no Approve button, no article TextField', () => {
+    mockRun = processingRun;
+    renderComponent();
+    // Status chip
+    expect(screen.getByText('processing')).toBeInTheDocument();
+    // Agent reasoning accordion is present
+    expect(screen.getByText('Agent reasoning')).toBeInTheDocument();
+    // Transcript text is rendered
+    expect(screen.getByText(/Reading the report/)).toBeInTheDocument();
+    // No Approve selected button
+    expect(screen.queryByRole('button', { name: /Approve selected/i })).not.toBeInTheDocument();
+    // No article TextField (multiline editor)
+    expect(screen.queryByLabelText('Article (Markdown)')).not.toBeInTheDocument();
+  });
+
+  it('succeeded run: renders the editable form and Approve selected button', () => {
+    mockRun = succeededRun;
+    renderComponent();
+    expect(screen.getByRole('button', { name: /Approve selected/i })).toBeInTheDocument();
+    expect(screen.getByLabelText('Article (Markdown)')).toBeInTheDocument();
+  });
+
+  it('transcript text appears for a succeeded run with a transcript', () => {
+    mockRun = { ...succeededRun, transcript: 'Agent thought process here' };
+    renderComponent();
+    // The transcript is rendered via MarkdownView inside the accordion
+    expect(screen.getByText(/Agent thought process here/)).toBeInTheDocument();
   });
 });

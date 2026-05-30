@@ -9,7 +9,7 @@ import {
   rerunAgentRunCall,
   enqueueAgentRunCall,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { AgentRun, ApproveAgentRun, EnqueueAgentRun } from '../../../../../../api/soroban-security-portal/models/agent-run';
+import { AgentRun, ApproveAgentRun, EnqueueAgentRun, AgentRunStatus } from '../../../../../../api/soroban-security-portal/models/agent-run';
 
 interface UseAgentRunDetailProps {
   currentPageState: CurrentPageState;
@@ -58,6 +58,13 @@ export const useAgentRunDetail = (props: UseAgentRunDetailProps) => {
     dispatch(setCurrentPage(currentPageState));
     void load();
   }, [dispatch, currentPageState, load]);
+
+  // Poll every 3 s while the run is being processed
+  useEffect(() => {
+    if (run?.status !== AgentRunStatus.Processing) return;
+    const t = setInterval(() => { void load(); }, 3000);
+    return () => clearInterval(t);
+  }, [run?.status, load]);
 
   return { runId, run, approve, reject, rerun, enqueue };
 };
