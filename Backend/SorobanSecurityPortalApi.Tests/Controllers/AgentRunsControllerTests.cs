@@ -118,4 +118,29 @@ public class AgentRunsControllerTests
         (await Controller().SubmitResult(404, new SubmitAgentRunResultViewModel { Success = false }))
             .Should().BeOfType<BadRequestObjectResult>();
     }
+
+    [Fact]
+    public async Task GetExamples_Returns_Ok()
+    {
+        _service.Setup(s => s.GetExamples()).ReturnsAsync(new AgentExamplesViewModel());
+        (await Controller().GetExamples()).Should().BeOfType<OkObjectResult>();
+    }
+
+    [Fact]
+    public async Task Progress_Ok_Returns_Ok()
+    {
+        _service.Setup(s => s.UpdateProgress(10, It.IsAny<string?>()))
+            .ReturnsAsync(new Result<bool, string>.Ok(true));
+        (await Controller().Progress(10, new AgentProgressViewModel { Transcript = "t" }))
+            .Should().BeOfType<OkResult>();
+    }
+
+    [Fact]
+    public async Task Progress_Err_Returns_BadRequest()
+    {
+        _service.Setup(s => s.UpdateProgress(404, It.IsAny<string?>()))
+            .ReturnsAsync(new Result<bool, string>.Err("not found"));
+        (await Controller().Progress(404, new AgentProgressViewModel()))
+            .Should().BeOfType<BadRequestObjectResult>();
+    }
 }

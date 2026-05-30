@@ -59,6 +59,20 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public List<AgentFinding> Findings { get; set; } = new();
     }
 
+    public class AgentExampleArticle { public string Title { get; set; } = ""; public string Markdown { get; set; } = ""; }
+    public class AgentExampleVulnerability
+    {
+        public string Title { get; set; } = ""; public string Severity { get; set; } = "";
+        public int Category { get; set; } public List<string> Tags { get; set; } = new(); public string Description { get; set; } = "";
+    }
+    public class AgentExamplesViewModel
+    {
+        public List<AgentExampleArticle> Articles { get; set; } = new();
+        public List<AgentExampleVulnerability> Vulnerabilities { get; set; } = new();
+        public List<string> ExistingFindingTitles { get; set; } = new();
+    }
+    public class AgentProgressViewModel { public string? Transcript { get; set; } }
+
     // Worker→backend submit payload (mirrors AgentRunResult).
     public class SubmitAgentRunResultViewModel
     {

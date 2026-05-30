@@ -182,6 +182,34 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return new Result<bool, string>.Ok(true);
         }
 
+        public async Task<AgentExamplesViewModel> GetExamples()
+        {
+            var reports = await _reportProcessor.GetListForExamples();
+            var vulns = await _vulnerabilityProcessor.GetList();
+            var approvedReports = reports
+                .Where(r => r.Status == ReportModelStatus.Approved && !string.IsNullOrWhiteSpace(r.MdFile))
+                .OrderByDescending(r => r.Id).Take(6)
+                .Select(r => new AgentExampleArticle { Title = r.Name, Markdown = r.MdFile }).ToList();
+            var approvedVulns = vulns.Where(v => v.Status == VulnerabilityModelStatus.Approved).ToList();
+            return new AgentExamplesViewModel
+            {
+                Articles = approvedReports,
+                Vulnerabilities = approvedVulns.OrderByDescending(v => v.Id).Take(12)
+                    .Select(v => new AgentExampleVulnerability {
+                        Title = v.Title, Severity = v.Severity, Category = (int)v.Category,
+                        Tags = v.Tags ?? new List<string>(), Description = v.Description }).ToList(),
+                ExistingFindingTitles = approvedVulns.Select(v => v.Title).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().ToList(),
+            };
+        }
+
+        public async Task<Result<bool, string>> UpdateProgress(int id, string? transcript)
+        {
+            var run = await _runProcessor.Get(id);
+            if (run == null) return new Result<bool, string>.Err($"Agent run {id} not found.");
+            await _runProcessor.UpdateTranscript(id, transcript ?? "");
+            return new Result<bool, string>.Ok(true);
+        }
+
         public async Task<AgentRunViewModel?> ClaimNext()
         {
             var run = await _runProcessor.ClaimNextQueued();
@@ -247,5 +275,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<Result<bool, string>> Reject(int id);
         Task<AgentRunViewModel?> ClaimNext();
         Task<Result<bool, string>> SubmitResult(int id, SubmitAgentRunResultViewModel result);
+        Task<AgentExamplesViewModel> GetExamples();
+        Task<Result<bool, string>> UpdateProgress(int id, string? transcript);
     }
 }

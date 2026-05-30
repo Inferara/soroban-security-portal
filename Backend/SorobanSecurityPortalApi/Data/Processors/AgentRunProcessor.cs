@@ -119,6 +119,15 @@ namespace SorobanSecurityPortalApi.Data.Processors
             db.AgentRun.Update(run);
             await db.SaveChangesAsync();
         }
+
+        public async Task UpdateTranscript(int id, string transcript)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var run = await db.AgentRun.FirstAsync(r => r.Id == id);
+            run.Transcript = transcript;
+            db.AgentRun.Update(run);
+            await db.SaveChangesAsync();
+        }
     }
 
     public interface IAgentRunProcessor
@@ -131,5 +140,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task SubmitResult(int id, AgentRunResult result);
         Task SetStatus(int id, string status);
         Task SetProvenance(int id, int createdReportId, List<int> createdVulnerabilityIds);
+        Task UpdateTranscript(int id, string transcript);
     }
 }

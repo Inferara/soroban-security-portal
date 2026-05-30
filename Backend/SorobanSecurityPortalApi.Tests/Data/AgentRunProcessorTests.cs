@@ -185,5 +185,16 @@ namespace SorobanSecurityPortalApi.Tests.Data
 
             list.Single().ReportDate!.Value.Kind.Should().Be(DateTimeKind.Utc);
         }
+
+        [Fact]
+        public async Task UpdateTranscript_Sets_Transcript()
+        {
+            var list = new List<AgentRunModel> { new() { Id = 7, Status = AgentRunStatus.Processing, Transcript = "" } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.UpdateTranscript(7, "step 1\nstep 2");
+
+            list.Single().Transcript.Should().Be("step 1\nstep 2");
+        }
     }
 }

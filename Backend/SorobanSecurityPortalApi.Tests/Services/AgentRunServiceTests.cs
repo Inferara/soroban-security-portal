@@ -390,6 +390,64 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
+        public async Task GetExamples_Returns_Approved_Articles_Vulns_And_Titles()
+        {
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.GetListForExamples()).ReturnsAsync(new List<ReportModel>
+            {
+                new() { Id = 1, Name = "Report A", Status = ReportModelStatus.Approved, MdFile = "# A" },
+                new() { Id = 2, Name = "Report B", Status = ReportModelStatus.New,      MdFile = "# B" },
+                new() { Id = 3, Name = "Report C", Status = ReportModelStatus.Approved, MdFile = "" },
+            });
+            var vulnProc = new Mock<IVulnerabilityProcessor>();
+            vulnProc.Setup(p => p.GetList()).ReturnsAsync(new List<VulnerabilityModel>
+            {
+                new() { Id = 10, Title = "Reentrancy", Severity = "high", Status = VulnerabilityModelStatus.Approved, Category = VulnerabilityCategory.Valid, Tags = new() { "defi" }, Description = "desc1" },
+                new() { Id = 11, Title = "Overflow",   Severity = "low",  Status = VulnerabilityModelStatus.New,      Category = VulnerabilityCategory.Valid, Tags = new(), Description = "desc2" },
+                new() { Id = 12, Title = "Logic Bug",  Severity = "med",  Status = VulnerabilityModelStatus.Approved, Category = VulnerabilityCategory.ValidNotFixed, Tags = null, Description = "desc3" },
+            });
+            var svc = BuildService(new Mock<IAgentRunProcessor>(), reportProc, vulnProc);
+
+            var result = await svc.GetExamples();
+
+            // Only approved reports with non-empty MdFile
+            result.Articles.Should().ContainSingle()
+                .Which.Title.Should().Be("Report A");
+            result.Articles[0].Markdown.Should().Be("# A");
+
+            // Only approved vulns
+            result.Vulnerabilities.Should().HaveCount(2);
+            result.Vulnerabilities.Should().OnlyContain(v => v.Title == "Reentrancy" || v.Title == "Logic Bug");
+
+            // All approved titles
+            result.ExistingFindingTitles.Should().BeEquivalentTo(new[] { "Reentrancy", "Logic Bug" });
+        }
+
+        [Fact]
+        public async Task UpdateProgress_Missing_Run_Returns_Err()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(404)).ReturnsAsync((AgentRunModel?)null);
+            var svc = BuildService(runProc);
+
+            (await svc.UpdateProgress(404, "some transcript"))
+                .Should().BeOfType<Result<bool, string>.Err>();
+        }
+
+        [Fact]
+        public async Task UpdateProgress_Existing_Calls_UpdateTranscript()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(5)).ReturnsAsync(new AgentRunModel { Id = 5, Status = AgentRunStatus.Processing });
+            var svc = BuildService(runProc);
+
+            var result = await svc.UpdateProgress(5, "trace here");
+
+            result.Should().BeOfType<Result<bool, string>.Ok>();
+            runProc.Verify(p => p.UpdateTranscript(5, "trace here"), Times.Once);
+        }
+
+        [Fact]
         public async Task Get_Returns_Report_Metadata()
         {
             var runProc = new Mock<IAgentRunProcessor>();

@@ -104,5 +104,23 @@ namespace SorobanSecurityPortalApi.Controllers
                 _ => throw new InvalidOperationException("Unexpected result type")
             };
         }
+
+        [HttpGet("internal/examples")]
+        public async Task<IActionResult> GetExamples()
+        {
+            return Ok(await _service.GetExamples());
+        }
+
+        [HttpPost("internal/{id}/progress")]
+        public async Task<IActionResult> Progress(int id, [FromBody] AgentProgressViewModel body)
+        {
+            var r = await _service.UpdateProgress(id, body.Transcript);
+            return r switch
+            {
+                Result<bool, string>.Ok => Ok(),
+                Result<bool, string>.Err err => BadRequest(err.Error),
+                _ => throw new InvalidOperationException("Unexpected result type")
+            };
+        }
     }
 }
