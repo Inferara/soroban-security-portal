@@ -1,5 +1,6 @@
 using AgentIngestionWorker.Api;
 using AgentIngestionWorker.OpenCode;
+using AgentIngestionWorker.Pdf;
 using AgentIngestionWorker.Worker;
 using Microsoft.Extensions.Logging;
 
@@ -19,7 +20,11 @@ var runnerOpts = new OpenCodeRunnerOptions
 };
 var openCodeRunner = new OpenCodeRunner(processRunner, runnerOpts);
 
-var ingestionPrompt = new IngestionPrompt();
+// Separate HttpClient for PDF downloads (no base address — fetches absolute URLs)
+var downloadHttp = new HttpClient();
+var pdfExtractor = new PdfTextExtractor();
+var ingestionPrompt = new IngestionPrompt(downloadHttp, pdfExtractor);
+
 var workerOpts = new IngestionRunnerOptions
 {
     PollInterval = TimeSpan.FromSeconds(15),

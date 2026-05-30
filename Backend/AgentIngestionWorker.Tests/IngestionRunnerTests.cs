@@ -1,5 +1,6 @@
 using AgentIngestionWorker.Api;
 using AgentIngestionWorker.OpenCode;
+using AgentIngestionWorker.Pdf;
 using AgentIngestionWorker.Worker;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -10,6 +11,19 @@ public class IngestionRunnerTests
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Builds a stub IIngestionPrompt that always returns a fixed prompt string.
+    /// Used so IngestionRunner tests don't depend on IngestionPrompt internals.
+    /// </summary>
+    private static IIngestionPrompt StubPrompt(string prompt = "test prompt")
+    {
+        var mock = new Mock<IIngestionPrompt>();
+        mock.Setup(p => p.BuildAsync(It.IsAny<ClaimedRun>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(prompt);
+        return mock.Object;
+    }
+
     private static IngestionRunner BuildRunner(
         Mock<IInternalApiClient> api,
         Mock<IOpenCodeRunner> runner,
@@ -17,7 +31,7 @@ public class IngestionRunnerTests
     {
         var opts = new IngestionRunnerOptions { PollInterval = TimeSpan.FromMilliseconds(1) };
         var logger = NullLogger<IngestionRunner>.Instance;
-        return new IngestionRunner(api.Object, runner.Object, prompt ?? new IngestionPrompt(), opts, logger);
+        return new IngestionRunner(api.Object, runner.Object, prompt ?? StubPrompt(), opts, logger);
     }
 
     private static ClaimedRun MakeRun(int id = 5) => new()
