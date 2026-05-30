@@ -76,10 +76,10 @@ describe('AgentRunDetail', () => {
     mockRun = succeededRun;
     renderComponent();
 
-    // Both findings are included by default; uncheck the first one
-    const checkboxes = screen.getAllByRole('checkbox');
-    // checkboxes[0] is the first finding's include checkbox
-    fireEvent.click(checkboxes[0]);
+    // Both findings are included by default; uncheck the first one.
+    // In the new accordion design the checkbox aria-label is "Include finding 0"
+    const firstCheckbox = screen.getByRole('checkbox', { name: /Include finding 0/i });
+    fireEvent.click(firstCheckbox);
 
     // Click approve
     const approveBtn = screen.getByRole('button', { name: /Approve selected/i });
@@ -131,10 +131,65 @@ describe('AgentRunDetail', () => {
     expect(screen.getByLabelText('Article (Markdown)')).toBeInTheDocument();
   });
 
-  it('transcript text appears for a succeeded run with a transcript', () => {
+  it('transcript text appears for a succeeded run with a transcript (reasoning accordion open by default)', () => {
     mockRun = { ...succeededRun, transcript: 'Agent thought process here' };
     renderComponent();
-    // The transcript is rendered via MarkdownView inside the accordion
+    // The transcript is rendered via MarkdownView inside the accordion which is open by default
     expect(screen.getByText(/Agent thought process here/)).toBeInTheDocument();
+  });
+
+  // ── New tests per reviewer feedback ──────────────────────────────────────
+
+  it('source URL renders as a clickable link with the correct href', () => {
+    mockRun = succeededRun;
+    renderComponent();
+    const link = screen.getByRole('link', { name: succeededRun.sourceUrl });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', succeededRun.sourceUrl);
+  });
+
+  it('audit date input is type=date and shows only the date portion', () => {
+    mockRun = succeededRun;
+    renderComponent();
+    // The date field should be type=date and contain just YYYY-MM-DD
+    const dateInput = screen.getByDisplayValue('2026-01-01');
+    expect(dateInput).toHaveAttribute('type', 'date');
+  });
+
+  it('finding accordion summary shows title and severity chip, details are in an Accordion', () => {
+    mockRun = succeededRun;
+    renderComponent();
+    // Title visible in the accordion summary (not just in an input)
+    const titles = screen.getAllByText('Reentrancy');
+    // At least one instance (summary text + may also be in input when expanded)
+    expect(titles.length).toBeGreaterThan(0);
+    // Severity chips appear (use getAllByText since the Select combobox also renders the value)
+    expect(screen.getAllByText('high').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('medium').length).toBeGreaterThan(0);
+    // Category labels appear (use getAllByText since Select combobox also renders the value)
+    expect(screen.getAllByText('Valid (not fixed)').length).toBeGreaterThan(0);
+  });
+
+  it('reasoning accordion is expanded by default on a succeeded run — transcript visible without interaction', () => {
+    mockRun = { ...succeededRun, transcript: 'thinking...' };
+    renderComponent();
+    // Should be visible immediately without clicking to expand
+    expect(screen.getByText(/thinking\.\.\./)).toBeInTheDocument();
+  });
+
+  it('approve-subset: unchecking first finding leaves second in payload', async () => {
+    mockRun = succeededRun;
+    renderComponent();
+
+    // Uncheck finding 0 via aria-label
+    const cb0 = screen.getByRole('checkbox', { name: /Include finding 0/i });
+    fireEvent.click(cb0);
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve selected/i }));
+
+    await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+    const payload = mockApprove.mock.calls[0][0];
+    expect(payload.findings.length).toBe(1);
+    expect(payload.findings[0].title).toBe('Integer Overflow');
   });
 });

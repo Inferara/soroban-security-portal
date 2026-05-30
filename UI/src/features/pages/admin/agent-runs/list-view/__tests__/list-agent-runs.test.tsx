@@ -54,4 +54,28 @@ describe('AgentRunManagement', () => {
     fireEvent.click(screen.getByLabelText('View run'));
     expect(mockNavigate).toHaveBeenCalledWith('/admin/agent-runs/detail?runId=9');
   });
+
+  // ── New test per reviewer feedback ────────────────────────────────────────
+
+  it('Created column formats ISO datetime to YYYY-MM-DD HH:mm and does not show raw milliseconds', () => {
+    const rawIso = '2026-05-30T10:42:59.98516';
+    mockRuns = [{ id: 2, status: 'succeeded', sourceUrl: 'https://x/r', model: 'claude', createdAt: rawIso, error: '', createdBy: 1 }];
+    renderComponent();
+    // Raw string with milliseconds must not appear
+    expect(screen.queryByText(rawIso)).not.toBeInTheDocument();
+    // Formatted value — strips fractional seconds via split('.')[0] then replaces T with space
+    expect(screen.getByText('2026-05-30 10:42:59')).toBeInTheDocument();
+  });
+
+  it('Model column shows the model value, with em-dash fallback when empty', () => {
+    mockRuns = [
+      { id: 3, status: 'queued', sourceUrl: 'u', model: 'claude-sonnet', createdAt: '2026-05-30T00:00:00', error: '', createdBy: 1 },
+      { id: 4, status: 'queued', sourceUrl: 'v', model: '', createdAt: '2026-05-30T00:00:00', error: '', createdBy: 1 },
+    ];
+    renderComponent();
+    expect(screen.getByText('claude-sonnet')).toBeInTheDocument();
+    // The em-dash fallback for the empty model
+    const emDashes = screen.getAllByText('—');
+    expect(emDashes.length).toBeGreaterThan(0);
+  });
 });

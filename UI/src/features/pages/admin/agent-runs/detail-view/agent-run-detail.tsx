@@ -2,7 +2,7 @@ import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Checkbox,
-  Chip, FormControl, FormControlLabel, InputLabel, LinearProgress, MenuItem,
+  Chip, FormControl, FormControlLabel, InputLabel, Link, LinearProgress, MenuItem,
   Paper, Select, TextField, Typography,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -20,6 +20,34 @@ interface EditableFinding {
   tags: string;
   category: number;
 }
+
+const severityColor = (
+  severity: string,
+): 'error' | 'warning' | 'info' | 'default' => {
+  switch (severity.toLowerCase()) {
+    case 'critical': return 'error';
+    case 'high': return 'warning';
+    case 'medium': return 'info';
+    default: return 'default';
+  }
+};
+
+const categoryLabel = (category: number): string => {
+  switch (category) {
+    case 0: return 'Valid';
+    case 1: return 'Valid (not fixed)';
+    case 2: return 'Valid (partially fixed)';
+    case 3: return 'Invalid';
+    case 100: return 'N/A';
+    default: return String(category);
+  }
+};
+
+/** Slice an ISO datetime to date-only YYYY-MM-DD */
+const toDateOnly = (iso: string): string => {
+  if (!iso) return '';
+  return iso.slice(0, 10);
+};
 
 export const AgentRunDetail: FC = () => {
   const navigate = useNavigate();
@@ -52,7 +80,8 @@ export const AgentRunDetail: FC = () => {
       setReportTitle(run.reportTitle ?? '');
       setProtocolName(run.protocolName ?? '');
       setAuditorName(run.auditorName ?? '');
-      setReportDate(run.reportDate ?? '');
+      // Store only the date portion for the date input
+      setReportDate(toDateOnly(run.reportDate ?? ''));
       setArticleMarkdown(run.articleMarkdown ?? '');
       setFindings(
         run.findings.map((f) => ({
@@ -67,8 +96,9 @@ export const AgentRunDetail: FC = () => {
     }
   }, [run, isReviewable]);
 
-  // Reasoning accordion — controlled; auto-expand while processing
-  const [reasoningOpen, setReasoningOpen] = useState(false);
+  // Reasoning accordion — controlled; auto-expand while processing;
+  // default to OPEN for succeeded runs so transcript is visible
+  const [reasoningOpen, setReasoningOpen] = useState(true);
   useEffect(() => {
     if (run?.status === AgentRunStatus.Processing) {
       setReasoningOpen(true);
@@ -119,6 +149,7 @@ export const AgentRunDetail: FC = () => {
       reportTitle,
       protocolName,
       auditorName,
+      // Send date-only string; backend coerces to DateTime
       reportDate: reportDate || undefined,
       articleMarkdown,
       findings: findings
@@ -135,33 +166,47 @@ export const AgentRunDetail: FC = () => {
     if (ok) back(); else showError('Failed to approve');
   };
 
-  // Shared header rendered in both views
+  // Header section — source as clickable link, model as Chip
   const header = (
-    <>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+    <Box sx={{ mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
         <Typography variant="h4">Agent run #{run.id}</Typography>
         <Chip label={run.status} />
       </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Source: {run.sourceUrl || '—'} &middot; Model: {run.model || '—'}
-      </Typography>
-    </>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Typography variant="body2" color="text.secondary">Source:</Typography>
+        {run.sourceUrl ? (
+          <Link href={run.sourceUrl} target="_blank" rel="noopener noreferrer" variant="body2">
+            {run.sourceUrl}
+          </Link>
+        ) : (
+          <Typography variant="body2" color="text.secondary">—</Typography>
+        )}
+        <Typography variant="body2" color="text.secondary" sx={{ mx: 0.5 }}>&middot;</Typography>
+        <Typography variant="body2" color="text.secondary">Model:</Typography>
+        <Chip label={run.model || '—'} size="small" variant="outlined" />
+      </Box>
+    </Box>
   );
 
-  // Shared reasoning accordion
+  // Reasoning accordion — always starts open
   const reasoningAccordion = (
-    <Accordion
-      expanded={reasoningOpen}
-      onChange={(_, v) => setReasoningOpen(v)}
-      sx={{ mt: 3 }}
-    >
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>Agent reasoning</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <MarkdownView content={run.transcript} emptyMessage="No reasoning captured yet." />
-      </AccordionDetails>
-    </Accordion>
+    <Paper variant="outlined" sx={{ mt: 3 }}>
+      <Accordion
+        expanded={reasoningOpen}
+        onChange={(_, v) => setReasoningOpen(v)}
+        disableGutters
+        elevation={0}
+        sx={{ background: 'transparent' }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Agent reasoning</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <MarkdownView content={run.transcript} emptyMessage="No reasoning captured yet." />
+        </AccordionDetails>
+      </Accordion>
+    </Paper>
   );
 
   if (isProcessingOrQueued) {
@@ -193,123 +238,170 @@ export const AgentRunDetail: FC = () => {
       )}
 
       {/* Report metadata */}
-      <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Report metadata</Typography>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-        <TextField
-          label="Report title"
-          value={reportTitle}
-          onChange={(e) => setReportTitle(e.target.value)}
-          sx={{ flex: '1 1 300px' }}
-        />
-        <TextField
-          label="Protocol / project"
-          value={protocolName}
-          onChange={(e) => setProtocolName(e.target.value)}
-          sx={{ flex: '1 1 200px' }}
-        />
-        <TextField
-          label="Auditor"
-          value={auditorName}
-          onChange={(e) => setAuditorName(e.target.value)}
-          sx={{ flex: '1 1 200px' }}
-        />
-        <TextField
-          label="Audit date"
-          value={reportDate}
-          onChange={(e) => setReportDate(e.target.value)}
-          sx={{ flex: '1 1 160px' }}
-        />
-      </Box>
+      <Paper variant="outlined" sx={{ p: 2, mt: 2, mb: 3 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>Report metadata</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <TextField
+            label="Report title"
+            value={reportTitle}
+            onChange={(e) => setReportTitle(e.target.value)}
+            sx={{ flex: '1 1 300px' }}
+          />
+          <TextField
+            label="Protocol / project"
+            value={protocolName}
+            onChange={(e) => setProtocolName(e.target.value)}
+            sx={{ flex: '1 1 200px' }}
+          />
+          <TextField
+            label="Auditor"
+            value={auditorName}
+            onChange={(e) => setAuditorName(e.target.value)}
+            sx={{ flex: '1 1 200px' }}
+          />
+          <TextField
+            label="Audit date"
+            type="date"
+            value={reportDate}
+            onChange={(e) => setReportDate(e.target.value)}
+            sx={{ flex: '1 1 160px' }}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+        </Box>
+      </Paper>
 
       {/* Article */}
-      <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Article (Markdown)</Typography>
-      <TextField
-        multiline
-        rows={10}
-        fullWidth
-        label="Article (Markdown)"
-        value={articleMarkdown}
-        onChange={(e) => setArticleMarkdown(e.target.value)}
-        sx={{ mb: 1 }}
-      />
-      <MarkdownView content={articleMarkdown} emptyMessage="No article produced." background={{ p: 2 }} />
+      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>Article (Markdown)</Typography>
+        <TextField
+          multiline
+          rows={10}
+          fullWidth
+          label="Article (Markdown)"
+          value={articleMarkdown}
+          onChange={(e) => setArticleMarkdown(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+          Preview
+        </Typography>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+          <MarkdownView content={articleMarkdown} emptyMessage="No article produced." background={{ p: 2 }} />
+        </Box>
+      </Paper>
 
       {/* Findings */}
-      <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
-        Extracted vulnerabilities ({run.findings.length})
-      </Typography>
-      {run.findingsUnparseable && (
-        <Alert severity="warning" sx={{ my: 1 }}>
-          The agent&apos;s findings output could not be parsed &mdash; review the reasoning below.
-        </Alert>
-      )}
-      {findings.map((f, i) => (
-        <Paper key={i} variant="outlined" sx={{ p: 2, mb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={f.include}
-                  onChange={(e) => updateFinding(i, { include: e.target.checked })}
-                  slotProps={{ input: { 'aria-label': `Include finding ${i}` } as React.InputHTMLAttributes<HTMLInputElement> }}
+      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+          Extracted vulnerabilities ({run.findings.length})
+        </Typography>
+        {run.findingsUnparseable && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            The agent&apos;s findings output could not be parsed &mdash; review the reasoning below.
+          </Alert>
+        )}
+        {findings.map((f, i) => (
+          <Accordion key={i} disableGutters elevation={0} variant="outlined" sx={{ mb: 1 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', flex: 1, minWidth: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={f.include}
+                      onChange={(e) => updateFinding(i, { include: e.target.checked })}
+                      onClick={(e) => e.stopPropagation()}
+                      slotProps={{ input: { 'aria-label': `Include finding ${i}` } as React.InputHTMLAttributes<HTMLInputElement> }}
+                    />
+                  }
+                  label=""
+                  sx={{ m: 0 }}
                 />
-              }
-              label="Include"
-            />
-            <TextField
-              label="Title"
-              value={f.title}
-              onChange={(e) => updateFinding(i, { title: e.target.value })}
-              size="small"
-              sx={{ flex: '1 1 200px' }}
-            />
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Severity</InputLabel>
-              <Select
-                label="Severity"
-                value={f.severity}
-                onChange={(e) => updateFinding(i, { severity: e.target.value })}
-              >
-                {['critical', 'high', 'medium', 'low', 'note'].map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel>Category</InputLabel>
-              <Select
-                label="Category"
-                value={f.category}
-                onChange={(e) => updateFinding(i, { category: Number(e.target.value) })}
-              >
-                <MenuItem value={0}>Valid</MenuItem>
-                <MenuItem value={1}>Valid (not fixed)</MenuItem>
-                <MenuItem value={2}>Valid (partially fixed)</MenuItem>
-                <MenuItem value={3}>Invalid</MenuItem>
-                <MenuItem value={100}>N/A</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="Tags (comma-separated)"
-              value={f.tags}
-              onChange={(e) => updateFinding(i, { tags: e.target.value })}
-              size="small"
-              sx={{ flex: '1 1 160px' }}
-            />
-          </Box>
-          <TextField
-            label="Description"
-            multiline
-            rows={3}
-            fullWidth
-            value={f.description}
-            onChange={(e) => updateFinding(i, { description: e.target.value })}
-            size="small"
-          />
-        </Paper>
-      ))}
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, flex: '1 1 120px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                  {f.title || '(untitled)'}
+                </Typography>
+                <Chip
+                  label={f.severity}
+                  color={severityColor(f.severity)}
+                  size="small"
+                  sx={{ textTransform: 'capitalize' }}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                  {categoryLabel(f.category)}
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                <TextField
+                  label="Title"
+                  fullWidth
+                  value={f.title}
+                  onChange={(e) => updateFinding(i, { title: e.target.value })}
+                />
+                <FormControl sx={{ flex: '1 1 140px' }}>
+                  <InputLabel>Severity</InputLabel>
+                  <Select
+                    label="Severity"
+                    value={f.severity}
+                    onChange={(e) => updateFinding(i, { severity: e.target.value })}
+                  >
+                    {['critical', 'high', 'medium', 'low', 'note'].map((s) => (
+                      <MenuItem key={s} value={s}>{s}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl sx={{ flex: '1 1 200px' }}>
+                  <InputLabel>Category</InputLabel>
+                  <Select
+                    label="Category"
+                    value={f.category}
+                    onChange={(e) => updateFinding(i, { category: Number(e.target.value) })}
+                  >
+                    <MenuItem value={0}>Valid</MenuItem>
+                    <MenuItem value={1}>Valid (not fixed)</MenuItem>
+                    <MenuItem value={2}>Valid (partially fixed)</MenuItem>
+                    <MenuItem value={3}>Invalid</MenuItem>
+                    <MenuItem value={100}>N/A</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  label="Tags (comma-separated)"
+                  value={f.tags}
+                  onChange={(e) => updateFinding(i, { tags: e.target.value })}
+                  sx={{ flex: '1 1 200px' }}
+                />
+              </Box>
+              <TextField
+                label="Description"
+                multiline
+                rows={8}
+                fullWidth
+                value={f.description}
+                onChange={(e) => updateFinding(i, { description: e.target.value })}
+                sx={{ mb: 2 }}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                Preview
+              </Typography>
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+                <MarkdownView
+                  content={f.description}
+                  emptyMessage="Nothing to preview"
+                  background={{ p: 2 }}
+                />
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </Paper>
 
-      {/* Transcript */}
+      {/* Reasoning transcript */}
       {reasoningAccordion}
 
       {/* Actions */}

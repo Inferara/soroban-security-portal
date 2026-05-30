@@ -68,8 +68,23 @@ export const AgentRunManagement: FC = () => {
       ),
     },
     { field: 'sourceUrl', headerName: 'Source', width: 420 },
-    { field: 'model', headerName: 'Model', width: 160 },
-    { field: 'createdAt', headerName: 'Created', width: 200 },
+    {
+      field: 'createdAt',
+      headerName: 'Created',
+      width: 200,
+      renderCell: (params: GridRenderCellParams<AgentRunListItem>) => {
+        const raw = params.row.createdAt;
+        if (!raw) return '—';
+        return raw.split('.')[0].replace('T', ' ');
+      },
+    },
+    {
+      field: 'model',
+      headerName: 'Model',
+      width: 160,
+      renderCell: (params: GridRenderCellParams<AgentRunListItem>) =>
+        params.row.model || '—',
+    },
   ], [navigate, reject, rerun]);
 
   return (
