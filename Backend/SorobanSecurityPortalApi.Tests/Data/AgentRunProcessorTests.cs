@@ -168,5 +168,22 @@ namespace SorobanSecurityPortalApi.Tests.Data
             run.AuditorName.Should().Be("Hacken");
             run.ReportDate.Should().Be(new DateTime(2026, 4, 13, 0, 0, 0, DateTimeKind.Utc));
         }
+
+        [Fact]
+        public async Task SubmitResult_Coerces_Unspecified_ReportDate_To_Utc()
+        {
+            // A date like "2026-04-13" deserializes to Kind=Unspecified, which Npgsql rejects for a
+            // timestamptz column. The processor must coerce it to UTC so the save doesn't 500.
+            var list = new List<AgentRunModel> { new() { Id = 51, Status = AgentRunStatus.Processing } };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.SubmitResult(51, new AgentRunResult
+            {
+                Success = true,
+                ReportDate = new DateTime(2026, 4, 13, 0, 0, 0, DateTimeKind.Unspecified)
+            });
+
+            list.Single().ReportDate!.Value.Kind.Should().Be(DateTimeKind.Utc);
+        }
     }
 }

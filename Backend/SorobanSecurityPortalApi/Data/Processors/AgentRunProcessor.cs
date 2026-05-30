@@ -88,7 +88,14 @@ namespace SorobanSecurityPortalApi.Data.Processors
             run.ReportTitle = result.ReportTitle ?? "";
             run.ProtocolName = result.ProtocolName ?? "";
             run.AuditorName = result.AuditorName ?? "";
-            run.ReportDate = result.ReportDate;
+            // report_date is a `timestamp with time zone` column → Npgsql only accepts UTC-kind
+            // DateTimes. An incoming date (e.g. "2026-04-13" with Kind=Unspecified) would otherwise
+            // throw on save. Normalize any kind to UTC before storing.
+            run.ReportDate = result.ReportDate.HasValue
+                ? (result.ReportDate.Value.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(result.ReportDate.Value, DateTimeKind.Utc)
+                    : result.ReportDate.Value.ToUniversalTime())
+                : null;
             run.FinishedAt = DateTime.UtcNow;
             db.AgentRun.Update(run);
             await db.SaveChangesAsync();
