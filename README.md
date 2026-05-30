@@ -1,4 +1,4 @@
-![logo](./SFC36/readme-gif.gif)
+![logo](./SFC36/readme-new.gif)
 
 [![CI](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml)
 [![Deploy Stellar Security Portal](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml)
