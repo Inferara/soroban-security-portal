@@ -53,7 +53,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             result.Should().BeOfType<Result<AgentRunViewModel, string>.Ok>();
             runProc.Verify(p => p.Add(It.Is<AgentRunModel>(m =>
-                m.SourceUrl == "https://x/report" && m.CreatedBy == 99)), Times.Once);
+                m.SourceUrl == "https://x/report" && m.CreatedBy == 99
+                && m.Model == "zai-coding-plan/glm-5.1")), Times.Once); // defaults model when not specified
         }
 
         [Fact]

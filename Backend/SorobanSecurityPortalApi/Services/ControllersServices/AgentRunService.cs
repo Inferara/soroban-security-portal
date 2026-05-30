@@ -10,6 +10,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
     public class AgentRunService : IAgentRunService
     {
+        // Default model recorded on a run when the caller doesn't specify one (matches the worker's OPENCODE_MODEL).
+        private const string DefaultModel = "zai-coding-plan/glm-5.1";
+
         private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web)
         {
             Converters = { new JsonStringEnumConverter() }
@@ -51,7 +54,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 SourceUrl = request.SourceUrl ?? "",
                 ReportId = request.ReportId,
-                Model = request.Model ?? "",
+                Model = string.IsNullOrWhiteSpace(request.Model) ? DefaultModel : request.Model,
                 CreatedBy = loginId,
             });
             return new Result<AgentRunViewModel, string>.Ok(ToViewModel(run));
