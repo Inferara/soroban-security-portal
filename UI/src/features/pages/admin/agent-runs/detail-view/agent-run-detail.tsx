@@ -65,6 +65,7 @@ export const AgentRunDetail: FC = () => {
   const [protocolName, setProtocolName] = useState('');
   const [auditorName, setAuditorName] = useState('');
   const [reportDate, setReportDate] = useState('');
+  const [reportPdfUrl, setReportPdfUrl] = useState('');
   const [articleMarkdown, setArticleMarkdown] = useState('');
   const [findings, setFindings] = useState<EditableFinding[]>([]);
   const initializedRef = useRef(false);
@@ -82,6 +83,7 @@ export const AgentRunDetail: FC = () => {
       setAuditorName(run.auditorName ?? '');
       // Store only the date portion for the date input
       setReportDate(toDateOnly(run.reportDate ?? ''));
+      setReportPdfUrl(run.reportPdfUrl ?? '');
       setArticleMarkdown(run.articleMarkdown ?? '');
       setFindings(
         run.findings.map((f) => ({
@@ -151,6 +153,7 @@ export const AgentRunDetail: FC = () => {
       auditorName,
       // Send date-only string; backend coerces to DateTime
       reportDate: reportDate || undefined,
+      reportPdfUrl,
       articleMarkdown,
       findings: findings
         .filter((f) => f.include)
@@ -266,6 +269,13 @@ export const AgentRunDetail: FC = () => {
             onChange={(e) => setReportDate(e.target.value)}
             sx={{ flex: '1 1 160px' }}
             slotProps={{ inputLabel: { shrink: true } }}
+          />
+          <TextField
+            label="Report PDF URL"
+            value={reportPdfUrl}
+            onChange={(e) => setReportPdfUrl(e.target.value)}
+            fullWidth
+            helperText="Direct link to the original report PDF (auto-discovered by the agent). It is downloaded into the report on approve. Leave empty for an article-only report."
           />
         </Box>
       </Paper>

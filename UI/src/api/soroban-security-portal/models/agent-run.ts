@@ -33,6 +33,7 @@ export interface AgentRun extends AgentRunListItem {
   protocolName: string;
   auditorName: string;
   reportDate?: string;
+  reportPdfUrl: string;
 }
 
 export interface ApproveAgentRun {
@@ -42,6 +43,7 @@ export interface ApproveAgentRun {
   reportDate?: string;
   articleMarkdown: string;
   findings: AgentFinding[];
+  reportPdfUrl: string;
 }
 
 export interface AgentRunListResult {

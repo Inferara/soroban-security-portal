@@ -37,6 +37,7 @@ const succeededRun = {
   id: 5, status: 'succeeded', sourceUrl: 'https://x/r', model: 'claude', error: '', createdBy: 1, createdAt: 'd',
   promptVersion: '', articleMarkdown: '# Audit', transcript: 'thinking...',
   reportTitle: 'My Audit Report', protocolName: 'MyProtocol', auditorName: 'AuditCo', reportDate: '2026-01-01',
+  reportPdfUrl: 'https://x/rozo.pdf',
   findings: [
     { title: 'Reentrancy', description: 'desc1', severity: 'high', tags: ['t1'], category: 0 },
     { title: 'Integer Overflow', description: 'desc2', severity: 'medium', tags: ['t2'], category: 1 },
@@ -191,5 +192,37 @@ describe('AgentRunDetail', () => {
     const payload = mockApprove.mock.calls[0][0];
     expect(payload.findings.length).toBe(1);
     expect(payload.findings[0].title).toBe('Integer Overflow');
+  });
+
+  it('Report PDF URL field renders pre-filled with the run value', () => {
+    mockRun = succeededRun;
+    renderComponent();
+    expect(screen.getByDisplayValue('https://x/rozo.pdf')).toBeInTheDocument();
+    expect(screen.getByLabelText('Report PDF URL')).toBeInTheDocument();
+  });
+
+  it('approve payload includes reportPdfUrl with the pre-filled value', async () => {
+    mockRun = succeededRun;
+    renderComponent();
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve selected/i }));
+
+    await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+    const payload = mockApprove.mock.calls[0][0];
+    expect(payload.reportPdfUrl).toBe('https://x/rozo.pdf');
+  });
+
+  it('approve payload includes updated reportPdfUrl after editing', async () => {
+    mockRun = succeededRun;
+    renderComponent();
+
+    const pdfUrlInput = screen.getByLabelText('Report PDF URL');
+    fireEvent.change(pdfUrlInput, { target: { value: 'https://new/report.pdf' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve selected/i }));
+
+    await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+    const payload = mockApprove.mock.calls[0][0];
+    expect(payload.reportPdfUrl).toBe('https://new/report.pdf');
   });
 });
