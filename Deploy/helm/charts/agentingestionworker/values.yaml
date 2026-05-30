@@ -1,0 +1,10 @@
+# Default values for the agent ingestion worker sub-chart.
+# All values are overridable via --set at deploy time.
+
+agentIngestionWorker:
+  # Set to false to skip deploying the worker (useful on envs where
+  # the background agent pipeline is not yet activated).
+  enabled: true
+
+  # Poll interval in seconds — how long the worker sleeps when the queue is empty.
+  pollIntervalSeconds: "15"

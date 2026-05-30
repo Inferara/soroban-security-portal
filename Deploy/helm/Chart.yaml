@@ -8,3 +8,5 @@ kubeVersion: ">=1.16.0-0"
 dependencies:
   - name: api
     version: 1.0.0
+  - name: agentingestionworker
+    version: 1.0.0

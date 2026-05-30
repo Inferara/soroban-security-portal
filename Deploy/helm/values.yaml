@@ -33,3 +33,8 @@ global:
     model: "gemini-embedding-001"
     key: ""
   letsEncryptIssuer: ""
+  secrets:
+    # API key for the zai-coding-plan OpenCode provider.
+    # Supply at deploy time via --set global.secrets.zaiCodingPlanKey=<key>
+    # NEVER commit a real key here.
+    zaiCodingPlanKey: ""

@@ -16,6 +16,24 @@ spec:
   - host: "{{ .Values.global.app.domain }}"
     http:
       paths:
+      # SECURITY: Block public access to internal agent-run endpoints.
+      # /api/v1/agent-runs/internal/* is unauthenticated and MUST NOT be public.
+      # The IngressRoute (Traefik CRD) is the primary enforcement point with a
+      # negated PathPrefix rule. This Ingress is used by cert-manager for ACME
+      # challenges only; Traefik routes real traffic via the IngressRoute above.
+      # A more-specific path listed FIRST wins in Kubernetes longest-prefix matching,
+      # sending /api/v1/agent-runs/internal/* to a non-existent service → 503,
+      # which is safe (the worker uses the ClusterIP Service, not the Ingress).
+      - path: /api/v1/agent-runs/internal
+        pathType: Prefix
+        backend:
+          service:
+            # Intentionally routes to a non-existent port on the API service.
+            # Real traffic to this path is blocked by the IngressRoute exclusion.
+            # This entry exists purely as a defence-in-depth backstop.
+            name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
+            port:
+              number: 9999
       - path: /api
         pathType: Prefix
         backend:
