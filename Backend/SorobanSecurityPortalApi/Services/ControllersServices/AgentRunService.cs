@@ -125,7 +125,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var report = await _reportProcessor.Add(new ReportModel
                 {
                     Name = name,
-                    Date = payload.ReportDate ?? DateTime.UtcNow,
+                    // report.Date is a timestamptz column → Npgsql only accepts UTC-kind. The approve
+                    // payload's date comes from a date-only input (Kind=Unspecified) → coerce to UTC.
+                    Date = ToUtc(payload.ReportDate) ?? DateTime.UtcNow,
                     Status = ReportModelStatus.New,
                     MdFile = payload.ArticleMarkdown,
                     BinFile = pdf,
@@ -161,6 +163,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             await _runProcessor.SetStatus(id, AgentRunStatus.Approved);
             return new Result<bool, string>.Ok(true);
         }
+
+        private static DateTime? ToUtc(DateTime? d)
+            => d.HasValue
+                ? (d.Value.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(d.Value, DateTimeKind.Utc) : d.Value.ToUniversalTime())
+                : null;
 
         private async Task<byte[]?> TryFetchReportPdf(string? url)
         {

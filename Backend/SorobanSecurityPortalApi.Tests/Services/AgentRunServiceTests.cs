@@ -577,5 +577,26 @@ namespace SorobanSecurityPortalApi.Tests.Services
             reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.BinFile == null)), Times.Once);
             httpFactory.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
         }
+
+        [Fact]
+        public async Task Approve_Coerces_Unspecified_ReportDate_To_Utc_On_Report()
+        {
+            // The UI's date-only field yields a DateTime with Kind=Unspecified; report.Date is a
+            // timestamptz column → Npgsql rejects it. Approve must coerce to UTC before saving.
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(80)).ReturnsAsync(new AgentRunModel { Id = 80, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 1; return r; });
+            var svc = BuildService(runProc, reportProc);
+
+            var payload = new ApproveAgentRunViewModel
+            {
+                ReportTitle = "T", Findings = new(),
+                ReportDate = new DateTime(2026, 4, 13, 0, 0, 0, DateTimeKind.Unspecified)
+            };
+            (await svc.Approve(80, payload)).Should().BeOfType<Result<bool, string>.Ok>();
+
+            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.Date.Kind == DateTimeKind.Utc)), Times.Once);
+        }
     }
 }
