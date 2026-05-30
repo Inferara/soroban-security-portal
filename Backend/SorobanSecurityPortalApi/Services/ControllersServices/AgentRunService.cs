@@ -22,6 +22,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         };
 
         private const long MaxPdfSizeBytes = 50L * 1024 * 1024;
+        private const int PdfFetchMaxAttempts = 3;
+        private const int PdfFetchRetryDelayMs = 1500;
 
         private readonly IMapper _mapper;
         private readonly IAgentRunProcessor _runProcessor;
@@ -173,26 +175,37 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             if (string.IsNullOrWhiteSpace(url)) return null;
             if (!UrlValidator.IsUrlSafeForFetch(url, out _)) return null;
-            try
+            // The cluster node's egress flaps intermittently (TLS/connection resets), so a single GET
+            // often fails on an otherwise-reachable URL. Retry on transient *network* faults only — a
+            // successful response that isn't a PDF (or a non-2xx status) is definitive and returns at once.
+            for (var attempt = 1; attempt <= PdfFetchMaxAttempts; attempt++)
             {
-                var http = _httpClientFactory.CreateClient(HttpClients.ReportFetchClient);
-                using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-                if (!resp.IsSuccessStatusCode) return null;
-                if (resp.Content.Headers.ContentLength is > MaxPdfSizeBytes) return null;
-                await using var stream = await resp.Content.ReadAsStreamAsync();
-                using var ms = new MemoryStream();
-                var buffer = new byte[8192];
-                long total = 0; int read;
-                while ((read = await stream.ReadAsync(buffer)) > 0)
+                try
                 {
-                    total += read;
-                    if (total > MaxPdfSizeBytes) return null;
-                    await ms.WriteAsync(buffer.AsMemory(0, read));
+                    var http = _httpClientFactory.CreateClient(HttpClients.ReportFetchClient);
+                    using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                    if (!resp.IsSuccessStatusCode) return null;
+                    if (resp.Content.Headers.ContentLength is > MaxPdfSizeBytes) return null;
+                    await using var stream = await resp.Content.ReadAsStreamAsync();
+                    using var ms = new MemoryStream();
+                    var buffer = new byte[8192];
+                    long total = 0; int read;
+                    while ((read = await stream.ReadAsync(buffer)) > 0)
+                    {
+                        total += read;
+                        if (total > MaxPdfSizeBytes) return null;
+                        await ms.WriteAsync(buffer.AsMemory(0, read));
+                    }
+                    var bytes = ms.ToArray();
+                    return bytes.IsPdf() ? bytes : null;
                 }
-                var bytes = ms.ToArray();
-                return bytes.IsPdf() ? bytes : null;
+                catch when (attempt < PdfFetchMaxAttempts)
+                {
+                    await Task.Delay(PdfFetchRetryDelayMs); // transient network fault — retry
+                }
+                catch { return null; } // final attempt failed — never fail approve on a bad PDF url
             }
-            catch { return null; } // never fail approve on a bad PDF url
+            return null;
         }
 
         private async Task<int?> ResolveAuditorId(string? name, int loginId)

@@ -62,6 +62,31 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(_body) });
         }
 
+        private static Mock<IHttpClientFactory> HttpFactoryWith(HttpMessageHandler handler)
+        {
+            var client = new HttpClient(handler);
+            var f = new Mock<IHttpClientFactory>();
+            f.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
+            return f;
+        }
+
+        // Throws a transient network fault on the first (failBeforeSuccess) calls, then returns the body.
+        private sealed class FlakyHandler : HttpMessageHandler
+        {
+            private readonly byte[] _body;
+            private int _calls;
+            private readonly int _failBeforeSuccess;
+            public int Calls => _calls;
+            public FlakyHandler(byte[] body, int failBeforeSuccess) { _body = body; _failBeforeSuccess = failBeforeSuccess; }
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+            {
+                _calls++;
+                if (_calls <= _failBeforeSuccess)
+                    throw new HttpRequestException("simulated transient connection reset");
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(_body) });
+            }
+        }
+
         [Fact]
         public async Task Enqueue_With_SourceUrl_Creates_Queued_Run()
         {
@@ -516,6 +541,41 @@ namespace SorobanSecurityPortalApi.Tests.Services
             result.Should().BeOfType<Result<bool, string>.Ok>();
             reportProc.Verify(p => p.Add(It.Is<ReportModel>(r =>
                 r.BinFile != null && r.BinFile.Length > 0 && r.MdFile == "<article>")), Times.Once);
+        }
+
+        [Fact]
+        public async Task Approve_Retries_Transient_Network_Fault_Then_Sets_BinFile()
+        {
+            // The cluster node's egress flaps: the first two GETs throw, the third succeeds.
+            // TryFetchReportPdf must retry on network faults and still populate BinFile.
+            var pdfBytes = System.Text.Encoding.ASCII.GetBytes("%PDF-1.4\n%flaky");
+            var handler = new FlakyHandler(pdfBytes, failBeforeSuccess: 2);
+            var httpFactory = HttpFactoryWith(handler);
+
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(73)).ReturnsAsync(new AgentRunModel { Id = 73, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Add(It.IsAny<ReportModel>())).ReturnsAsync((ReportModel r) => { r.Id = 103; return r; });
+            var protoProc = new Mock<IProtocolProcessor>();
+            protoProc.Setup(p => p.List()).ReturnsAsync(new List<ProtocolModel>());
+            protoProc.Setup(p => p.Add(It.IsAny<ProtocolModel>())).ReturnsAsync((ProtocolModel p) => { p.Id = 1; return p; });
+            var audProc = new Mock<IAuditorProcessor>();
+            audProc.Setup(a => a.List()).ReturnsAsync(new List<AuditorModel>());
+            audProc.Setup(a => a.Add(It.IsAny<AuditorModel>())).ReturnsAsync((AuditorModel a) => { a.Id = 2; return a; });
+            var svc = BuildService(runProc, reportProc, null, protoProc, audProc, httpFactory);
+
+            var payload = new ApproveAgentRunViewModel
+            {
+                ReportTitle = "Flaky Audit", ProtocolName = "Proto", AuditorName = "Aud",
+                ArticleMarkdown = "<article>", Findings = new(),
+                ReportPdfUrl = "https://example.com/r.pdf"
+            };
+            var result = await svc.Approve(73, payload);
+
+            result.Should().BeOfType<Result<bool, string>.Ok>();
+            handler.Calls.Should().Be(3); // 2 failures + 1 success
+            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r =>
+                r.BinFile != null && r.BinFile.Length > 0)), Times.Once);
         }
 
         [Fact]
