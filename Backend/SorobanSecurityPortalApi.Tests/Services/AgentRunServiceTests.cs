@@ -87,6 +87,33 @@ namespace SorobanSecurityPortalApi.Tests.Services
             }
         }
 
+        // Captures what Approve hands to the atomic CommitApproval (report + vulns) and returns a
+        // successful commit result. Pass returnsNull:true to simulate the run already being approved.
+        private sealed class CommitCapture
+        {
+            public bool Called;
+            public ReportModel? Report;
+            public int? ExistingReportId;
+            public List<VulnerabilityModel>? Vulns;
+        }
+
+        private static CommitCapture SetupCommit(Mock<IAgentRunProcessor> runProc, bool returnsNull = false)
+        {
+            var cap = new CommitCapture();
+            runProc.Setup(p => p.CommitApproval(It.IsAny<int>(), It.IsAny<ReportModel?>(), It.IsAny<int?>(), It.IsAny<List<VulnerabilityModel>>()))
+                .ReturnsAsync((int runId, ReportModel? newReport, int? existingReportId, List<VulnerabilityModel> vulns) =>
+                {
+                    cap.Called = true; cap.Report = newReport; cap.ExistingReportId = existingReportId; cap.Vulns = vulns;
+                    if (returnsNull) return null;
+                    return new ApprovalCommitResult
+                    {
+                        ReportId = newReport?.Id ?? existingReportId ?? 100,
+                        VulnerabilityIds = vulns.Select((_, i) => i + 1).ToList(),
+                    };
+                });
+            return cap;
+        }
+
         [Fact]
         public async Task Enqueue_With_SourceUrl_Creates_Queued_Run()
         {
@@ -233,15 +260,18 @@ namespace SorobanSecurityPortalApi.Tests.Services
             var payload = Payload(
                 new AgentFinding { Title = "Bug A", Description = "d", Severity = "high", Tags = new() { "t" }, Category = VulnerabilityCategory.Valid },
                 new AgentFinding { Title = "Bug B", Description = "d2", Severity = "low", Tags = new(), Category = VulnerabilityCategory.Valid });
+            var cap = SetupCommit(runProc);
             var result = await svc.Approve(10, payload);
 
             result.Should().BeOfType<Result<bool, string>.Ok>();
-            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r =>
-                r.Name == "Rozo Audit" && r.MdFile == "# Audit" && r.Status == ReportModelStatus.New &&
-                r.ProtocolId == 7 && r.AuditorId == 9 && r.CreatedBy == 99)), Times.Once);
-            vulnProc.Verify(p => p.Add(It.IsAny<VulnerabilityModel>()), Times.Exactly(2));
-            vulnProc.Verify(p => p.Add(It.Is<VulnerabilityModel>(v => v.Title == "Bug A" && v.Severity == "high" && v.ReportId == 55)), Times.Once);
-            runProc.Verify(p => p.SetStatus(10, AgentRunStatus.Approved), Times.Once);
+            cap.Report!.Name.Should().Be("Rozo Audit");
+            cap.Report.MdFile.Should().Be("# Audit");
+            cap.Report.Status.Should().Be(ReportModelStatus.New);
+            cap.Report.ProtocolId.Should().Be(7);
+            cap.Report.AuditorId.Should().Be(9);
+            cap.Report.CreatedBy.Should().Be(99);
+            cap.Vulns.Should().HaveCount(2);
+            cap.Vulns!.Should().Contain(v => v.Title == "Bug A" && v.Severity == "high");
         }
 
         [Fact]
@@ -279,11 +309,13 @@ namespace SorobanSecurityPortalApi.Tests.Services
             var svc = BuildService(runProc, reportProc, null, protoProc, audProc);
 
             var payload = new ApproveAgentRunViewModel { ReportTitle = "T", ProtocolName = "rozo", AuditorName = "HACKEN", Findings = new() };
+            var cap = SetupCommit(runProc);
             await svc.Approve(12, payload);
 
             protoProc.Verify(p => p.Add(It.IsAny<ProtocolModel>()), Times.Never);
             audProc.Verify(a => a.Add(It.IsAny<AuditorModel>()), Times.Never);
-            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.ProtocolId == 3 && r.AuditorId == 4)), Times.Once);
+            cap.Report!.ProtocolId.Should().Be(3);
+            cap.Report.AuditorId.Should().Be(4);
         }
 
         [Fact]
@@ -297,11 +329,13 @@ namespace SorobanSecurityPortalApi.Tests.Services
             var audProc = new Mock<IAuditorProcessor>();
             var svc = BuildService(runProc, reportProc, null, protoProc, audProc);
 
+            var cap = SetupCommit(runProc);
             await svc.Approve(13, new ApproveAgentRunViewModel { ReportTitle = "T", Findings = new() });
 
             protoProc.Verify(p => p.List(), Times.Never);
             audProc.Verify(a => a.List(), Times.Never);
-            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.ProtocolId == null && r.AuditorId == null)), Times.Once);
+            cap.Report!.ProtocolId.Should().BeNull();
+            cap.Report.AuditorId.Should().BeNull();
         }
 
         [Fact]
@@ -330,10 +364,13 @@ namespace SorobanSecurityPortalApi.Tests.Services
             vulnProc.Setup(p => p.Add(It.IsAny<VulnerabilityModel>())).ReturnsAsync((VulnerabilityModel v) => { v.Id = 1; return v; });
             var svc = BuildService(runProc, reportProc, vulnProc);
 
+            var cap = SetupCommit(runProc);
             await svc.Approve(15, Payload(new AgentFinding { Title = "X", Severity = "low", Tags = new(), Category = VulnerabilityCategory.Valid }));
 
-            reportProc.Verify(p => p.Add(It.IsAny<ReportModel>()), Times.Never);
-            vulnProc.Verify(p => p.Add(It.Is<VulnerabilityModel>(v => v.ReportId == 77)), Times.Once);
+            // Existing report → no new report is built; the commit reuses report 77.
+            cap.Report.Should().BeNull();
+            cap.ExistingReportId.Should().Be(77);
+            cap.Vulns.Should().ContainSingle(v => v.Title == "X");
         }
 
         [Fact]
@@ -536,11 +573,16 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 ArticleMarkdown = "<article>", Findings = new(),
                 ReportPdfUrl = "https://example.com/r.pdf"
             };
+            var cap = SetupCommit(runProc);
             var result = await svc.Approve(70, payload);
 
             result.Should().BeOfType<Result<bool, string>.Ok>();
-            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r =>
-                r.BinFile != null && r.BinFile.Length > 0 && r.MdFile == "<article>")), Times.Once);
+            cap.Called.Should().BeTrue();
+            cap.Report.Should().NotBeNull();
+            cap.Report!.BinFile.Should().NotBeNull();
+            cap.Report.BinFile!.Length.Should().BeGreaterThan(0);
+            cap.Report.MdFile.Should().Be("<article>");
+            cap.Report.IsAgentGenerated.Should().BeTrue();
         }
 
         [Fact]
@@ -570,12 +612,13 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 ArticleMarkdown = "<article>", Findings = new(),
                 ReportPdfUrl = "https://example.com/r.pdf"
             };
+            var cap = SetupCommit(runProc);
             var result = await svc.Approve(73, payload);
 
             result.Should().BeOfType<Result<bool, string>.Ok>();
             handler.Calls.Should().Be(3); // 2 failures + 1 success
-            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r =>
-                r.BinFile != null && r.BinFile.Length > 0)), Times.Once);
+            cap.Report!.BinFile.Should().NotBeNull();
+            cap.Report.BinFile!.Length.Should().BeGreaterThan(0);
         }
 
         [Fact]
@@ -602,10 +645,11 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 ArticleMarkdown = "# Art", Findings = new(),
                 ReportPdfUrl = "https://example.com/notpdf.html"
             };
+            var cap = SetupCommit(runProc);
             var result = await svc.Approve(71, payload);
 
             result.Should().BeOfType<Result<bool, string>.Ok>();
-            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.BinFile == null)), Times.Once);
+            cap.Report!.BinFile.Should().BeNull();
         }
 
         [Fact]
@@ -631,10 +675,11 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 ArticleMarkdown = "# Art", Findings = new(),
                 ReportPdfUrl = ""
             };
+            var cap = SetupCommit(runProc);
             var result = await svc.Approve(72, payload);
 
             result.Should().BeOfType<Result<bool, string>.Ok>();
-            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.BinFile == null)), Times.Once);
+            cap.Report!.BinFile.Should().BeNull();
             httpFactory.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
         }
 
@@ -654,9 +699,81 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 ReportTitle = "T", Findings = new(),
                 ReportDate = new DateTime(2026, 4, 13, 0, 0, 0, DateTimeKind.Unspecified)
             };
+            var cap = SetupCommit(runProc);
             (await svc.Approve(80, payload)).Should().BeOfType<Result<bool, string>.Ok>();
 
-            reportProc.Verify(p => p.Add(It.Is<ReportModel>(r => r.Date.Kind == DateTimeKind.Utc)), Times.Once);
+            cap.Report!.Date.Kind.Should().Be(DateTimeKind.Utc);
+        }
+
+        [Fact]
+        public async Task Approve_Returns_Err_When_Commit_Reports_AlreadyApproved()
+        {
+            // CommitApproval returns null when the atomic Succeeded→Approved claim found the run no
+            // longer Succeeded (a concurrent/duplicate approve won). Approve must surface that, not 200.
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(81)).ReturnsAsync(new AgentRunModel { Id = 81, Status = AgentRunStatus.Succeeded });
+            var svc = BuildService(runProc);
+            SetupCommit(runProc, returnsNull: true);
+
+            var result = await svc.Approve(81, new ApproveAgentRunViewModel { ReportTitle = "T", Findings = new() });
+
+            result.Should().BeOfType<Result<bool, string>.Err>();
+        }
+
+        [Fact]
+        public async Task Approve_Normalizes_Finding_Severity_And_Category()
+        {
+            // Out-of-vocab severity / out-of-range category from the agent must be coerced before the
+            // vulnerabilities are committed.
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(82)).ReturnsAsync(new AgentRunModel { Id = 82, Status = AgentRunStatus.Succeeded });
+            var svc = BuildService(runProc);
+            var cap = SetupCommit(runProc);
+
+            var payload = new ApproveAgentRunViewModel
+            {
+                ReportTitle = "T",
+                Findings = new()
+                {
+                    new AgentFinding { Title = "F1", Severity = "Informational", Category = (VulnerabilityCategory)7 },
+                    new AgentFinding { Title = "F2", Severity = "Major", Category = VulnerabilityCategory.Valid },
+                }
+            };
+            (await svc.Approve(82, payload)).Should().BeOfType<Result<bool, string>.Ok>();
+
+            cap.Vulns.Should().HaveCount(2);
+            cap.Vulns![0].Severity.Should().Be(VulnerabilitySeverity.Note);
+            cap.Vulns[0].Category.Should().Be(VulnerabilityCategory.NA);
+            cap.Vulns[1].Severity.Should().Be(VulnerabilitySeverity.High);
+            cap.Vulns[1].Category.Should().Be(VulnerabilityCategory.Valid);
+        }
+
+        [Fact]
+        public async Task Enqueue_Blocks_Duplicate_Source_Url_Unless_Forced()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.FindActiveOrApprovedBySourceUrl("https://x/report"))
+                .ReturnsAsync(new AgentRunModel { Id = 9, Status = AgentRunStatus.Approved, CreatedReportId = 42 });
+            var svc = BuildService(runProc);
+
+            var blocked = await svc.Enqueue(new EnqueueAgentRunViewModel { SourceUrl = "https://x/report" });
+            blocked.Should().BeOfType<Result<AgentRunViewModel, string>.Err>();
+            runProc.Verify(p => p.Add(It.IsAny<AgentRunModel>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Enqueue_Allows_Duplicate_Source_Url_When_Forced()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Add(It.IsAny<AgentRunModel>()))
+                .ReturnsAsync((AgentRunModel m) => { m.Id = 1; return m; });
+            var svc = BuildService(runProc);
+
+            var ok = await svc.Enqueue(new EnqueueAgentRunViewModel { SourceUrl = "https://x/report", Force = true });
+
+            ok.Should().BeOfType<Result<AgentRunViewModel, string>.Ok>();
+            runProc.Verify(p => p.FindActiveOrApprovedBySourceUrl(It.IsAny<string>()), Times.Never);
+            runProc.Verify(p => p.Add(It.IsAny<AgentRunModel>()), Times.Once);
         }
     }
 }

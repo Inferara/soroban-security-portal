@@ -8,20 +8,27 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
 {
     public class BackgroundWorkingHostedService : IHostedService
     {
+        // A processing agent-run older than this with no result means the worker died mid-job; reclaim it.
+        // Must exceed the worker's hard run cap (OPENCODE_TIMEOUT_MIN, default 20 min) plus slack.
+        private static readonly TimeSpan StuckAgentRunTimeout = TimeSpan.FromMinutes(30);
+
         private readonly Config _config;
         private readonly IReportProcessor _reportProcessor;
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
         private readonly IGeminiEmbeddingService _embeddingService;
+        private readonly IAgentRunProcessor _agentRunProcessor;
 
         public BackgroundWorkingHostedService(
             IReportProcessor reportProcessor,
             IVulnerabilityProcessor vulnerabilityProcessor,
             IGeminiEmbeddingService embeddingService,
+            IAgentRunProcessor agentRunProcessor,
             Config config)
         {
             _reportProcessor = reportProcessor;
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _embeddingService = embeddingService;
+            _agentRunProcessor = agentRunProcessor;
             _config = config;
         }
 
@@ -30,11 +37,28 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
             while (!cancellationToken.IsCancellationRequested)
             {
                 await Task.Run(AutoCompactLargeObjectHeap, cancellationToken);
+                // Reaper runs FIRST so it isn't starved by the slow embedding steps below (which retry
+                // with backoff when the embedding API is unavailable).
+                await DoReclaimStuckAgentRuns();
                 await DoReportsFix();
                 await DoReportsEmbedding();
                 await DoVulnerabilitiesEmbedding();
                 await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
 
+            }
+        }
+
+        private async Task DoReclaimStuckAgentRuns()
+        {
+            try
+            {
+                var reclaimed = await _agentRunProcessor.ReclaimStuckProcessing(StuckAgentRunTimeout);
+                if (reclaimed > 0)
+                    Console.WriteLine($"Reclaimed {reclaimed} stuck agent run(s) (processing > {StuckAgentRunTimeout.TotalMinutes:0} min).");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during stuck agent-run reclaim: {ex.Message}");
             }
         }
 

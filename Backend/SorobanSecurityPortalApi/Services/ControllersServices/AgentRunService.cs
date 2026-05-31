@@ -59,6 +59,22 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (string.IsNullOrWhiteSpace(request.SourceUrl) && request.ReportId == null)
                 return new Result<AgentRunViewModel, string>.Err("Provide either a source URL or a report id.");
 
+            // Hard dedup: refuse to re-ingest a source URL that's already queued/processing or already
+            // approved into a report, unless the caller explicitly forces it. Prevents duplicate reports
+            // and wasted agent (token) spend on the same audit.
+            if (!request.Force && !string.IsNullOrWhiteSpace(request.SourceUrl))
+            {
+                var dup = await _runProcessor.FindActiveOrApprovedBySourceUrl(request.SourceUrl!.Trim());
+                if (dup != null)
+                {
+                    var detail = dup.Status == AgentRunStatus.Approved && dup.CreatedReportId.HasValue
+                        ? $"already approved as report #{dup.CreatedReportId.Value} (run #{dup.Id})"
+                        : $"already {dup.Status} (run #{dup.Id})";
+                    return new Result<AgentRunViewModel, string>.Err(
+                        $"This source URL was {detail}. Enable 'force' to ingest it again.");
+                }
+            }
+
             var loginId = await _userContextAccessor.GetLoginIdAsync();
             var run = await _runProcessor.Add(new AgentRunModel
             {
@@ -112,10 +128,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             var loginId = await _userContextAccessor.GetLoginIdAsync();
 
-            int reportId;
+            // Build the report to create (unless approving against an existing report). Protocol/Auditor
+            // resolution and the PDF fetch happen here (idempotent / external); the actual DB writes are
+            // committed atomically below so a partial failure can't leave duplicate rows on re-approve.
+            ReportModel? newReport = null;
+            int? existingReportId = null;
             if (run.ReportId.HasValue)
             {
-                reportId = run.ReportId.Value;
+                existingReportId = run.ReportId.Value;
             }
             else
             {
@@ -124,7 +144,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 var name = !string.IsNullOrWhiteSpace(payload.ReportTitle) ? payload.ReportTitle
                     : (!string.IsNullOrWhiteSpace(run.SourceUrl) ? run.SourceUrl : $"Agent run {run.Id}");
                 var pdf = await TryFetchReportPdf(payload.ReportPdfUrl);
-                var report = await _reportProcessor.Add(new ReportModel
+                newReport = new ReportModel
                 {
                     Name = name,
                     // report.Date is a timestamptz column → Npgsql only accepts UTC-kind. The approve
@@ -135,34 +155,28 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     BinFile = pdf,
                     ProtocolId = protocolId,
                     AuditorId = auditorId,
+                    IsAgentGenerated = true,
                     CreatedBy = loginId,
-                });
-                reportId = report.Id;
+                };
             }
 
-            var createdVulnIds = new List<int>();
-            foreach (var f in payload.Findings)
+            var vulns = payload.Findings.Select(f => new VulnerabilityModel
             {
-                var vuln = await _vulnerabilityProcessor.Add(new VulnerabilityModel
-                {
-                    Title = f.Title,
-                    Description = f.Description,
-                    Severity = f.Severity,
-                    Tags = f.Tags,
-                    Category = f.Category,
-                    ReportId = reportId,
-                    Date = DateTime.UtcNow,
-                    Status = VulnerabilityModelStatus.New,
-                    CreatedBy = loginId,
-                });
-                createdVulnIds.Add(vuln.Id);
-            }
+                Title = f.Title,
+                Description = f.Description,
+                // Defensive normalization: coerce severity to the canonical vocabulary and the category
+                // to a defined enum value, even though the agent is instructed to emit valid ones.
+                Severity = VulnerabilityNormalizer.Severity(f.Severity),
+                Tags = f.Tags,
+                Category = VulnerabilityNormalizer.Category(f.Category),
+                Date = DateTime.UtcNow,
+                Status = VulnerabilityModelStatus.New,
+                CreatedBy = loginId,
+            }).ToList();
 
-            // v1: no DB transaction wraps report+vuln creation and the status flip. If this throws
-            // mid-way the run stays Succeeded and can be re-approved (which would duplicate rows).
-            // Acceptable for an admin-triggered, human-reviewed flow; revisit if it becomes a problem.
-            await _runProcessor.SetProvenance(id, reportId, createdVulnIds);
-            await _runProcessor.SetStatus(id, AgentRunStatus.Approved);
+            var commit = await _runProcessor.CommitApproval(id, newReport, existingReportId, vulns);
+            if (commit == null)
+                return new Result<bool, string>.Err("Run is no longer in a succeeded state (already approved?).");
             return new Result<bool, string>.Ok(true);
         }
 
@@ -245,19 +259,25 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         {
             var reports = await _reportProcessor.GetListForExamples();
             var vulns = await _vulnerabilityProcessor.GetList();
-            var approvedReports = reports
+            var withArticles = reports
                 .Where(r => r.Status == ReportModelStatus.Approved && !string.IsNullOrWhiteSpace(r.MdFile))
-                .OrderByDescending(r => r.Id).Take(6)
+                .OrderByDescending(r => r.Id).ToList();
+            // A few recent articles are enough to teach house style; more just burns tokens and dilutes
+            // the style signal. The dedup title lists (below) carry the full breadth cheaply.
+            var exampleArticles = withArticles.Take(3)
                 .Select(r => new AgentExampleArticle { Title = r.Name, Markdown = r.MdFile }).ToList();
             var approvedVulns = vulns.Where(v => v.Status == VulnerabilityModelStatus.Approved).ToList();
             return new AgentExamplesViewModel
             {
-                Articles = approvedReports,
+                Articles = exampleArticles,
                 Vulnerabilities = approvedVulns.OrderByDescending(v => v.Id).Take(12)
                     .Select(v => new AgentExampleVulnerability {
                         Title = v.Title, Severity = v.Severity, Category = (int)v.Category,
                         Tags = v.Tags ?? new List<string>(), Description = v.Description }).ToList(),
                 ExistingFindingTitles = approvedVulns.Select(v => v.Title).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().ToList(),
+                ExistingReportTitles = reports
+                    .Where(r => r.Status == ReportModelStatus.Approved && !string.IsNullOrWhiteSpace(r.Name))
+                    .Select(r => r.Name).Distinct().ToList(),
             };
         }
 
@@ -315,8 +335,15 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (string.IsNullOrWhiteSpace(findingsJson)) return (new List<AgentFinding>(), true);
             try
             {
-                return (JsonSerializer.Deserialize<List<AgentFinding>>(findingsJson, JsonOpts)
-                    ?? new List<AgentFinding>(), true);
+                var findings = JsonSerializer.Deserialize<List<AgentFinding>>(findingsJson, JsonOpts)
+                    ?? new List<AgentFinding>();
+                // Coerce to canonical severity/category so the review UI's Selects always match a value.
+                foreach (var f in findings)
+                {
+                    f.Severity = VulnerabilityNormalizer.Severity(f.Severity);
+                    f.Category = VulnerabilityNormalizer.Category(f.Category);
+                }
+                return (findings, true);
             }
             catch (JsonException)
             {

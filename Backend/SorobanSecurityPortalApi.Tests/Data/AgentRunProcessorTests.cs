@@ -211,5 +211,65 @@ namespace SorobanSecurityPortalApi.Tests.Data
 
             list.Single().ReportPdfUrl.Should().Be("https://example.com/report.pdf");
         }
+
+        [Fact]
+        public async Task SubmitResult_Ignores_Submit_When_Run_Not_Processing()
+        {
+            // A late/duplicate submit (e.g. from a worker whose run was already reaped) must not clobber
+            // a run that's already terminal.
+            var list = new List<AgentRunModel>
+            {
+                new() { Id = 5, Status = AgentRunStatus.Failed, ArticleMarkdown = "original", Error = "reaped" }
+            };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            await processor.SubmitResult(5, new AgentRunResult { Success = true, ArticleMarkdown = "LATE" });
+
+            list.Single().Status.Should().Be(AgentRunStatus.Failed);
+            list.Single().ArticleMarkdown.Should().Be("original");
+            list.Single().Error.Should().Be("reaped");
+        }
+
+        [Fact]
+        public async Task ReclaimStuckProcessing_Fails_Only_Old_Processing_Runs()
+        {
+            var now = DateTime.UtcNow;
+            var list = new List<AgentRunModel>
+            {
+                new() { Id = 1, Status = AgentRunStatus.Processing, StartedAt = now.AddMinutes(-40) }, // stuck
+                new() { Id = 2, Status = AgentRunStatus.Processing, StartedAt = now.AddMinutes(-5) },  // recent
+                new() { Id = 3, Status = AgentRunStatus.Processing, StartedAt = null },                // never started
+                new() { Id = 4, Status = AgentRunStatus.Succeeded,  StartedAt = now.AddMinutes(-90) }, // terminal
+            };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            var reclaimed = await processor.ReclaimStuckProcessing(TimeSpan.FromMinutes(30));
+
+            reclaimed.Should().Be(1);
+            list.First(r => r.Id == 1).Status.Should().Be(AgentRunStatus.Failed);
+            list.First(r => r.Id == 1).Error.Should().Contain("Abandoned");
+            list.First(r => r.Id == 1).FinishedAt.Should().NotBeNull();
+            list.First(r => r.Id == 2).Status.Should().Be(AgentRunStatus.Processing);
+            list.First(r => r.Id == 3).Status.Should().Be(AgentRunStatus.Processing);
+            list.First(r => r.Id == 4).Status.Should().Be(AgentRunStatus.Succeeded);
+        }
+
+        [Fact]
+        public async Task FindActiveOrApprovedBySourceUrl_Matches_Active_Or_Approved_Only()
+        {
+            var list = new List<AgentRunModel>
+            {
+                new() { Id = 1, SourceUrl = "u", Status = AgentRunStatus.Failed },
+                new() { Id = 2, SourceUrl = "u", Status = AgentRunStatus.Approved, CreatedReportId = 5 },
+                new() { Id = 3, SourceUrl = "other", Status = AgentRunStatus.Queued },
+            };
+            var processor = new AgentRunProcessor(BuildFactory(list).Object);
+
+            var found = await processor.FindActiveOrApprovedBySourceUrl("u");
+            found.Should().NotBeNull();
+            found!.Id.Should().Be(2); // most recent active/approved, not the Failed one
+
+            (await processor.FindActiveOrApprovedBySourceUrl("missing")).Should().BeNull();
+        }
     }
 }
