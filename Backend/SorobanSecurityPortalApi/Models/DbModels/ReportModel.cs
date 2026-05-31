@@ -26,6 +26,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public AuditorModel? Auditor { get; set; } = null!;
         public bool IsHidden { get; set; }
         public bool IsDeleted { get; set; }
+        // Set when the report was created by the agent-ingestion approve flow. The PDF→markdown
+        // background fix job must skip these (their MdFile is the agent's article, not a placeholder
+        // to be regenerated) — an explicit flag instead of the fragile "MdFile is non-empty" coupling.
+        public bool IsAgentGenerated { get; set; }
         [Column(TypeName = "vector(3072)")]
         public Vector? Embedding { get; set; }
         public List<VulnerabilityModel> Vulnerabilities { get; set; } = new();

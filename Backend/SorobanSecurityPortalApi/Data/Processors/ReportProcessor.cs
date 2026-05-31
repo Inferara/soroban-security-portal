@@ -288,7 +288,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await using var db = await _dbFactory.CreateDbContextAsync();
             var query = db.Report
                 .AsNoTracking()
-                .Where(v => string.IsNullOrEmpty(v.MdFile) || v.MdFile == "Sequence contains no elements")
+                // Never regenerate the MdFile of an agent-ingested report — its MdFile is the agent's
+                // article, not a placeholder. Explicit flag instead of relying on MdFile being non-empty.
+                .Where(v => !v.IsAgentGenerated
+                    && (string.IsNullOrEmpty(v.MdFile) || v.MdFile == "Sequence contains no elements"))
                 .OrderByDescending(v => v.Id);
             return await query.ToListAsync();
         }

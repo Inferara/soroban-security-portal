@@ -8,6 +8,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string? SourceUrl { get; set; }
         public int? ReportId { get; set; }
         public string? Model { get; set; }
+        // Bypass the "this source URL was already ingested / is in flight" dedup guard.
+        public bool Force { get; set; }
     }
 
     // Slim row for the admin list (no heavy text).
@@ -72,6 +74,9 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public List<AgentExampleArticle> Articles { get; set; } = new();
         public List<AgentExampleVulnerability> Vulnerabilities { get; set; } = new();
         public List<string> ExistingFindingTitles { get; set; } = new();
+        // Titles of reports already in the portal — so the agent can recognize an already-ingested
+        // report and avoid producing a duplicate.
+        public List<string> ExistingReportTitles { get; set; } = new();
     }
     public class AgentProgressViewModel { public string? Transcript { get; set; } }
 
