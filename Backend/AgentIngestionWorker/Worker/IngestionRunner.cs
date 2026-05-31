@@ -61,6 +61,11 @@ public sealed class IngestionRunner
 
             var result = await _runner.RunAsync(build.PromptText, build.SeedFiles, onProgress, ct);
             submit = MapToSubmit(result);
+
+            // If the source itself is a PDF and the agent didn't surface a reportPdfUrl, default it to
+            // the source so the original document is still captured (downloaded into the report) on approve.
+            if (submit.Success && string.IsNullOrWhiteSpace(submit.ReportPdfUrl) && IngestionPrompt.IsPdfUrl(run.SourceUrl))
+                submit.ReportPdfUrl = run.SourceUrl;
         }
         catch (Exception ex)
         {

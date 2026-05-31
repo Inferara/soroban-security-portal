@@ -43,6 +43,7 @@ public sealed class AgentExamplesDto
     public List<AgentExampleArticleDto> Articles { get; set; } = new();
     public List<AgentExampleVulnDto> Vulnerabilities { get; set; } = new();
     public List<string> ExistingFindingTitles { get; set; } = new();
+    public List<string> ExistingReportTitles { get; set; } = new();
 }
 
 public sealed class AgentProgressDto

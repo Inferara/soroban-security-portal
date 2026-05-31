@@ -49,6 +49,7 @@ public class IngestionPromptTests
             },
         },
         ExistingFindingTitles = new() { "Old Finding One", "Old Finding Two" },
+        ExistingReportTitles = new() { "Existing Report A", "Existing Report B" },
     };
 
     // -------------------------------------------------------------------------
@@ -95,8 +96,12 @@ public class IngestionPromptTests
         var sut = new IngestionPrompt(http, extractorMock.Object);
         var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
 
-        // Must embed the extracted text
-        build.PromptText.Should().Contain(extractedText);
+        // The extracted text goes into a workspace FILE (not inlined — that would blow the CLI length
+        // limit for a real PDF). The prompt references the file and forbids fetching.
+        var sourceSeed = build.SeedFiles.Should().ContainSingle(sf => sf.RelativePath == "source/report.txt").Subject;
+        sourceSeed.Content.Should().Be(extractedText);
+        build.PromptText.Should().Contain("source/report.txt");
+        build.PromptText.Should().NotContain(extractedText);
         // Must NOT instruct the agent to fetch the PDF URL
         build.PromptText.Should().NotContain($"Fetch and read the audit report at: {url}");
         // Must tell the agent NOT to fetch a URL
@@ -106,8 +111,6 @@ public class IngestionPromptTests
         build.PromptText.Should().Contain("findings");
         // Extractor was called once
         extractorMock.Verify(e => e.ExtractText(It.IsAny<byte[]>()), Times.Once);
-        // Empty examples → no seed files
-        build.SeedFiles.Should().BeEmpty();
     }
 
     // -------------------------------------------------------------------------
@@ -126,8 +129,9 @@ public class IngestionPromptTests
         var sut = new IngestionPrompt(http, extractorMock.Object);
         var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
 
-        // Should have gone through PDF path
-        build.PromptText.Should().Contain(extractedText);
+        // Should have gone through PDF path — text in the source seed file, prompt references it.
+        build.SeedFiles.Should().Contain(sf => sf.RelativePath == "source/report.txt" && sf.Content == extractedText);
+        build.PromptText.Should().Contain("source/report.txt");
         build.PromptText.Should().Contain("Do NOT fetch any URL");
     }
 
@@ -205,8 +209,8 @@ public class IngestionPromptTests
 
         var build = await sut.BuildAsync(MakeRun(url), RichExamples(), CancellationToken.None);
 
-        // Two articles + vulnerabilities.json + existing-finding-titles.txt = 4 seed files
-        build.SeedFiles.Should().HaveCount(4);
+        // 2 articles + vulnerabilities.json + existing-finding-titles.txt + existing-report-titles.txt = 5
+        build.SeedFiles.Should().HaveCount(5);
 
         // Articles indexed with 2-digit prefix and slugified title
         build.SeedFiles.Should().Contain(sf => sf.RelativePath == "examples/articles/00-my-first-audit.md");
@@ -226,6 +230,10 @@ public class IngestionPromptTests
         // Existing finding titles
         var titlesSeed = build.SeedFiles.First(sf => sf.RelativePath == "examples/existing-finding-titles.txt");
         titlesSeed.Content.Should().Be("Old Finding One\nOld Finding Two");
+
+        // Existing report titles (report-level dedup)
+        var reportTitlesSeed = build.SeedFiles.First(sf => sf.RelativePath == "examples/existing-report-titles.txt");
+        reportTitlesSeed.Content.Should().Be("Existing Report A\nExisting Report B");
     }
 
     // -------------------------------------------------------------------------
@@ -287,9 +295,12 @@ public class IngestionPromptTests
 
         var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
 
-        build.PromptText.Should().Contain(extractedText);
+        // Even with no examples, the PDF path emits exactly the source-report seed file.
+        build.SeedFiles.Should().ContainSingle(sf => sf.RelativePath == "source/report.txt");
+        build.SeedFiles.Single().Content.Should().Be(extractedText);
+        build.PromptText.Should().Contain("source/report.txt");
         build.PromptText.Should().Contain("Do NOT fetch any URL");
-        build.SeedFiles.Should().BeEmpty();
+        build.PromptText.Should().NotContain(extractedText);
     }
 
     // -------------------------------------------------------------------------
@@ -310,6 +321,45 @@ public class IngestionPromptTests
 
         build.PromptText.Should().Contain("reportPdfUrl");
         build.PromptText.Should().Contain("Download");
+    }
+
+    // -------------------------------------------------------------------------
+    // New prompt invariants: anti-injection guard, explicit enum vocab, self-verify count
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("https://x/report")]
+    [InlineData("https://x/report.pdf")]
+    public async Task Prompt_Has_AntiInjection_Guard_And_Strict_Vocab(string url)
+    {
+        var extractorMock = new Mock<IPdfTextExtractor>();
+        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns("some text");
+        var http = MakeHttpClient(new byte[] { 1, 2, 3 });
+        var sut = new IngestionPrompt(http, extractorMock.Object);
+
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+
+        // Untrusted-data / prompt-injection guard.
+        build.PromptText.Should().Contain("untrusted DATA");
+        // Explicit, enumerated severity + category vocabularies (drives valid output).
+        build.PromptText.Should().Contain("critical, high, medium, low, note");
+        build.PromptText.Should().Contain("false-positive");
+        // Self-verify finding count.
+        build.PromptText.Should().Contain("COUNT");
+    }
+
+    [Fact]
+    public async Task Examples_Section_Tells_Agent_To_Read_Examples_And_Lists_ReportTitles()
+    {
+        const string url = "https://x/report";
+        var extractorMock = new Mock<IPdfTextExtractor>();
+        var http = MakeHttpClient();
+        var sut = new IngestionPrompt(http, extractorMock.Object);
+
+        var build = await sut.BuildAsync(MakeRun(url), RichExamples(), CancellationToken.None);
+
+        build.PromptText.Should().Contain("Read it BEFORE writing");
+        build.PromptText.Should().Contain("existing-report-titles.txt");
     }
 
     // -------------------------------------------------------------------------

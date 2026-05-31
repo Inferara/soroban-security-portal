@@ -136,6 +136,47 @@ public class IngestionRunnerTests
         captured.FindingsJson.Should().Contain("\"title\":\"X\"");
     }
 
+    private static SubmitResultDto? RunAndCapture(string sourceUrl, string resultJson)
+    {
+        var run = new ClaimedRun { Id = 5, SourceUrl = sourceUrl, Model = "m" };
+        var api = new Mock<IInternalApiClient>();
+        api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentExamplesDto());
+        SubmitResultDto? captured = null;
+        api.Setup(a => a.SubmitAsync(5, It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
+           .Callback<int, SubmitResultDto, CancellationToken>((_, dto, _) => captured = dto)
+           .Returns(Task.CompletedTask);
+        var runner = new Mock<IOpenCodeRunner>();
+        runner.Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SeedFile>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(SuccessResult(resultJson));
+        BuildRunner(api, runner).ProcessOneAsync(CancellationToken.None).GetAwaiter().GetResult();
+        return captured;
+    }
+
+    [Fact]
+    public void ProcessOne_PdfSource_DefaultsReportPdfUrl_ToSource_WhenAgentOmitsIt()
+    {
+        // Source IS a PDF and the agent left reportPdfUrl empty → default to the source so the original
+        // document is still captured on approve.
+        var captured = RunAndCapture("https://example.com/audit.pdf", "{\"reportTitle\":\"T\",\"findings\":[]}");
+        captured!.ReportPdfUrl.Should().Be("https://example.com/audit.pdf");
+    }
+
+    [Fact]
+    public void ProcessOne_PdfSource_KeepsAgentReportPdfUrl_WhenProvided()
+    {
+        var captured = RunAndCapture("https://example.com/audit.pdf",
+            "{\"reportTitle\":\"T\",\"reportPdfUrl\":\"https://cdn/real.pdf\",\"findings\":[]}");
+        captured!.ReportPdfUrl.Should().Be("https://cdn/real.pdf");
+    }
+
+    [Fact]
+    public void ProcessOne_NonPdfSource_LeavesReportPdfUrlEmpty_WhenAgentOmitsIt()
+    {
+        var captured = RunAndCapture("https://example.com/audit-page", "{\"reportTitle\":\"T\",\"findings\":[]}");
+        captured!.ReportPdfUrl.Should().BeNullOrEmpty();
+    }
+
     // -------------------------------------------------------------------------
     // ProcessOne_RunnerReceivesSeedFilesAndNonNullProgress
     // -------------------------------------------------------------------------
