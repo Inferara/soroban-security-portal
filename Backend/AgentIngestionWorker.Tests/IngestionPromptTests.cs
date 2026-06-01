@@ -346,6 +346,10 @@ public class IngestionPromptTests
         build.PromptText.Should().Contain("false-positive");
         // Self-verify finding count.
         build.PromptText.Should().Contain("COUNT");
+        // Rich-description guidance (don't truncate findings to a couple sentences).
+        build.PromptText.Should().Contain("RICH Markdown");
+        build.PromptText.Should().Contain("## Recommendation");
+        build.PromptText.Should().Contain("Do NOT compress a finding");
     }
 
     [Fact]

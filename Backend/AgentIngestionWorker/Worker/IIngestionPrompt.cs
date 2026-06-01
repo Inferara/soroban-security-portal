@@ -132,7 +132,7 @@ public sealed class IngestionPrompt : IIngestionPrompt
                "findings": [
                  {
                    "title":       string,         // concise & specific; avoid repeating an existing portal title
-                   "description": string,         // 2–5 sentences: what it is, where (contract/function), impact
+                   "description": string,         // RICH Markdown — match the depth/structure of the examples (see DESCRIPTION below)
                    "severity":    "critical"|"high"|"medium"|"low"|"note",
                    "category":    0|1|2|3|100,
                    "tags":        string[]        // short lowercase tags; reuse the example tag vocabulary
@@ -140,8 +140,8 @@ public sealed class IngestionPrompt : IIngestionPrompt
                ]
              }
 
-           Example of one finding object (format only):
-             { "title": "Missing persistent-storage TTL extension", "description": "set_memo_mapping() writes to persistent storage but never calls extend_ttl, so mappings can expire and routing silently fails.", "severity": "low", "category": 1, "tags": ["storage","ttl","soroban"] }
+           Example of one finding object (note the RICH, multi-section Markdown description):
+             { "title": "Missing persistent-storage TTL extension", "description": "`set_memo_mapping()` writes the memo→address mapping to persistent storage but never calls `extend_ttl`. After the default TTL elapses the entry is archived and reads return `None`, so routing silently fails for previously-registered memos.\n\nAffected: `contracts/router/src/lib.rs` — `set_memo_mapping()`.\n\n## Recommendation\nCall `env.storage().persistent().extend_ttl(&key, MIN_TTL, MAX_TTL)` whenever a mapping is written or read.\n\n## Status\nAcknowledged — not fixed in the reviewed commit.", "severity": "low", "category": 1, "tags": ["storage","ttl","soroban"] }
 
         SEVERITY — use exactly one of: critical, high, medium, low, note. Map the auditor's wording:
            Critical→critical; High/Major→high; Medium/Moderate→medium; Low/Minor→low;
@@ -154,6 +154,15 @@ public sealed class IngestionPrompt : IIngestionPrompt
            3   = invalid / false-positive / disputed
            100 = not applicable / remediation status unknown
            If the report doesn't state a remediation status, use 100.
+
+        DESCRIPTION — write each finding's `description` as RICH Markdown that mirrors the depth and
+        structure of the entries in examples/vulnerabilities.json (READ them first). Carry over the
+        report's full detail for that finding: explain the issue and WHERE it occurs (contract /
+        function / file:line when the report gives it), the concrete impact, then a `## Recommendation`
+        section, and a `## Status` section when the report states a fix/remediation (include the commit
+        if given). Use multiple paragraphs, `code spans` for identifiers, and lists where the examples
+        do. Do NOT compress a finding to one or two sentences — preserve the substance the report gives;
+        a typical description is several hundred characters, not a single line.
 
         FINDINGS — extract EVERY finding the report lists. Find its findings/summary table, COUNT the rows,
         and make your findings array the SAME length. Do not invent, merge, or split findings.
