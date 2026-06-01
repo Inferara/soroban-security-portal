@@ -80,6 +80,14 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
     }
     public class AgentProgressViewModel { public string? Transcript { get; set; } }
 
+    // The tunable prompt blocks (from Admin Settings) served to the worker.
+    public class AgentPromptConfigViewModel
+    {
+        public string Preamble { get; set; } = "";
+        public string Instructions { get; set; } = "";
+        public string ExamplesGuidance { get; set; } = "";
+    }
+
     // Worker→backend submit payload (mirrors AgentRunResult).
     public class SubmitAgentRunResultViewModel
     {

@@ -49,10 +49,26 @@ public sealed class IngestionRunner
             examples = new AgentExamplesDto();
         }
 
+        // The prompt text lives in the API (Admin Settings). Unlike examples, we can't run without it —
+        // if it can't be loaded, fail the run with a clear error rather than guessing a prompt.
+        AgentPromptConfigDto promptConfig;
+        try
+        {
+            promptConfig = await _api.GetPromptConfigAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load prompt config for run {Id}", run.Id);
+            await _api.SubmitAsync(run.Id,
+                new SubmitResultDto { Success = false, Error = "Failed to load prompt configuration from the API: " + ex.Message },
+                ct);
+            return true;
+        }
+
         SubmitResultDto submit;
         try
         {
-            var build = await _prompt.BuildAsync(run, examples, ct);
+            var build = await _prompt.BuildAsync(run, examples, promptConfig, ct);
 
             Action<string> onProgress = transcript =>
             {

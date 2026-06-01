@@ -50,3 +50,11 @@ public sealed class AgentProgressDto
 {
     public string? Transcript { get; set; }
 }
+
+// The tunable prompt blocks served by the API (Admin Settings → Agent Ingestion).
+public sealed class AgentPromptConfigDto
+{
+    public string Preamble { get; set; } = "";
+    public string Instructions { get; set; } = "";
+    public string ExamplesGuidance { get; set; } = "";
+}

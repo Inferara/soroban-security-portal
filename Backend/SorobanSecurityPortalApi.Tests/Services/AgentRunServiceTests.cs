@@ -30,7 +30,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
             Mock<IVulnerabilityProcessor>? vulnProc = null,
             Mock<IProtocolProcessor>? protocolProc = null,
             Mock<IAuditorProcessor>? auditorProc = null,
-            Mock<IHttpClientFactory>? httpFactory = null)
+            Mock<IHttpClientFactory>? httpFactory = null,
+            Mock<IExtendedConfig>? extendedConfig = null)
         {
             var userCtx = new Mock<IUserContextAccessor>();
             userCtx.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(99);
@@ -42,7 +43,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 (protocolProc ?? new Mock<IProtocolProcessor>()).Object,
                 (auditorProc ?? new Mock<IAuditorProcessor>()).Object,
                 (httpFactory ?? new Mock<IHttpClientFactory>()).Object,
-                userCtx.Object);
+                userCtx.Object,
+                (extendedConfig ?? new Mock<IExtendedConfig>()).Object);
         }
 
         private static Mock<IHttpClientFactory> HttpFactoryReturning(byte[] body)
@@ -774,6 +776,40 @@ namespace SorobanSecurityPortalApi.Tests.Services
             ok.Should().BeOfType<Result<AgentRunViewModel, string>.Ok>();
             runProc.Verify(p => p.FindActiveOrApprovedBySourceUrl(It.IsAny<string>()), Times.Never);
             runProc.Verify(p => p.Add(It.IsAny<AgentRunModel>()), Times.Once);
+        }
+
+        [Fact]
+        public void GetPromptConfig_Falls_Back_To_Defaults_When_Settings_Blank()
+        {
+            var cfg = new Mock<IExtendedConfig>(); // string props return null → coalesce to defaults
+            var svc = BuildService(new Mock<IAgentRunProcessor>(), extendedConfig: cfg);
+
+            var pc = svc.GetPromptConfig();
+
+            pc.Preamble.Should().Be(AgentIngestionPromptDefaults.Preamble);
+            pc.Instructions.Should().Be(AgentIngestionPromptDefaults.Instructions);
+            pc.ExamplesGuidance.Should().Be(AgentIngestionPromptDefaults.ExamplesGuidance);
+            // sanity: the defaults carry the schema essentials
+            pc.Instructions.Should().Contain("result.json");
+            pc.Instructions.Should().Contain("critical, high, medium, low, note");
+            pc.Preamble.Should().Contain("untrusted DATA");
+            pc.ExamplesGuidance.Should().Contain("de-duplication");
+        }
+
+        [Fact]
+        public void GetPromptConfig_Returns_Admin_Overrides_When_Set()
+        {
+            var cfg = new Mock<IExtendedConfig>();
+            cfg.SetupGet(c => c.AgentIngestionPreamble).Returns("MY PREAMBLE");
+            cfg.SetupGet(c => c.AgentIngestionInstructions).Returns("MY INSTRUCTIONS");
+            cfg.SetupGet(c => c.AgentIngestionExamplesGuidance).Returns("MY EXAMPLES");
+            var svc = BuildService(new Mock<IAgentRunProcessor>(), extendedConfig: cfg);
+
+            var pc = svc.GetPromptConfig();
+
+            pc.Preamble.Should().Be("MY PREAMBLE");
+            pc.Instructions.Should().Be("MY INSTRUCTIONS");
+            pc.ExamplesGuidance.Should().Be("MY EXAMPLES");
         }
     }
 }

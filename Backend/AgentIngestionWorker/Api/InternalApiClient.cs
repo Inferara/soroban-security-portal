@@ -32,6 +32,13 @@ public sealed class InternalApiClient : IInternalApiClient
         return await resp.Content.ReadFromJsonAsync<AgentExamplesDto>(Json, ct) ?? new AgentExamplesDto();
     }
 
+    public async Task<AgentPromptConfigDto> GetPromptConfigAsync(CancellationToken ct)
+    {
+        using var resp = await _http.GetAsync("api/v1/agent-runs/internal/prompt-config", ct);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<AgentPromptConfigDto>(Json, ct) ?? new AgentPromptConfigDto();
+    }
+
     public async Task ProgressAsync(int id, string transcript, CancellationToken ct)
     {
         using var resp = await _http.PostAsJsonAsync($"api/v1/agent-runs/internal/{id}/progress", new AgentProgressDto { Transcript = transcript }, Json, ct);

@@ -33,6 +33,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IAuditorProcessor _auditorProcessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IUserContextAccessor _userContextAccessor;
+        private readonly IExtendedConfig _extendedConfig;
 
         public AgentRunService(
             IMapper mapper,
@@ -42,7 +43,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IProtocolProcessor protocolProcessor,
             IAuditorProcessor auditorProcessor,
             IHttpClientFactory httpClientFactory,
-            IUserContextAccessor userContextAccessor)
+            IUserContextAccessor userContextAccessor,
+            IExtendedConfig extendedConfig)
         {
             _mapper = mapper;
             _runProcessor = runProcessor;
@@ -50,6 +52,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _protocolProcessor = protocolProcessor;
             _auditorProcessor = auditorProcessor;
+            _extendedConfig = extendedConfig;
             _httpClientFactory = httpClientFactory;
             _userContextAccessor = userContextAccessor;
         }
@@ -281,6 +284,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             };
         }
 
+        // The tunable prompt blocks (Admin Settings → Agent Ingestion), served to the worker. Falls back
+        // to the built-in defaults when a setting is left blank.
+        public AgentPromptConfigViewModel GetPromptConfig() => new()
+        {
+            Preamble = Coalesce(_extendedConfig.AgentIngestionPreamble, AgentIngestionPromptDefaults.Preamble),
+            Instructions = Coalesce(_extendedConfig.AgentIngestionInstructions, AgentIngestionPromptDefaults.Instructions),
+            ExamplesGuidance = Coalesce(_extendedConfig.AgentIngestionExamplesGuidance, AgentIngestionPromptDefaults.ExamplesGuidance),
+        };
+
+        private static string Coalesce(string? value, string fallback)
+            => string.IsNullOrWhiteSpace(value) ? fallback : value;
+
         public async Task<Result<bool, string>> UpdateProgress(int id, string? transcript)
         {
             var run = await _runProcessor.Get(id);
@@ -363,6 +378,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<AgentRunViewModel?> ClaimNext();
         Task<Result<bool, string>> SubmitResult(int id, SubmitAgentRunResultViewModel result);
         Task<AgentExamplesViewModel> GetExamples();
+        AgentPromptConfigViewModel GetPromptConfig();
         Task<Result<bool, string>> UpdateProgress(int id, string? transcript);
     }
 }

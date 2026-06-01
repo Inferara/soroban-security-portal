@@ -25,7 +25,7 @@ public class IngestionRunnerTests
             SeedFiles = seedFiles ?? new List<SeedFile>(),
         };
         var mock = new Mock<IIngestionPrompt>();
-        mock.Setup(p => p.BuildAsync(It.IsAny<ClaimedRun>(), It.IsAny<AgentExamplesDto>(), It.IsAny<CancellationToken>()))
+        mock.Setup(p => p.BuildAsync(It.IsAny<ClaimedRun>(), It.IsAny<AgentExamplesDto>(), It.IsAny<AgentPromptConfigDto>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(build);
         return mock.Object;
     }
@@ -35,6 +35,10 @@ public class IngestionRunnerTests
         Mock<IOpenCodeRunner> runner,
         IIngestionPrompt? prompt = null)
     {
+        // Default prompt-config so tests don't each have to wire it; a test can override afterwards
+        // (Moq last-wins) to exercise the config-fetch failure path.
+        api.Setup(a => a.GetPromptConfigAsync(It.IsAny<CancellationToken>()))
+           .ReturnsAsync(new AgentPromptConfigDto { Preamble = "P", Instructions = "I", ExamplesGuidance = "E" });
         var opts = new IngestionRunnerOptions { PollInterval = TimeSpan.FromMilliseconds(1) };
         var logger = NullLogger<IngestionRunner>.Instance;
         return new IngestionRunner(api.Object, runner.Object, prompt ?? StubPrompt(), opts, logger);
@@ -378,6 +382,40 @@ public class IngestionRunnerTests
         captured.Should().NotBeNull();
         captured!.Success.Should().BeFalse();
         captured.Error.Should().Contain("network error");
+    }
+
+    // -------------------------------------------------------------------------
+    // ProcessOne_PromptConfigFailure_SubmitsFailed_WithoutRunning
+    // -------------------------------------------------------------------------
+    [Fact]
+    public async Task ProcessOne_PromptConfigFailure_SubmitsFailed_WithoutRunning()
+    {
+        var run = MakeRun(11);
+        var api = new Mock<IInternalApiClient>();
+        api.Setup(a => a.ClaimNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(run);
+        api.Setup(a => a.GetExamplesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentExamplesDto());
+
+        SubmitResultDto? captured = null;
+        api.Setup(a => a.SubmitAsync(11, It.IsAny<SubmitResultDto>(), It.IsAny<CancellationToken>()))
+           .Callback<int, SubmitResultDto, CancellationToken>((_, dto, _) => captured = dto)
+           .Returns(Task.CompletedTask);
+
+        var runner = new Mock<IOpenCodeRunner>();
+
+        var sut = BuildRunner(api, runner);
+        // Override the default so the prompt-config fetch fails (e.g. API unreachable).
+        api.Setup(a => a.GetPromptConfigAsync(It.IsAny<CancellationToken>()))
+           .ThrowsAsync(new HttpRequestException("api down"));
+
+        var processed = await sut.ProcessOneAsync(CancellationToken.None);
+
+        processed.Should().BeTrue();
+        captured.Should().NotBeNull();
+        captured!.Success.Should().BeFalse();
+        captured.Error.Should().Contain("prompt configuration");
+        // opencode must NOT run when we couldn't load the prompt
+        runner.Verify(r => r.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SeedFile>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // -------------------------------------------------------------------------

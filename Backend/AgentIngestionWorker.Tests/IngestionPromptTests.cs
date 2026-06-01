@@ -7,19 +7,20 @@ using AgentIngestionWorker.Worker;
 namespace AgentIngestionWorker.Tests;
 
 /// <summary>
-/// Tests for IngestionPrompt.BuildAsync and the IsPdfUrl helper.
-/// All HTTP and PDF extraction are mocked — no real network or file I/O.
+/// Tests for IngestionPrompt.BuildAsync — the prompt TEXT now comes from AgentPromptConfigDto (served by
+/// the API from Admin Settings); this class only verifies the mechanical composition, the PDF source-file
+/// handling, and the seed files. (The canonical prompt content is covered by API-side tests.)
 /// </summary>
 public class IngestionPromptTests
 {
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
+    // Synthetic config with recognizable markers so we can assert the blocks land in the right place.
+    private static AgentPromptConfigDto Cfg() => new()
+    {
+        Preamble = "PREAMBLE_MARKER (untrusted DATA)",
+        Instructions = "INSTRUCTIONS_MARKER — article.md + result.json with findings",
+        ExamplesGuidance = "EXAMPLES_GUIDANCE_MARKER (de-duplication)",
+    };
 
-    /// <summary>
-    /// Creates an HttpClient backed by a stub handler that returns a fixed
-    /// response for any request.
-    /// </summary>
     private static HttpClient MakeHttpClient(byte[]? responseBytes = null, HttpStatusCode status = HttpStatusCode.OK)
     {
         var handler = new StubHttpMessageHandler(responseBytes ?? Array.Empty<byte>(), status);
@@ -53,10 +54,10 @@ public class IngestionPromptTests
     };
 
     // -------------------------------------------------------------------------
-    // NonPdf_Url_PromptContainsUrl_NoDownload (empty examples)
+    // URL branch — no download, composes preamble + fetch line + instructions
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task NonPdf_Url_PromptContainsUrl_NoDownload()
+    public async Task NonPdf_Url_ComposesPrompt_NoDownload()
     {
         const string url = "https://x/report";
         var extractorMock = new Mock<IPdfTextExtractor>();
@@ -64,103 +65,78 @@ public class IngestionPromptTests
         var http = new HttpClient(handler);
 
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), Cfg(), CancellationToken.None);
 
-        // Prompt must contain the URL
         build.PromptText.Should().Contain(url);
-        // Schema must be present in both branches
+        build.PromptText.Should().Contain("Fetch and read the audit report at:");
+        build.PromptText.Should().Contain("PREAMBLE_MARKER (untrusted DATA)");
+        build.PromptText.Should().Contain("INSTRUCTIONS_MARKER");
         build.PromptText.Should().Contain("result.json");
-        build.PromptText.Should().Contain("findings");
-        // No HTTP call should have been made
+        build.PromptText.Should().NotContain("Do NOT fetch any URL");
         handler.RequestCount.Should().Be(0);
-        // Extractor must never have been called
         extractorMock.Verify(e => e.ExtractText(It.IsAny<byte[]>()), Times.Never);
-        // Empty examples → no seed files
         build.SeedFiles.Should().BeEmpty();
     }
 
     // -------------------------------------------------------------------------
-    // Pdf_Url_DownloadsAndEmbedsExtractedText (empty examples)
+    // PDF branch — text goes into a workspace file, prompt references it (CLI-length safe)
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task Pdf_Url_DownloadsAndEmbedsExtractedText()
+    public async Task Pdf_Url_WritesSourceFile_AndReferencesIt()
     {
         const string url = "https://x/report.pdf";
-        var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 }; // %PDF magic bytes
-        const string extractedText = "EXTRACTED TEXT";
+        var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+        const string extractedText = "EXTRACTED REPORT TEXT";
 
         var extractorMock = new Mock<IPdfTextExtractor>();
         extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns(extractedText);
 
         var http = MakeHttpClient(pdfBytes);
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), Cfg(), CancellationToken.None);
 
-        // The extracted text goes into a workspace FILE (not inlined — that would blow the CLI length
-        // limit for a real PDF). The prompt references the file and forbids fetching.
         var sourceSeed = build.SeedFiles.Should().ContainSingle(sf => sf.RelativePath == "source/report.txt").Subject;
         sourceSeed.Content.Should().Be(extractedText);
         build.PromptText.Should().Contain("source/report.txt");
-        build.PromptText.Should().NotContain(extractedText);
-        // Must NOT instruct the agent to fetch the PDF URL
-        build.PromptText.Should().NotContain($"Fetch and read the audit report at: {url}");
-        // Must tell the agent NOT to fetch a URL
         build.PromptText.Should().Contain("Do NOT fetch any URL");
-        // Schema must be present
-        build.PromptText.Should().Contain("result.json");
-        build.PromptText.Should().Contain("findings");
-        // Extractor was called once
+        build.PromptText.Should().Contain("PREAMBLE_MARKER (untrusted DATA)");
+        build.PromptText.Should().Contain("INSTRUCTIONS_MARKER");
+        build.PromptText.Should().NotContain(extractedText);                         // text is in the file, not inlined
+        build.PromptText.Should().NotContain($"Fetch and read the audit report at: {url}");
         extractorMock.Verify(e => e.ExtractText(It.IsAny<byte[]>()), Times.Once);
     }
 
-    // -------------------------------------------------------------------------
-    // Pdf_Url_WithQueryString_StillDetectedAsPdf
-    // -------------------------------------------------------------------------
     [Fact]
     public async Task Pdf_Url_WithQueryString_StillDetectedAsPdf()
     {
         const string url = "https://x/report.pdf?token=abc";
-        const string extractedText = "REPORT CONTENT";
-
         var extractorMock = new Mock<IPdfTextExtractor>();
-        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns(extractedText);
+        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns("REPORT CONTENT");
 
         var http = MakeHttpClient(new byte[] { 0x25, 0x50, 0x44, 0x46 });
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), Cfg(), CancellationToken.None);
 
-        // Should have gone through PDF path — text in the source seed file, prompt references it.
-        build.SeedFiles.Should().Contain(sf => sf.RelativePath == "source/report.txt" && sf.Content == extractedText);
-        build.PromptText.Should().Contain("source/report.txt");
+        build.SeedFiles.Should().Contain(sf => sf.RelativePath == "source/report.txt" && sf.Content == "REPORT CONTENT");
         build.PromptText.Should().Contain("Do NOT fetch any URL");
     }
 
-    // -------------------------------------------------------------------------
-    // Pdf_ExtractEmpty_FallsBackToUrlPrompt
-    // -------------------------------------------------------------------------
     [Fact]
     public async Task Pdf_ExtractEmpty_FallsBackToUrlPrompt()
     {
         const string url = "https://x/report.pdf";
-
         var extractorMock = new Mock<IPdfTextExtractor>();
         extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns(""); // empty
 
         var http = MakeHttpClient(new byte[] { 0x25, 0x50, 0x44, 0x46 });
         var sut = new IngestionPrompt(http, extractorMock.Object);
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), Cfg(), CancellationToken.None);
 
-        // Should fall back to URL-based prompt
         build.PromptText.Should().Contain(url);
+        build.PromptText.Should().Contain("Fetch and read the audit report at:");
         build.PromptText.Should().NotContain("Do NOT fetch any URL");
-        // Schema still present
-        build.PromptText.Should().Contain("result.json");
-        build.PromptText.Should().Contain("findings");
+        build.SeedFiles.Should().NotContain(sf => sf.RelativePath == "source/report.txt");
     }
-
-    // -------------------------------------------------------------------------
-    // IsPdfUrl — unit tests for the static helper
-    // -------------------------------------------------------------------------
 
     [Theory]
     [InlineData("https://example.com/report.pdf", true)]
@@ -177,199 +153,48 @@ public class IngestionPromptTests
     }
 
     // -------------------------------------------------------------------------
-    // BothBranches_ContainSchemaKeywords
-    // -------------------------------------------------------------------------
-    [Theory]
-    [InlineData("https://x/report")]       // URL branch
-    [InlineData("https://x/report.pdf")]   // PDF branch (extractor returns text)
-    public async Task BothBranches_ContainSchemaKeywords(string url)
-    {
-        var extractorMock = new Mock<IPdfTextExtractor>();
-        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns("some text");
-
-        var http = MakeHttpClient(new byte[] { 1, 2, 3 });
-        var sut = new IngestionPrompt(http, extractorMock.Object);
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
-
-        build.PromptText.Should().Contain("result.json");
-        build.PromptText.Should().Contain("findings");
-        build.PromptText.Should().Contain("article.md");
-    }
-
-    // -------------------------------------------------------------------------
-    // RichExamples_SeedFilesBuiltCorrectly
+    // Examples / de-duplication guidance (configurable) appended only when examples exist
     // -------------------------------------------------------------------------
     [Fact]
-    public async Task RichExamples_SeedFilesBuiltCorrectly()
+    public async Task ExamplesPresent_AppendsExamplesGuidance_AndBuildsSeedFiles()
     {
         const string url = "https://x/report";
-        var extractorMock = new Mock<IPdfTextExtractor>();
-        var http = MakeHttpClient();
-        var sut = new IngestionPrompt(http, extractorMock.Object);
+        var sut = new IngestionPrompt(MakeHttpClient(), new Mock<IPdfTextExtractor>().Object);
 
-        var build = await sut.BuildAsync(MakeRun(url), RichExamples(), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), RichExamples(), Cfg(), CancellationToken.None);
+
+        // Guidance block from config is appended.
+        build.PromptText.Should().Contain("EXAMPLES_GUIDANCE_MARKER (de-duplication)");
 
         // 2 articles + vulnerabilities.json + existing-finding-titles.txt + existing-report-titles.txt = 5
         build.SeedFiles.Should().HaveCount(5);
-
-        // Articles indexed with 2-digit prefix and slugified title
         build.SeedFiles.Should().Contain(sf => sf.RelativePath == "examples/articles/00-my-first-audit.md");
         build.SeedFiles.Should().Contain(sf => sf.RelativePath == "examples/articles/01-second-report-here.md");
-
-        // Article content preserved
-        var art0 = build.SeedFiles.First(sf => sf.RelativePath == "examples/articles/00-my-first-audit.md");
-        art0.Content.Should().Be("# My First Audit\ncontent");
-
-        // Vulnerabilities JSON seed
         var vulnSeed = build.SeedFiles.First(sf => sf.RelativePath == "examples/vulnerabilities.json");
         var parsed = JsonSerializer.Deserialize<List<AgentExampleVulnDto>>(vulnSeed.Content,
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        parsed.Should().HaveCount(1);
-        parsed![0].Title.Should().Be("Reentrancy Attack");
-
-        // Existing finding titles
-        var titlesSeed = build.SeedFiles.First(sf => sf.RelativePath == "examples/existing-finding-titles.txt");
-        titlesSeed.Content.Should().Be("Old Finding One\nOld Finding Two");
-
-        // Existing report titles (report-level dedup)
-        var reportTitlesSeed = build.SeedFiles.First(sf => sf.RelativePath == "examples/existing-report-titles.txt");
-        reportTitlesSeed.Content.Should().Be("Existing Report A\nExisting Report B");
+        parsed!.Should().ContainSingle(v => v.Title == "Reentrancy Attack");
+        build.SeedFiles.First(sf => sf.RelativePath == "examples/existing-finding-titles.txt")
+            .Content.Should().Be("Old Finding One\nOld Finding Two");
+        build.SeedFiles.First(sf => sf.RelativePath == "examples/existing-report-titles.txt")
+            .Content.Should().Be("Existing Report A\nExisting Report B");
     }
 
-    // -------------------------------------------------------------------------
-    // RichExamples_PromptContainsDedupSection
-    // -------------------------------------------------------------------------
     [Fact]
-    public async Task RichExamples_PromptContainsDedupSection()
+    public async Task EmptyExamples_NoSeedFiles_AndNoExamplesGuidance()
     {
         const string url = "https://x/report";
-        var extractorMock = new Mock<IPdfTextExtractor>();
-        var http = MakeHttpClient();
-        var sut = new IngestionPrompt(http, extractorMock.Object);
+        var sut = new IngestionPrompt(MakeHttpClient(), new Mock<IPdfTextExtractor>().Object);
 
-        var build = await sut.BuildAsync(MakeRun(url), RichExamples(), CancellationToken.None);
-
-        build.PromptText.Should().Contain("de-duplication");
-        build.PromptText.Should().Contain("existing-finding-titles.txt");
-        // Schema still present
-        build.PromptText.Should().Contain("result.json");
-        build.PromptText.Should().Contain("findings");
-        // URL still present
-        build.PromptText.Should().Contain(url);
-    }
-
-    // -------------------------------------------------------------------------
-    // EmptyExamples_NoSeedFilesAndNoDedupSection
-    // -------------------------------------------------------------------------
-    [Fact]
-    public async Task EmptyExamples_NoSeedFilesAndNoDedupSection()
-    {
-        const string url = "https://x/report";
-        var extractorMock = new Mock<IPdfTextExtractor>();
-        var http = MakeHttpClient();
-        var sut = new IngestionPrompt(http, extractorMock.Object);
-
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
+        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), Cfg(), CancellationToken.None);
 
         build.SeedFiles.Should().BeEmpty();
-        build.PromptText.Should().NotContain("de-duplication");
-        build.PromptText.Should().NotContain("existing-finding-titles.txt");
-        // Core schema still present
-        build.PromptText.Should().Contain("result.json");
+        build.PromptText.Should().NotContain("EXAMPLES_GUIDANCE_MARKER");
     }
 
     // -------------------------------------------------------------------------
-    // Pdf_Path_WithEmptyExamples_ReturnsBuild (PDF path still works with new sig)
+    // Slug helper
     // -------------------------------------------------------------------------
-    [Fact]
-    public async Task Pdf_Path_WithEmptyExamples_ReturnsBuild()
-    {
-        const string url = "https://x/report.pdf";
-        const string extractedText = "PDF CONTENT";
-
-        var extractorMock = new Mock<IPdfTextExtractor>();
-        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns(extractedText);
-
-        var http = MakeHttpClient(new byte[] { 0x25, 0x50, 0x44, 0x46 });
-        var sut = new IngestionPrompt(http, extractorMock.Object);
-
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
-
-        // Even with no examples, the PDF path emits exactly the source-report seed file.
-        build.SeedFiles.Should().ContainSingle(sf => sf.RelativePath == "source/report.txt");
-        build.SeedFiles.Single().Content.Should().Be(extractedText);
-        build.PromptText.Should().Contain("source/report.txt");
-        build.PromptText.Should().Contain("Do NOT fetch any URL");
-        build.PromptText.Should().NotContain(extractedText);
-    }
-
-    // -------------------------------------------------------------------------
-    // SchemaInstructions contains reportPdfUrl field and Download instruction
-    // -------------------------------------------------------------------------
-
-    [Theory]
-    [InlineData("https://x/report")]       // URL branch
-    [InlineData("https://x/report.pdf")]   // PDF branch (extractor returns text)
-    public async Task BothBranches_ContainReportPdfUrlFieldAndDownloadInstruction(string url)
-    {
-        var extractorMock = new Mock<IPdfTextExtractor>();
-        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns("some text");
-
-        var http = MakeHttpClient(new byte[] { 1, 2, 3 });
-        var sut = new IngestionPrompt(http, extractorMock.Object);
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
-
-        build.PromptText.Should().Contain("reportPdfUrl");
-        build.PromptText.Should().Contain("Download");
-    }
-
-    // -------------------------------------------------------------------------
-    // New prompt invariants: anti-injection guard, explicit enum vocab, self-verify count
-    // -------------------------------------------------------------------------
-
-    [Theory]
-    [InlineData("https://x/report")]
-    [InlineData("https://x/report.pdf")]
-    public async Task Prompt_Has_AntiInjection_Guard_And_Strict_Vocab(string url)
-    {
-        var extractorMock = new Mock<IPdfTextExtractor>();
-        extractorMock.Setup(e => e.ExtractText(It.IsAny<byte[]>())).Returns("some text");
-        var http = MakeHttpClient(new byte[] { 1, 2, 3 });
-        var sut = new IngestionPrompt(http, extractorMock.Object);
-
-        var build = await sut.BuildAsync(MakeRun(url), EmptyExamples(), CancellationToken.None);
-
-        // Untrusted-data / prompt-injection guard.
-        build.PromptText.Should().Contain("untrusted DATA");
-        // Explicit, enumerated severity + category vocabularies (drives valid output).
-        build.PromptText.Should().Contain("critical, high, medium, low, note");
-        build.PromptText.Should().Contain("false-positive");
-        // Self-verify finding count.
-        build.PromptText.Should().Contain("COUNT");
-        // Rich-description guidance (don't truncate findings to a couple sentences).
-        build.PromptText.Should().Contain("RICH Markdown");
-        build.PromptText.Should().Contain("## Recommendation");
-        build.PromptText.Should().Contain("Do NOT compress a finding");
-    }
-
-    [Fact]
-    public async Task Examples_Section_Tells_Agent_To_Read_Examples_And_Lists_ReportTitles()
-    {
-        const string url = "https://x/report";
-        var extractorMock = new Mock<IPdfTextExtractor>();
-        var http = MakeHttpClient();
-        var sut = new IngestionPrompt(http, extractorMock.Object);
-
-        var build = await sut.BuildAsync(MakeRun(url), RichExamples(), CancellationToken.None);
-
-        build.PromptText.Should().Contain("Read it BEFORE writing");
-        build.PromptText.Should().Contain("existing-report-titles.txt");
-    }
-
-    // -------------------------------------------------------------------------
-    // Slug helper tests
-    // -------------------------------------------------------------------------
-
     [Theory]
     [InlineData("My First Audit", "my-first-audit")]
     [InlineData("Second Report Here", "second-report-here")]

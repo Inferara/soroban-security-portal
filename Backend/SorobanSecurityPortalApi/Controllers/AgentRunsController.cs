@@ -111,6 +111,12 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(await _service.GetExamples());
         }
 
+        [HttpGet("internal/prompt-config")]
+        public IActionResult GetPromptConfig()
+        {
+            return Ok(_service.GetPromptConfig());
+        }
+
         [HttpPost("internal/{id}/progress")]
         public async Task<IActionResult> Progress(int id, [FromBody] AgentProgressViewModel body)
         {

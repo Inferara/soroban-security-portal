@@ -32,6 +32,9 @@ public interface IExtendedConfig
     List<string> ProfanityWords { get; }
     List<string> TrustedDomains { get; }
     string ReportImageCacheDir { get; }
+    string AgentIngestionPreamble { get; }
+    string AgentIngestionInstructions { get; }
+    string AgentIngestionExamplesGuidance { get; }
     void Reset();
 }
 
@@ -234,6 +237,24 @@ public class ExtendedConfig : IExtendedConfig
                       .Where(d => !string.IsNullOrWhiteSpace(d))
                       .ToList();
 
+    [Category(CategoryAttribute.ConfigCategoryEnum.AgentIngestion)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Multiline)]
+    [Description("Prompt — Preamble (role & safety)")]
+    [Tooltip("The opening of every agent-ingestion prompt: the agent's role and the anti-prompt-injection guard. Served to the worker; edit to change how the agent is framed. Leave blank to fall back to the built-in default.")]
+    public string AgentIngestionPreamble => GetValue<string>("AgentIngestionPreamble", AgentIngestionPromptDefaults.Preamble);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.AgentIngestion)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Multiline)]
+    [Description("Prompt — Output instructions (article + result.json schema)")]
+    [Tooltip("The core contract the agent must follow: the article.md structure and the result.json schema, including the severity vocabulary, category meanings, and how rich each finding description / the article must be. This is the main lever for tuning extraction quality. Leave blank to fall back to the built-in default.")]
+    public string AgentIngestionInstructions => GetValue<string>("AgentIngestionInstructions", AgentIngestionPromptDefaults.Instructions);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.AgentIngestion)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Multiline)]
+    [Description("Prompt — Examples & de-duplication guidance")]
+    [Tooltip("Appended to the prompt only when example content exists. Tells the agent to read the example articles/vulnerabilities for house style and to avoid duplicating existing findings/reports. Leave blank to fall back to the built-in default.")]
+    public string AgentIngestionExamplesGuidance => GetValue<string>("AgentIngestionExamplesGuidance", AgentIngestionPromptDefaults.ExamplesGuidance);
+
 }
 
 [AttributeUsage(AttributeTargets.Property)]
@@ -315,5 +336,7 @@ public class CategoryAttribute : Attribute, IAttributeHandler
         Search,
         [System.ComponentModel.Description("Content Filter")]
         ContentFilter,
+        [System.ComponentModel.Description("Agent Ingestion")]
+        AgentIngestion,
     }
 }
