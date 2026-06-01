@@ -341,6 +341,45 @@ namespace SorobanSecurityPortalApi.Tests.Services
             target.ContentType.Should().Be(ModeratedContentType.Report);
         }
 
+        [Fact]
+        public async Task Report_Hide_Sets_IsHidden_True_And_SaveChanges()
+        {
+            var report = new ReportModel { Id = 10, Name = "R", CreatedBy = 1, IsHidden = false };
+            var (factory, dbMock) = BuildReportFactory(new List<ReportModel> { report });
+            var target = new ReportModerationTarget(factory.Object);
+
+            await target.Hide(10);
+
+            report.IsHidden.Should().BeTrue();
+            dbMock.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Report_SoftDelete_Sets_IsDeleted_True_And_SaveChanges()
+        {
+            var report = new ReportModel { Id = 10, Name = "R", CreatedBy = 1, IsDeleted = false };
+            var (factory, dbMock) = BuildReportFactory(new List<ReportModel> { report });
+            var target = new ReportModerationTarget(factory.Object);
+
+            await target.SoftDelete(10);
+
+            report.IsDeleted.Should().BeTrue();
+            dbMock.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Report_Restore_Clears_BothHiddenAndDeleted()
+        {
+            var report = new ReportModel { Id = 10, Name = "R", CreatedBy = 1, IsHidden = true, IsDeleted = true };
+            var (factory, _) = BuildReportFactory(new List<ReportModel> { report });
+            var target = new ReportModerationTarget(factory.Object);
+
+            await target.Restore(10);
+
+            report.IsHidden.Should().BeFalse();
+            report.IsDeleted.Should().BeFalse();
+        }
+
         // --- ModerationTargetRegistry tests ---
 
         [Fact]
