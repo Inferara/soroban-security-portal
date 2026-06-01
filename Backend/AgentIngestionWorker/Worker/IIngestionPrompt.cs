@@ -112,15 +112,24 @@ public sealed class IngestionPrompt : IIngestionPrompt
     private const string SchemaInstructions = """
         Produce EXACTLY two files in the current working directory, and nothing else:
 
-        1. article.md — a clean Markdown article in the portal's house style:
+        1. article.md — a COMPREHENSIVE, cleanly-formatted Markdown article that faithfully renders the
+           WHOLE report. A real audit article is long and detailed — do NOT summarize the substance away:
              # <Report title>
              **Protocol:** <project>  **Auditor:** <firm>  **Date:** <YYYY-MM-DD>
-             ## Summary   — 2–4 sentences: what was audited, the overall result, headline numbers
-                            (e.g. coverage %, score, # of issues) if the report states them.
-             ## Scope     — repositories, commit hashes and contracts that were in scope.
-             ## Findings  — one "### [SEVERITY] Title" heading per finding, each followed by a short
-                            paragraph. Mirror the structure, headings and tone of the example articles
-                            under examples/articles/.
+             ## Executive Summary — what was audited, the engagement, the overall result and the headline
+                            numbers the report states (coverage %, score, issue counts by severity). One
+                            or two full paragraphs, not a single sentence.
+             ## Scope        — repositories, commit hashes, and the contracts/files in scope; plus the
+                            methodology / tools if the report describes them.
+             ## Findings     — one "### [SEVERITY] Title" per finding, and under each reproduce the finding
+                            IN FULL: a detailed Description (include code blocks where the report shows
+                            them), then **Recommendation** and **Status** (remediation / commit) — the same
+                            depth as the result.json descriptions. Cover EVERY finding, not a selection.
+             ## Conclusion   — the auditor's closing assessment, if the report has one.
+           The example articles under examples/articles/ may be raw PDF→Markdown (noisy: fragmented
+           headings, page numbers, a table of contents). Use them to see WHAT sections and per-finding
+           fields a report contains — but format YOUR article CLEANLY (proper #/##/### headings, no
+           page-number or fragmented-heading noise).
 
         2. result.json — STRICT JSON (no comments, no trailing commas) with exactly these fields:
              {
