@@ -26,9 +26,6 @@ WORKDIR /src
 
 # Restore dependencies for the worker project only.
 # (The worker has no dependency on SorobanSecurityPortalApi — it is intentionally decoupled.)
-# Vendored local feed supplies the custom UglyToad.PdfPig 1.7.0-custom-5 (not on nuget.org).
-COPY ["nuget.config", "./"]
-COPY ["local-nuget", "local-nuget/"]
 COPY ["AgentIngestionWorker/AgentIngestionWorker.csproj", "AgentIngestionWorker/"]
 RUN dotnet restore "AgentIngestionWorker/AgentIngestionWorker.csproj"
 

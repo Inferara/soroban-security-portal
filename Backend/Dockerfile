@@ -16,8 +16,6 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["nuget.config", "./"]
-COPY ["local-nuget", "local-nuget/"]
 COPY ["SorobanSecurityPortalApi/SorobanSecurityPortalApi.csproj", "SorobanSecurityPortalApi/"]
 RUN dotnet restore "SorobanSecurityPortalApi/SorobanSecurityPortalApi.csproj"
 COPY . .

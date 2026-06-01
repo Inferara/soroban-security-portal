@@ -142,4 +142,3 @@ dist
 
 # Local kubeconfig used for ad-hoc cluster access — never commit (contains credentials)
 kubeconfig.temp
-Backend/local-nuget/
