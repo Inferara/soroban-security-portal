@@ -16,10 +16,20 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public VoteType? CurrentUserVote { get; set; }
     }
 
+    public class ForumVoteOutcome
+    {
+        public bool IsSelfVote { get; set; }
+        public bool BelowDownvoteThreshold { get; set; }
+        public int VoteCount { get; set; }
+        public VoteType? CurrentUserVote { get; set; }
+    }
+
     public interface IVoteProcessor
     {
         Task<VoteOutcome?> SetCommentVote(int commentId, int userId, VoteType? newVote);
         Task<Dictionary<int, VoteType>> GetUserVotesForComments(int userId, List<int> commentIds);
+        Task<ForumVoteOutcome?> SetForumPostVote(int postId, int userId, VoteType? newVote);
+        Task<Dictionary<int, VoteType>> GetUserVotesForForumPosts(int userId, List<int> postIds);
     }
 
     public class VoteProcessor : IVoteProcessor
@@ -120,6 +130,91 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await using var db = await _dbFactory.CreateDbContextAsync();
             var rows = await db.Vote.AsNoTracking()
                 .Where(v => v.UserId == userId && v.EntityType == VotableEntityType.Comment && commentIds.Contains(v.EntityId))
+                .Select(v => new { v.EntityId, v.VoteType })
+                .ToListAsync();
+            return rows.ToDictionary(r => r.EntityId, r => r.VoteType);
+        }
+
+        public async Task<ForumVoteOutcome?> SetForumPostVote(int postId, int userId, VoteType? newVote)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var post = await db.ForumPost.FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null) return null;
+
+            // Voting on your own post is not allowed
+            if (post.AuthorId == userId)
+                return new ForumVoteOutcome { IsSelfVote = true, VoteCount = post.Votes };
+
+            var existing = await db.Vote.FirstOrDefaultAsync(
+                v => v.UserId == userId && v.EntityType == VotableEntityType.ForumPost && v.EntityId == postId);
+
+            var oldVote = existing?.VoteType;
+
+            // Min-reputation gate: only applies when newly casting a downvote
+            if (newVote == VoteType.Downvote && oldVote != VoteType.Downvote)
+            {
+                var voterRep = await db.UserProfiles.AsNoTracking()
+                    .Where(p => p.LoginId == userId)
+                    .Select(p => (int?)p.ReputationScore)
+                    .FirstOrDefaultAsync() ?? 0;
+                if (voterRep < MinReputationToDownvote)
+                    return new ForumVoteOutcome
+                    {
+                        BelowDownvoteThreshold = true,
+                        VoteCount = post.Votes,
+                        CurrentUserVote = oldVote
+                    };
+            }
+
+            if (newVote == null)
+            {
+                if (existing != null) db.Vote.Remove(existing);
+            }
+            else if (existing != null)
+            {
+                existing.VoteType = newVote.Value;
+            }
+            else
+            {
+                db.Vote.Add(new VoteModel
+                {
+                    UserId = userId,
+                    EntityType = VotableEntityType.ForumPost,
+                    EntityId = postId,
+                    VoteType = newVote.Value
+                });
+            }
+
+            // Recompute vote count from the authoritative vote rows
+            var upVotes = await db.Vote.CountAsync(v => v.EntityType == VotableEntityType.ForumPost
+                && v.EntityId == postId && v.VoteType == VoteType.Upvote);
+            var downVotes = await db.Vote.CountAsync(v => v.EntityType == VotableEntityType.ForumPost
+                && v.EntityId == postId && v.VoteType == VoteType.Downvote);
+            post.Votes = upVotes - downVotes;
+
+            // Author earns +1 reputation per upvote on their post
+            var repDelta = (newVote == VoteType.Upvote ? 1 : 0) - (oldVote == VoteType.Upvote ? 1 : 0);
+            if (repDelta != 0)
+            {
+                var authorProfile = await db.UserProfiles.FirstOrDefaultAsync(p => p.LoginId == post.AuthorId);
+                if (authorProfile != null) authorProfile.ReputationScore += repDelta;
+            }
+
+            await db.SaveChangesAsync();
+            return new ForumVoteOutcome
+            {
+                IsSelfVote = false,
+                VoteCount = post.Votes,
+                CurrentUserVote = newVote
+            };
+        }
+
+        public async Task<Dictionary<int, VoteType>> GetUserVotesForForumPosts(int userId, List<int> postIds)
+        {
+            if (postIds == null || postIds.Count == 0) return new Dictionary<int, VoteType>();
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var rows = await db.Vote.AsNoTracking()
+                .Where(v => v.UserId == userId && v.EntityType == VotableEntityType.ForumPost && postIds.Contains(v.EntityId))
                 .Select(v => new { v.EntityId, v.VoteType })
                 .ToListAsync();
             return rows.ToDictionary(r => r.EntityId, r => r.VoteType);

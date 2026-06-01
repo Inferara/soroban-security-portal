@@ -19,7 +19,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         [Required]
         public string Content { get; set; } = string.Empty;
 
+        public string ContentHtml { get; set; } = string.Empty;
+
         public bool IsFirstPost { get; set; }
+        public bool IsEdited { get; set; }
         public int Votes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
