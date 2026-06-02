@@ -14,6 +14,7 @@ import {
   Divider,
   Chip,
   ListItemButton,
+  ButtonGroup,
 } from '@mui/material';
 import {
   OpenInNew,
@@ -40,6 +41,7 @@ import {
   getCategoryColor,
   getCategoryLabel,
   VulnerabilityCategory,
+  VulnerabilityCategories,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
 import { BookmarkButton } from '../../../../components/BookmarkButton';
 import { FlagButton } from '../../../../components/FlagButton';
@@ -96,6 +98,10 @@ export const ReportDetails: FC = () => {
   const views = usePageViewTracking(PageViewEntityType.Report, report?.id);
 
   const [commentCount, setCommentCount] = useState<number | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<Set<VulnerabilityCategory>>(
+    new Set(VulnerabilityCategories.map((cat) => cat.id))
+  );
+  
   useEffect(() => {
     if (reportId > 0) {
       getCommentCountCall(CommentEntityType.Report, reportId)
@@ -135,12 +141,25 @@ export const ReportDetails: FC = () => {
   // Sort vulnerabilities by severity (memoized)
   const sortedVulnerabilities = useMemo(() => {
     const severityOrder: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1, note: 0 };
-    return [...vulnerabilities].sort((a, b) => {
-      const aSeverity = severityOrder[a.severity?.toLowerCase()] || 0;
-      const bSeverity = severityOrder[b.severity?.toLowerCase()] || 0;
-      return bSeverity - aSeverity;
-    });
-  }, [vulnerabilities]);
+    return [...vulnerabilities]
+      .filter((vuln) => selectedCategories.has(vuln.category))
+      .sort((a, b) => {
+        const aSeverity = severityOrder[a.severity?.toLowerCase()] || 0;
+        const bSeverity = severityOrder[b.severity?.toLowerCase()] || 0;
+        return bSeverity - aSeverity;
+      });
+  }, [vulnerabilities, selectedCategories]);
+
+  // Handle category filter toggle
+  const handleCategoryToggle = (category: VulnerabilityCategory) => {
+    const newSet = new Set(selectedCategories);
+    if (newSet.has(category)) {
+      newSet.delete(category);
+    } else {
+      newSet.add(category);
+    }
+    setSelectedCategories(newSet);
+  };
 
   const handleReportDownload = async (reportName: string, reportId: number) => {
     if (!isAuthorized(auth)) {
@@ -322,10 +341,44 @@ export const ReportDetails: FC = () => {
                 {/* Vulnerabilities List */}
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                      <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      Vulnerabilities ({vulnerabilities.length})
-                    </Typography>
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                        <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
+                        Vulnerabilities ({sortedVulnerabilities.length})
+                      </Typography>
+                      
+                      {/* Category Filter Buttons */}
+                      <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: 'text.secondary' }}>
+                        Filter by Status:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {VulnerabilityCategories.map((category) => (
+                          <Button
+                            key={category.id}
+                            variant={selectedCategories.has(category.id) ? 'contained' : 'outlined'}
+                            size="small"
+                            onClick={() => handleCategoryToggle(category.id)}
+                            sx={{
+                              backgroundColor: selectedCategories.has(category.id)
+                                ? category.color
+                                : 'transparent',
+                              borderColor: category.color,
+                              color: selectedCategories.has(category.id)
+                                ? '#fff'
+                                : 'text.primary',
+                              '&:hover': {
+                                backgroundColor: selectedCategories.has(category.id)
+                                  ? category.color
+                                  : `${category.color}20`,
+                                borderColor: category.color,
+                              },
+                            }}
+                          >
+                            {category.label}
+                          </Button>
+                        ))}
+                      </Box>
+                    </Box>
 
                     {sortedVulnerabilities.length > 0 ? (
                       <List sx={{ maxHeight: 400, overflow: 'auto' }}>
