@@ -6,11 +6,13 @@ WORKDIR /app
 
 # Install Node.js 20 (same as API Dockerfile) + opencode-ai CLI.
 # opencode needs to be on PATH for the worker process to shell out to it.
+# Pinned to a known-good version: newer releases have changed the streaming/JSON
+# event behaviour, which trips the worker's stall watchdog mid-generation.
 RUN apt-get update && \
     apt-get install -y curl gnupg && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
-    npm install -g npm@latest opencode-ai && \
+    npm install -g npm@latest opencode-ai@1.14.28 && \
     rm -rf /var/lib/apt/lists/*
 
 # HOME is set here and overridden in the Helm Deployment via env so that

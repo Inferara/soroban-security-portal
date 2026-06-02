@@ -44,6 +44,14 @@ spec:
             - name: POLL_INTERVAL_SECONDS
               value: "{{ .Values.agentIngestionWorker.pollIntervalSeconds }}"
 
+            # Kill opencode if it emits no output for this many seconds (stall watchdog),
+            # and hard-cap a single run at this many minutes. Generous because the cluster
+            # node is slower and its egress to the model API can be intermittent.
+            - name: OPENCODE_STALL_SEC
+              value: "{{ .Values.agentIngestionWorker.stallSeconds }}"
+            - name: OPENCODE_TIMEOUT_MIN
+              value: "{{ .Values.agentIngestionWorker.timeoutMinutes }}"
+
             # Point HOME to a writable directory so opencode resolves
             # $HOME/.local/share/opencode/auth.json from the mounted Secret.
             - name: HOME
@@ -58,13 +66,17 @@ spec:
               subPath: auth.json
               readOnly: true
 
+          # opencode is a heavy bun/node binary that loads the full report text + example
+          # seed files and processes a streaming model response — it needs real CPU and memory.
+          # Too low a memory limit gets the opencode child OOM-killed (the container keeps
+          # running, but the run stalls). Generous, tunable.
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: "{{ .Values.agentIngestionWorker.resources.requests.cpu }}"
+              memory: "{{ .Values.agentIngestionWorker.resources.requests.memory }}"
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: "{{ .Values.agentIngestionWorker.resources.limits.cpu }}"
+              memory: "{{ .Values.agentIngestionWorker.resources.limits.memory }}"
 
       # opencode writes temp files under $HOME; ensure the directory exists
       # before the main container starts (subPath mounts don't create parents).
