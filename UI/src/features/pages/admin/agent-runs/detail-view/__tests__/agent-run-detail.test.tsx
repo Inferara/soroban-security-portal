@@ -18,6 +18,8 @@ vi.mock('../hooks', () => ({
   useAgentRunDetail: () => ({
     runId: mockRunId, run: mockRun,
     approve: mockApprove, reject: mockReject, rerun: mockRerun, enqueue: vi.fn().mockResolvedValue(true),
+    protocolsList: [{ id: 1, name: 'Rozo', url: '', date: new Date(), createdBy: '' }],
+    auditorsList: [{ id: 1, name: 'Hacken', description: '', url: '', date: new Date(), createdBy: '' }],
   }),
 }));
 
@@ -224,5 +226,43 @@ describe('AgentRunDetail', () => {
     await waitFor(() => expect(mockApprove).toHaveBeenCalled());
     const payload = mockApprove.mock.calls[0][0];
     expect(payload.reportPdfUrl).toBe('https://new/report.pdf');
+  });
+
+  // ── Protocol / Auditor Autocompletes (reviewer: vulnerabilities weren't linked) ──
+
+  it('protocol and auditor render as comboboxes pre-filled from the run', () => {
+    mockRun = succeededRun;
+    renderComponent();
+    // Autocomplete renders a combobox input; pre-filled from run.protocolName / run.auditorName
+    expect(screen.getByDisplayValue('MyProtocol')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('AuditCo')).toBeInTheDocument();
+    const protocolInput = screen.getByLabelText('Protocol / project');
+    expect(protocolInput).toHaveAttribute('role', 'combobox');
+  });
+
+  it('approve payload carries protocol/auditor names so the backend links them', async () => {
+    mockRun = succeededRun;
+    renderComponent();
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve selected/i }));
+
+    await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+    const payload = mockApprove.mock.calls[0][0];
+    expect(payload.protocolName).toBe('MyProtocol');
+    expect(payload.auditorName).toBe('AuditCo');
+  });
+
+  it('editing the protocol field flows into the approve payload', async () => {
+    mockRun = succeededRun;
+    renderComponent();
+
+    const protocolInput = screen.getByLabelText('Protocol / project');
+    fireEvent.change(protocolInput, { target: { value: 'Rozo' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve selected/i }));
+
+    await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+    const payload = mockApprove.mock.calls[0][0];
+    expect(payload.protocolName).toBe('Rozo');
   });
 });

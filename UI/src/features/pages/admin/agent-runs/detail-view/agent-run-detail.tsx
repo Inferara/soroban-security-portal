@@ -1,7 +1,7 @@
 import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Checkbox,
+  Accordion, AccordionDetails, AccordionSummary, Alert, Autocomplete, Box, Button, Checkbox,
   Chip, FormControl, FormControlLabel, InputLabel, Link, LinearProgress, MenuItem,
   Paper, Select, TextField, Typography,
 } from '@mui/material';
@@ -57,7 +57,7 @@ export const AgentRunDetail: FC = () => {
     pageUrl: window.location.pathname,
     routePath: 'admin/agent-runs/detail',
   }), []);
-  const { runId, run, approve, reject, rerun, enqueue } = useAgentRunDetail({ currentPageState });
+  const { runId, run, approve, reject, rerun, enqueue, protocolsList = [], auditorsList = [] } = useAgentRunDetail({ currentPageState });
   const [sourceUrl, setSourceUrl] = useState('');
 
   // Editable review state
@@ -250,17 +250,35 @@ export const AgentRunDetail: FC = () => {
             onChange={(e) => setReportTitle(e.target.value)}
             sx={{ flex: '1 1 300px' }}
           />
-          <TextField
-            label="Protocol / project"
-            value={protocolName}
-            onChange={(e) => setProtocolName(e.target.value)}
+          <Autocomplete
+            freeSolo
+            autoSelect
+            options={protocolsList.map((p) => p.name)}
+            inputValue={protocolName}
+            onInputChange={(_, v) => setProtocolName(v)}
             sx={{ flex: '1 1 200px' }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Protocol / project"
+                helperText="Pick an existing protocol to link it, or type a new name to create one"
+              />
+            )}
           />
-          <TextField
-            label="Auditor"
-            value={auditorName}
-            onChange={(e) => setAuditorName(e.target.value)}
+          <Autocomplete
+            freeSolo
+            autoSelect
+            options={auditorsList.map((a) => a.name)}
+            inputValue={auditorName}
+            onInputChange={(_, v) => setAuditorName(v)}
             sx={{ flex: '1 1 200px' }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Auditor"
+                helperText="Pick an existing auditor to link it, or type a new name to create one"
+              />
+            )}
           />
           <TextField
             label="Audit date"

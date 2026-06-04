@@ -8,8 +8,12 @@ import {
   rejectAgentRunCall,
   rerunAgentRunCall,
   enqueueAgentRunCall,
+  getProtocolListDataCall,
+  getAuditorListDataCall,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { AgentRun, ApproveAgentRun, EnqueueAgentRun, AgentRunStatus } from '../../../../../../api/soroban-security-portal/models/agent-run';
+import { ProtocolItem } from '../../../../../../api/soroban-security-portal/models/protocol';
+import { AuditorItem } from '../../../../../../api/soroban-security-portal/models/auditor';
 
 interface UseAgentRunDetailProps {
   currentPageState: CurrentPageState;
@@ -22,6 +26,11 @@ export const useAgentRunDetail = (props: UseAgentRunDetailProps) => {
   const runIdParam = searchParams.get('runId');
   const runId = runIdParam ? parseInt(runIdParam, 10) : undefined;
   const [run, setRun] = useState<AgentRun | null | undefined>(undefined);
+  // Existing protocols/auditors power the review-screen Autocompletes so a moderator picks the
+  // canonical entity by name (backend resolves protocol/auditor by name on approve) instead of
+  // free-typing a near-duplicate or leaving it blank — which left vulnerabilities unlinked.
+  const [protocolsList, setProtocolsList] = useState<ProtocolItem[]>([]);
+  const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
 
   const load = useCallback(async (): Promise<void> => {
     if (runId) {
@@ -57,6 +66,18 @@ export const useAgentRunDetail = (props: UseAgentRunDetailProps) => {
   useEffect(() => {
     dispatch(setCurrentPage(currentPageState));
     void load();
+    void (async () => {
+      try {
+        const [protocols, auditors] = await Promise.all([
+          getProtocolListDataCall(),
+          getAuditorListDataCall(),
+        ]);
+        setProtocolsList(protocols);
+        setAuditorsList(auditors);
+      } catch {
+        // Non-fatal: the Autocompletes just fall back to free-text entry.
+      }
+    })();
   }, [dispatch, currentPageState, load]);
 
   // Poll every 3 s while the run is being processed
@@ -66,5 +87,5 @@ export const useAgentRunDetail = (props: UseAgentRunDetailProps) => {
     return () => clearInterval(t);
   }, [run?.status, load]);
 
-  return { runId, run, approve, reject, rerun, enqueue };
+  return { runId, run, approve, reject, rerun, enqueue, protocolsList, auditorsList };
 };
