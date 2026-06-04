@@ -265,4 +265,29 @@ describe('AgentRunDetail', () => {
     const payload = mockApprove.mock.calls[0][0];
     expect(payload.protocolName).toBe('Rozo');
   });
+
+  // ── Live link-status feedback ────────────────────────────────────────────
+
+  it('shows "will be created" when the typed protocol/auditor does not match an existing entity', () => {
+    // succeededRun pre-fills protocolName='MyProtocol' / auditorName='AuditCo', neither of which
+    // is in the mocked lists (Rozo / Hacken) → both should report they will be created.
+    mockRun = succeededRun;
+    renderComponent();
+    expect(screen.getByText(/a new protocol "MyProtocol" will be created/i)).toBeInTheDocument();
+    expect(screen.getByText(/a new auditor "AuditCo" will be created/i)).toBeInTheDocument();
+  });
+
+  it('shows "links to existing" when the typed protocol matches an existing entity', () => {
+    mockRun = succeededRun;
+    renderComponent();
+    const protocolInput = screen.getByLabelText('Protocol / project');
+    fireEvent.change(protocolInput, { target: { value: 'Rozo' } });
+    expect(screen.getByText(/Links to existing protocol "Rozo"/i)).toBeInTheDocument();
+  });
+
+  it('warns that vulnerabilities will be unlinked when protocol is left blank', () => {
+    mockRun = { ...succeededRun, protocolName: '' };
+    renderComponent();
+    expect(screen.getByText(/No protocol — approved vulnerabilities won't be linked/i)).toBeInTheDocument();
+  });
 });

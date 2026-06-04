@@ -143,6 +143,21 @@ export const AgentRunDetail: FC = () => {
 
   const includedCount = findings.filter((f) => f.include).length;
 
+  // Live link feedback: tell the moderator up front whether the typed protocol/auditor will link
+  // to an existing entity, create a new one, or — if left blank — leave the approved vulnerabilities
+  // unlinked to any project/company. That blank case is exactly what left vulnerabilities with no
+  // report/protocol/company on the review screen, needing a tedious manual fix on each one.
+  const linkStatus = (name: string, list: { name: string }[], kind: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return { error: true, text: `No ${kind} — approved vulnerabilities won't be linked to a ${kind}.` };
+    const match = list.find((e) => (e.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
+    return match
+      ? { error: false, text: `Links to existing ${kind} "${match.name}".` }
+      : { error: false, text: `No match — a new ${kind} "${trimmed}" will be created on approve.` };
+  };
+  const protocolStatus = linkStatus(protocolName, protocolsList, 'protocol');
+  const auditorStatus = linkStatus(auditorName, auditorsList, 'auditor');
+
   const isProcessingOrQueued = run.status === AgentRunStatus.Processing
     || run.status === AgentRunStatus.Queued;
 
@@ -261,7 +276,8 @@ export const AgentRunDetail: FC = () => {
               <TextField
                 {...params}
                 label="Protocol / project"
-                helperText="Pick an existing protocol to link it, or type a new name to create one"
+                error={protocolStatus.error}
+                helperText={protocolStatus.text}
               />
             )}
           />
@@ -276,7 +292,8 @@ export const AgentRunDetail: FC = () => {
               <TextField
                 {...params}
                 label="Auditor"
-                helperText="Pick an existing auditor to link it, or type a new name to create one"
+                error={auditorStatus.error}
+                helperText={auditorStatus.text}
               />
             )}
           />
