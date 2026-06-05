@@ -11,6 +11,7 @@ import { useAgentRunDetail } from './hooks';
 import { CurrentPageState } from '../../admin-main-window/current-page-slice';
 import { showError } from '../../../../dialog-handler/dialog-handler';
 import { ApproveAgentRun, AgentRunStatus } from '../../../../../api/soroban-security-portal/models/agent-run';
+import { VulnerabilityCategories } from '../../../../../api/soroban-security-portal/models/vulnerability';
 
 interface EditableFinding {
   include: boolean;
@@ -32,16 +33,10 @@ const severityColor = (
   }
 };
 
-const categoryLabel = (category: number): string => {
-  switch (category) {
-    case 0: return 'Valid';
-    case 1: return 'Valid (not fixed)';
-    case 2: return 'Valid (partially fixed)';
-    case 3: return 'Invalid';
-    case 100: return 'N/A';
-    default: return String(category);
-  }
-};
+// Reuse the portal-wide category labels so the agent review screen matches the
+// labels shown everywhere else (e.g. "Valid (Fixed)", not a local "Valid").
+const categoryLabel = (category: number): string =>
+  VulnerabilityCategories.find((c) => c.id === category)?.label ?? String(category);
 
 /** Slice an ISO datetime to date-only YYYY-MM-DD */
 const toDateOnly = (iso: string): string => {
@@ -57,8 +52,10 @@ export const AgentRunDetail: FC = () => {
     pageUrl: window.location.pathname,
     routePath: 'admin/agent-runs/detail',
   }), []);
-  const { runId, run, approve, reject, rerun, enqueue, protocolsList = [], auditorsList = [] } = useAgentRunDetail({ currentPageState });
+  const { runId, run, approve, reject, rerun, enqueue, protocolsList = [], auditorsList = [], reportsList = [] } = useAgentRunDetail({ currentPageState });
   const [sourceUrl, setSourceUrl] = useState('');
+  // Optional existing report to attach a *new* run's findings to (enqueue form).
+  const [enqueueReportId, setEnqueueReportId] = useState<number | null>(null);
 
   // Editable review state
   const [reportTitle, setReportTitle] = useState('');
@@ -68,6 +65,8 @@ export const AgentRunDetail: FC = () => {
   const [reportPdfUrl, setReportPdfUrl] = useState('');
   const [articleMarkdown, setArticleMarkdown] = useState('');
   const [findings, setFindings] = useState<EditableFinding[]>([]);
+  // When set, approving attaches the findings to this existing report instead of creating a new one.
+  const [linkedReportId, setLinkedReportId] = useState<number | null>(null);
   const initializedRef = useRef(false);
 
   // Populate editable state ONCE when run first reaches a reviewable status
@@ -85,6 +84,8 @@ export const AgentRunDetail: FC = () => {
       setReportDate(toDateOnly(run.reportDate ?? ''));
       setReportPdfUrl(run.reportPdfUrl ?? '');
       setArticleMarkdown(run.articleMarkdown ?? '');
+      // Pre-link the report chosen at enqueue time (if any).
+      setLinkedReportId(run.reportId ?? null);
       setFindings(
         run.findings.map((f) => ({
           include: true,
@@ -123,10 +124,25 @@ export const AgentRunDetail: FC = () => {
       <Paper elevation={6} sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>New agent run</Typography>
         <TextField fullWidth label="Report source URL" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} sx={{ mb: 2 }} />
+        <Autocomplete
+          options={reportsList}
+          getOptionLabel={(r) => r.name}
+          isOptionEqualToValue={(o, v) => o.id === v.id}
+          value={reportsList.find((r) => r.id === enqueueReportId) ?? null}
+          onChange={(_, v) => setEnqueueReportId(v ? v.id : null)}
+          sx={{ mb: 2 }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Attach to existing report (optional)"
+              helperText="Optional — attach this run's findings to a report already in the portal instead of creating a new one. Leave empty to create a new report on approve."
+            />
+          )}
+        />
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
           <Button variant="contained" onClick={back}>Cancel</Button>
           <Button variant="contained" color="success" disabled={!sourceUrl.trim()}
-            onClick={() => act(() => enqueue({ sourceUrl }), 'Failed to enqueue run')}>
+            onClick={() => act(() => enqueue({ sourceUrl, reportId: enqueueReportId ?? undefined }), 'Failed to enqueue run')}>
             Enqueue
           </Button>
         </Box>
@@ -158,11 +174,15 @@ export const AgentRunDetail: FC = () => {
   const protocolStatus = linkStatus(protocolName, protocolsList, 'protocol');
   const auditorStatus = linkStatus(auditorName, auditorsList, 'auditor');
 
+  // The existing report (if any) the findings will be attached to instead of creating a new one.
+  const linkedReport = reportsList.find((r) => r.id === linkedReportId) ?? null;
+
   const isProcessingOrQueued = run.status === AgentRunStatus.Processing
     || run.status === AgentRunStatus.Queued;
 
   const handleApprove = async () => {
     const payload: ApproveAgentRun = {
+      reportId: linkedReportId ?? undefined,
       reportTitle,
       protocolName,
       auditorName,
@@ -258,6 +278,30 @@ export const AgentRunDetail: FC = () => {
       {/* Report metadata */}
       <Paper variant="outlined" sx={{ p: 2, mt: 2, mb: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>Report metadata</Typography>
+        <Autocomplete
+          options={reportsList}
+          getOptionLabel={(r) => r.name}
+          isOptionEqualToValue={(o, v) => o.id === v.id}
+          value={linkedReport}
+          onChange={(_, v) => setLinkedReportId(v ? v.id : null)}
+          sx={{ mb: 2 }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Attach to existing report (optional)"
+              helperText="Pick a report already in the portal to attach these findings to it — no new report is created. Leave empty to create a new report from the fields below."
+            />
+          )}
+        />
+        {linkedReport ? (
+          <Alert severity="info" sx={{ mb: 1 }}>
+            Findings will be attached to <strong>{linkedReport.name}</strong>
+            {linkedReport.protocolName ? <> &middot; Protocol: <strong>{linkedReport.protocolName}</strong></> : null}
+            {linkedReport.companyName ? <> &middot; Company: <strong>{linkedReport.companyName}</strong></> : null}
+            {linkedReport.auditorName ? <> &middot; Auditor: <strong>{linkedReport.auditorName}</strong></> : null}
+            . The existing report keeps its own article, PDF and metadata, so the generated article and the fields below are ignored.
+          </Alert>
+        ) : (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
           <TextField
             label="Report title"
@@ -313,6 +357,7 @@ export const AgentRunDetail: FC = () => {
             helperText="Direct link to the original report PDF (auto-discovered by the agent). It is downloaded into the report on approve. Leave empty for an article-only report."
           />
         </Box>
+        )}
       </Paper>
 
       {/* Article */}
@@ -408,11 +453,9 @@ export const AgentRunDetail: FC = () => {
                     value={f.category}
                     onChange={(e) => updateFinding(i, { category: Number(e.target.value) })}
                   >
-                    <MenuItem value={0}>Valid</MenuItem>
-                    <MenuItem value={1}>Valid (not fixed)</MenuItem>
-                    <MenuItem value={2}>Valid (partially fixed)</MenuItem>
-                    <MenuItem value={3}>Invalid</MenuItem>
-                    <MenuItem value={100}>N/A</MenuItem>
+                    {VulnerabilityCategories.map((c) => (
+                      <MenuItem key={c.id} value={c.id}>{c.label}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
                 <TextField

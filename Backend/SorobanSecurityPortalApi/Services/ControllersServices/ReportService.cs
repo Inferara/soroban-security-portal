@@ -1,9 +1,7 @@
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
-using PDFtoImage;
 using Pgvector;
-using SkiaSharp;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Models.DbModels;
@@ -93,14 +91,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         }
 
         private static byte[] RenderFirstPageAsPng(byte[] file, int dpi = 150)
-        {
-            var bitmap = Conversion.ToImage(file, 0);
-            using (var image = SKImage.FromBitmap(bitmap))
-            using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
-            {
-                return data.ToArray();
-            }
-        }
+            => ReportImageRenderer.RenderFirstPageAsPng(file, dpi);
 
         public async Task<Result<bool, string>> Approve(int reportId)
         {

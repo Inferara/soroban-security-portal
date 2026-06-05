@@ -376,6 +376,44 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
+        public async Task Approve_With_Payload_ReportId_Attaches_To_That_Report_Over_Run_ReportId()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            // Run was bound to report 77 at enqueue, but the moderator picks 88 on the review screen.
+            runProc.Setup(p => p.Get(16)).ReturnsAsync(new AgentRunModel { Id = 16, Status = AgentRunStatus.Succeeded, ReportId = 77 });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Get(88)).ReturnsAsync(new ReportModel { Id = 88, Name = "Chosen" });
+            var svc = BuildService(runProc, reportProc);
+
+            var cap = SetupCommit(runProc);
+            var payload = Payload(new AgentFinding { Title = "X", Severity = "low", Tags = new(), Category = VulnerabilityCategory.Valid });
+            payload.ReportId = 88;
+            var result = await svc.Approve(16, payload);
+
+            result.Should().BeOfType<Result<bool, string>.Ok>();
+            cap.Report.Should().BeNull();           // no new report created
+            cap.ExistingReportId.Should().Be(88);   // payload.ReportId wins over run.ReportId
+        }
+
+        [Fact]
+        public async Task Approve_With_Unknown_Report_Returns_Err()
+        {
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(17)).ReturnsAsync(new AgentRunModel { Id = 17, Status = AgentRunStatus.Succeeded });
+            var reportProc = new Mock<IReportProcessor>();
+            reportProc.Setup(p => p.Get(999)).ThrowsAsync(new SorobanSecurityPortalApi.Common.ExceptionHandlingMiddleware.SorobanSecurityPortalUiException("Report with ID 999 not found."));
+            var svc = BuildService(runProc, reportProc);
+
+            var cap = SetupCommit(runProc);
+            var payload = Payload();
+            payload.ReportId = 999;
+            var result = await svc.Approve(17, payload);
+
+            result.Should().BeOfType<Result<bool, string>.Err>();
+            cap.Called.Should().BeFalse(); // never commits against a non-existent report
+        }
+
+        [Fact]
         public async Task Reject_Succeeded_Run_Sets_Rejected()
         {
             var runProc = new Mock<IAgentRunProcessor>();

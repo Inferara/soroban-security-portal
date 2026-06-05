@@ -37,6 +37,8 @@ export interface AgentRun extends AgentRunListItem {
 }
 
 export interface ApproveAgentRun {
+  // When set, findings are attached to this existing report instead of creating a new one.
+  reportId?: number;
   reportTitle: string;
   protocolName: string;
   auditorName: string;

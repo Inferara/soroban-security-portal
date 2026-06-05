@@ -10,10 +10,12 @@ import {
   enqueueAgentRunCall,
   getProtocolListDataCall,
   getAuditorListDataCall,
+  getAllReportListDataCall,
 } from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { AgentRun, ApproveAgentRun, EnqueueAgentRun, AgentRunStatus } from '../../../../../../api/soroban-security-portal/models/agent-run';
 import { ProtocolItem } from '../../../../../../api/soroban-security-portal/models/protocol';
 import { AuditorItem } from '../../../../../../api/soroban-security-portal/models/auditor';
+import { Report } from '../../../../../../api/soroban-security-portal/models/report';
 
 interface UseAgentRunDetailProps {
   currentPageState: CurrentPageState;
@@ -31,6 +33,9 @@ export const useAgentRunDetail = (props: UseAgentRunDetailProps) => {
   // free-typing a near-duplicate or leaving it blank — which left vulnerabilities unlinked.
   const [protocolsList, setProtocolsList] = useState<ProtocolItem[]>([]);
   const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
+  // Existing reports power the "attach to an existing report" picker, so a moderator can link the
+  // findings to a report that's already in the portal (no duplicate) instead of creating a new one.
+  const [reportsList, setReportsList] = useState<Report[]>([]);
 
   const load = useCallback(async (): Promise<void> => {
     if (runId) {
@@ -68,12 +73,14 @@ export const useAgentRunDetail = (props: UseAgentRunDetailProps) => {
     void load();
     void (async () => {
       try {
-        const [protocols, auditors] = await Promise.all([
+        const [protocols, auditors, reports] = await Promise.all([
           getProtocolListDataCall(),
           getAuditorListDataCall(),
+          getAllReportListDataCall(),
         ]);
         setProtocolsList(protocols);
         setAuditorsList(auditors);
+        setReportsList(reports);
       } catch {
         // Non-fatal: the Autocompletes just fall back to free-text entry.
       }
@@ -87,5 +94,5 @@ export const useAgentRunDetail = (props: UseAgentRunDetailProps) => {
     return () => clearInterval(t);
   }, [run?.status, load]);
 
-  return { runId, run, approve, reject, rerun, enqueue, protocolsList, auditorsList };
+  return { runId, run, approve, reject, rerun, enqueue, protocolsList, auditorsList, reportsList };
 };

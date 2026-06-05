@@ -20,6 +20,10 @@ vi.mock('../hooks', () => ({
     approve: mockApprove, reject: mockReject, rerun: mockRerun, enqueue: vi.fn().mockResolvedValue(true),
     protocolsList: [{ id: 1, name: 'Rozo', url: '', date: new Date(), createdBy: '' }],
     auditorsList: [{ id: 1, name: 'Hacken', description: '', url: '', date: new Date(), createdBy: '' }],
+    reportsList: [
+      { id: 42, name: 'Existing Rozo Report', date: '2026-01-01', protocolId: 1, protocolName: 'Rozo',
+        companyId: 2, companyName: 'Rozo Inc', auditorId: 1, auditorName: 'Hacken', createdBy: 1 },
+    ],
   }),
 }));
 
@@ -169,8 +173,9 @@ describe('AgentRunDetail', () => {
     // Severity chips appear (use getAllByText since the Select combobox also renders the value)
     expect(screen.getAllByText('high').length).toBeGreaterThan(0);
     expect(screen.getAllByText('medium').length).toBeGreaterThan(0);
-    // Category labels appear (use getAllByText since Select combobox also renders the value)
-    expect(screen.getAllByText('Valid (not fixed)').length).toBeGreaterThan(0);
+    // Category labels appear (use getAllByText since Select combobox also renders the value).
+    // Labels come from the portal-wide VulnerabilityCategories list ("Valid (Not Fixed)").
+    expect(screen.getAllByText('Valid (Not Fixed)').length).toBeGreaterThan(0);
   });
 
   it('reasoning accordion is expanded by default on a succeeded run — transcript visible without interaction', () => {
@@ -289,5 +294,38 @@ describe('AgentRunDetail', () => {
     mockRun = { ...succeededRun, protocolName: '' };
     renderComponent();
     expect(screen.getByText(/No protocol — approved vulnerabilities won't be linked/i)).toBeInTheDocument();
+  });
+
+  // ── Attach to an existing report ─────────────────────────────────────────
+
+  it('offers an "attach to existing report" picker on the review screen', () => {
+    mockRun = succeededRun;
+    renderComponent();
+    expect(screen.getByLabelText('Attach to existing report (optional)')).toBeInTheDocument();
+  });
+
+  it('selecting an existing report sends reportId in the approve payload and hides the create-new fields', async () => {
+    mockRun = succeededRun;
+    renderComponent();
+
+    const reportInput = screen.getByLabelText('Attach to existing report (optional)');
+    fireEvent.mouseDown(reportInput);
+    fireEvent.click(await screen.findByText('Existing Rozo Report'));
+
+    // The create-new "Report title" field is replaced by the attach banner
+    await waitFor(() => expect(screen.getByText(/Findings will be attached to/i)).toBeInTheDocument());
+    expect(screen.queryByLabelText('Report title')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve selected/i }));
+    await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+    const payload = mockApprove.mock.calls[0][0];
+    expect(payload.reportId).toBe(42);
+  });
+
+  it('pre-links the report chosen at enqueue time (run.reportId)', () => {
+    mockRun = { ...succeededRun, reportId: 42 };
+    renderComponent();
+    expect(screen.getByText(/Findings will be attached to/i)).toBeInTheDocument();
+    expect(screen.getByText('Existing Rozo Report')).toBeInTheDocument();
   });
 });

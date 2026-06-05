@@ -134,11 +134,19 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             // Build the report to create (unless approving against an existing report). Protocol/Auditor
             // resolution and the PDF fetch happen here (idempotent / external); the actual DB writes are
             // committed atomically below so a partial failure can't leave duplicate rows on re-approve.
+            // A report explicitly chosen on the review screen (payload.ReportId) wins over the run's own
+            // ReportId, so a moderator can attach the findings to an already-uploaded report (no new
+            // report, no duplicate) instead of creating one — its protocol/company/article stay as-is.
             ReportModel? newReport = null;
-            int? existingReportId = null;
-            if (run.ReportId.HasValue)
+            int? existingReportId = payload.ReportId ?? run.ReportId;
+            if (existingReportId.HasValue)
             {
-                existingReportId = run.ReportId.Value;
+                // Guard against a stale/invalid report id before the atomic commit (Get throws when missing).
+                try { _ = await _reportProcessor.Get(existingReportId.Value); }
+                catch (ExceptionHandlingMiddleware.SorobanSecurityPortalUiException)
+                {
+                    return new Result<bool, string>.Err($"Report {existingReportId.Value} not found.");
+                }
             }
             else
             {
@@ -156,6 +164,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     Status = ReportModelStatus.New,
                     MdFile = payload.ArticleMarkdown,
                     BinFile = pdf,
+                    // Render the same first-page thumbnail normal reports get, so agent reports don't
+                    // show a broken header image in admin/reports and the public preview.
+                    Image = ReportImageRenderer.TryRenderFirstPageAsPng(pdf),
                     ProtocolId = protocolId,
                     AuditorId = auditorId,
                     IsAgentGenerated = true,

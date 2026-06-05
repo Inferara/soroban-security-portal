@@ -54,6 +54,10 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
 
     public class ApproveAgentRunViewModel
     {
+        // When set, the selected findings are attached to this existing report instead of creating a
+        // new one (its protocol/auditor/company and article are kept as-is). Falls back to the run's
+        // own ReportId. When neither is set, a new report is created from the metadata fields below.
+        public int? ReportId { get; set; }
         public string ReportTitle { get; set; } = "";
         public string ProtocolName { get; set; } = "";
         public string AuditorName { get; set; } = "";
