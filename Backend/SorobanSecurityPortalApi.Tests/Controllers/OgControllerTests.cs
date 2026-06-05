@@ -16,6 +16,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
         private readonly Mock<IVulnerabilityService> _vuln = new();
         private readonly Mock<IReportService> _report = new();
         private readonly Mock<IPageViewService> _pageViews = new();
+        private readonly Mock<IReportSummaryCardService> _cards = new();
         // Config's constructor validates every key, so supply a complete settings blob.
         private readonly Config _config = new(@"{
             ""ProductVersion"": ""1.0"",
@@ -35,7 +36,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
 
         private OgController Sut()
         {
-            var ctrl = new OgController(_vuln.Object, _report.Object, _config, _pageViews.Object);
+            var ctrl = new OgController(_vuln.Object, _report.Object, _config, _pageViews.Object, _cards.Object);
             ctrl.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
             { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() };
             return ctrl;
@@ -84,13 +85,14 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
         }
 
         [Fact]
-        public async Task Report_Approved_WithImage_UsesImageEndpoint()
+        public async Task Report_Approved_UsesSummaryCardImage()
         {
             _report.Setup(s => s.Get(3)).ReturnsAsync(new ReportViewModel
             { Id = 3, Name = "Acme Audit", Status = "approved", Image = new byte[] { 1, 2, 3 } });
             var body = Body(await Sut().Report(3));
             body.Should().Contain("<meta property=\"og:title\" content=\"Acme Audit\">");
-            body.Should().Contain("og:image\" content=\"https://sorobanshield.ru/api/v1/reports/3/image.png\"");
+            body.Should().Contain("og:image\" content=\"https://sorobanshield.ru/api/v1/og/report/3/summary.png\"");
+            body.Should().NotContain("/reports/3/image.png");
         }
 
         [Fact]
@@ -112,6 +114,36 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             var body = Body(await Sut().Vulnerability(7));
 
             body.Should().Contain("og:title");
+        }
+
+        [Fact]
+        public async Task SummaryImage_Missing_Returns404()
+        {
+            _cards.Setup(c => c.GetETagAsync(99)).ReturnsAsync((string?)null);
+            var result = await Sut().ReportSummaryImage(99);
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task SummaryImage_MatchingIfNoneMatch_Returns304()
+        {
+            _cards.Setup(c => c.GetETagAsync(3)).ReturnsAsync("\"rsc3-abc\"");
+            var ctrl = Sut();
+            ctrl.ControllerContext.HttpContext.Request.Headers.IfNoneMatch = "\"rsc3-abc\"";
+            var result = await ctrl.ReportSummaryImage(3);
+            (result as StatusCodeResult)!.StatusCode.Should().Be(304);
+        }
+
+        [Fact]
+        public async Task SummaryImage_ReturnsPngFile()
+        {
+            _cards.Setup(c => c.GetETagAsync(3)).ReturnsAsync("\"rsc3-abc\"");
+            _cards.Setup(c => c.GetCardAsync(3)).ReturnsAsync(
+                new ReportSummaryCardContent(new byte[] { 1, 2, 3 }, "\"rsc3-abc\"", System.DateTimeOffset.UtcNow));
+            var result = await Sut().ReportSummaryImage(3);
+            var file = result as FileContentResult;
+            file.Should().NotBeNull();
+            file!.ContentType.Should().Be("image/png");
         }
     }
 }
