@@ -763,7 +763,7 @@ export const ReportDetails: FC = () => {
                       <Button
                         variant="contained"
                         color="primary"
-                        onClick={() => showMessage('Log in to view the full report')}
+                        onClick={() => navigate('/login')}
                       >
                         Log In
                       </Button>

@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import { MemoryRouter } from 'react-router-dom';
+import currentPageReducer from '../../../pages/admin/admin-main-window/current-page-slice';
+import currentErrorReducer from '../../../pages/admin/admin-main-window/current-error-slice';
 import { ModerationDashboard } from '../ModerationDashboard';
 import { FlaggedContent, ModerationStats } from '../../types';
 
@@ -106,13 +110,19 @@ vi.mock('../../hooks/useModerationQueue', () => ({
 
 const theme = createTheme();
 
+const makeStore = () => configureStore({
+    reducer: { currentPage: currentPageReducer, currentError: currentErrorReducer },
+});
+
 const renderComponent = () =>
     render(
-        <MemoryRouter>
-            <ThemeProvider theme={theme}>
-                <ModerationDashboard />
-            </ThemeProvider>
-        </MemoryRouter>
+        <Provider store={makeStore()}>
+            <MemoryRouter>
+                <ThemeProvider theme={theme}>
+                    <ModerationDashboard />
+                </ThemeProvider>
+            </MemoryRouter>
+        </Provider>
     );
 
 describe('ModerationDashboard - filtering', () => {

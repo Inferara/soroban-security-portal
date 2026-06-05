@@ -36,8 +36,9 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Search([FromBody] VulnerabilitySearchViewModel? vulnerabilitySearch)
         {
-            var result = await _vulnerabilityService.Search(vulnerabilitySearch);
-            return Ok(result);
+            var (items, total) = await _vulnerabilityService.SearchWithTotal(vulnerabilitySearch);
+            Response.Headers["X-Total-Count"] = total.ToString();
+            return Ok(items);
         }
 
         [HttpPost("total")]

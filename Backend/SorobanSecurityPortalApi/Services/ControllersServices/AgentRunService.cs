@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Common.Security;
 using SorobanSecurityPortalApi.Data.Processors;
@@ -164,9 +165,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     Status = ReportModelStatus.New,
                     MdFile = payload.ArticleMarkdown,
                     BinFile = pdf,
-                    // Render the same first-page thumbnail normal reports get, so agent reports don't
-                    // show a broken header image in admin/reports and the public preview.
-                    Image = ReportImageRenderer.TryRenderFirstPageAsPng(pdf),
+                    // Render the same cover image normal reports get, so agent reports don't show a
+                    // broken header image in admin/reports and the public preview. Best-effort: a bad
+                    // or missing PDF must never fail approve.
+                    Image = TryRenderCover(pdf),
                     ProtocolId = protocolId,
                     AuditorId = auditorId,
                     IsAgentGenerated = true,
@@ -192,6 +194,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (commit == null)
                 return new Result<bool, string>.Err("Run is no longer in a succeeded state (already approved?).");
             return new Result<bool, string>.Ok(true);
+        }
+
+        // Best-effort report cover render: a null/unreadable PDF must never fail approve.
+        private static byte[]? TryRenderCover(byte[]? pdf)
+        {
+            if (pdf == null || pdf.Length == 0) return null;
+            try { return ReportCoverImage.RenderCoverWebp(pdf); }
+            catch { return null; }
         }
 
         private static DateTime? ToUtc(DateTime? d)

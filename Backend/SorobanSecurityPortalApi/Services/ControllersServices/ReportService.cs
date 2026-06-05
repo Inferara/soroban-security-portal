@@ -3,6 +3,7 @@ using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
 using Pgvector;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Caching;
 using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Models.DbModels;
 
@@ -14,17 +15,20 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IReportProcessor _reportProcessor;
         private readonly UserContextAccessor _userContextAccessor;
         private readonly IGeminiEmbeddingService _embeddingService;
+        private readonly ILookupCache _lookupCache;
 
         public ReportService(
             IMapper mapper,
             IReportProcessor reportProcessor,
             UserContextAccessor userContextAccessor,
-            IGeminiEmbeddingService embeddingService)
+            IGeminiEmbeddingService embeddingService,
+            ILookupCache lookupCache)
         {
             _mapper = mapper;
             _reportProcessor = reportProcessor;
             _userContextAccessor = userContextAccessor;
             _embeddingService = embeddingService;
+            _lookupCache = lookupCache;
         }
 
         public async Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearchViewModel)
@@ -61,8 +65,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         //TODO UI should send Protocol and Auditor as Ids, not names. Then need to update the mapping used at the line 55
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
         {
+            _lookupCache.Remove(LookupCacheKeys.Reports);
+            _lookupCache.Remove(LookupCacheKeys.Sources);
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
-            reportModel.Image = reportModel.BinFile != null ? RenderFirstPageAsPng(reportModel.BinFile, dpi: 150) : null;
+            reportModel.Image = reportModel.BinFile != null ? ReportCoverImage.RenderCoverWebp(reportModel.BinFile) : null;
             reportModel.MdFile = reportModel.BinFile != null ? PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile) : string.Empty;
             var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile ?? string.Empty);
             reportModel.Embedding = new Vector(embeddingArray);
@@ -73,11 +79,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<ReportViewModel> Update(ReportViewModel reportViewModel)
         {
+            _lookupCache.Remove(LookupCacheKeys.Reports);
+            _lookupCache.Remove(LookupCacheKeys.Sources);
             var reportModel = _mapper.Map<ReportModel>(reportViewModel);
             var loginId = await _userContextAccessor.GetLoginIdAsync();
             if (reportModel.BinFile != null && reportModel.BinFile.Length > 0)
             {
-                reportModel.Image = RenderFirstPageAsPng(reportModel.BinFile, dpi: 150);
+                reportModel.Image = ReportCoverImage.RenderCoverWebp(reportModel.BinFile);
                 reportModel.MdFile = PdfToMarkdownConverter.ConvertToMarkdown(reportModel.BinFile);
                 var embeddingArray = await _embeddingService.GenerateEmbeddingForDocumentAsync(reportModel.MdFile);
                 reportModel.Embedding = new Vector(embeddingArray);
@@ -90,11 +98,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ReportViewModel>(updatedReport);
         }
 
-        private static byte[] RenderFirstPageAsPng(byte[] file, int dpi = 150)
-            => ReportImageRenderer.RenderFirstPageAsPng(file, dpi);
-
         public async Task<Result<bool, string>> Approve(int reportId)
         {
+            _lookupCache.Remove(LookupCacheKeys.Reports);
+            _lookupCache.Remove(LookupCacheKeys.Sources);
             var reportModel = await _reportProcessor.Get(reportId);
             if (reportModel == null)
                 return new Result<bool, string>.Err("Report not found.");
@@ -107,6 +114,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task<Result<bool, string>> Reject(int reportId)
         {
+            _lookupCache.Remove(LookupCacheKeys.Reports);
+            _lookupCache.Remove(LookupCacheKeys.Sources);
             var loginId = await _userContextAccessor.GetLoginIdAsync();
             var reportModel = await _reportProcessor.Get(reportId);
             if (reportModel == null)
@@ -119,19 +128,63 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         public async Task Remove(int reportId)
         {
+            _lookupCache.Remove(LookupCacheKeys.Reports);
+            _lookupCache.Remove(LookupCacheKeys.Sources);
             await _reportProcessor.Remove(reportId);
         }
 
+        // The public (approved) list is a cacheable lookup; the admin "include everything" variant is uncached.
         public async Task<List<ReportViewModel>> GetList(bool includeNotApproved = false)
         {
-            var reports = await _reportProcessor.GetList(includeNotApproved);
-            return _mapper.Map<List<ReportViewModel>>(reports);
+            if (includeNotApproved)
+            {
+                var all = await _reportProcessor.GetList(true);
+                return _mapper.Map<List<ReportViewModel>>(all);
+            }
+            return await _lookupCache.GetOrCreateAsync(LookupCacheKeys.Reports, async () =>
+            {
+                var reports = await _reportProcessor.GetList(false);
+                return _mapper.Map<List<ReportViewModel>>(reports);
+            });
         }
 
         public async Task<ReportStatisticsChangesViewModel> GetStatisticsChanges()
         {
             var stats = await _reportProcessor.GetStatisticsChanges();
             return _mapper.Map<ReportStatisticsChangesViewModel>(stats);
+        }
+
+        // One-time/idempotent maintenance: re-render every report cover that still has its source
+        // PDF into the new compact WebP format. Processes one report at a time to avoid loading all
+        // PDFs into memory. Per-report failures are counted, not fatal, so a single bad PDF cannot
+        // abort the whole run; re-running is safe.
+        public async Task<RecompressImagesResultViewModel> RecompressAllImages()
+        {
+            var result = new RecompressImagesResultViewModel();
+            var ids = await _reportProcessor.GetReportIdsWithBinFile();
+            foreach (var id in ids)
+            {
+                try
+                {
+                    var report = await _reportProcessor.Get(id);
+                    if (report.BinFile == null || report.BinFile.Length == 0)
+                    {
+                        result.Skipped++;
+                        continue;
+                    }
+                    result.BytesBefore += report.Image?.Length ?? 0;
+                    var webp = ReportCoverImage.RenderCoverWebp(report.BinFile);
+                    result.BytesAfter += webp.Length;
+                    await _reportProcessor.UpdateImage(id, webp);
+                    result.Processed++;
+                }
+                catch
+                {
+                    result.Failed++;
+                    result.FailedIds.Add(id);
+                }
+            }
+            return result;
         }
 
         private async Task<bool> CanApproveReport(ReportModel reportModel, int loginId)
@@ -157,5 +210,6 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task Remove(int reportId);
         Task<List<ReportViewModel>> GetList(bool includeNotApproved = false);
         Task<ReportStatisticsChangesViewModel> GetStatisticsChanges();
+        Task<RecompressImagesResultViewModel> RecompressAllImages();
     }
 }

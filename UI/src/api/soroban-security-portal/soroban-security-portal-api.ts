@@ -299,6 +299,15 @@ export const getVulnerabilitiesCall = async (vulnerabilitySearch?: Vulnerability
     const response = await client.request('api/v1/vulnerabilities', 'POST', vulnerabilitySearch);
     return response.data as Vulnerability[];
 };
+export const getVulnerabilitiesWithTotalCall = async (
+    vulnerabilitySearch?: VulnerabilitySearch
+): Promise<{ items: Vulnerability[]; total: number }> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/vulnerabilities', 'POST', vulnerabilitySearch);
+    const header = response.headers?.['x-total-count'];
+    const total = header != null ? parseInt(String(header), 10) : (response.data as Vulnerability[]).length;
+    return { items: response.data as Vulnerability[], total: Number.isNaN(total) ? 0 : total };
+};
 export const getVulnerabilitiesStatistics = async (): Promise<VulnerabilityStatistics> => {
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities/statistics', 'GET');

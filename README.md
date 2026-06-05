@@ -1,11 +1,11 @@
-![logo](./SFC36/readme-gif.gif)
+![logo](./SFC36/readme-new.gif)
 
 [![CI](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml)
-[![Deploy Soroban Security Portal](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml)
+[![Deploy Stellar Security Portal](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml)
 
 ## 🌃 Dock
 
-https://sorobansecurity.com
+https://stellarsecurityportal.com
 
 ## 🚀 Features
 
@@ -27,7 +27,7 @@ https://sorobansecurity.com
 
 This project was funded by the [Stellar Community Fund](https://communityfund.stellar.org/). 
 
-The Soroban Security Portal' purpose is to provide a cohesive knowledge base for both current and new developers on [Stellar](https://stellar.org/). Here we will provide them with tools and information to start building with ease. 
+The Stellar Security Portal' purpose is to provide a cohesive knowledge base for both current and new developers on [Stellar](https://stellar.org/). Here we will provide them with tools and information to start building with ease. 
 
 By providing a unified knowledge base of common vulnerabilities and audit reports, developers can focus on building using Soroban safely.
 
