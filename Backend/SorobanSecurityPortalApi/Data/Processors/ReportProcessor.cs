@@ -204,6 +204,18 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .FirstOrDefaultAsync();
         }
 
+        // Slim query for the OG summary card: name + auditor name + status + last-modified only.
+        // Never de-TOASTs Image/BinFile/MdFile/embedding. Applies the public moderation filter.
+        public async Task<ReportSummaryMeta?> GetSummaryMeta(int reportId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Report
+                .AsNoTracking()
+                .Where(r => r.Id == reportId && !r.IsHidden && !r.IsDeleted)
+                .Select(r => new ReportSummaryMeta(r.Name, r.Auditor != null ? r.Auditor.Name : null, r.Status, r.LastActionAt))
+                .FirstOrDefaultAsync();
+        }
+
         // Backfill helper: ids of reports that still have their source PDF, so their cover can be
         // re-rendered. Selects only the id; the BinFile != null check runs in SQL and never loads bytes.
         public async Task<List<int>> GetReportIdsWithBinFile()
@@ -370,6 +382,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<ReportModel?> GetPublic(int reportId);
         Task<DateTime?> GetImageLastModified(int reportId);
         Task<byte[]?> GetImageBytes(int reportId);
+        Task<ReportSummaryMeta?> GetSummaryMeta(int reportId);
         Task Approve(ReportModel reportModel, int userId);
         Task Reject(ReportModel reportModel, int userId);
         Task Remove(int reportId);
