@@ -43,10 +43,12 @@ SkiaSharp is already present transitively via the `PDFtoImage` package.
 Mirror `UI/src/.../report-details/report-details.tsx` exactly so the card matches the
 on-page card:
 
+- `Total` = total vulnerabilities returned by the public search for the report (all categories)
 - `Fixed` = count of category `Valid` (0)
-- `NotFixed` = count of `ValidNotFixed` (1) + `ValidPartiallyFixed` (2)
-- `FixedRate` = `round(Fixed / (Fixed + NotFixed) * 100)`, `0` when denominator is `0`
-- `Total` = total vulnerabilities returned by the public search for the report
+- `NotFixed` = `Total - Fixed` (every non-`Valid` category, incl. `Invalid` and `NA`) — this is
+  exactly what `report-details.tsx` shows
+- `FixedRate` = `round(Fixed / (Fixed + NotFixed) * 100)` = `round(Fixed / Total * 100)`,
+  `0` when `Total` is `0`
 
 `VulnerabilityCategory`: `Valid=0, ValidNotFixed=1, ValidPartiallyFixed=2, Invalid=3, NA=100`.
 
