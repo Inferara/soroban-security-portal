@@ -1,0 +1,25 @@
+# Default values for the agent ingestion worker sub-chart.
+# All values are overridable via --set at deploy time.
+
+agentIngestionWorker:
+  # Set to false to skip deploying the worker (useful on envs where
+  # the background agent pipeline is not yet activated).
+  enabled: true
+
+  # Poll interval in seconds — how long the worker sleeps when the queue is empty.
+  pollIntervalSeconds: "15"
+
+  # Stall watchdog: kill opencode if it produces no output for this many seconds.
+  # Hard cap: kill a single run after this many minutes. Generous defaults for the
+  # slower cluster node / intermittent egress to the model API.
+  stallSeconds: "600"
+  timeoutMinutes: "25"
+
+  # opencode (bun/node) is resource-hungry; an undersized memory limit OOM-kills it mid-run.
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"

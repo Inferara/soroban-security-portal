@@ -33,6 +33,8 @@ import { getUserInitials } from '../../../../utils/user-utils';
 // import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ReportManagement } from '../reports/list-view/list-reports.tsx';
 import { EditReport } from '../reports/edit-item/edit-report.tsx';
+import { AgentRunManagement } from '../agent-runs/list-view/list-agent-runs.tsx';
+import { AgentRunDetail } from '../agent-runs/detail-view/agent-run-detail.tsx';
 import { Subscriptions } from '../subscriptions/subscriptions.tsx';
 import { EditAuditor } from '../auditor/edit-item/edit-auditor.tsx';
 import { ListAuditors } from '../auditor/list-view/list-auditors.tsx';
@@ -275,6 +277,10 @@ export const AdminMainWindow: FC = () => {
 
           <Route path={`${environment.basePath}/admin/reports`} element={<ReportManagement />} />
           <Route path={`${environment.basePath}/admin/reports/edit`} element={<EditReport />} />
+
+          <Route path={`${environment.basePath}/admin/agent-runs`} element={<AgentRunManagement />} />
+          <Route path={`${environment.basePath}/admin/agent-runs/detail`} element={<AgentRunDetail />} />
+          <Route path={`${environment.basePath}/admin/agent-runs/new`} element={<AgentRunDetail />} />
 
           <Route path={`${environment.basePath}/admin/subscriptions`} element={<Subscriptions />} />
 

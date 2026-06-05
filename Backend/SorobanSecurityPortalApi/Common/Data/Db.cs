@@ -35,6 +35,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public virtual DbSet<MentionModel> Mention { get; set; }
         public virtual DbSet<NotificationModel> Notification { get; set; }
         public DbSet<PageViewModel> PageView { get; set; }
+        public virtual DbSet<AgentRunModel> AgentRun { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
@@ -208,6 +209,17 @@ namespace SorobanSecurityPortalApi.Common.Data
             // Supports the per-day dedupe lookup (same visitor, same entity, same day).
             builder.Entity<PageViewModel>()
                 .HasIndex(p => new { p.EntityType, p.EntityId, p.VisitorHash });
+
+            builder.Entity<AgentRunModel>()
+                .HasIndex(r => r.Status);
+            builder.Entity<AgentRunModel>()
+                .HasIndex(r => r.CreatedAt);
+            // Agent-created reports/vulns must not vanish if a referenced report is deleted.
+            builder.Entity<AgentRunModel>()
+                .HasOne(r => r.Report)
+                .WithMany()
+                .HasForeignKey(r => r.ReportId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function

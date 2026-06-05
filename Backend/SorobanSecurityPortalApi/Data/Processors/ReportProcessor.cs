@@ -287,6 +287,17 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return await query.ToListAsync();
         }
 
+        public async Task<List<ReportModel>> GetListForExamples()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.Report
+                .AsNoTracking()
+                .Where(r => r.Status == ReportModelStatus.Approved && !r.IsHidden && !r.IsDeleted)
+                .OrderByDescending(r => r.Id)
+                .Select(r => new ReportModel { Id = r.Id, Name = r.Name, Status = r.Status, MdFile = r.MdFile })
+                .ToListAsync();
+        }
+
         public async Task<List<ReportModel>> GetListForEmbedding()
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -302,7 +313,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await using var db = await _dbFactory.CreateDbContextAsync();
             var query = db.Report
                 .AsNoTracking()
-                .Where(v => string.IsNullOrEmpty(v.MdFile) || v.MdFile == "Sequence contains no elements")
+                // Never regenerate the MdFile of an agent-ingested report — its MdFile is the agent's
+                // article, not a placeholder. Explicit flag instead of relying on MdFile being non-empty.
+                .Where(v => !v.IsAgentGenerated
+                    && (string.IsNullOrEmpty(v.MdFile) || v.MdFile == "Sequence contains no elements"))
                 .OrderByDescending(v => v.Id);
             return await query.ToListAsync();
         }
@@ -360,6 +374,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task Reject(ReportModel reportModel, int userId);
         Task Remove(int reportId);
         Task<List<ReportModel>> GetList(bool includeNotApproved = false);
+        Task<List<ReportModel>> GetListForExamples();
         Task<List<ReportModel>> GetListForEmbedding();
         Task<List<ReportModel>> GetListForFix();
         Task UpdateEmbedding(int reportId, Vector embedding);

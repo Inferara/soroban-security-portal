@@ -1,0 +1,102 @@
+{{- if .Values.agentIngestionWorker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-agent-ingestion-worker"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+spec:
+  # Single replica — matches the no-row-lock claim design (claim-next is atomic;
+  # only one worker processes the queue at a time).
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-agent-ingestion-worker"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-agent-ingestion-worker"
+        env: "{{ .Values.global.environment.namespace }}"
+        build: "{{ .Values.global.app.build }}"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-agent-ingestion-worker"
+          image: "{{ .Values.global.containerRegistry.name }}/agent-ingestion-worker:{{ .Values.global.sorobansecurityportal.service.tag }}"
+          imagePullPolicy: "{{ .Values.global.containerRegistry.imagePullPolicy }}"
+          env:
+            # In-cluster URL of the API service — worker talks only over ClusterIP,
+            # never through the public IngressRoute.
+            - name: API_BASE_URL
+              value: "http://{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip:8080/"
+
+            # OpenCode model identifier.
+            - name: OPENCODE_MODEL
+              value: "zai-coding-plan/glm-5.1"
+
+            # Binary name for the opencode CLI (installed at /usr/local/bin/opencode).
+            - name: OPENCODE_BIN
+              value: "opencode"
+
+            # How long the worker sleeps between queue polls (seconds).
+            - name: POLL_INTERVAL_SECONDS
+              value: "{{ .Values.agentIngestionWorker.pollIntervalSeconds }}"
+
+            # Kill opencode if it emits no output for this many seconds (stall watchdog),
+            # and hard-cap a single run at this many minutes. Generous because the cluster
+            # node is slower and its egress to the model API can be intermittent.
+            - name: OPENCODE_STALL_SEC
+              value: "{{ .Values.agentIngestionWorker.stallSeconds }}"
+            - name: OPENCODE_TIMEOUT_MIN
+              value: "{{ .Values.agentIngestionWorker.timeoutMinutes }}"
+
+            # Point HOME to a writable directory so opencode resolves
+            # $HOME/.local/share/opencode/auth.json from the mounted Secret.
+            - name: HOME
+              value: /home/worker
+
+          volumeMounts:
+            # Mount the auth.json Secret at the path opencode expects.
+            # subPath ensures only auth.json is placed at that location
+            # (the parent directories are created by the init container below).
+            - name: opencode-auth
+              mountPath: /home/worker/.local/share/opencode/auth.json
+              subPath: auth.json
+              readOnly: true
+
+          # opencode is a heavy bun/node binary that loads the full report text + example
+          # seed files and processes a streaming model response — it needs real CPU and memory.
+          # Too low a memory limit gets the opencode child OOM-killed (the container keeps
+          # running, but the run stalls). Generous, tunable.
+          resources:
+            requests:
+              cpu: "{{ .Values.agentIngestionWorker.resources.requests.cpu }}"
+              memory: "{{ .Values.agentIngestionWorker.resources.requests.memory }}"
+            limits:
+              cpu: "{{ .Values.agentIngestionWorker.resources.limits.cpu }}"
+              memory: "{{ .Values.agentIngestionWorker.resources.limits.memory }}"
+
+      # opencode writes temp files under $HOME; ensure the directory exists
+      # before the main container starts (subPath mounts don't create parents).
+      initContainers:
+        - name: init-home-dirs
+          image: busybox:1.36
+          command: ["sh", "-c", "mkdir -p /home/worker/.local/share/opencode"]
+          volumeMounts:
+            - name: worker-home
+              mountPath: /home/worker
+
+      volumes:
+        # Shared emptyDir for $HOME (ephemeral; survives pod restart via init).
+        - name: worker-home
+          emptyDir: {}
+        # Secret containing the opencode provider credential.
+        - name: opencode-auth
+          secret:
+            secretName: "{{ .Values.global.environment.name }}-agent-ingestion-worker-secret"
+            items:
+              - key: auth.json
+                path: auth.json
+{{- end }}

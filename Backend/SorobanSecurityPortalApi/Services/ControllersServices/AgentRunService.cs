@@ -1,0 +1,405 @@
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using AutoMapper;
+using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.DataParsers;
+using SorobanSecurityPortalApi.Common.Extensions;
+using SorobanSecurityPortalApi.Common.Security;
+using SorobanSecurityPortalApi.Data.Processors;
+using SorobanSecurityPortalApi.Models.DbModels;
+using SorobanSecurityPortalApi.Models.ViewModels;
+
+namespace SorobanSecurityPortalApi.Services.ControllersServices
+{
+    public class AgentRunService : IAgentRunService
+    {
+        // Default model recorded on a run when the caller doesn't specify one (matches the worker's OPENCODE_MODEL).
+        private const string DefaultModel = "zai-coding-plan/glm-5.1";
+
+        private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web)
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        private const long MaxPdfSizeBytes = 50L * 1024 * 1024;
+        private const int PdfFetchMaxAttempts = 3;
+        private const int PdfFetchRetryDelayMs = 1500;
+
+        private readonly IMapper _mapper;
+        private readonly IAgentRunProcessor _runProcessor;
+        private readonly IReportProcessor _reportProcessor;
+        private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
+        private readonly IProtocolProcessor _protocolProcessor;
+        private readonly IAuditorProcessor _auditorProcessor;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IUserContextAccessor _userContextAccessor;
+        private readonly IExtendedConfig _extendedConfig;
+
+        public AgentRunService(
+            IMapper mapper,
+            IAgentRunProcessor runProcessor,
+            IReportProcessor reportProcessor,
+            IVulnerabilityProcessor vulnerabilityProcessor,
+            IProtocolProcessor protocolProcessor,
+            IAuditorProcessor auditorProcessor,
+            IHttpClientFactory httpClientFactory,
+            IUserContextAccessor userContextAccessor,
+            IExtendedConfig extendedConfig)
+        {
+            _mapper = mapper;
+            _runProcessor = runProcessor;
+            _reportProcessor = reportProcessor;
+            _vulnerabilityProcessor = vulnerabilityProcessor;
+            _protocolProcessor = protocolProcessor;
+            _auditorProcessor = auditorProcessor;
+            _extendedConfig = extendedConfig;
+            _httpClientFactory = httpClientFactory;
+            _userContextAccessor = userContextAccessor;
+        }
+
+        public async Task<Result<AgentRunViewModel, string>> Enqueue(EnqueueAgentRunViewModel request)
+        {
+            if (string.IsNullOrWhiteSpace(request.SourceUrl) && request.ReportId == null)
+                return new Result<AgentRunViewModel, string>.Err("Provide either a source URL or a report id.");
+
+            // Hard dedup: refuse to re-ingest a source URL that's already queued/processing or already
+            // approved into a report, unless the caller explicitly forces it. Prevents duplicate reports
+            // and wasted agent (token) spend on the same audit.
+            if (!request.Force && !string.IsNullOrWhiteSpace(request.SourceUrl))
+            {
+                var dup = await _runProcessor.FindActiveOrApprovedBySourceUrl(request.SourceUrl!.Trim());
+                if (dup != null)
+                {
+                    var detail = dup.Status == AgentRunStatus.Approved && dup.CreatedReportId.HasValue
+                        ? $"already approved as report #{dup.CreatedReportId.Value} (run #{dup.Id})"
+                        : $"already {dup.Status} (run #{dup.Id})";
+                    return new Result<AgentRunViewModel, string>.Err(
+                        $"This source URL was {detail}. Enable 'force' to ingest it again.");
+                }
+            }
+
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            var run = await _runProcessor.Add(new AgentRunModel
+            {
+                SourceUrl = request.SourceUrl ?? "",
+                ReportId = request.ReportId,
+                Model = string.IsNullOrWhiteSpace(request.Model) ? DefaultModel : request.Model,
+                CreatedBy = loginId,
+            });
+            return new Result<AgentRunViewModel, string>.Ok(ToViewModel(run));
+        }
+
+        public async Task<AgentRunListResultViewModel> List(int page, int pageSize)
+        {
+            var items = await _runProcessor.GetList(page, pageSize);
+            return new AgentRunListResultViewModel
+            {
+                Items = items.Select(_mapper.Map<AgentRunListItemViewModel>).ToList(),
+                Total = await _runProcessor.GetListTotal(),
+            };
+        }
+
+        public async Task<AgentRunViewModel?> Get(int id)
+        {
+            var run = await _runProcessor.Get(id);
+            return run == null ? null : ToViewModel(run);
+        }
+
+        public async Task<Result<AgentRunViewModel, string>> Rerun(int id)
+        {
+            var existing = await _runProcessor.Get(id);
+            if (existing == null)
+                return new Result<AgentRunViewModel, string>.Err($"Agent run {id} not found.");
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+            var run = await _runProcessor.Add(new AgentRunModel
+            {
+                SourceUrl = existing.SourceUrl,
+                ReportId = existing.ReportId,
+                Model = existing.Model,
+                CreatedBy = loginId,
+            });
+            return new Result<AgentRunViewModel, string>.Ok(ToViewModel(run));
+        }
+
+        public async Task<Result<bool, string>> Approve(int id, ApproveAgentRunViewModel payload)
+        {
+            var run = await _runProcessor.Get(id);
+            if (run == null)
+                return new Result<bool, string>.Err($"Agent run {id} not found.");
+            if (run.Status != AgentRunStatus.Succeeded)
+                return new Result<bool, string>.Err("Only a succeeded run can be approved.");
+
+            var loginId = await _userContextAccessor.GetLoginIdAsync();
+
+            // Build the report to create (unless approving against an existing report). Protocol/Auditor
+            // resolution and the PDF fetch happen here (idempotent / external); the actual DB writes are
+            // committed atomically below so a partial failure can't leave duplicate rows on re-approve.
+            // A report explicitly chosen on the review screen (payload.ReportId) wins over the run's own
+            // ReportId, so a moderator can attach the findings to an already-uploaded report (no new
+            // report, no duplicate) instead of creating one — its protocol/company/article stay as-is.
+            ReportModel? newReport = null;
+            int? existingReportId = payload.ReportId ?? run.ReportId;
+            if (existingReportId.HasValue)
+            {
+                // Guard against a stale/invalid report id before the atomic commit (Get throws when missing).
+                try { _ = await _reportProcessor.Get(existingReportId.Value); }
+                catch (ExceptionHandlingMiddleware.SorobanSecurityPortalUiException)
+                {
+                    return new Result<bool, string>.Err($"Report {existingReportId.Value} not found.");
+                }
+            }
+            else
+            {
+                var auditorId = await ResolveAuditorId(payload.AuditorName, loginId);
+                var protocolId = await ResolveProtocolId(payload.ProtocolName, loginId);
+                var name = !string.IsNullOrWhiteSpace(payload.ReportTitle) ? payload.ReportTitle
+                    : (!string.IsNullOrWhiteSpace(run.SourceUrl) ? run.SourceUrl : $"Agent run {run.Id}");
+                var pdf = await TryFetchReportPdf(payload.ReportPdfUrl);
+                newReport = new ReportModel
+                {
+                    Name = name,
+                    // report.Date is a timestamptz column → Npgsql only accepts UTC-kind. The approve
+                    // payload's date comes from a date-only input (Kind=Unspecified) → coerce to UTC.
+                    Date = ToUtc(payload.ReportDate) ?? DateTime.UtcNow,
+                    Status = ReportModelStatus.New,
+                    MdFile = payload.ArticleMarkdown,
+                    BinFile = pdf,
+                    // Render the same cover image normal reports get, so agent reports don't show a
+                    // broken header image in admin/reports and the public preview. Best-effort: a bad
+                    // or missing PDF must never fail approve.
+                    Image = TryRenderCover(pdf),
+                    ProtocolId = protocolId,
+                    AuditorId = auditorId,
+                    IsAgentGenerated = true,
+                    CreatedBy = loginId,
+                };
+            }
+
+            var vulns = payload.Findings.Select(f => new VulnerabilityModel
+            {
+                Title = f.Title,
+                Description = f.Description,
+                // Defensive normalization: coerce severity to the canonical vocabulary and the category
+                // to a defined enum value, even though the agent is instructed to emit valid ones.
+                Severity = VulnerabilityNormalizer.Severity(f.Severity),
+                Tags = f.Tags,
+                Category = VulnerabilityNormalizer.Category(f.Category),
+                Date = DateTime.UtcNow,
+                Status = VulnerabilityModelStatus.New,
+                CreatedBy = loginId,
+            }).ToList();
+
+            var commit = await _runProcessor.CommitApproval(id, newReport, existingReportId, vulns);
+            if (commit == null)
+                return new Result<bool, string>.Err("Run is no longer in a succeeded state (already approved?).");
+            return new Result<bool, string>.Ok(true);
+        }
+
+        // Best-effort report cover render: a null/unreadable PDF must never fail approve.
+        private static byte[]? TryRenderCover(byte[]? pdf)
+        {
+            if (pdf == null || pdf.Length == 0) return null;
+            try { return ReportCoverImage.RenderCoverWebp(pdf); }
+            catch { return null; }
+        }
+
+        private static DateTime? ToUtc(DateTime? d)
+            => d.HasValue
+                ? (d.Value.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(d.Value, DateTimeKind.Utc) : d.Value.ToUniversalTime())
+                : null;
+
+        private async Task<byte[]?> TryFetchReportPdf(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return null;
+            if (!UrlValidator.IsUrlSafeForFetch(url, out _)) return null;
+            // The cluster node's egress flaps intermittently (TLS/connection resets), so a single GET
+            // often fails on an otherwise-reachable URL. Retry on transient *network* faults only — a
+            // successful response that isn't a PDF (or a non-2xx status) is definitive and returns at once.
+            for (var attempt = 1; attempt <= PdfFetchMaxAttempts; attempt++)
+            {
+                try
+                {
+                    var http = _httpClientFactory.CreateClient(HttpClients.ReportFetchClient);
+                    using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                    if (!resp.IsSuccessStatusCode) return null;
+                    if (resp.Content.Headers.ContentLength is > MaxPdfSizeBytes) return null;
+                    await using var stream = await resp.Content.ReadAsStreamAsync();
+                    using var ms = new MemoryStream();
+                    var buffer = new byte[8192];
+                    long total = 0; int read;
+                    while ((read = await stream.ReadAsync(buffer)) > 0)
+                    {
+                        total += read;
+                        if (total > MaxPdfSizeBytes) return null;
+                        await ms.WriteAsync(buffer.AsMemory(0, read));
+                    }
+                    var bytes = ms.ToArray();
+                    return bytes.IsPdf() ? bytes : null;
+                }
+                catch when (attempt < PdfFetchMaxAttempts)
+                {
+                    await Task.Delay(PdfFetchRetryDelayMs); // transient network fault — retry
+                }
+                catch { return null; } // final attempt failed — never fail approve on a bad PDF url
+            }
+            return null;
+        }
+
+        private async Task<int?> ResolveAuditorId(string? name, int loginId)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var trimmed = name.Trim();
+            var all = await _auditorProcessor.List() ?? new List<AuditorModel>();
+            var existing = all.FirstOrDefault(a => string.Equals(a.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
+            if (existing != null) return existing.Id;
+            var created = await _auditorProcessor.Add(new AuditorModel { Name = trimmed, Date = DateTime.UtcNow, CreatedBy = loginId });
+            return created.Id;
+        }
+
+        private async Task<int?> ResolveProtocolId(string? name, int loginId)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var trimmed = name.Trim();
+            var all = await _protocolProcessor.List() ?? new List<ProtocolModel>();
+            var existing = all.FirstOrDefault(p => string.Equals(p.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
+            if (existing != null) return existing.Id;
+            var created = await _protocolProcessor.Add(new ProtocolModel { Name = trimmed, Date = DateTime.UtcNow, CreatedBy = loginId });
+            return created.Id;
+        }
+
+        public async Task<Result<bool, string>> Reject(int id)
+        {
+            var run = await _runProcessor.Get(id);
+            if (run == null)
+                return new Result<bool, string>.Err($"Agent run {id} not found.");
+            if (run.Status != AgentRunStatus.Succeeded && run.Status != AgentRunStatus.Failed)
+                return new Result<bool, string>.Err("Only a succeeded or failed run can be rejected.");
+            await _runProcessor.SetStatus(id, AgentRunStatus.Rejected);
+            return new Result<bool, string>.Ok(true);
+        }
+
+        public async Task<AgentExamplesViewModel> GetExamples()
+        {
+            var reports = await _reportProcessor.GetListForExamples();
+            var vulns = await _vulnerabilityProcessor.GetList();
+            var withArticles = reports
+                .Where(r => r.Status == ReportModelStatus.Approved && !string.IsNullOrWhiteSpace(r.MdFile))
+                .OrderByDescending(r => r.Id).ToList();
+            // A few recent articles are enough to teach house style; more just burns tokens and dilutes
+            // the style signal. The dedup title lists (below) carry the full breadth cheaply.
+            var exampleArticles = withArticles.Take(3)
+                .Select(r => new AgentExampleArticle { Title = r.Name, Markdown = r.MdFile }).ToList();
+            var approvedVulns = vulns.Where(v => v.Status == VulnerabilityModelStatus.Approved).ToList();
+            return new AgentExamplesViewModel
+            {
+                Articles = exampleArticles,
+                Vulnerabilities = approvedVulns.OrderByDescending(v => v.Id).Take(12)
+                    .Select(v => new AgentExampleVulnerability {
+                        Title = v.Title, Severity = v.Severity, Category = (int)v.Category,
+                        Tags = v.Tags ?? new List<string>(), Description = v.Description }).ToList(),
+                ExistingFindingTitles = approvedVulns.Select(v => v.Title).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().ToList(),
+                ExistingReportTitles = reports
+                    .Where(r => r.Status == ReportModelStatus.Approved && !string.IsNullOrWhiteSpace(r.Name))
+                    .Select(r => r.Name).Distinct().ToList(),
+            };
+        }
+
+        // The tunable prompt blocks (Admin Settings → Agent Ingestion), served to the worker. Falls back
+        // to the built-in defaults when a setting is left blank.
+        public AgentPromptConfigViewModel GetPromptConfig() => new()
+        {
+            Preamble = Coalesce(_extendedConfig.AgentIngestionPreamble, AgentIngestionPromptDefaults.Preamble),
+            Instructions = Coalesce(_extendedConfig.AgentIngestionInstructions, AgentIngestionPromptDefaults.Instructions),
+            ExamplesGuidance = Coalesce(_extendedConfig.AgentIngestionExamplesGuidance, AgentIngestionPromptDefaults.ExamplesGuidance),
+        };
+
+        private static string Coalesce(string? value, string fallback)
+            => string.IsNullOrWhiteSpace(value) ? fallback : value;
+
+        public async Task<Result<bool, string>> UpdateProgress(int id, string? transcript)
+        {
+            var run = await _runProcessor.Get(id);
+            if (run == null) return new Result<bool, string>.Err($"Agent run {id} not found.");
+            await _runProcessor.UpdateTranscript(id, transcript ?? "");
+            return new Result<bool, string>.Ok(true);
+        }
+
+        public async Task<AgentRunViewModel?> ClaimNext()
+        {
+            var run = await _runProcessor.ClaimNextQueued();
+            return run == null ? null : ToViewModel(run);
+        }
+
+        public async Task<Result<bool, string>> SubmitResult(int id, SubmitAgentRunResultViewModel result)
+        {
+            var run = await _runProcessor.Get(id);
+            if (run == null)
+                return new Result<bool, string>.Err($"Agent run {id} not found.");
+            await _runProcessor.SubmitResult(id, new AgentRunResult
+            {
+                Success = result.Success,
+                ArticleMarkdown = result.ArticleMarkdown,
+                FindingsJson = result.FindingsJson,
+                Transcript = result.Transcript,
+                TokensUsed = result.TokensUsed,
+                DurationMs = result.DurationMs,
+                Error = result.Error,
+                ReportTitle = result.ReportTitle,
+                ProtocolName = result.ProtocolName,
+                AuditorName = result.AuditorName,
+                ReportDate = result.ReportDate,
+                ReportPdfUrl = result.ReportPdfUrl,
+            });
+            return new Result<bool, string>.Ok(true);
+        }
+
+        private AgentRunViewModel ToViewModel(AgentRunModel run)
+        {
+            var vm = _mapper.Map<AgentRunViewModel>(run);
+            var (findings, parsedOk) = ParseFindingsWithStatus(run.FindingsJson);
+            vm.Findings = findings;
+            vm.FindingsUnparseable = !string.IsNullOrWhiteSpace(run.FindingsJson) && !parsedOk;
+            return vm;
+        }
+
+        internal static List<AgentFinding> ParseFindings(string? findingsJson)
+            => ParseFindingsWithStatus(findingsJson).findings;
+
+        internal static (List<AgentFinding> findings, bool parsedOk) ParseFindingsWithStatus(string? findingsJson)
+        {
+            if (string.IsNullOrWhiteSpace(findingsJson)) return (new List<AgentFinding>(), true);
+            try
+            {
+                var findings = JsonSerializer.Deserialize<List<AgentFinding>>(findingsJson, JsonOpts)
+                    ?? new List<AgentFinding>();
+                // Coerce to canonical severity/category so the review UI's Selects always match a value.
+                foreach (var f in findings)
+                {
+                    f.Severity = VulnerabilityNormalizer.Severity(f.Severity);
+                    f.Category = VulnerabilityNormalizer.Category(f.Category);
+                }
+                return (findings, true);
+            }
+            catch (JsonException)
+            {
+                return (new List<AgentFinding>(), false);
+            }
+        }
+    }
+
+    public interface IAgentRunService
+    {
+        Task<Result<AgentRunViewModel, string>> Enqueue(EnqueueAgentRunViewModel request);
+        Task<AgentRunListResultViewModel> List(int page, int pageSize);
+        Task<AgentRunViewModel?> Get(int id);
+        Task<Result<AgentRunViewModel, string>> Rerun(int id);
+        Task<Result<bool, string>> Approve(int id, ApproveAgentRunViewModel payload);
+        Task<Result<bool, string>> Reject(int id);
+        Task<AgentRunViewModel?> ClaimNext();
+        Task<Result<bool, string>> SubmitResult(int id, SubmitAgentRunResultViewModel result);
+        Task<AgentExamplesViewModel> GetExamples();
+        AgentPromptConfigViewModel GetPromptConfig();
+        Task<Result<bool, string>> UpdateProgress(int id, string? transcript);
+    }
+}

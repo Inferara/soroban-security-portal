@@ -1,0 +1,42 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useAppDispatch } from '../../../../../../app/hooks';
+import { setCurrentPage, CurrentPageState } from '../../../admin-main-window/current-page-slice';
+import {
+  getAgentRunsCall,
+  rejectAgentRunCall,
+  rerunAgentRunCall,
+} from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import { AgentRunListItem } from '../../../../../../api/soroban-security-portal/models/agent-run';
+
+interface UseListAgentRunsProps {
+  currentPageState: CurrentPageState;
+}
+
+export const useListAgentRuns = (props: UseListAgentRunsProps) => {
+  const { currentPageState } = props;
+  const dispatch = useAppDispatch();
+  const [agentRuns, setAgentRuns] = useState<AgentRunListItem[]>([]);
+
+  const refresh = useCallback(async (): Promise<void> => {
+    // v1: fetches the first 100 runs; add server-side pagination (using result.total) when the dataset grows.
+    const result = await getAgentRunsCall();
+    setAgentRuns(result.items);
+  }, []);
+
+  const reject = useCallback(async (id: number): Promise<void> => {
+    await rejectAgentRunCall(id);
+    await refresh();
+  }, [refresh]);
+
+  const rerun = useCallback(async (id: number): Promise<void> => {
+    await rerunAgentRunCall(id);
+    await refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    dispatch(setCurrentPage(currentPageState));
+    void refresh();
+  }, [dispatch, currentPageState, refresh]);
+
+  return { agentRuns, reject, rerun, refresh };
+};

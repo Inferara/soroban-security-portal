@@ -13,8 +13,14 @@ spec:
       sans:
       - {{ .Values.global.app.domain }}
   routes:
+  # SECURITY: /api/v1/agent-runs/internal/* endpoints are UNAUTHENTICATED and
+  # are ONLY intended for in-cluster access by the agent-ingestion-worker pod.
+  # They MUST NOT be publicly reachable. The negated PathPrefix below is a hard
+  # release gate — do not remove or relax it without a security review.
+  # The in-cluster worker reaches them via the ClusterIP Service directly,
+  # bypassing this IngressRoute entirely.
   - kind: Rule
-    match: Host(`{{ .Values.global.app.domain }}`) && PathPrefix(`/api`)
+    match: Host(`{{ .Values.global.app.domain }}`) && PathPrefix(`/api`) && !PathPrefix(`/api/v1/agent-runs/internal`)
     services:
     - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip"
       port: 8080

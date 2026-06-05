@@ -9,6 +9,7 @@ import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import TaskIcon from '@mui/icons-material/Task';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -72,6 +73,12 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
       label: 'Reports',
       icon: <ReportIcon />,
       path: 'admin/reports',
+      visible: isAdminOrModerator(auth),
+    },
+    {
+      label: 'Agent Runs',
+      icon: <SmartToyIcon />,
+      path: 'admin/agent-runs',
       visible: isAdminOrModerator(auth),
     },
     {

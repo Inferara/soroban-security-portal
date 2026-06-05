@@ -26,6 +26,130 @@ namespace SorobanSecurityPortalApi.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.AgentRunModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ArticleMarkdown")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("article_markdown");
+
+                    b.Property<string>("AuditorName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("auditor_name");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by");
+
+                    b.Property<int?>("CreatedReportId")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_report_id");
+
+                    b.PrimitiveCollection<string>("CreatedVulnerabilityIds")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("created_vulnerability_ids");
+
+                    b.Property<long?>("DurationMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("Error")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("error");
+
+                    b.Property<string>("FindingsJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("findings_json");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("model");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("prompt_version");
+
+                    b.Property<string>("ProtocolName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("protocol_name");
+
+                    b.Property<DateTime?>("ReportDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("report_date");
+
+                    b.Property<int?>("ReportId")
+                        .HasColumnType("integer")
+                        .HasColumnName("report_id");
+
+                    b.Property<string>("ReportPdfUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("report_pdf_url");
+
+                    b.Property<string>("ReportTitle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("report_title");
+
+                    b.Property<string>("SourceUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source_url");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<int?>("TokensUsed")
+                        .HasColumnType("integer")
+                        .HasColumnName("tokens_used");
+
+                    b.Property<string>("Transcript")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("transcript");
+
+                    b.HasKey("Id")
+                        .HasName("pk_agent_run");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_agent_run_created_at");
+
+                    b.HasIndex("ReportId")
+                        .HasDatabaseName("ix_agent_run_report_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_agent_run_status");
+
+                    b.ToTable("agent_run");
+                });
+
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.AuditorModel", b =>
                 {
                     b.Property<int>("Id")
@@ -733,7 +857,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2026, 5, 27, 13, 5, 21, 692, DateTimeKind.Utc).AddTicks(2114),
+                            Created = new DateTime(2026, 5, 31, 11, 9, 6, 495, DateTimeKind.Utc).AddTicks(2065),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -1132,6 +1256,10 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("bytea")
                         .HasColumnName("image");
 
+                    b.Property<bool>("IsAgentGenerated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_agent_generated");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
@@ -1414,6 +1542,17 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasDatabaseName("ix_vulnerability_report_id");
 
                     b.ToTable("vulnerability");
+                });
+
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.AgentRunModel", b =>
+                {
+                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.ReportModel", "Report")
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_agent_run_report_report_id");
+
+                    b.Navigation("Report");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ForumPostModel", b =>
