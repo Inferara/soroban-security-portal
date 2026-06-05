@@ -23,13 +23,20 @@ namespace SorobanSecurityPortalApi.Controllers
         private readonly IReportService _reportService;
         private readonly Config _config;
         private readonly IPageViewService _pageViewService;
+        private readonly IReportSummaryCardService _summaryCardService;
 
-        public OgController(IVulnerabilityService vulnerabilityService, IReportService reportService, Config config, IPageViewService pageViewService)
+        public OgController(
+            IVulnerabilityService vulnerabilityService,
+            IReportService reportService,
+            Config config,
+            IPageViewService pageViewService,
+            IReportSummaryCardService summaryCardService)
         {
             _vulnerabilityService = vulnerabilityService;
             _reportService = reportService;
             _config = config;
             _pageViewService = pageViewService;
+            _summaryCardService = summaryCardService;
         }
 
         // Config.AppUrl is "https://<domain>/api/v1"; the public site base is that minus "/api/v1".
@@ -59,11 +66,35 @@ namespace SorobanSecurityPortalApi.Controllers
             if (r == null || r.Status != ReportModelStatus.Approved)
                 return Generic(pageUrl);
 
-            var image = (r.Image != null && r.Image.Length > 0)
-                ? $"{_config.AppUrl}/reports/{id}/image.png"
-                : LogoUrl;
+            // Always use the generated summary card (vuln stats), never the PDF cover, per the
+            // link-preview design. The card endpoint 404s for unapproved/missing reports, but this
+            // branch is only reached for approved ones.
+            var image = $"{_config.AppUrl}/og/report/{id}/summary.png";
             await RecordCrawlerView(EntityType.Report, id);
             return Page(r.Name, $"Security audit report: {r.Name}", image, pageUrl);
+        }
+
+        // Serves the generated 1200x630 summary-card PNG used as og:image for /report/{id}.
+        [HttpGet("report/{id:int}/summary.png")]
+        public async Task<IActionResult> ReportSummaryImage(int id)
+        {
+            var etag = await _summaryCardService.GetETagAsync(id);
+            if (etag == null)
+                return NotFound();
+
+            Response.Headers.ETag = etag;
+            Response.Headers.CacheControl = "public, max-age=3600";
+
+            var ifNoneMatch = Request.Headers.IfNoneMatch.ToString();
+            if (!string.IsNullOrEmpty(ifNoneMatch) && ifNoneMatch.Contains(etag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
+            var content = await _summaryCardService.GetCardAsync(id);
+            if (content == null)
+                return NotFound();
+
+            Response.Headers.LastModified = content.LastModified.ToString("R");
+            return File(content.Bytes, "image/png");
         }
 
         // Records a crawler/link-preview hit. Best-effort: a failure here must never break the

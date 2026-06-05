@@ -62,6 +62,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return _mapper.Map<ReportViewModel>(reportModel);
         }
 
+        public Task<ReportSummaryMeta?> GetSummaryMeta(int reportId) =>
+            _reportProcessor.GetSummaryMeta(reportId);
+
         //TODO UI should send Protocol and Auditor as Ids, not names. Then need to update the mapping used at the line 55
         public async Task<ReportViewModel> Add(ReportViewModel reportViewModel)
         {
@@ -203,6 +206,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         Task<List<ReportViewModel>> Search(ReportSearchViewModel? reportSearch);
         Task<ReportViewModel> Get(int reportId);
         Task<ReportViewModel?> GetPublic(int reportId);
+        Task<ReportSummaryMeta?> GetSummaryMeta(int reportId);
         Task<ReportViewModel> Add(ReportViewModel report);
         Task<ReportViewModel> Update(ReportViewModel report);
         Task<Result<bool, string>> Approve(int reportId);
