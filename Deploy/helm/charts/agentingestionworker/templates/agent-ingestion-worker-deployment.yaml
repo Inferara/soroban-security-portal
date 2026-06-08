@@ -12,6 +12,12 @@ spec:
   # Single replica — matches the no-row-lock claim design (claim-next is atomic;
   # only one worker processes the queue at a time).
   replicas: 1
+  # Recreate (not RollingUpdate): the worker is single-replica and CPU-heavy.
+  # On a small node a rolling update would try to surge a second worker before
+  # tearing down the old one, and the new pod can't be scheduled (Insufficient
+  # cpu) → the rollout deadlocks. Tear the old pod down first, then start the new.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: "{{ .Values.global.environment.name }}-agent-ingestion-worker"
