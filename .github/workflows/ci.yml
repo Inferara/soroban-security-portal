@@ -58,6 +58,16 @@ jobs:
             georgii4inferara/soroban-security-portal-ui:1.0.${{ github.run_number }}
             georgii4inferara/soroban-security-portal-ui:${{ inputs.tag || 'latest' }}
 
+      - name: Build and push Agent Ingestion Worker image
+        uses: docker/build-push-action@v3
+        with:
+          context: Backend
+          file: Backend/AgentIngestionWorker/Dockerfile
+          push: true
+          tags: |
+            georgii4inferara/agent-ingestion-worker:1.0.${{ github.run_number }}
+            georgii4inferara/agent-ingestion-worker:${{ inputs.tag || 'latest' }}
+
       - name: Setup Helm
         uses: azure/setup-helm@v4
         with:

@@ -54,6 +54,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GA_ID: ${{ secrets.GTAG }}
           LETSENCRYPT_ISSUER: ${{ secrets.LETSENCRYPT_ISSUER }}
+          ZAI_CODING_PLAN_KEY: ${{ secrets.ZAI_CODING_PLAN_KEY }}
         run: |
           # Generate a timestamp for build
           buildNumber=$(date +'%y%m%d%H%M%S')
@@ -82,4 +83,5 @@ jobs:
             --set global.discord.clientId="$DISCORD_CLIENT_ID" \
             --set global.discord.clientSecret="$DISCORD_CLIENT_SECRET" \
             --set global.embedding.key="$GEMINI_API_KEY" \
+            --set-string global.secrets.zaiCodingPlanKey="$ZAI_CODING_PLAN_KEY" \
             --set global.letsEncryptIssuer="$LETSENCRYPT_ISSUER"
