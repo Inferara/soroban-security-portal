@@ -10,10 +10,12 @@ agentIngestionWorker:
   pollIntervalSeconds: "15"
 
   # Stall watchdog: kill opencode if it produces no output for this many seconds.
-  # Hard cap: kill a single run after this many minutes. Generous defaults for the
-  # slower cluster node / intermittent egress to the model API.
-  stallSeconds: "600"
-  timeoutMinutes: "25"
+  # Hard cap: kill a single run after this many minutes. Generous defaults because
+  # on a small/single-CPU node glm-5.1 can stay silent for many minutes while it
+  # reasons/generates a long response between tool steps — too short a stall window
+  # kills otherwise-healthy runs ("opencode made no progress (stalled)").
+  stallSeconds: "1200"
+  timeoutMinutes: "60"
 
   # opencode (bun/node) is resource-hungry; an undersized memory limit OOM-kills it mid-run.
   resources:
