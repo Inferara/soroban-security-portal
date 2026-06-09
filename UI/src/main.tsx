@@ -18,7 +18,7 @@ import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import ReactGA from 'react-ga4';
 import { AUTH_FAILURE_EVENT } from './api/rest-api';
 import { SessionExpirationWarning } from './components/SessionExpirationWarning';
-import { isAdminOrModerator } from './features/authentication/authPermissions';
+import { isAdminOrModerator, isInitialAuthLoading } from './features/authentication/authPermissions';
 
 if (environment.gaId) {
   ReactGA.initialize(environment.gaId);
@@ -159,8 +159,11 @@ export function AppWrapper() {
     );
   }
   else if (window.location.pathname.startsWith(`${environment.basePath}/admin`)) {
-    // Show loading state while auth is initializing
-    if (auth.isLoading) {
+    // Show loading state while auth is *initializing*. We intentionally do NOT block on a
+    // background silent renew of an already-authenticated admin (isLoading flips true while
+    // signinSilent runs): blanking the screen there unmounts the admin page and discards any
+    // unsaved in-progress edits (e.g. an agent-run review). See isInitialAuthLoading.
+    if (isInitialAuthLoading(auth)) {
       return (
         <MuiThemeProvider theme={theme}>
           <Authentication errorText="" isLoading={true} />

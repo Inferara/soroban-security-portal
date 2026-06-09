@@ -98,3 +98,22 @@ export const isAuthorized = (auth: AuthContextProps): boolean => {
 export const hasAccessToken = (auth: AuthContextProps): boolean => {
   return !!auth.user?.access_token;
 };
+
+// ============================================================================
+// Auth Lifecycle Checks
+// ============================================================================
+
+/**
+ * Whether the app is in its *initial* authentication phase and should block the
+ * UI with a full-screen loading state.
+ *
+ * react-oidc-context flips `isLoading` to true for the duration of ANY wrapped
+ * navigator call, including `signinSilent()`. A background silent token renewal
+ * (e.g. when the user clicks "Stay Logged In") must NOT blank out an already
+ * authenticated screen: doing so unmounts the current page and throws away any
+ * unsaved in-progress edits. We only show the blocking loader when there is no
+ * authenticated user yet (the genuine cold-start / sign-in case).
+ */
+export const isInitialAuthLoading = (auth: AuthContextProps): boolean => {
+  return auth.isLoading && !auth.isAuthenticated;
+};
