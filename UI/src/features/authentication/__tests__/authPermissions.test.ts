@@ -12,6 +12,7 @@ import {
   canAddReport,
   isAuthorized,
   hasAccessToken,
+  isInitialAuthLoading,
 } from '../authPermissions';
 import { Role } from '../../../api/soroban-security-portal/models/role';
 
@@ -380,6 +381,36 @@ describe('authPermissions', () => {
         } as AuthContextProps['user'],
       });
       expect(hasAccessToken(auth)).toBe(false);
+    });
+  });
+
+  describe('isInitialAuthLoading', () => {
+    it('returns false when idle and not authenticated', () => {
+      const auth = createMockAuth({ isLoading: false, isAuthenticated: false });
+      expect(isInitialAuthLoading(auth)).toBe(false);
+    });
+
+    it('returns true during the initial sign-in (loading, no user yet)', () => {
+      const auth = createMockAuth({ isLoading: true, isAuthenticated: false });
+      expect(isInitialAuthLoading(auth)).toBe(true);
+    });
+
+    it('returns false during a background silent renew of an authenticated user', () => {
+      // react-oidc-context flips isLoading=true while signinSilent() runs, but the
+      // existing (non-expired) user stays authenticated. The protected UI must NOT be
+      // torn down here — otherwise "Stay Logged In" remounts the page and discards
+      // any unsaved in-progress edits.
+      const auth = createMockAuth({
+        isLoading: true,
+        isAuthenticated: true,
+        activeNavigator: 'signinSilent',
+      });
+      expect(isInitialAuthLoading(auth)).toBe(false);
+    });
+
+    it('returns false when authenticated and idle', () => {
+      const auth = createMockAuth({ isLoading: false, isAuthenticated: true });
+      expect(isInitialAuthLoading(auth)).toBe(false);
     });
   });
 });
