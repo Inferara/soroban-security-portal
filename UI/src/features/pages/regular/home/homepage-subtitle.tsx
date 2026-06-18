@@ -33,6 +33,7 @@ export const HomepageSubtitle: FC<HomepageSubtitleProps> = ({
                     color: 'text.primary',
                     textTransform: "uppercase",
                     overflow: 'hidden',
+                    whiteSpace: 'nowrap',
                     textOverflow: 'ellipsis',
                     textAlign: isCompact ? 'center' : { xs: 'center', sm: 'center', md: isLeft ? 'right' : 'left' },
                 }}>{title}</Typography>
