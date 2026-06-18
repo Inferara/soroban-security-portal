@@ -47,6 +47,10 @@ export const About: FC = () => {
       <TextBlock>
         As Soroban&apos;s capabilities grow, so do the stakes. Deployed on Stellar&apos;s robust layer-1 blockchain, Soroban brings powerful smart contract functionality — but also attracts scrutiny in an inherently adversarial environment. The Stellar Security Portal is dedicated to supporting developers, auditors, and builders with clear, centralized guidance, tools, and insights to build securely from the ground up.
       </TextBlock>
+      <H5 text="Stellar Public Good" />
+      <TextBlock>
+        The Stellar Security Portal is built as an open-source, community-minded resource aligned with Stellar’s public-good mission. It provides transparent security findings, audit insights, and educational resources to benefit the wider Soroban ecosystem.
+      </TextBlock>
       <H5 text="What you can find in the Portal" />
       <TextBlock>
         <ul>

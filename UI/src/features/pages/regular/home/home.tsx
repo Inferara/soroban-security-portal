@@ -127,6 +127,29 @@ export const Home: FC = () => {
             Soroban smart-contract security
           </Box>
 
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              px: 2,
+              py: 0.75,
+              mb: { xs: 2, md: 3 },
+              borderRadius: 999,
+              border: '1px solid',
+              borderColor: themeMode === 'dark' ? 'rgba(45,115,255,0.2)' : 'rgba(45,78,255,0.18)',
+              backgroundColor: themeMode === 'dark' ? 'rgba(45,115,255,0.08)' : 'rgba(45,78,255,0.04)',
+              color: themeMode === 'dark' ? '#8ec4ff' : '#1749d2',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              fontSize: '0.75rem',
+            }}
+          >
+            Stellar Public Good
+          </Box>
+
           {/* Headline with animated shimmer */}
           <Typography
             variant="h1"

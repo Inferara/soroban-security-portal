@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml)
 [![Deploy Stellar Security Portal](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml)
+[![Stellar Public Good](https://img.shields.io/badge/Stellar%20Public%20Good-Approved-1f8ced?style=for-the-badge)](https://www.stellar.org)
 
 ## 🌃 Dock
 
