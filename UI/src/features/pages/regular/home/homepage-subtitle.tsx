@@ -32,7 +32,8 @@ export const HomepageSubtitle: FC<HomepageSubtitleProps> = ({
                 <Typography variant={isCompact ? 'h4' : 'h2'} sx={{
                     color: 'text.primary',
                     textTransform: "uppercase",
-                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                     textAlign: isCompact ? 'center' : { xs: 'center', sm: 'center', md: isLeft ? 'right' : 'left' },
                 }}>{title}</Typography>
             </Box>
