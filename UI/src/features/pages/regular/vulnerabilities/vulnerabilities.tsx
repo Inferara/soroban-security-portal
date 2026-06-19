@@ -809,6 +809,9 @@ export const Vulnerabilities: FC = () => {
                     {option.id === VulnerabilityCategory.ValidPartiallyFixed && (
                       <img loading="lazy" src="static/images/vulnerability_categories/valid-partially-fixed.png" alt="Valid Partially Fixed" width={24} height={24} />
                     )}
+                    {option.id === VulnerabilityCategory.Acknowledged && (
+                      <img loading="lazy" src="static/images/vulnerability_categories/valid-fixed.png" alt="Acknowledged" width={24} height={24} />
+                    )}
                     {option.label}
                   </Box>
                 );
@@ -1034,6 +1037,9 @@ export const Vulnerabilities: FC = () => {
                       )}
                       {vuln.category === VulnerabilityCategory.ValidPartiallyFixed && (
                         <img loading="lazy" src="static/images/vulnerability_categories/valid-partially-fixed.png" alt="Valid Partially Fixed" width={24} height={24} />
+                      )}
+                      {vuln.category === VulnerabilityCategory.Acknowledged && (
+                        <img loading="lazy" src="static/images/vulnerability_categories/valid-fixed.png" alt="Acknowledged" width={24} height={24} />
                       )}
                     </Stack>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>

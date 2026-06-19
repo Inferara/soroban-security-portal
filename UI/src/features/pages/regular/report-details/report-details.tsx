@@ -365,6 +365,15 @@ export const ReportDetails: FC = () => {
                                         height={40}
                                         title="Valid (Partially Fixed)"
                                       />
+                                    ) : vulnerability.category === VulnerabilityCategory.Acknowledged ? (
+                                      <img
+                                        loading="lazy"
+                                        src="/static/images/vulnerability_categories/valid-fixed.png"
+                                        alt="Acknowledged"
+                                        width={40}
+                                        height={40}
+                                        title="Acknowledged (by design)"
+                                      />
                                     ) : (
                                       <BugReport />
                                     )}

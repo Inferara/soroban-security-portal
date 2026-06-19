@@ -101,6 +101,7 @@ export const CategoryColors = {
   validNotFixed: '#9c27b0',
   validPartiallyFixed: '#ba68c8',
   invalid: '#adadadff',
+  acknowledged: '#5c6bc0',
   na: '#ce93d8',
   fallback: '#757575',
 } as const;
