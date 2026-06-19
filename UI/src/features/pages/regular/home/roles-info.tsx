@@ -68,7 +68,7 @@ export const RolesInfo: FC<RolesInfoProps> = ({ isCompact = false }) => {
         mx: "auto",
       }}
     >
-      <HomepageSubtitle title={isAuthenticated ? `Welcome, ${userName}!` : "How to contribute"} isCompact={isCompact} />
+      <HomepageSubtitle title={isAuthenticated ? `Welcome, ${userName}` : "How to contribute"} isCompact={isCompact} uppercaseTitle={false} />
       <Box
         sx={{
           width: "100%",
