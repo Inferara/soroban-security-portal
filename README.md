@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml)
 [![Deploy Stellar Security Portal](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml)
-[![Stellar Public Good](https://img.shields.io/badge/Stellar%20Public%20Good-Approved-1f8ced?style=for-the-badge)](https://www.stellar.org)
+[![Stellar Public Good](https://img.shields.io/badge/Stellar%20Public%20Good-Approved-1f8ced?style=for-the-badge)]([https://www.stellar.org](https://github.com/SCF-Public-Goods-Maintenance/scf-public-goods-maintenance.github.io/pull/59))
 
 ## 🌃 Dock
 
@@ -26,7 +26,7 @@ https://stellarsecurityportal.com
 
 ## 🌠 Appreciation
 
-This project was funded by the [Stellar Community Fund](https://communityfund.stellar.org/). 
+This project was funded by the [Stellar Community Fund](https://communityfund.stellar.org/) and [Stellar Public Good Program](https://stellar.gitbook.io/scf-handbook/supporting-programs/public-goods-award/official-rules). 
 
 The Stellar Security Portal' purpose is to provide a cohesive knowledge base for both current and new developers on [Stellar](https://stellar.org/). Here we will provide them with tools and information to start building with ease. 
 
