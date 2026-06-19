@@ -22,7 +22,7 @@ export const SeoHead: FC<SeoHeadProps> = ({
   url,
   type = 'article',
 }) => {
-  const metaDescription = description || 'Stellar security portal - audits, reports, and vulnerabilities.';
+  const metaDescription = description || 'Stellar Security Portal is a Stellar Public Good for audits, reports, and vulnerabilities.';
   const metaUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
   const metaImage = image || LOGO_URL;
 
