@@ -57,7 +57,7 @@ export const useVulnerabilityAdd = () => {
   };
 
   const getSource = async (): Promise<void> => {
-    const response = await getSourceCall();
+    const response = await getSourceCall(true);
     setSourceList(response);
   };
 

@@ -27,9 +27,9 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("sources")]
-        public async Task<IActionResult> ListSources()
+        public async Task<IActionResult> ListSources([FromQuery] bool includeNotApproved = false)
         {
-            var result = await _vulnerabilityService.ListSources();
+            var result = await _vulnerabilityService.ListSources(includeNotApproved);
             return Ok(result);
         }
 
