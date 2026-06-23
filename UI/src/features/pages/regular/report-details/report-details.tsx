@@ -40,7 +40,9 @@ import {
   getCategoryColor,
   getCategoryLabel,
   VulnerabilityCategory,
+  AvailableVulnerabilityCategories,
 } from '../../../../api/soroban-security-portal/models/vulnerability';
+import { CategoryPane } from '../../../../components/report-details/CategoryPane';
 import { BookmarkButton } from '../../../../components/BookmarkButton';
 import { FlagButton } from '../../../../components/FlagButton';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
@@ -96,6 +98,7 @@ export const ReportDetails: FC = () => {
   const views = usePageViewTracking(PageViewEntityType.Report, report?.id);
 
   const [commentCount, setCommentCount] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   useEffect(() => {
     if (reportId > 0) {
       getCommentCountCall(CommentEntityType.Report, reportId)
@@ -132,15 +135,19 @@ export const ReportDetails: FC = () => {
     [statistics?.vulnerabilitiesByCategory]
   );
 
-  // Sort vulnerabilities by severity (memoized)
-  const sortedVulnerabilities = useMemo(() => {
+  // Filter and sort vulnerabilities by severity (memoized)
+  const filteredVulnerabilities = useMemo(() => {
+    let list = vulnerabilities;
+    if (selectedCategory !== null) {
+      list = list.filter((v) => v.category === selectedCategory);
+    }
     const severityOrder: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1, note: 0 };
-    return [...vulnerabilities].sort((a, b) => {
+    return [...list].sort((a, b) => {
       const aSeverity = severityOrder[a.severity?.toLowerCase()] || 0;
       const bSeverity = severityOrder[b.severity?.toLowerCase()] || 0;
       return bSeverity - aSeverity;
     });
-  }, [vulnerabilities]);
+  }, [vulnerabilities, selectedCategory]);
 
   const handleReportDownload = async (reportName: string, reportId: number) => {
     if (!isAuthorized(auth)) {
@@ -324,12 +331,18 @@ export const ReportDetails: FC = () => {
                   <CardContent>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                       <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      Vulnerabilities ({vulnerabilities.length})
+                      Vulnerabilities ({filteredVulnerabilities.length})
                     </Typography>
 
-                    {sortedVulnerabilities.length > 0 ? (
+                    <CategoryPane
+                      categories={AvailableVulnerabilityCategories}
+                      selected={selectedCategory}
+                      onSelect={setSelectedCategory}
+                    />
+
+                    {filteredVulnerabilities.length > 0 ? (
                       <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                        {sortedVulnerabilities.map((vulnerability, index) => (
+                        {filteredVulnerabilities.map((vulnerability, index) => (
                           <Box key={vulnerability.id}>
                             <ListItem disablePadding>
                               <ListItemButton
@@ -429,7 +442,7 @@ export const ReportDetails: FC = () => {
                                 />
                               </ListItemButton>
                             </ListItem>
-                            {index < sortedVulnerabilities.length - 1 && <Divider />}
+                            {index < filteredVulnerabilities.length - 1 && <Divider />}
                           </Box>
                         ))}
                       </List>
