@@ -331,7 +331,7 @@ export const ReportDetails: FC = () => {
                   <CardContent>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                       <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      Vulnerabilities ({filteredVulnerabilities.length})
+                      Vulnerabilities ({selectedCategory !== null ? `${filteredVulnerabilities.length} of ${vulnerabilities.length}` : vulnerabilities.length})
                     </Typography>
 
                     <CategoryPane
