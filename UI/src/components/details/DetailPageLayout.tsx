@@ -4,8 +4,9 @@ import {
   Button,
   CircularProgress,
   Alert,
+  Typography,
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack, InfoOutlined } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -126,6 +127,26 @@ export function DetailPageLayout({
   // Success state - render children
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth, mx: 'auto' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          mb: 2,
+          px: 2,
+          py: 1,
+          borderRadius: 1,
+          bgcolor: 'action.hover',
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+        role="note"
+      >
+        <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+        <Typography variant="caption" color="text.secondary">
+          Issues and reports on the Portal reflect information as of the time of the report issue.
+        </Typography>
+      </Box>
       {children}
     </Box>
   );
