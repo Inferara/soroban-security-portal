@@ -143,7 +143,6 @@ export const OutputPanel: FC<OutputPanelProps> = ({ data, originalSource, proven
       }, 60);
       return () => window.clearTimeout(id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, pendingLine, isDiff]);
 
   const editorOptions = {

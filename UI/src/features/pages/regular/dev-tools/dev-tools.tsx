@@ -191,7 +191,6 @@ export const DevTools: FC = () => {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---- persistence ----
@@ -452,14 +451,19 @@ export const DevTools: FC = () => {
   );
 
   // ---- Ctrl/Cmd+Enter ----
+  // Keep a ref to the current "run" action so the keydown listener (registered
+  // once) always calls the latest closure. Updated in an effect, not during
+  // render, to avoid mutating a ref while rendering.
   const runnerRef = useRef<() => void>(() => {});
-  runnerRef.current = () => {
-    if (loading) return;
-    if (mode === 0) void doCompile(rust, selectedVersion);
-    else if (mode === 1 && file) void doUpload(file, selectedVersion);
-    else if (mode === 2 && addressValid) void doAddress(address, network, selectedVersion);
-    else if (mode === 3 && selectedFixture) void doFixture(selectedFixture, selectedVersion);
-  };
+  useEffect(() => {
+    runnerRef.current = () => {
+      if (loading) return;
+      if (mode === 0) void doCompile(rust, selectedVersion);
+      else if (mode === 1 && file) void doUpload(file, selectedVersion);
+      else if (mode === 2 && addressValid) void doAddress(address, network, selectedVersion);
+      else if (mode === 3 && selectedFixture) void doFixture(selectedFixture, selectedVersion);
+    };
+  });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
