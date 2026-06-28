@@ -217,19 +217,20 @@ Notes:
 ## Security: the `/compile` endpoint
 
 Compile builds arbitrary user-supplied Rust on the server — it is
-**arbitrary-code-execution by design**, and it is **off by default** in
-docker-compose. Treat enabling it as exposing a build sandbox to whoever can
-reach the endpoint.
+**arbitrary-code-execution by design**, and it is **off by default everywhere**
+(`DEVTOOLS_NO_COMPILE=true` in both docker-compose files and in the Helm chart).
+Treat enabling it as exposing a build sandbox to whoever can reach the endpoint.
 
-Interim mitigations in place: compile is opt-in; the build project is a fixed
+Speed bumps in place (not a security boundary): the build project is a fixed
 skeleton (no extra dependencies, no `build.rs`); and submitted source is rejected
-if it uses compile-time file/env macros (`include_str!`, `include_bytes!`,
-`include!`, `env!`, `option_env!`) — otherwise `include_str!("/run/secrets/…")`
-would embed a server file into the returned WASM.
+if it references compile-time file/env macros (`include_str!`, `include_bytes!`,
+`option_env`, `env!`, `include!`) — including the bare-identifier form, so the
+`macro_rules! { ($m:ident) => { $m!(..) } }` indirection is also caught. This is
+**bypassable** (e.g. `env!` can't be matched as a bare ident without colliding
+with the ubiquitous `Env`), so it does not secure the endpoint.
 
-These are not a substitute for a real sandbox. Before exposing compile to
-untrusted users it should run in a **container-per-build** with **no network**
-and a **read-only / empty-root filesystem** (so `/proc/self/environ`,
-`/run/secrets/`, and mounted files aren't readable), with CPU/memory/time caps,
-and ideally behind auth. Until then, prefer `DEVTOOLS_NO_COMPILE=true` on any
-publicly reachable deployment.
+The real fix, required before exposing compile to untrusted users: run each build
+in a **container-per-build** with **no network** and a **read-only / empty-root
+filesystem** (so `/proc/self/environ`, `/run/secrets/`, and mounted files aren't
+readable), with CPU/memory/time caps, and ideally behind auth. Until then, keep
+`DEVTOOLS_NO_COMPILE=true` on any publicly reachable deployment.

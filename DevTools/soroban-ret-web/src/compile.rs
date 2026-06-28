@@ -270,23 +270,30 @@ async fn find_wasm(dir: &Path) -> Option<PathBuf> {
     None
 }
 
-/// Reject source that uses compile-time macros able to read server files or the
-/// environment (`include_str!`, `env!`, …). Cargo would embed the read bytes
-/// into the WASM data section, which we hand back to the caller — a file-read /
-/// secret-exfil vector. This is defense-in-depth: the real fix is a build
-/// sandbox with a read-only/empty-root filesystem and no network.
+/// Best-effort speed bump (NOT a security boundary): reject source that uses
+/// compile-time macros able to read server files or the environment. Cargo would
+/// embed the read bytes into the WASM data section, which we hand back to the
+/// caller — a file/secret exfiltration vector.
+///
+/// The file readers are matched as bare identifiers too, so the obvious
+/// `macro_rules! { ($m:ident) => { $m!(..) } }` indirection is also caught. This
+/// can still be defeated (e.g. `env!` cannot be matched bare without colliding
+/// with the ubiquitous `Env`/`env`), so it does not replace the real fix:
+/// compile must be off by default and, when enabled, run in a sandbox with a
+/// read-only/empty-root filesystem and no network.
 fn check_forbidden_macros(source: &str) -> Result<(), WebError> {
-    const FORBIDDEN: &[&str] = &[
-        "include_str!",
-        "include_bytes!",
-        "include!",
-        "env!",
-        "option_env!",
-    ];
-    if let Some(m) = FORBIDDEN.iter().find(|m| source.contains(**m)) {
+    // Bare names (catch both `include_str!(..)` and the `$m:ident` indirection).
+    const FORBIDDEN_BARE: &[&str] = &["include_str", "include_bytes", "option_env"];
+    // Names that collide with normal code as bare idents — match the invocation.
+    const FORBIDDEN_CALL: &[&str] = &["env!", "include!"];
+    let hit = FORBIDDEN_BARE
+        .iter()
+        .chain(FORBIDDEN_CALL.iter())
+        .find(|m| source.contains(**m));
+    if let Some(m) = hit {
         return Err(WebError::InvalidInput(format!(
             "The `{}` macro is not allowed: it can read server files or environment variables at compile time.",
-            m
+            m.trim_end_matches('!')
         )));
     }
     Ok(())
@@ -407,8 +414,13 @@ mod tests {
         assert!(check_forbidden_macros(r#"const X: &str = include_str!("/proc/self/environ");"#).is_err());
         assert!(check_forbidden_macros(r#"const X: &[u8] = include_bytes!("/run/secrets/token");"#).is_err());
         assert!(check_forbidden_macros(r#"const X: &str = env!("SECRET");"#).is_err());
-        // Normal Soroban code that uses the `Env` type is fine.
-        assert!(check_forbidden_macros("pub fn add(_env: soroban_sdk::Env, a: u64) -> u64 { a }").is_ok());
+        // The macro_rules! `$m:ident` indirection for file readers is caught too.
+        assert!(check_forbidden_macros(
+            r#"macro_rules! c { ($m:ident,$p:expr) => { $m!($p) }; } const X: &str = c!(include_str, "/x");"#
+        )
+        .is_err());
+        // Normal Soroban code that uses the `Env` type / `env` binding is fine.
+        assert!(check_forbidden_macros("pub fn add(env: soroban_sdk::Env, a: u64) -> u64 { let _ = env; a }").is_ok());
     }
 
     #[test]
