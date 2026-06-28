@@ -270,12 +270,35 @@ async fn find_wasm(dir: &Path) -> Option<PathBuf> {
     None
 }
 
+/// Reject source that uses compile-time macros able to read server files or the
+/// environment (`include_str!`, `env!`, …). Cargo would embed the read bytes
+/// into the WASM data section, which we hand back to the caller — a file-read /
+/// secret-exfil vector. This is defense-in-depth: the real fix is a build
+/// sandbox with a read-only/empty-root filesystem and no network.
+fn check_forbidden_macros(source: &str) -> Result<(), WebError> {
+    const FORBIDDEN: &[&str] = &[
+        "include_str!",
+        "include_bytes!",
+        "include!",
+        "env!",
+        "option_env!",
+    ];
+    if let Some(m) = FORBIDDEN.iter().find(|m| source.contains(**m)) {
+        return Err(WebError::InvalidInput(format!(
+            "The `{}` macro is not allowed: it can read server files or environment variables at compile time.",
+            m
+        )));
+    }
+    Ok(())
+}
+
 pub async fn run_compile(
     env: &CompileEnv,
     req: CompileRequest,
     engine: Engine,
     builtin_version: &str,
 ) -> Result<CompileResponse, WebError> {
+    check_forbidden_macros(&req.source)?;
     let start = Instant::now();
 
     // Serialize: the skeleton project's src/lib.rs is shared across requests.
@@ -377,7 +400,16 @@ fn tail(s: &str, max: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::tail;
+    use super::{check_forbidden_macros, tail};
+
+    #[test]
+    fn rejects_compile_time_file_and_env_macros() {
+        assert!(check_forbidden_macros(r#"const X: &str = include_str!("/proc/self/environ");"#).is_err());
+        assert!(check_forbidden_macros(r#"const X: &[u8] = include_bytes!("/run/secrets/token");"#).is_err());
+        assert!(check_forbidden_macros(r#"const X: &str = env!("SECRET");"#).is_err());
+        // Normal Soroban code that uses the `Env` type is fine.
+        assert!(check_forbidden_macros("pub fn add(_env: soroban_sdk::Env, a: u64) -> u64 { a }").is_ok());
+    }
 
     #[test]
     fn tail_never_splits_a_multibyte_char() {

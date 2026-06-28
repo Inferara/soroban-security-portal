@@ -213,3 +213,23 @@ Notes:
   location raises proxy timeouts to 600s to accommodate it.
 - Set `DEVTOOLS_NO_COMPILE=true` to disable Compile mode (Upload/Address/Samples
   still work; the UI shows an informational notice).
+
+## Security: the `/compile` endpoint
+
+Compile builds arbitrary user-supplied Rust on the server — it is
+**arbitrary-code-execution by design**, and it is **off by default** in
+docker-compose. Treat enabling it as exposing a build sandbox to whoever can
+reach the endpoint.
+
+Interim mitigations in place: compile is opt-in; the build project is a fixed
+skeleton (no extra dependencies, no `build.rs`); and submitted source is rejected
+if it uses compile-time file/env macros (`include_str!`, `include_bytes!`,
+`include!`, `env!`, `option_env!`) — otherwise `include_str!("/run/secrets/…")`
+would embed a server file into the returned WASM.
+
+These are not a substitute for a real sandbox. Before exposing compile to
+untrusted users it should run in a **container-per-build** with **no network**
+and a **read-only / empty-root filesystem** (so `/proc/self/environ`,
+`/run/secrets/`, and mounted files aren't readable), with CPU/memory/time caps,
+and ideally behind auth. Until then, prefer `DEVTOOLS_NO_COMPILE=true` on any
+publicly reachable deployment.
