@@ -142,6 +142,7 @@ Useful flags / env vars (all overridable):
 | `--no-compile` / `DEVTOOLS_NO_COMPILE` | `false` |
 | `DEVTOOLS_RET_BINARIES` | (empty) — `version=path;…` external CLI engines |
 | `DEVTOOLS_MAX_CONCURRENCY` | host parallelism — cap on concurrent disassembly jobs |
+| `DEVTOOLS_CORS_ALLOW_ORIGINS` | `*` (any) — comma-separated allowlist to restrict CORS |
 
 Builds are serialized (one at a time, shared skeleton project). A failed
 `stellar contract build` doesn't emit cargo's JSON diagnostics, so the service

@@ -365,9 +365,29 @@ pub async fn run_compile(
 
 fn tail(s: &str, max: usize) -> String {
     if s.len() <= max {
-        s.to_string()
-    } else {
-        format!("...{}", &s[s.len() - max..])
+        return s.to_string();
+    }
+    // Walk forward from the raw byte offset to the next char boundary so the
+    // slice never cuts through a multi-byte UTF-8 sequence (cargo stderr can
+    // echo the user's source, which may contain unicode).
+    let raw = s.len() - max;
+    let start = (raw..=s.len()).find(|&i| s.is_char_boundary(i)).unwrap_or(s.len());
+    format!("...{}", &s[start..])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tail;
+
+    #[test]
+    fn tail_never_splits_a_multibyte_char() {
+        // 🦀 is 4 bytes; cut at every offset that would land mid-emoji.
+        let s = format!("{}🦀tail", "x".repeat(10));
+        for max in 1..=12 {
+            let _ = tail(&s, max); // must not panic
+        }
+        assert!(tail(&s, 4).starts_with("..."));
+        assert!(tail("short", 100) == "short");
     }
 }
 

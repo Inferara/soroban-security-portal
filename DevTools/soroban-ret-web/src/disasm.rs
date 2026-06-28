@@ -228,7 +228,17 @@ async fn cli_disassemble(
     bin: &std::path::Path,
     version: &str,
 ) -> Result<DisassembleResponse, WebError> {
-    let tmp = std::env::temp_dir().join(format!("devtools-disasm-{}.wasm", unique_suffix(&wasm)));
+    // Unique per call (the disassembly semaphore allows concurrent jobs, so a
+    // content-derived name could collide and let one request clobber another's
+    // file between write and the CLI's open).
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
+    let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+    let tmp = std::env::temp_dir().join(format!(
+        "devtools-disasm-{}-{:016x}.wasm",
+        std::process::id(),
+        seq
+    ));
     tokio::fs::write(&tmp, &wasm)
         .await
         .map_err(|e| WebError::DecompileError(format!("Failed to stage WASM: {}", e)))?;
@@ -495,17 +505,6 @@ fn contains_subslice(haystack: &[u8], needle: &[u8]) -> bool {
     haystack
         .windows(needle.len())
         .any(|window| window == needle)
-}
-
-/// Cheap, deterministic-per-content temp-file suffix (avoids `Math.random`/time).
-fn unique_suffix(wasm: &[u8]) -> String {
-    let mut h: u64 = 1469598103934665603;
-    for &b in wasm.iter().take(256) {
-        h ^= b as u64;
-        h = h.wrapping_mul(1099511628211);
-    }
-    h ^= wasm.len() as u64;
-    format!("{:016x}", h)
 }
 
 /// Classic `xxd`-style hex dump: offset, 16 hex bytes, ASCII gutter.

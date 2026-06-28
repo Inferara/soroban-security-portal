@@ -22,7 +22,10 @@ services:
       - DEVTOOLS_TESTNET_RPC=https://soroban-testnet.stellar.org
       # soroban-sdk version used to compile user Rust snippets
       - DEVTOOLS_SOROBAN_SDK_VERSION=22.0.8
-      # Set DEVTOOLS_NO_COMPILE=true to disable the compile endpoint (lighter, no toolchain use)
+      # Compile runs arbitrary user Rust on the server — disabled by default.
+      # Set to false to enable (ideally only once sandboxed and/or behind auth).
+      - DEVTOOLS_NO_COMPILE=true
+      # Restrict CORS when exposing cross-origin: DEVTOOLS_CORS_ALLOW_ORIGINS=https://host
       # Register extra soroban-ret CLI versions for the dropdown, e.g.
       #   DEVTOOLS_RET_BINARIES=0.0.1=/opt/engines/0.0.1/soroban-ret
       - RUST_LOG=info

@@ -21,7 +21,7 @@ mod fixtures;
 mod rpc;
 
 use axum::extract::{DefaultBodyLimit, Multipart, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderValue, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use base64::Engine as _;
@@ -36,7 +36,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 
 /// soroban-ret library version this service is built against.
 const RET_VERSION: &str = "0.0.2";
@@ -146,12 +146,9 @@ fn default_network() -> String {
 
 #[tokio::main]
 async fn main() {
-    if std::env::var_os("RUST_LOG").is_none() {
-        unsafe {
-            std::env::set_var("RUST_LOG", "info");
-        }
-    }
-    env_logger::init();
+    // Set the log filter via env_logger's builder instead of mutating the
+    // process environment (std::env::set_var is `unsafe` since Rust 1.80).
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let cli = Cli::parse();
 
     let compile_env = if cli.no_compile {
@@ -193,8 +190,23 @@ async fn main() {
         });
     }
 
+    // CORS: permissive by default (the UI reaches us same-origin via the portal's
+    // nginx proxy, and local dev runs the UI on a different port). Set
+    // DEVTOOLS_CORS_ALLOW_ORIGINS to a comma-separated allowlist to restrict it
+    // when exposing the service cross-origin.
+    let cors_origins = std::env::var("DEVTOOLS_CORS_ALLOW_ORIGINS").unwrap_or_default();
+    let allow_origin = if cors_origins.trim().is_empty() || cors_origins.trim() == "*" {
+        AllowOrigin::any()
+    } else {
+        let list: Vec<HeaderValue> = cors_origins
+            .split(',')
+            .filter_map(|o| o.trim().parse::<HeaderValue>().ok())
+            .collect();
+        log::info!("CORS restricted to: {}", cors_origins.trim());
+        AllowOrigin::list(list)
+    };
     let cors = CorsLayer::new()
-        .allow_origin(Any)
+        .allow_origin(allow_origin)
         .allow_methods(Any)
         .allow_headers(Any);
 
