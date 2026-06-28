@@ -70,6 +70,32 @@ services:
     networks:
       - soroban-security-portal-network
 
+  # Dev Tools backend: compile Rust -> WASM and disassemble Soroban contracts
+  # with soroban-ret. The UI reaches it via window.env.DEVTOOLS_API_URL.
+  soroban-ret-web:
+    build:
+      context: ../DevTools/soroban-ret-web
+    image: soroban-ret-web:latest
+    container_name: soroban-ret-web
+    restart: always
+    environment:
+      - DEVTOOLS_BIND=0.0.0.0
+      - DEVTOOLS_PORT=8787
+      - DEVTOOLS_MAINNET_RPC=https://soroban-rpc.mainnet.stellar.gateway.fm
+      - DEVTOOLS_TESTNET_RPC=https://soroban-testnet.stellar.org
+      - DEVTOOLS_SOROBAN_SDK_VERSION=22.0.8
+      - RUST_LOG=info
+    ports:
+      - "8787:8787"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8787/api/dev-tools/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - soroban-security-portal-network
+
 volumes:
   soroban-security-portal-db-vector-volume:
   soroban-security-portal-default-db-vector-volume:

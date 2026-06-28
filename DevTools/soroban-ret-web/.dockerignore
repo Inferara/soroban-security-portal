@@ -1,0 +1,5 @@
+target
+*.log
+.playwright-mcp
+.stellar-cli
+engines

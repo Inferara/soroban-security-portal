@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-soroban-ret-web"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-soroban-ret-web"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-soroban-ret-web"
+        env: "{{ .Values.global.environment.namespace }}"
+        build: "{{ .Values.global.app.build }}"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-soroban-ret-web"
+          image: "{{ .Values.global.containerRegistry.name }}/soroban-ret-web:{{ .Values.global.sorobansecurityportal.service.tag }}"
+          ports:
+            - containerPort: 8787
+          env:
+            - name: DEVTOOLS_BIND
+              value: "0.0.0.0"
+            - name: DEVTOOLS_PORT
+              value: "8787"
+            - name: DEVTOOLS_MAINNET_RPC
+              value: "{{ .Values.global.devtools.mainnetRpc }}"
+            - name: DEVTOOLS_TESTNET_RPC
+              value: "{{ .Values.global.devtools.testnetRpc }}"
+            - name: DEVTOOLS_SOROBAN_SDK_VERSION
+              value: "{{ .Values.global.devtools.sorobanSdkVersion }}"
+            - name: DEVTOOLS_NO_COMPILE
+              value: "{{ .Values.global.devtools.noCompile }}"
+            - name: RUST_LOG
+              value: "info"
+          readinessProbe:
+            # /ready only returns 200 once the compile cache is warmed, so the
+            # first /compile isn't routed here mid-warm (warm can take minutes).
+            httpGet:
+              path: /api/dev-tools/ready
+              port: 8787
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /api/dev-tools/health
+              port: 8787
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+{{ toYaml .Values.global.devtools.resources | indent 12 }}
+          imagePullPolicy: "{{ .Values.global.containerRegistry.imagePullPolicy }}"

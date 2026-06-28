@@ -32,6 +32,20 @@ global:
   embedding:
     model: "gemini-embedding-001"
     key: ""
+  devtools:
+    # Dev Tools backend (soroban-ret-web) configuration.
+    mainnetRpc: "https://soroban-rpc.mainnet.stellar.gateway.fm"
+    testnetRpc: "https://soroban-testnet.stellar.org"
+    sorobanSdkVersion: "22.0.8"
+    noCompile: "false"
+    # Compilation is CPU/RAM heavy; cap it so a build can't starve the node.
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
   letsEncryptIssuer: ""
   secrets:
     # API key for the zai-coding-plan OpenCode provider.

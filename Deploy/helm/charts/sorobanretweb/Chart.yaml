@@ -1,0 +1,7 @@
+apiVersion: v2
+description: Soroban Security Portal Dev Tools backend (soroban-ret-web).
+type: application
+name: sorobanretweb
+version: 1.0.0
+appVersion: 1.0.0
+kubeVersion: ">=1.16.0-0"

@@ -6,6 +6,7 @@
         API_URL: 'http://localhost:7848',
         CLIENT_ID: 'SorobanSecurityPortal',
         BASE_PATH: '',
-        GA_ID: ''
+        GA_ID: '',
+        DEVTOOLS_API_URL: 'http://localhost:8787/api/dev-tools'
     };
   })(this);

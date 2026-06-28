@@ -68,6 +68,27 @@ jobs:
             georgii4inferara/agent-ingestion-worker:1.0.${{ github.run_number }}
             georgii4inferara/agent-ingestion-worker:${{ inputs.tag || 'latest' }}
 
+      - name: Build and push Dev Tools (soroban-ret-web) image
+        uses: docker/build-push-action@v3
+        with:
+          context: DevTools/soroban-ret-web
+          file: DevTools/soroban-ret-web/Dockerfile
+          push: true
+          tags: |
+            georgii4inferara/soroban-ret-web:1.0.${{ github.run_number }}
+            georgii4inferara/soroban-ret-web:${{ inputs.tag || 'latest' }}
+
+      - name: Build and push Dev Tools (soroban-ret-web) slim image
+        uses: docker/build-push-action@v3
+        with:
+          context: DevTools/soroban-ret-web
+          file: DevTools/soroban-ret-web/Dockerfile
+          target: runtime-slim
+          push: true
+          tags: |
+            georgii4inferara/soroban-ret-web:1.0.${{ github.run_number }}-slim
+            georgii4inferara/soroban-ret-web:slim
+
       - name: Setup Helm
         uses: azure/setup-helm@v4
         with:

@@ -1,0 +1,36 @@
+# Dev Tools backend (soroban-ret-web) for the Soroban Security Portal.
+#
+# Run standalone:        docker compose -f DevTools/docker-compose.yml up --build
+# Or merge this service into Backend/docker-compose.yml on the same network
+# (see Backend/docker-compose.yml, which already includes it).
+#
+# The portal UI reaches this service via window.env.DEVTOOLS_API_URL
+# (see UI/env.template.js). Point it at this container's published URL, e.g.
+#   DEVTOOLS_API_URL: 'https://your-host/devtools/api/dev-tools'
+services:
+  soroban-ret-web:
+    build:
+      context: ./soroban-ret-web
+    image: soroban-ret-web:latest
+    container_name: soroban-ret-web
+    restart: always
+    environment:
+      - DEVTOOLS_BIND=0.0.0.0
+      - DEVTOOLS_PORT=8787
+      # Public Stellar RPC endpoints (override to use your own / a keyed gateway)
+      - DEVTOOLS_MAINNET_RPC=https://soroban-rpc.mainnet.stellar.gateway.fm
+      - DEVTOOLS_TESTNET_RPC=https://soroban-testnet.stellar.org
+      # soroban-sdk version used to compile user Rust snippets
+      - DEVTOOLS_SOROBAN_SDK_VERSION=22.0.8
+      # Set DEVTOOLS_NO_COMPILE=true to disable the compile endpoint (lighter, no toolchain use)
+      # Register extra soroban-ret CLI versions for the dropdown, e.g.
+      #   DEVTOOLS_RET_BINARIES=0.0.1=/opt/engines/0.0.1/soroban-ret
+      - RUST_LOG=info
+    ports:
+      - "8787:8787"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8787/api/dev-tools/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
