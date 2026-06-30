@@ -299,6 +299,33 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return await query.ToListAsync();
         }
 
+        public async Task<List<ReportModel>> GetListForSources()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var query = db.Report
+                .Include(r => r.Auditor)
+                .Include(r => r.Protocol)
+                .ThenInclude(p => p!.Company)
+                .AsNoTracking()
+                .Where(r => !r.IsHidden && !r.IsDeleted
+                            && (r.Status == ReportModelStatus.Approved || r.Status == ReportModelStatus.New));
+            return await query
+                .Select(v => new ReportModel
+                {
+                    Id = v.Id,
+                    Name = v.Name,
+                    Date = v.Date,
+                    Status = v.Status,
+                    CreatedBy = v.CreatedBy,
+                    LastActionBy = v.LastActionBy,
+                    LastActionAt = v.LastActionAt,
+                    Auditor = v.Auditor,
+                    Protocol = v.Protocol,
+                })
+                .OrderByDescending(v => v.Id)
+                .ToListAsync();
+        }
+
         public async Task<List<ReportModel>> GetListForExamples()
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -387,6 +414,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task Reject(ReportModel reportModel, int userId);
         Task Remove(int reportId);
         Task<List<ReportModel>> GetList(bool includeNotApproved = false);
+        Task<List<ReportModel>> GetListForSources();
         Task<List<ReportModel>> GetListForExamples();
         Task<List<ReportModel>> GetListForEmbedding();
         Task<List<ReportModel>> GetListForFix();

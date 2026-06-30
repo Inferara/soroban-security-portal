@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Caching;
 using SorobanSecurityPortalApi.Common.DataParsers;
 using SorobanSecurityPortalApi.Common.Extensions;
 using SorobanSecurityPortalApi.Common.Security;
@@ -35,6 +36,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IUserContextAccessor _userContextAccessor;
         private readonly IExtendedConfig _extendedConfig;
+        private readonly ILookupCache _lookupCache;
 
         public AgentRunService(
             IMapper mapper,
@@ -45,7 +47,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IAuditorProcessor auditorProcessor,
             IHttpClientFactory httpClientFactory,
             IUserContextAccessor userContextAccessor,
-            IExtendedConfig extendedConfig)
+            IExtendedConfig extendedConfig,
+            ILookupCache lookupCache)
         {
             _mapper = mapper;
             _runProcessor = runProcessor;
@@ -56,6 +59,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             _extendedConfig = extendedConfig;
             _httpClientFactory = httpClientFactory;
             _userContextAccessor = userContextAccessor;
+            _lookupCache = lookupCache;
         }
 
         public async Task<Result<AgentRunViewModel, string>> Enqueue(EnqueueAgentRunViewModel request)
@@ -193,6 +197,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var commit = await _runProcessor.CommitApproval(id, newReport, existingReportId, vulns);
             if (commit == null)
                 return new Result<bool, string>.Err("Run is no longer in a succeeded state (already approved?).");
+            // Approve writes reports directly (bypassing ReportService), so invalidate lookup caches here.
+            _lookupCache.Remove(LookupCacheKeys.Reports);
+            _lookupCache.Remove(LookupCacheKeys.Sources);
             return new Result<bool, string>.Ok(true);
         }
 

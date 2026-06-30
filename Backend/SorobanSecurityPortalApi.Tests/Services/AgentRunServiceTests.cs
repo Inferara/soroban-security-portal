@@ -7,6 +7,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SorobanSecurityPortalApi.Common;
+using SorobanSecurityPortalApi.Common.Caching;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.Mapping;
@@ -31,7 +32,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
             Mock<IProtocolProcessor>? protocolProc = null,
             Mock<IAuditorProcessor>? auditorProc = null,
             Mock<IHttpClientFactory>? httpFactory = null,
-            Mock<IExtendedConfig>? extendedConfig = null)
+            Mock<IExtendedConfig>? extendedConfig = null,
+            Mock<ILookupCache>? lookupCache = null)
         {
             var userCtx = new Mock<IUserContextAccessor>();
             userCtx.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(99);
@@ -44,7 +46,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 (auditorProc ?? new Mock<IAuditorProcessor>()).Object,
                 (httpFactory ?? new Mock<IHttpClientFactory>()).Object,
                 userCtx.Object,
-                (extendedConfig ?? new Mock<IExtendedConfig>()).Object);
+                (extendedConfig ?? new Mock<IExtendedConfig>()).Object,
+                (lookupCache ?? new Mock<ILookupCache>()).Object);
         }
 
         private static Mock<IHttpClientFactory> HttpFactoryReturning(byte[] body)
