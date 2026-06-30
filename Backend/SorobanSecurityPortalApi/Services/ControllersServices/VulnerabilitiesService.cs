@@ -80,7 +80,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             return await _lookupCache.GetOrCreateAsync(LookupCacheKeys.Sources, async () =>
             {
-                var reports = await _reportProcessor.GetList();
+                // Include New (agent-created) reports as well as Approved ones so editing an agent-originated finding can resolve its source report; hidden/deleted/rejected reports are excluded.
+                var reports = await _reportProcessor.GetListForSources();
                 var result = new List<IdValueUrl>();
                 foreach (var report in reports)
                 {

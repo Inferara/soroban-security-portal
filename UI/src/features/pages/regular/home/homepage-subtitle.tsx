@@ -5,12 +5,14 @@ export interface HomepageSubtitleProps {
     title: string;
     isCompact?: boolean;
     isLeft?: boolean;
+    uppercaseTitle?: boolean; // control uppercase styling, default true
 }
 
 export const HomepageSubtitle: FC<HomepageSubtitleProps> = ({
     title,
     isCompact = false,
-    isLeft = true
+    isLeft = true,
+    uppercaseTitle = true
 }) => {
     return (
         <Box
@@ -31,7 +33,7 @@ export const HomepageSubtitle: FC<HomepageSubtitleProps> = ({
             }}>
                 <Typography variant={isCompact ? 'h4' : 'h2'} sx={{
                     color: 'text.primary',
-                    textTransform: "uppercase",
+                    textTransform: uppercaseTitle ? "uppercase" : "none",
                     whiteSpace: 'nowrap',
                     textAlign: isCompact ? 'center' : { xs: 'center', sm: 'center', md: isLeft ? 'right' : 'left' },
                 }}>{title}</Typography>
