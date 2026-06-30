@@ -15,6 +15,11 @@ on:
         description: 'Environment name'
         required: false
         default: 'prod'
+      enableCompile:
+        description: 'Enable the Dev Tools /compile endpoint (runs an unsandboxed Rust toolchain in the soroban-ret-web pod)'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   deploy:
@@ -42,6 +47,7 @@ jobs:
           API_URL: ${{ inputs.apiUrl }}
           HOST_NAME: ${{ inputs.hostName }}
           ENV_NAME: ${{ inputs.envName }}
+          ENABLE_COMPILE: ${{ inputs.enableCompile }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER_NAME: ${{ secrets.POSTGRES_USER }}
           DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -60,6 +66,16 @@ jobs:
           buildNumber=$(date +'%y%m%d%H%M%S')
           echo "Deploying Soroban Security Portal (build $buildNumber)..."
 
+          # The chart defaults the Dev Tools /compile endpoint OFF. Turn it on only
+          # when this deploy was dispatched with enableCompile=true.
+          if [ "$ENABLE_COMPILE" = "true" ]; then
+            noCompile="false"
+            echo "Dev Tools /compile endpoint: ENABLED"
+          else
+            noCompile="true"
+            echo "Dev Tools /compile endpoint: disabled"
+          fi
+
           helm upgrade sorobansecurityportal \
             oci://registry-1.docker.io/georgii4inferara/sorobansecurityportal \
             --devel \
@@ -70,6 +86,7 @@ jobs:
             --set global.app.build="$buildNumber" \
             --set global.app.domain="$HOST_NAME" \
             --set global.sorobansecurityportalui.apiUrl="$API_URL" \
+            --set-string global.devtools.noCompile="$noCompile" \
             --set global.sorobansecurityportalui.gaId="$GA_ID" \
             --set global.environment.namespace=sorobansecurityportal-ns \
             --set global.environment.name="$ENV_NAME" \
