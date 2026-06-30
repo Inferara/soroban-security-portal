@@ -64,9 +64,30 @@ jobs:
       - name: Build
         run: dotnet build SorobanSecurityPortal.sln --no-restore
 
+  test-devtools:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: DevTools/soroban-ret-web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.3
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Test
+        run: cargo test --locked
+
   build-images:
     runs-on: ubuntu-latest
-    needs: [test-frontend, test-backend]
+    needs: [test-frontend, test-backend, test-devtools]
 
     steps:
       - name: Checkout code
@@ -84,4 +105,22 @@ jobs:
         with:
           context: UI
           file: UI/Dockerfile
+          push: false
+
+      - name: Build Dev Tools (soroban-ret-web) image
+        uses: docker/build-push-action@v3
+        with:
+          context: DevTools/soroban-ret-web
+          file: DevTools/soroban-ret-web/Dockerfile
+          push: false
+          # Skip the slow SDK pre-warm for PR validation (the service warms on startup).
+          build-args: |
+            PREWARM=false
+
+      - name: Build Dev Tools (soroban-ret-web) slim image
+        uses: docker/build-push-action@v3
+        with:
+          context: DevTools/soroban-ret-web
+          file: DevTools/soroban-ret-web/Dockerfile
+          target: runtime-slim
           push: false

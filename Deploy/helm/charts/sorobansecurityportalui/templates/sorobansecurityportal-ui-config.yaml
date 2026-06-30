@@ -12,3 +12,7 @@ data:
   GA_ID: "{{ .Values.global.sorobansecurityportalui.gaId }}"
   # In-cluster API service (host:port) used by nginx to fetch server-rendered OG meta for crawlers.
   OG_API_UPSTREAM: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-ip:8080"
+  # Dev Tools backend reached same-origin: nginx proxies /devtools/ to this upstream,
+  # and the SPA calls DEVTOOLS_API_URL (a same-origin path), avoiding cross-origin/CORS.
+  DEVTOOLS_UPSTREAM: "{{ .Values.global.environment.name }}-soroban-ret-web-ip:8787"
+  DEVTOOLS_API_URL: "{{ .Values.global.sorobansecurityportalui.devToolsApiUrl | default "/devtools/api/dev-tools" }}"

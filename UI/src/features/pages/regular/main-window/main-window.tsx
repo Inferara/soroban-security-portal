@@ -30,6 +30,7 @@ import { Vulnerabilities } from '../vulnerabilities/vulnerabilities';
 import { AddVulnerability } from '../vulnerabilities-add/vulnerabilities-add';
 import { AddReport } from '../reports-add/reports-add';
 import { About } from '../about/about';
+import { DevTools } from '../dev-tools/dev-tools';
 import { Profile } from '../profile/profile';
 import { EditProfile } from '../profile/edit-profile';
 import { PublicProfile } from '../profile/public-profile';
@@ -113,6 +114,7 @@ export const MainWindow: FC = () => {
     { label: 'Home', path: '/' },
     { label: 'Reports', path: '/reports' },
     { label: 'Vulnerabilities', path: '/vulnerabilities' },
+    { label: 'Dev Tools', path: '/dev-tools' },
     { label: 'About', path: '/about' },
   ];
   const isAdminUser = isAdminOrModerator(auth);
@@ -426,6 +428,7 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/reports/add`} element={<AddReport />} />
             <Route path={`${environment.basePath}/vulnerabilities`} element={<Vulnerabilities />} />
             <Route path={`${environment.basePath}/vulnerabilities/add`} element={<AddVulnerability />} />
+            <Route path={`${environment.basePath}/dev-tools`} element={<DevTools />} />
             <Route path={`${environment.basePath}/about`} element={<About />} />
             <Route path={`${environment.basePath}/profile`} element={<Profile />} />
             <Route path={`${environment.basePath}/profile/edit`} element={<EditProfile />} />
