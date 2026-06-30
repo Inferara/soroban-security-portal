@@ -42,12 +42,15 @@ global:
     # (read-only/empty-root FS, no network, resource caps) and/or behind auth.
     noCompile: "true"
     # Compilation is CPU/RAM heavy; cap it so a build can't starve the node.
+    # Node is a single 1-CPU box. With ~700m already requested by other pods,
+    # leave room for this one with a modest request (it can still burst to the
+    # limit when the core is free). See the Recreate strategy in the deployment.
     resources:
       requests:
-        cpu: "250m"
+        cpu: "150m"
         memory: "512Mi"
       limits:
-        cpu: "2"
+        cpu: "1"
         memory: "2Gi"
   letsEncryptIssuer: ""
   secrets:

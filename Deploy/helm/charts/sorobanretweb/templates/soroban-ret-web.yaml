@@ -9,6 +9,12 @@ metadata:
     build: "{{ .Values.global.app.build }}"
 spec:
   replicas: 1
+  # The cluster is a single 1-CPU node, so two pods (old + surge) can't fit during
+  # a rolling update and the new one gets stuck Pending. Recreate tears the old pod
+  # down before starting the new one. Trade-off: the Dev Tools backend is briefly
+  # unavailable while the replacement warms up.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: "{{ .Values.global.environment.name }}-soroban-ret-web"
