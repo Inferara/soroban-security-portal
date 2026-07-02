@@ -331,4 +331,69 @@ namespace SorobanSecurityPortalApi.Tests.Services
             result.Should().BeNull();
         }
     }
+
+    // ---- Statistics Changes tests ----
+
+    [Fact]
+    public async Task ReportGetStatisticsChanges_CountsReportsWithRecentLastActionAt()
+    {
+        var ago = DateTime.UtcNow.AddMonths(-1);
+        var list = new List<ReportModel>
+        {
+            new()
+            {
+                Id = 1, Status = ReportModelStatus.Approved, IsHidden = false, IsDeleted = false,
+                Name = "Recent", LastActionAt = DateTime.UtcNow.AddDays(-5),
+                Date = DateTime.UtcNow.AddMonths(-6) // old audit date, should still count
+            },
+            new()
+            {
+                Id = 2, Status = ReportModelStatus.Approved, IsHidden = false, IsDeleted = false,
+                Name = "Old", LastActionAt = DateTime.UtcNow.AddMonths(-3),
+                Date = DateTime.UtcNow
+            },
+        };
+
+        var (processor, _) = BuildReportProcessor(list);
+
+        var result = await processor.GetStatisticsChanges();
+
+        result.Total.Should().Be(2);
+        result.New.Should().Be(1, "only the report with LastActionAt within the last month counts");
+    }
+
+    [Fact]
+    public async Task ReportGetStatisticsChanges_ExcludesHiddenDeletedUnapproved()
+    {
+        var list = new List<ReportModel>
+        {
+            new()
+            {
+                Id = 1, Status = ReportModelStatus.Approved, IsHidden = false, IsDeleted = false,
+                Name = "Visible Approved", LastActionAt = DateTime.UtcNow.AddDays(-1)
+            },
+            new()
+            {
+                Id = 2, Status = ReportModelStatus.Approved, IsHidden = true, IsDeleted = false,
+                Name = "Hidden Approved", LastActionAt = DateTime.UtcNow.AddDays(-1)
+            },
+            new()
+            {
+                Id = 3, Status = ReportModelStatus.Approved, IsHidden = false, IsDeleted = true,
+                Name = "Deleted Approved", LastActionAt = DateTime.UtcNow.AddDays(-1)
+            },
+            new()
+            {
+                Id = 4, Status = ReportModelStatus.New, IsHidden = false, IsDeleted = false,
+                Name = "Unapproved", LastActionAt = DateTime.UtcNow.AddDays(-1)
+            },
+        };
+
+        var (processor, _) = BuildReportProcessor(list);
+
+        var result = await processor.GetStatisticsChanges();
+
+        result.Total.Should().Be(1);
+        result.New.Should().Be(1);
+    }
 }
