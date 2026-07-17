@@ -114,6 +114,32 @@ contract info). Decompilation fidelity depends on the soroban-ret version;
 freshly compiled trivial snippets may not round-trip exactly, while the Samples
 and real on-chain contracts recover best.
 
+Versions can also be provided as binaries in a scanned directory
+(`--engines-dir` / `DEVTOOLS_ENGINES_DIR`, unset by default). Files named
+`soroban-ret-<version>` (strict `x.y.z`, executable) are registered as CLI
+engines; the directory is rescanned on every lookup, so a newly added binary
+appears in the dropdown immediately — no restart. Dotfiles/`.tmp` staging
+files and foreign names are ignored; an explicit `DEVTOOLS_RET_BINARIES`
+entry wins over a same-version dir file, and the builtin version always wins
+over both.
+
+In Kubernetes this directory is a 1Gi PVC mounted at `/engines`. The
+`devtools-engines` GitHub workflow (daily + manual dispatch) checks crates.io
+for new `soroban-ret-cli` releases, builds each missing version as a static
+musl binary on the runner, smoke-tests it and uploads it via `kubectl exec`
+streaming (a dotfile staging name, then an atomic `mv`) — so new crate
+releases show up on `/dev-tools` without any portal rebuild or redeploy. The
+same logic can be run by hand against any cluster (e.g. dev) via:
+
+```bash
+NAMESPACE=sorobansecurityportal-ns bash DevTools/scripts/upload-engines.sh
+```
+
+(On non-Linux hosts the build runs inside a `rust:alpine` container
+automatically.) The builtin library version itself is derived from
+`Cargo.lock` at build time (`build.rs`), so bumping the `soroban-ret`
+dependency in `Cargo.toml` is the single source of truth for it.
+
 ## Running locally
 
 ### 1. Backend
@@ -141,6 +167,7 @@ Useful flags / env vars (all overridable):
 | `--stellar-bin` / `DEVTOOLS_STELLAR_BIN` | (use `stellar` on PATH, else `cargo`) |
 | `--no-compile` / `DEVTOOLS_NO_COMPILE` | `false` |
 | `DEVTOOLS_RET_BINARIES` | (empty) — `version=path;…` external CLI engines |
+| `--engines-dir` / `DEVTOOLS_ENGINES_DIR` | (unset) — directory scanned for `soroban-ret-<version>` engine binaries |
 | `DEVTOOLS_MAX_CONCURRENCY` | host parallelism — cap on concurrent disassembly jobs |
 | `DEVTOOLS_CORS_ALLOW_ORIGINS` | `*` (any) — comma-separated allowlist to restrict CORS |
 
