@@ -41,8 +41,8 @@ global:
     # enable (--set global.devtools.noCompile=false) once it's sandboxed
     # (read-only/empty-root FS, no network, resource caps) and/or behind auth.
     noCompile: "true"
-    # Engine binaries uploaded by the devtools-engines workflow (kubectl cp
-    # onto this PVC); the service rescans the directory on every request.
+    # Engine binaries uploaded by the devtools-engines workflow (streamed
+    # onto this PVC via kubectl exec); the service rescans the directory on every request.
     engines:
       storageClassName: "local-path"
       storage: "1Gi"

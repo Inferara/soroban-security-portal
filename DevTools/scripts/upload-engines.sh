@@ -41,11 +41,11 @@ build_engine() {
     # docker cp. The smoke test runs inside the container because the
     # produced Linux binary can't run on a non-Linux host.
     local cname="ret-engine-build-$v-$$"
-    if ! docker run --name "$cname" -i rust:alpine sh -ec "
+    if ! docker run --platform linux/amd64 --name "$cname" -i rust:alpine sh -ec "
       cat > /tmp/fixture.wasm
       apk add -q musl-dev
-      cargo install soroban-ret-cli --version $v --root /tmp/eng
-      /tmp/eng/bin/soroban-ret /tmp/fixture.wasm > /dev/null" \
+      cargo install soroban-ret-cli --version $v --root /tmp/eng --target x86_64-unknown-linux-musl
+      /tmp/eng/bin/soroban-ret /tmp/fixture.wasm > /tmp/smoke.out 2>&1; [ -s /tmp/smoke.out ]" \
       < "$FIXTURE_DIR/test_add_u64.wasm"; then
       docker rm -f "$cname" > /dev/null 2>&1 || true
       return 1
@@ -57,7 +57,7 @@ build_engine() {
     local root="$WORK_ROOT/build-$v"
     mkdir -p "$root"
     cargo install soroban-ret-cli --version "$v" --target "$TARGET" --root "$root"
-    "$root/bin/soroban-ret" "$FIXTURE_DIR/test_add_u64.wasm" > /dev/null
+    "$root/bin/soroban-ret" "$FIXTURE_DIR/test_add_u64.wasm" > "$root/smoke.out" 2>&1; [ -s "$root/smoke.out" ]
     install -m 0755 "$root/bin/soroban-ret" "$dest"
   fi
 }

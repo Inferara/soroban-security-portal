@@ -141,7 +141,7 @@ dist
 !.eslintrc.cjs
 
 # Rust build artifacts
-target/
+DevTools/soroban-ret-web/target/
 
 # Local kubeconfig used for ad-hoc cluster access — never commit (contains credentials)
 kubeconfig.temp

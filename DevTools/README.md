@@ -119,7 +119,8 @@ Versions can also be provided as binaries in a scanned directory
 `soroban-ret-<version>` (strict `x.y.z`, executable) are registered as CLI
 engines; the directory is rescanned on every lookup, so a newly added binary
 appears in the dropdown immediately — no restart. Dotfiles/`.tmp` staging
-files and foreign names are ignored; an explicit `DEVTOOLS_RET_BINARIES`
+files, symlinks, and foreign names are ignored (only regular executable files
+are registered); an explicit `DEVTOOLS_RET_BINARIES`
 entry wins over a same-version dir file, and the builtin version always wins
 over both.
 

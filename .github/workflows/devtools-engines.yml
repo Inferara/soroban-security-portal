@@ -10,9 +10,12 @@ on:
     - cron: '17 3 * * *'
   workflow_dispatch:
 
+concurrency: devtools-engines
+
 jobs:
   sync-engines:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
 
@@ -30,6 +33,7 @@ jobs:
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
 
       - name: Build and upload missing engines
         run: bash DevTools/scripts/upload-engines.sh
