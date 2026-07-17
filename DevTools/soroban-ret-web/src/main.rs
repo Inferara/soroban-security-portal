@@ -38,8 +38,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 
-/// soroban-ret library version this service is built against.
-const RET_VERSION: &str = "0.0.2";
+/// soroban-ret library version this service is built against — derived from
+/// Cargo.lock by build.rs, so it can never go stale on a dependency bump.
+const RET_VERSION: &str = env!("RET_VERSION");
 
 #[derive(Parser)]
 #[command(name = "soroban-ret-web")]

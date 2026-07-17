@@ -126,3 +126,31 @@ fn natural_version_cmp(a: &str, b: &str) -> std::cmp::Ordering {
     };
     parse(a).cmp(&parse(b))
 }
+
+#[cfg(test)]
+mod tests {
+    /// The version reported as "builtin" must always equal the soroban-ret
+    /// entry in Cargo.lock — guards against the stale-constant bug where the
+    /// dependency was bumped to 0.0.3 but the constant said 0.0.2.
+    #[test]
+    fn builtin_version_matches_cargo_lock() {
+        let lock = include_str!("../Cargo.lock");
+        let mut in_ret_package = false;
+        let mut lock_version = None;
+        for line in lock.lines() {
+            let line = line.trim();
+            if line == "[[package]]" {
+                in_ret_package = false;
+            } else if line == "name = \"soroban-ret\"" {
+                in_ret_package = true;
+            } else if in_ret_package {
+                if let Some(v) = line.strip_prefix("version = ") {
+                    lock_version = Some(v.trim_matches('"').to_string());
+                    break;
+                }
+            }
+        }
+        let lock_version = lock_version.expect("soroban-ret not found in Cargo.lock");
+        assert_eq!(env!("RET_VERSION"), lock_version);
+    }
+}
