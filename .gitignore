@@ -140,5 +140,8 @@ dist
 !.dockerignore
 !.eslintrc.cjs
 
+# Rust build artifacts
+target/
+
 # Local kubeconfig used for ad-hoc cluster access — never commit (contains credentials)
 kubeconfig.temp
