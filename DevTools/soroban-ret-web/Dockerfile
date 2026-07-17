@@ -3,7 +3,7 @@
 # ---- Build stage: compile the service binary ----
 FROM rust:1.96-bookworm AS build
 WORKDIR /app
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml Cargo.lock build.rs ./
 COPY src ./src
 COPY fixtures ./fixtures
 RUN cargo build --release --bin soroban-ret-web
