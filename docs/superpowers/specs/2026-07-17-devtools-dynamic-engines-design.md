@@ -31,8 +31,11 @@ This is a direct consequence of the manual process.
 ## Decision
 
 Build engine binaries **in GitHub Actions CI** (fast, free CPU), upload them
-**into the cluster** with `kubectl cp` onto a PVC, and have `soroban-ret-web`
-**scan that directory** to register versions dynamically. No GitHub releases,
+**into the cluster** via `kubectl exec` streaming onto a PVC, and have
+`soroban-ret-web` **scan that directory** to register versions dynamically.
+(Originally specified as `kubectl cp`; implementation switched to
+`kubectl exec -i … "cat > …"` streaming — same kubectl trust model, but no
+tar dependency in the container and immune to Git-Bash path mangling.) No GitHub releases,
 no new public endpoints, no image rebuilds when a new crate version appears.
 
 Rejected alternatives:
@@ -94,9 +97,9 @@ Steps:
      on the runner (musl → static binary, runs on any Linux including the K3S
      node and the runner itself);
    - smoke-test on the runner: disassemble a fixture WASM, non-empty output;
-   - upload atomically: `kubectl cp` to `/engines/.soroban-ret-<X>.tmp`, then
-     `kubectl exec mv` to the final name (the scanner never sees a partial
-     file).
+   - upload atomically: stream via `kubectl exec -i … "cat > /engines/.soroban-ret-<X>.tmp"`,
+     then `kubectl exec mv` to the final name (the scanner never sees a
+     partial file).
 4. Log a summary of what was added / skipped.
 
 The upload logic lives in `DevTools/scripts/upload-engines.sh` so it can also be
