@@ -20,6 +20,8 @@ TARGET="x86_64-unknown-linux-musl"
 ENGINES_DIR="/engines"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FIXTURE_DIR="$SCRIPT_DIR/../soroban-ret-web/fixtures"
+WORK_ROOT="$(mktemp -d)"
+trap 'rm -rf "$WORK_ROOT"' EXIT
 
 use_docker() {
   case "${USE_DOCKER:-auto}" in
@@ -39,22 +41,24 @@ build_engine() {
     # docker cp. The smoke test runs inside the container because the
     # produced Linux binary can't run on a non-Linux host.
     local cname="ret-engine-build-$v-$$"
-    docker run --name "$cname" -i rust:alpine sh -ec "
+    if ! docker run --name "$cname" -i rust:alpine sh -ec "
       cat > /tmp/fixture.wasm
       apk add -q musl-dev
       cargo install soroban-ret-cli --version $v --root /tmp/eng
       /tmp/eng/bin/soroban-ret /tmp/fixture.wasm > /dev/null" \
-      < "$FIXTURE_DIR/test_add_u64.wasm"
+      < "$FIXTURE_DIR/test_add_u64.wasm"; then
+      docker rm -f "$cname" > /dev/null 2>&1 || true
+      return 1
+    fi
     docker cp "$cname:/tmp/eng/bin/soroban-ret" "$dest"
     docker rm "$cname" > /dev/null
     chmod 0755 "$dest" 2>/dev/null || true
   else
-    local root
-    root="$(mktemp -d)"
+    local root="$WORK_ROOT/build-$v"
+    mkdir -p "$root"
     cargo install soroban-ret-cli --version "$v" --target "$TARGET" --root "$root"
     "$root/bin/soroban-ret" "$FIXTURE_DIR/test_add_u64.wasm" > /dev/null
     install -m 0755 "$root/bin/soroban-ret" "$dest"
-    rm -rf "$root"
   fi
 }
 
@@ -69,25 +73,34 @@ echo "Target pod: $NAMESPACE/$pod"
 versions="$(curl -fsSL https://crates.io/api/v1/crates/soroban-ret-cli \
   | jq -r '.versions[] | select(.yanked | not) | .num')"
 echo "crates.io soroban-ret-cli versions:" $versions
-existing="$(kubectl -n "$NAMESPACE" exec "$pod" -- ls "$ENGINES_DIR" 2>/dev/null || true)"
+existing="$(kubectl -n "$NAMESPACE" exec "$pod" -- sh -c "ls $ENGINES_DIR 2>/dev/null || true")"
 
 added=0 skipped=0
 for v in $versions; do
+  if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "skip $v (unexpected version format)" >&2
+    skipped=$((skipped + 1))
+    continue
+  fi
   if printf '%s\n' "$existing" | grep -qx "soroban-ret-$v"; then
     echo "skip $v (already uploaded)"
     skipped=$((skipped + 1))
     continue
   fi
-  work="$(mktemp -d)"
+  work="$WORK_ROOT/$v"
+  mkdir -p "$work"
   echo "building soroban-ret-cli $v ($TARGET)..."
   build_engine "$v" "$work/soroban-ret-$v"
   echo "uploading soroban-ret-$v..."
   # Two-phase upload: the scanner ignores dotfiles, so a partially copied
   # binary can never be picked up; mv within the same filesystem is atomic.
-  kubectl -n "$NAMESPACE" cp "$work/soroban-ret-$v" "$pod:$ENGINES_DIR/.soroban-ret-$v.tmp"
+  # Streaming via `exec -i cat` instead of `kubectl cp` keeps every remote
+  # path inside a quoted sh -c string, immune to Git-Bash/MSYS path
+  # conversion, and needs no tar in the container.
+  kubectl -n "$NAMESPACE" exec -i "$pod" -- sh -ec \
+    "cat > $ENGINES_DIR/.soroban-ret-$v.tmp" < "$work/soroban-ret-$v"
   kubectl -n "$NAMESPACE" exec "$pod" -- sh -ec \
     "chmod 0755 $ENGINES_DIR/.soroban-ret-$v.tmp && mv $ENGINES_DIR/.soroban-ret-$v.tmp $ENGINES_DIR/soroban-ret-$v"
-  rm -rf "$work"
   added=$((added + 1))
 done
 echo "Done: $added uploaded, $skipped already present."
