@@ -43,6 +43,8 @@ spec:
               value: "{{ .Values.global.devtools.sorobanSdkVersion }}"
             - name: DEVTOOLS_NO_COMPILE
               value: "{{ .Values.global.devtools.noCompile }}"
+            - name: DEVTOOLS_ENGINES_DIR
+              value: "/engines"
             - name: RUST_LOG
               value: "info"
           readinessProbe:
@@ -63,3 +65,10 @@ spec:
           resources:
 {{ toYaml .Values.global.devtools.resources | indent 12 }}
           imagePullPolicy: "{{ .Values.global.containerRegistry.imagePullPolicy }}"
+          volumeMounts:
+            - name: engines
+              mountPath: /engines
+      volumes:
+        - name: engines
+          persistentVolumeClaim:
+            claimName: "{{ .Values.global.environment.name }}-soroban-ret-engines"

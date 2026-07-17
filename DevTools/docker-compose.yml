@@ -28,7 +28,10 @@ services:
       # Restrict CORS when exposing cross-origin: DEVTOOLS_CORS_ALLOW_ORIGINS=https://host
       # Register extra soroban-ret CLI versions for the dropdown, e.g.
       #   DEVTOOLS_RET_BINARIES=0.0.1=/opt/engines/0.0.1/soroban-ret
+      - DEVTOOLS_ENGINES_DIR=/engines
       - RUST_LOG=info
+    volumes:
+      - soroban-ret-engines-volume:/engines
     ports:
       - "8787:8787"
     healthcheck:
@@ -37,3 +40,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+volumes:
+  soroban-ret-engines-volume:

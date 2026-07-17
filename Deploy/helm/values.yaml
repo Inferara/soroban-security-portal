@@ -41,6 +41,11 @@ global:
     # enable (--set global.devtools.noCompile=false) once it's sandboxed
     # (read-only/empty-root FS, no network, resource caps) and/or behind auth.
     noCompile: "true"
+    # Engine binaries uploaded by the devtools-engines workflow (kubectl cp
+    # onto this PVC); the service rescans the directory on every request.
+    engines:
+      storageClassName: "local-path"
+      storage: "1Gi"
     # Compilation is CPU/RAM heavy; cap it so a build can't starve the node.
     # Node is a single 1-CPU box. With ~700m already requested by other pods,
     # leave room for this one with a modest request (it can still burst to the
