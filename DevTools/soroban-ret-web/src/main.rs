@@ -86,6 +86,11 @@ struct Cli {
     /// Disable the compile endpoint entirely (skips skeleton scaffold + warm)
     #[arg(long, env = "DEVTOOLS_NO_COMPILE", default_value = "false")]
     no_compile: bool,
+
+    /// Directory scanned for uploaded `soroban-ret-<version>` engine binaries
+    /// (rescanned on every request; unset = disabled)
+    #[arg(long, env = "DEVTOOLS_ENGINES_DIR")]
+    engines_dir: Option<PathBuf>,
 }
 
 struct AppState {
@@ -163,7 +168,10 @@ async fn main() {
         CompileEnv::init(dir, cli.soroban_sdk_version.clone(), cli.stellar_bin.clone()).await
     };
 
-    let registry = Registry::from_env(RET_VERSION);
+    if let Some(dir) = &cli.engines_dir {
+        log::info!("Scanning for engine binaries in {}", dir.display());
+    }
+    let registry = Registry::from_env(RET_VERSION, cli.engines_dir.clone());
     log::info!("soroban-ret versions available: {}", registry.available().join(", "));
 
     let state = Arc::new(AppState {
