@@ -36,4 +36,9 @@ jobs:
           chmod 600 $HOME/.kube/config
 
       - name: Build and upload missing engines
+        env:
+          # The prod Helm release uses environment.name "prod", so the pod is
+          # labeled app=prod-soroban-ret-web (the script's default matches the
+          # chart's default name, which dev uses).
+          APP_LABEL: prod-soroban-ret-web
         run: bash DevTools/scripts/upload-engines.sh
