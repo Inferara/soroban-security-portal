@@ -1,0 +1,44 @@
+name: Sync Dev Tools engine versions
+
+# Keeps the soroban-ret version dropdown on /dev-tools in sync with crates.io:
+# builds any newly published soroban-ret-cli version as a static musl binary
+# on the runner and uploads it into the soroban-ret-web pod's /engines PVC.
+# No portal rebuild or redeploy involved.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+concurrency: devtools-engines
+
+jobs:
+  sync-engines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.3
+
+      - name: Install musl build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends musl-tools jq
+          rustup target add x86_64-unknown-linux-musl
+
+      - name: Write kubeconfig from secret
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Build and upload missing engines
+        env:
+          # The prod Helm release uses environment.name "prod", so the pod is
+          # labeled app=prod-soroban-ret-web (the script's default matches the
+          # chart's default name, which dev uses).
+          APP_LABEL: prod-soroban-ret-web
+        run: bash DevTools/scripts/upload-engines.sh

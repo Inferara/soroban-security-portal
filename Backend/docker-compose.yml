@@ -87,7 +87,10 @@ services:
       # Compile runs arbitrary user Rust on the server — off by default. Only
       # enable once it's sandboxed and/or behind auth.
       - DEVTOOLS_NO_COMPILE=true
+      - DEVTOOLS_ENGINES_DIR=/engines
       - RUST_LOG=info
+    volumes:
+      - soroban-ret-engines-volume:/engines
     ports:
       - "8787:8787"
     healthcheck:
@@ -102,6 +105,7 @@ services:
 volumes:
   soroban-security-portal-db-vector-volume:
   soroban-security-portal-default-db-vector-volume:
+  soroban-ret-engines-volume:
 networks:
   soroban-security-portal-network:
     driver: bridge

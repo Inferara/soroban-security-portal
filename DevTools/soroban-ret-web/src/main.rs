@@ -38,8 +38,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 
-/// soroban-ret library version this service is built against.
-const RET_VERSION: &str = "0.0.2";
+/// soroban-ret library version this service is built against — derived from
+/// Cargo.lock by build.rs, so it can never go stale on a dependency bump.
+const RET_VERSION: &str = env!("RET_VERSION");
 
 #[derive(Parser)]
 #[command(name = "soroban-ret-web")]
@@ -85,6 +86,11 @@ struct Cli {
     /// Disable the compile endpoint entirely (skips skeleton scaffold + warm)
     #[arg(long, env = "DEVTOOLS_NO_COMPILE", default_value = "false")]
     no_compile: bool,
+
+    /// Directory scanned for uploaded `soroban-ret-<version>` engine binaries
+    /// (rescanned on every request; unset = disabled)
+    #[arg(long, env = "DEVTOOLS_ENGINES_DIR")]
+    engines_dir: Option<PathBuf>,
 }
 
 struct AppState {
@@ -162,7 +168,10 @@ async fn main() {
         CompileEnv::init(dir, cli.soroban_sdk_version.clone(), cli.stellar_bin.clone()).await
     };
 
-    let registry = Registry::from_env(RET_VERSION);
+    if let Some(dir) = &cli.engines_dir {
+        log::info!("Scanning for engine binaries in {}", dir.display());
+    }
+    let registry = Registry::from_env(RET_VERSION, cli.engines_dir.clone());
     log::info!("soroban-ret versions available: {}", registry.available().join(", "));
 
     let state = Arc::new(AppState {

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-soroban-ret-engines"
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "{{ .Values.global.devtools.engines.storageClassName }}"
+  resources:
+    requests:
+      storage: "{{ .Values.global.devtools.engines.storage }}"
