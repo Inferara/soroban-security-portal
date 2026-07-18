@@ -9,7 +9,9 @@ RUN apt-get update && \
 	
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
-    npm install -g npm@latest
+    # npm 12+ dropped Node 20 support, so "latest" breaks this image; stay on
+    # the newest npm that still runs on Node 20.
+    npm install -g npm@11
 
 ENV PLAYWRIGHT_NODEJS_PATH=/usr/bin/node
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
