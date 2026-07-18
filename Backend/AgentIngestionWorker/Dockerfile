@@ -12,7 +12,9 @@ RUN apt-get update && \
     apt-get install -y curl gnupg && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
-    npm install -g npm@latest opencode-ai@1.14.28 && \
+    # npm 12+ dropped Node 20 support, so "latest" breaks this image; stay on
+    # the newest npm that still runs on Node 20.
+    npm install -g npm@11 opencode-ai@1.14.28 && \
     rm -rf /var/lib/apt/lists/*
 
 # HOME is set here and overridden in the Helm Deployment via env so that
