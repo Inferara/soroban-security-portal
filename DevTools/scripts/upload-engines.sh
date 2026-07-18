@@ -70,12 +70,12 @@ if [ -z "$pod" ]; then
 fi
 echo "Target pod: $NAMESPACE/$pod"
 
-versions="$(curl -fsSL https://crates.io/api/v1/crates/soroban-ret-cli \
+versions="$(curl -fsSL -A "soroban-security-portal/upload-engines (https://github.com/Inferara/soroban-security-portal)" https://crates.io/api/v1/crates/soroban-ret-cli \
   | jq -r '.versions[] | select(.yanked | not) | .num')"
 echo "crates.io soroban-ret-cli versions:" $versions
 existing="$(kubectl -n "$NAMESPACE" exec "$pod" -- sh -c "ls $ENGINES_DIR 2>/dev/null || true")"
 
-added=0 skipped=0
+added=0 skipped=0 failed=0
 for v in $versions; do
   if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "skip $v (unexpected version format)" >&2
@@ -90,17 +90,26 @@ for v in $versions; do
   work="$WORK_ROOT/$v"
   mkdir -p "$work"
   echo "building soroban-ret-cli $v ($TARGET)..."
-  build_engine "$v" "$work/soroban-ret-$v"
+  if ! build_engine "$v" "$work/soroban-ret-$v"; then
+    echo "ERROR: build failed for soroban-ret-cli $v; skipping" >&2
+    failed=$((failed + 1))
+    continue
+  fi
   echo "uploading soroban-ret-$v..."
   # Two-phase upload: the scanner ignores dotfiles, so a partially copied
   # binary can never be picked up; mv within the same filesystem is atomic.
   # Streaming via `exec -i cat` instead of `kubectl cp` keeps every remote
   # path inside a quoted sh -c string, immune to Git-Bash/MSYS path
   # conversion, and needs no tar in the container.
-  kubectl -n "$NAMESPACE" exec -i "$pod" -- sh -ec \
-    "cat > $ENGINES_DIR/.soroban-ret-$v.tmp" < "$work/soroban-ret-$v"
-  kubectl -n "$NAMESPACE" exec "$pod" -- sh -ec \
-    "chmod 0755 $ENGINES_DIR/.soroban-ret-$v.tmp && mv $ENGINES_DIR/.soroban-ret-$v.tmp $ENGINES_DIR/soroban-ret-$v"
+  if ! { kubectl -n "$NAMESPACE" exec -i "$pod" -- sh -ec \
+           "cat > $ENGINES_DIR/.soroban-ret-$v.tmp" < "$work/soroban-ret-$v" \
+         && kubectl -n "$NAMESPACE" exec "$pod" -- sh -ec \
+           "chmod 0755 $ENGINES_DIR/.soroban-ret-$v.tmp && mv $ENGINES_DIR/.soroban-ret-$v.tmp $ENGINES_DIR/soroban-ret-$v"; }; then
+    echo "ERROR: upload failed for soroban-ret-$v" >&2
+    failed=$((failed + 1))
+    continue
+  fi
   added=$((added + 1))
 done
-echo "Done: $added uploaded, $skipped already present."
+echo "Done: $added uploaded, $skipped already present, $failed failed."
+[ "$failed" -eq 0 ] || exit 1
