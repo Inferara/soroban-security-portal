@@ -123,6 +123,13 @@ impl Registry {
             if ver == self.builtin_version {
                 continue;
             }
+            // Regular files only — refuse symlinks explicitly so the
+            // documented contract doesn't hinge on DirEntry::metadata's
+            // no-follow semantics.
+            let Ok(ft) = entry.file_type() else { continue };
+            if ft.is_symlink() {
+                continue;
+            }
             let Ok(md) = entry.metadata() else { continue };
             if !md.is_file() || !is_executable(&md) {
                 continue;
@@ -333,6 +340,16 @@ mod tests {
         let dir = temp_engines_dir();
         let path = add_engine_file(&dir, "soroban-ret-0.0.1");
         fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        let reg = registry("0.0.3", &[], Some(dir));
+        assert_eq!(reg.available(), vec!["0.0.3"]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinks_are_ignored_even_when_target_is_valid() {
+        let dir = temp_engines_dir();
+        let target = add_engine_file(&dir, "real-binary");
+        std::os::unix::fs::symlink(&target, dir.join("soroban-ret-0.0.1")).unwrap();
         let reg = registry("0.0.3", &[], Some(dir));
         assert_eq!(reg.available(), vec!["0.0.3"]);
     }
