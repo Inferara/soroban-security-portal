@@ -72,6 +72,9 @@ export {
 } from './SeverityPieChart';
 export type { SeverityPieChartProps, PieChartDataPoint } from './SeverityPieChart';
 
+export { CategoryFilterPanes } from './CategoryFilterPanes';
+export type { CategoryFilterPanesProps } from './CategoryFilterPanes';
+
 // Error Handling
 export { ChartErrorBoundary, withChartErrorBoundary } from './ChartErrorBoundary';
 export type { ChartErrorBoundaryProps, ChartErrorInfo } from './ChartErrorBoundary';

@@ -36,6 +36,10 @@ export interface SeverityPieChartProps {
   height?: number;
   /** Whether to show in a card wrapper (default: true) */
   showCard?: boolean;
+  /** Currently highlighted slice id (for linked filters) */
+  selectedItemId?: string | number | null;
+  /** Called when a slice is clicked; receives the data point id */
+  onItemClick?: (id: string | number) => void;
 }
 
 /**
@@ -74,6 +78,8 @@ export function SeverityPieChart({
   emptyMessage = 'No data available',
   height = 300,
   showCard = true,
+  selectedItemId = null,
+  onItemClick,
 }: SeverityPieChartProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -81,6 +87,11 @@ export function SeverityPieChart({
   const chartWidth = isMobile ? 280 : 350;
 
   const hasData = data.length > 0 && data.some(d => d.value > 0);
+
+  const seriesId = 'severity-pie-series';
+
+  const selectedDataIndex =
+    selectedItemId != null ? data.findIndex((d) => d.id === selectedItemId) : -1;
 
   const content = (
     <>
@@ -93,10 +104,26 @@ export function SeverityPieChart({
           <PieChart
             series={[
               {
+                id: seriesId,
                 data,
                 highlightScope: { fade: 'global', highlight: 'item' },
               },
             ]}
+            highlightedItem={
+              selectedDataIndex >= 0
+                ? { seriesId, dataIndex: selectedDataIndex }
+                : null
+            }
+            onItemClick={
+              onItemClick
+                ? (_event, identifier) => {
+                    const point = data[identifier.dataIndex];
+                    if (point) {
+                      onItemClick(point.id);
+                    }
+                  }
+                : undefined
+            }
             width={chartWidth}
             height={height}
           />

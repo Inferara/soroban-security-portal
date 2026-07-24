@@ -60,6 +60,7 @@ import {
   SeverityPieChart,
   transformSeverityBreakdown,
   transformCategoryBreakdown,
+  CategoryFilterPanes,
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
@@ -96,6 +97,11 @@ export const ReportDetails: FC = () => {
   const views = usePageViewTracking(PageViewEntityType.Report, report?.id);
 
   const [commentCount, setCommentCount] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<VulnerabilityCategory | null>(null);
+
+  useEffect(() => {
+    setSelectedCategoryId(null);
+  }, [reportId]);
   useEffect(() => {
     if (reportId > 0) {
       getCommentCountCall(CommentEntityType.Report, reportId)
@@ -141,6 +147,23 @@ export const ReportDetails: FC = () => {
       return bSeverity - aSeverity;
     });
   }, [vulnerabilities]);
+
+  const toggleCategoryFilter = (categoryId: number | null) => {
+    if (categoryId === null) {
+      setSelectedCategoryId(null);
+      return;
+    }
+    setSelectedCategoryId((prev) =>
+      prev === categoryId ? null : (categoryId as VulnerabilityCategory)
+    );
+  };
+
+  const filteredVulnerabilities = useMemo(() => {
+    if (selectedCategoryId === null) {
+      return sortedVulnerabilities;
+    }
+    return sortedVulnerabilities.filter((v) => v.category === selectedCategoryId);
+  }, [sortedVulnerabilities, selectedCategoryId]);
 
   const handleReportDownload = async (reportName: string, reportId: number) => {
     if (!isAuthorized(auth)) {
@@ -316,20 +339,40 @@ export const ReportDetails: FC = () => {
                     data={vulnCategoryData}
                     title="Fix Status"
                     emptyMessage="No vulnerability data available"
+                    selectedItemId={selectedCategoryId}
+                    onItemClick={(id) => toggleCategoryFilter(Number(id))}
                   />
                 </Box>
+
+                {vulnCategoryData.length > 0 && (
+                  <Box sx={{ mb: 3 }}>
+                    <CategoryFilterPanes
+                      data={vulnCategoryData}
+                      selectedCategoryId={selectedCategoryId}
+                      onCategorySelect={toggleCategoryFilter}
+                    />
+                  </Box>
+                )}
 
                 {/* Vulnerabilities List */}
                 <Card>
                   <CardContent>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                       <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      Vulnerabilities ({vulnerabilities.length})
+                      Vulnerabilities ({filteredVulnerabilities.length}
+                      {selectedCategoryId !== null ? ` of ${vulnerabilities.length}` : ''})
                     </Typography>
 
-                    {sortedVulnerabilities.length > 0 ? (
+                    {selectedCategoryId !== null && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Showing {getCategoryLabel(selectedCategoryId)} — click the category again to
+                        show all
+                      </Typography>
+                    )}
+
+                    {filteredVulnerabilities.length > 0 ? (
                       <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                        {sortedVulnerabilities.map((vulnerability, index) => (
+                        {filteredVulnerabilities.map((vulnerability, index) => (
                           <Box key={vulnerability.id}>
                             <ListItem disablePadding>
                               <ListItemButton
@@ -429,13 +472,15 @@ export const ReportDetails: FC = () => {
                                 />
                               </ListItemButton>
                             </ListItem>
-                            {index < sortedVulnerabilities.length - 1 && <Divider />}
+                            {index < filteredVulnerabilities.length - 1 && <Divider />}
                           </Box>
                         ))}
                       </List>
                     ) : (
                       <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                        No vulnerabilities found in this report
+                        {selectedCategoryId !== null
+                          ? 'No vulnerabilities match this category filter'
+                          : 'No vulnerabilities found in this report'}
                       </Typography>
                     )}
                   </CardContent>
