@@ -14,7 +14,7 @@ import { useAuth } from 'react-oidc-context';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../../../app/hooks.ts';
 import { AdminLeftMenu } from '../left-menu/admin-left-menu.tsx';
-import { NoPage } from '../no-page/no-page.tsx';
+import { NotFound } from '../../regular/not-found/not-found';
 import { Settings } from '../settings/settings.tsx';
 import './admin-main-window.css';
 import { AddUser } from '../users/add-item/add-user.tsx';
@@ -304,7 +304,7 @@ export const AdminMainWindow: FC = () => {
 
           <Route path={`${environment.basePath}/admin/moderation`} element={<ModerationDashboard />} />
 
-          <Route path={`${environment.basePath}/*`} element={<NoPage />} />
+          <Route path={`${environment.basePath}/*`} element={<NotFound />} />
         </Routes>
         <ErrorDialog />
       </Main>
