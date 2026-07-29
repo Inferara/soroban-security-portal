@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
+import { Alert, Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction, Link, Chip } from '@mui/material';
 import { useProfile } from './hooks';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
@@ -10,6 +10,10 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import DeleteIcon from '@mui/icons-material/Delete';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import XIcon from '@mui/icons-material/X';
+import GoogleIcon from '@mui/icons-material/Google';
+import ChatIcon from '@mui/icons-material/Chat';
 import { MarkdownView } from '../../../../components/MarkdownView';
 import { useNavigate } from 'react-router-dom';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
@@ -297,13 +301,72 @@ export const Profile: React.FC = () => {
               <SectionTitle>
                 Connected accounts
               </SectionTitle>
-              <PlaceholderText>
-                {user?.connectedAccounts && user?.connectedAccounts.length > 0 ? user?.connectedAccounts.map(account => (
-                  <div key={account.serviceName}>
-                    {account.serviceName}: {account.accountId}
-                  </div>
-                )) : (userId == 0 ? 'You can connect accounts in Edit Profile page' : '')}
-              </PlaceholderText>
+              {user?.connectedAccounts && user?.connectedAccounts.length > 0 ? (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                  {user.connectedAccounts.map((account) => {
+                    const isSocialLink = account.serviceName === 'GitHub' || account.serviceName === 'X';
+                    const isSSO = account.serviceName === 'Google' || account.serviceName === 'Discord';
+                    const icon = account.serviceName === 'GitHub' ? <GitHubIcon fontSize="small" />
+                      : account.serviceName === 'X' ? <XIcon fontSize="small" />
+                      : account.serviceName === 'Google' ? <GoogleIcon fontSize="small" />
+                      : account.serviceName === 'Discord' ? <ChatIcon fontSize="small" />
+                      : undefined;
+
+                    if (isSocialLink) {
+                      return (
+                        <Chip
+                          key={account.serviceName}
+                          icon={icon}
+                          label={
+                            <Link
+                              href={account.accountId}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              underline="hover"
+                              sx={{ color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}
+                            >
+                              {account.serviceName}
+                              <OpenInNewIcon sx={{ fontSize: 12 }} />
+                            </Link>
+                          }
+                          variant="outlined"
+                          sx={{
+                            borderColor: 'primary.main',
+                            '& .MuiChip-label': { py: 0.25 },
+                          }}
+                        />
+                      );
+                    }
+
+                    if (isSSO) {
+                      return (
+                        <Chip
+                          key={account.serviceName}
+                          icon={icon}
+                          label={`${account.serviceName} (${account.accountId})`}
+                          variant="outlined"
+                          sx={{
+                            borderColor: 'divider',
+                            '& .MuiChip-label': { py: 0.25 },
+                          }}
+                        />
+                      );
+                    }
+
+                    return (
+                      <Chip
+                        key={account.serviceName}
+                        label={`${account.serviceName}: ${account.accountId}`}
+                        variant="outlined"
+                      />
+                    );
+                  })}
+                </Box>
+              ) : (
+                <PlaceholderText>
+                  {userId == 0 ? 'You can connect accounts in the Edit Profile page' : 'No connected accounts'}
+                </PlaceholderText>
+              )}
             </Box>
           </TabPanel>
 
