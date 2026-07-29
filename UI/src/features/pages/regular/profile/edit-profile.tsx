@@ -94,6 +94,15 @@ const normalizeUrl = (url: string): string => {
   return url.replace(/^http:\/\//i, 'https://');
 };
 
+/** Validates + normalizes a social URL for safe preview. Returns null if unsafe. */
+const getSafePreviewUrl = (serviceName: string, url: string): string | null => {
+  if (!url) return null;
+  const normalized = normalizeUrl(url.trim());
+  if (serviceName === 'GitHub' && GITHUB_URL_REGEX.test(normalized)) return normalized;
+  if (serviceName === 'X' && X_URL_REGEX.test(normalized)) return normalized;
+  return null;
+};
+
 /** Returns the SSO-connected accounts only (Google, Discord) */
 const getSSOAccounts = (accounts: ConnectedAccountItem[] | undefined): ConnectedAccountItem[] => {
   if (!accounts) return [];
@@ -379,7 +388,10 @@ export const EditProfile: React.FC = () => {
                         <Tooltip title="Open profile">
                           <IconButton
                             size="small"
-                            onClick={() => window.open(githubUrl, '_blank', 'noopener,noreferrer')}
+                            onClick={() => {
+                              const safe = getSafePreviewUrl('GitHub', githubUrl);
+                              if (safe) window.open(safe, '_blank', 'noopener,noreferrer');
+                            }}
                             edge="end"
                           >
                             <OpenInNewIcon fontSize="small" />
@@ -438,7 +450,10 @@ export const EditProfile: React.FC = () => {
                         <Tooltip title="Open profile">
                           <IconButton
                             size="small"
-                            onClick={() => window.open(xUrl, '_blank', 'noopener,noreferrer')}
+                            onClick={() => {
+                              const safe = getSafePreviewUrl('X', xUrl);
+                              if (safe) window.open(safe, '_blank', 'noopener,noreferrer');
+                            }}
                             edge="end"
                           >
                             <OpenInNewIcon fontSize="small" />
