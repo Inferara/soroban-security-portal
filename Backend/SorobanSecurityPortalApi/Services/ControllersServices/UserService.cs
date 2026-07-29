@@ -79,7 +79,35 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             var loginModel = _mapper.Map<LoginModel>(userUpdateSelfViewModel);
             login.FullName = loginModel.FullName;
             login.PersonalInfo = loginModel.PersonalInfo;
-            login.ConnectedAccounts = loginModel.ConnectedAccounts;
+
+            // Merge connected accounts: use submitted values for accounts the client manages
+            // (GitHub, X), but preserve existing SSO accounts (Google, Discord, etc.) the
+            // client may not have in its stale snapshot.  This prevents accidentally
+            // dropping an SSO connection added after the edit page loaded while still
+            // allowing intentional removal of social links.
+            //
+            // Services the edit-profile client manages exclusively — these are never
+            // auto-preserved; their presence is controlled entirely by the submission.
+            var clientManagedServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "GitHub", "X"
+            };
+
+            var submittedAccounts = loginModel.ConnectedAccounts ?? new List<ConnectedAccountModel>();
+            var submittedServiceNames = submittedAccounts
+                .Select(ca => ca.ServiceName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Preserve any existing DB account whose service is NOT in the submission
+            // AND is NOT a client-managed service (social links the user may have cleared).
+            var preservedAccounts = login.ConnectedAccounts?
+                .Where(ca => !submittedServiceNames.Contains(ca.ServiceName)
+                          && !clientManagedServices.Contains(ca.ServiceName))
+                .ToList() ?? new List<ConnectedAccountModel>();
+
+            login.ConnectedAccounts = submittedAccounts
+                .Concat(preservedAccounts)
+                .ToList();
 
             // Detect if user is changing their avatar (either uploading new or removing)
             // Set IsAvatarManuallySet=true to prevent SSO from overwriting

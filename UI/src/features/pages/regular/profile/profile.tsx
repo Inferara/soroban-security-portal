@@ -210,6 +210,29 @@ export const Profile: React.FC = () => {
     }
   };
 
+  /**
+   * Validates a social profile URL against the expected service host.
+   * Returns the safe URL or null if the URL is invalid/dangerous.
+   */
+  const getSafeSocialUrl = (serviceName: string, accountId: string): string | null => {
+    if (!accountId) return null;
+    // Ensure only https scheme targeting the expected host
+    if (serviceName === 'GitHub') {
+      if (/^https:\/\/github\.com\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\/?$/.test(accountId)) {
+        return accountId;
+      }
+      return null;
+    }
+    if (serviceName === 'X') {
+      if (/^https:\/\/(x\.com|twitter\.com)\/[a-zA-Z0-9_]{1,15}\/?$/.test(accountId)) {
+        return accountId;
+      }
+      return null;
+    }
+    // Unknown social service — block rendering as link
+    return null;
+  };
+
   // Using shared getUserInitials from utils/user-utils.ts
 
   return (
@@ -313,25 +336,30 @@ export const Profile: React.FC = () => {
                       : undefined;
 
                     if (isSocialLink) {
+                      const safeUrl = getSafeSocialUrl(account.serviceName, account.accountId);
                       return (
                         <Chip
                           key={account.serviceName}
                           icon={icon}
                           label={
-                            <Link
-                              href={account.accountId}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              underline="hover"
-                              sx={{ color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}
-                            >
-                              {account.serviceName}
-                              <OpenInNewIcon sx={{ fontSize: 12 }} />
-                            </Link>
+                            safeUrl ? (
+                              <Link
+                                href={safeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                underline="hover"
+                                sx={{ color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}
+                              >
+                                {account.serviceName}
+                                <OpenInNewIcon sx={{ fontSize: 12 }} />
+                              </Link>
+                            ) : (
+                              account.serviceName
+                            )
                           }
                           variant="outlined"
                           sx={{
-                            borderColor: 'primary.main',
+                            borderColor: safeUrl ? 'primary.main' : 'divider',
                             '& .MuiChip-label': { py: 0.25 },
                           }}
                         />
