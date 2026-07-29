@@ -5,10 +5,15 @@ import Button from '@mui/material/Button';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import HomeIcon from '@mui/icons-material/Home';
+import { environment } from '../../../../environments/environment';
 
 export const NotFound: FC = () => {
   const navigate = useNavigate();
   const { tokens } = useTheme();
+
+  const handleBackHome = () => {
+    navigate(`${environment.basePath}/`);
+  };
 
   return (
     <Box
@@ -76,7 +81,7 @@ export const NotFound: FC = () => {
         variant="contained"
         size="large"
         startIcon={<HomeIcon />}
-        onClick={() => navigate('/')}
+        onClick={handleBackHome}
         sx={{
           px: 4,
           py: 1.5,
