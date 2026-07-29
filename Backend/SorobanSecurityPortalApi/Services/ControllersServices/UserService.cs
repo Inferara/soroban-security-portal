@@ -80,34 +80,29 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             login.FullName = loginModel.FullName;
             login.PersonalInfo = loginModel.PersonalInfo;
 
-            // Merge connected accounts: use submitted values for accounts the client manages
-            // (GitHub, X), but preserve existing SSO accounts (Google, Discord, etc.) the
-            // client may not have in its stale snapshot.  This prevents accidentally
-            // dropping an SSO connection added after the edit page loaded while still
-            // allowing intentional removal of social links.
-            //
-            // Services the edit-profile client manages exclusively — these are never
-            // auto-preserved; their presence is controlled entirely by the submission.
+            // Merge connected accounts: the DB is authoritative for SSO accounts
+            // (Google, Discord, etc.) — the client is NEVER trusted for those. Only
+            // client-managed social links (GitHub, X) are taken from the submission.
+            // This prevents stale client snapshots from resurrecting disconnected SSO
+            // accounts or overwriting current SSO identifiers with stale ones.
             var clientManagedServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "GitHub", "X"
             };
 
-            var submittedAccounts = loginModel.ConnectedAccounts ?? new List<ConnectedAccountModel>();
-            var submittedServiceNames = submittedAccounts
-                .Select(ca => ca.ServiceName)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            // Preserve any existing DB account whose service is NOT in the submission
-            // AND is NOT a client-managed service (social links the user may have cleared).
-            var preservedAccounts = login.ConnectedAccounts?
-                .Where(ca => !submittedServiceNames.Contains(ca.ServiceName)
-                          && !clientManagedServices.Contains(ca.ServiceName))
+            // Start from DB state: preserve every non-client-managed account as-is
+            var merged = login.ConnectedAccounts?
+                .Where(ca => !clientManagedServices.Contains(ca.ServiceName))
                 .ToList() ?? new List<ConnectedAccountModel>();
 
-            login.ConnectedAccounts = submittedAccounts
-                .Concat(preservedAccounts)
+            // Add only the client-managed accounts from the submission
+            var submittedAccounts = loginModel.ConnectedAccounts ?? new List<ConnectedAccountModel>();
+            var clientSubmitted = submittedAccounts
+                .Where(ca => clientManagedServices.Contains(ca.ServiceName))
                 .ToList();
+
+            merged.AddRange(clientSubmitted);
+            login.ConnectedAccounts = merged;
 
             // Detect if user is changing their avatar (either uploading new or removing)
             // Set IsAvatarManuallySet=true to prevent SSO from overwriting

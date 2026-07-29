@@ -76,16 +76,22 @@ const AccountName = styled(Typography)(({ theme }) => ({
   fontWeight: 500,
 }));
 
-/** GitHub profile URL regex: https://github.com/username */
-const GITHUB_URL_REGEX = /^https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\/?$/;
-/** X (Twitter) profile URL regex: https://x.com/username or https://twitter.com/username */
-const X_URL_REGEX = /^https?:\/\/(www\.)?(x\.com|twitter\.com)\/[a-zA-Z0-9_]{1,15}\/?$/;
+/** GitHub profile URL regex: https://github.com/username (https required) */
+const GITHUB_URL_REGEX = /^https:\/\/(www\.)?github\.com\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\/?$/;
+/** X (Twitter) profile URL regex: https://x.com/username or https://twitter.com/username (https required) */
+const X_URL_REGEX = /^https:\/\/(www\.)?(x\.com|twitter\.com)\/[a-zA-Z0-9_]{1,15}\/?$/;
 
 /** Extracts the service-specific AccountId from user's connected accounts, or returns empty string */
 const getConnectedAccountId = (accounts: ConnectedAccountItem[] | undefined, serviceName: string): string => {
   if (!accounts) return '';
   const match = accounts.find(a => a.serviceName === serviceName);
   return match?.accountId || '';
+};
+
+/** Normalizes a social URL to use https scheme (upgrades http for legacy data). */
+const normalizeUrl = (url: string): string => {
+  if (!url) return url;
+  return url.replace(/^http:\/\//i, 'https://');
 };
 
 /** Returns the SSO-connected accounts only (Google, Discord) */
@@ -117,8 +123,8 @@ export const EditProfile: React.FC = () => {
       setName(user.fullName || '');
       setUsername(user.login || '');
       setAboutYou(user.personalInfo || '');
-      setGithubUrl(getConnectedAccountId(user.connectedAccounts, 'GitHub'));
-      setXUrl(getConnectedAccountId(user.connectedAccounts, 'X'));
+      setGithubUrl(normalizeUrl(getConnectedAccountId(user.connectedAccounts, 'GitHub')));
+      setXUrl(normalizeUrl(getConnectedAccountId(user.connectedAccounts, 'X')));
     }
   }, [user]);
 
@@ -198,14 +204,14 @@ export const EditProfile: React.FC = () => {
       ),
     ];
 
-    // Add GitHub if URL is provided
+    // Add GitHub if URL is provided (normalized to https)
     if (githubUrl.trim()) {
-      updatedConnectedAccounts.push({ serviceName: 'GitHub', accountId: githubUrl.trim() });
+      updatedConnectedAccounts.push({ serviceName: 'GitHub', accountId: normalizeUrl(githubUrl.trim()) });
     }
 
-    // Add X if URL is provided
+    // Add X if URL is provided (normalized to https)
     if (xUrl.trim()) {
-      updatedConnectedAccounts.push({ serviceName: 'X', accountId: xUrl.trim() });
+      updatedConnectedAccounts.push({ serviceName: 'X', accountId: normalizeUrl(xUrl.trim()) });
     }
 
     const updateSuccess = await updateProfile({

@@ -212,20 +212,21 @@ export const Profile: React.FC = () => {
 
   /**
    * Validates a social profile URL against the expected service host.
-   * Returns the safe URL or null if the URL is invalid/dangerous.
-   * Regexes match the edit-profile input validators so saved URLs always render.
+   * Returns the safe URL (normalized to https) or null if invalid.
+   * Accepts http for legacy data but always upgrades to https.
    */
   const getSafeSocialUrl = (serviceName: string, accountId: string): string | null => {
     if (!accountId) return null;
+    const normalizeToHttps = (url: string) => url.replace(/^http:\/\//i, 'https://');
     if (serviceName === 'GitHub') {
       if (/^https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\/?$/.test(accountId)) {
-        return accountId;
+        return normalizeToHttps(accountId);
       }
       return null;
     }
     if (serviceName === 'X') {
       if (/^https?:\/\/(www\.)?(x\.com|twitter\.com)\/[a-zA-Z0-9_]{1,15}\/?$/.test(accountId)) {
-        return accountId;
+        return normalizeToHttps(accountId);
       }
       return null;
     }
