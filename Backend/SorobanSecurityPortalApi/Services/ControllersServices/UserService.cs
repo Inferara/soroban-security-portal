@@ -80,29 +80,19 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             login.FullName = loginModel.FullName;
             login.PersonalInfo = loginModel.PersonalInfo;
 
-            // Merge connected accounts: the DB is authoritative for SSO accounts
-            // (Google, Discord, etc.) — the client is NEVER trusted for those. Only
-            // client-managed social links (GitHub, X) are taken from the submission.
-            // This prevents stale client snapshots from resurrecting disconnected SSO
-            // accounts or overwriting current SSO identifiers with stale ones.
+            // Only client-managed social links (GitHub, X) are taken from the
+            // submission.  SSO accounts (Google, Discord, etc.) are NEVER trusted
+            // from the client — they are managed exclusively by the OAuth flow.
             var clientManagedServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "GitHub", "X"
             };
 
-            // Start from DB state: preserve every non-client-managed account as-is
-            var merged = login.ConnectedAccounts?
-                .Where(ca => !clientManagedServices.Contains(ca.ServiceName))
-                .ToList() ?? new List<ConnectedAccountModel>();
-
-            // Add only the client-managed accounts from the submission
+            // Collect the client-managed accounts the user wants to set
             var submittedAccounts = loginModel.ConnectedAccounts ?? new List<ConnectedAccountModel>();
             var clientSubmitted = submittedAccounts
                 .Where(ca => clientManagedServices.Contains(ca.ServiceName))
                 .ToList();
-
-            merged.AddRange(clientSubmitted);
-            login.ConnectedAccounts = merged;
 
             // Detect if user is changing their avatar (either uploading new or removing)
             // Set IsAvatarManuallySet=true to prevent SSO from overwriting
@@ -113,7 +103,37 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 login.IsAvatarManuallySet = true;
             }
 
-            await _loginProcessor.Update(login);
+            // Re-read the login entity from the DB immediately before saving so we
+            // merge onto the freshest SSO state.  This closes the window where a
+            // concurrent OAuth callback could add or modify an SSO connection and
+            // have it silently overwritten by our update.
+            var freshLogin = await _loginProcessor.GetById(loginId);
+            if (freshLogin == null)
+                return false;
+
+            // Carry forward the fields SelfUpdate is allowed to change.
+            // ConnectedAccounts: keep fresh SSO state; replace only GitHub/X from
+            // the submission.
+            freshLogin.FullName = login.FullName;
+            freshLogin.PersonalInfo = login.PersonalInfo;
+
+            // Only copy Image/IsAvatarManuallySet when the user actually changed
+            // the avatar.  Otherwise let the fresh read keep its values so we don't
+            // silently overwrite a concurrent SSO avatar sync.
+            if (imageChanged)
+            {
+                freshLogin.Image = login.Image;
+                freshLogin.IsAvatarManuallySet = true;
+            }
+
+            var merged = freshLogin.ConnectedAccounts?
+                .Where(ca => !clientManagedServices.Contains(ca.ServiceName))
+                .ToList() ?? new List<ConnectedAccountModel>();
+
+            merged.AddRange(clientSubmitted);
+            freshLogin.ConnectedAccounts = merged;
+
+            await _loginProcessor.Update(freshLogin);
             return true;
         }
 
