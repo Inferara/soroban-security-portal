@@ -1,6 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
 
 const TextBlock = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -43,14 +44,65 @@ export const About: FC = () => {
       <TextBlock>
         Your premier resource for everything related to securing projects on the <ExternalLink url="https://stellar.org/developers" text="Soroban smart contract platform"/>.
       </TextBlock>
+
       <H5 text="Mission" />
       <TextBlock>
         As Soroban&apos;s capabilities grow, so do the stakes. Deployed on Stellar&apos;s robust layer-1 blockchain, Soroban brings powerful smart contract functionality — but also attracts scrutiny in an inherently adversarial environment. The Stellar Security Portal is dedicated to supporting developers, auditors, and builders with clear, centralized guidance, tools, and insights to build securely from the ground up.
       </TextBlock>
+
       <H5 text="Stellar Public Good" />
       <TextBlock>
-        The Stellar Security Portal is built as an open-source, community-minded resource aligned with Stellar’s public-good mission. It provides transparent security findings, audit insights, and educational resources to benefit the wider Soroban ecosystem. Our initial milestones of the SCF project were completed in September of 2025 but we have continued to improve and maintain it. For more information on what has changed and how you can get involved you can read about it through [this medium article](https://medium.com/@inferara/stellar-security-portal-update-whats-new-in-june-2026-f4b4f19fd953) or see our more frequent updates directly through the discord [projects channel](https://discord.com/channels/897514728459468821/1394263673278697483)
+        The Stellar Security Portal is built as an open-source, community-minded resource aligned with Stellar&apos;s public-good mission. It provides transparent security findings, audit insights, and educational resources to benefit the wider Soroban ecosystem. Our initial milestones of the SCF project were completed in September of 2025, but we have continued to improve and maintain it since — now approaching 700 vulnerabilities logged in the portal.
       </TextBlock>
+      <TextBlock>
+        We participate in the <ExternalLink url="https://stellar.gitbook.io/scf-handbook/supporting-programs/public-goods-award/official-rules" text="SCF Public Goods Award" /> program, which supports ongoing maintenance, security, documentation, and incremental evolution of projects broadly beneficial to the Stellar ecosystem. Our most recent submissions include{' '}
+        <ExternalLink url="https://github.com/SCF-Public-Goods-Maintenance/scf-public-goods-maintenance.github.io/pull/104" text="our latest public goods proposal (PR #104)" />{' '}
+        and an{' '}
+        <ExternalLink url="https://github.com/SCF-Public-Goods-Maintenance/scf-public-goods-maintenance.github.io/pull/59" text="earlier proposal (PR #59)" />
+        , both of which outline the improvements and community value we&apos;ve delivered.
+      </TextBlock>
+      <TextBlock>
+        For more information on what has changed and how you can get involved, read our{' '}
+        <ExternalLink url="https://medium.com/@inferara/stellar-security-portal-update-whats-new-in-june-2026-f4b4f19fd953" text="June 2026 update on Medium" />{' '}
+        or follow frequent updates in our{' '}
+        <ExternalLink url="https://discord.com/channels/897514728459468821/1394263673278697483" text="Discord projects channel" />.
+      </TextBlock>
+
+      <H5 text="Recent Updates" />
+      <TextBlock>
+        The portal has grown significantly since launch. Here are some of the highlights from our latest round of improvements:
+        <ul>
+          <li><strong>Renamed to the Stellar Security Portal</strong> — reflecting a broader scope across the entire Stellar ecosystem, with a full visual refresh, animated homepage, and improved accessibility;</li>
+          <li><strong>Community discussions</strong> — threaded comments with upvotes, @mentions, and real-time notifications on any vulnerability or protocol page;</li>
+          <li><strong>Ratings and reviews</strong> — 1–5 star ratings for both protocols and auditors, weighted by reputation score;</li>
+          <li><strong>Performance improvements</strong> — cover images are now cached and lazy-loaded; vulnerability descriptions load on demand;</li>
+          <li><strong>Rich link previews</strong> — sharing a report or vulnerability link in Discord or on X now shows the actual title and description;</li>
+          <li><strong>Lower contribution barrier</strong> — SCF Navigators and SCF Project members can now add and edit reports and vulnerabilities directly.</li>
+        </ul>
+        Visit the portal at <ExternalLink url="https://stellarsecurityportal.com" text="stellarsecurityportal.com" /> to try out the new features.
+      </TextBlock>
+
+      <H5 text="Stay Connected" />
+      <TextBlock>
+        <Stack direction="column" spacing={1} sx={{ pt: 1 }}>
+          <Box>
+            💬 <strong>Discord:</strong>{' '}
+            <ExternalLink url="https://discord.com/channels/897514728459468821/1394263673278697483" text="Join the conversation in our projects channel" />
+            {' '}— the best place for frequent updates and community discussion.
+          </Box>
+          <Box>
+            📝 <strong>Medium:</strong>{' '}
+            <ExternalLink url="https://medium.com/@inferara/stellar-security-portal-update-whats-new-in-june-2026-f4b4f19fd953" text="What's New in June 2026" />
+            {' '}— a full breakdown of our latest features and improvements.
+          </Box>
+          <Box>
+            🐙 <strong>GitHub:</strong>{' '}
+            <ExternalLink url="https://github.com/Inferara/soroban-security-portal" text="Inferara/soroban-security-portal" />
+            {' '}— open-source and open to contributions.
+          </Box>
+        </Stack>
+      </TextBlock>
+
       <H5 text="What you can find in the Portal" />
       <TextBlock>
         <ul>
@@ -62,6 +114,7 @@ export const About: FC = () => {
           <li>To prevent scattered information from slowing you down, our community-powered knowledge base (soon) aggregates vulnerabilities, past audits, and best practices into a searchable, well-classified repository—complete with moderation and advanced integration capabilities.</li> */}
         </ul>
       </TextBlock>
+
       <H5 text="Why the Portal exists" />
       <TextBlock>
         <ul>
@@ -70,6 +123,7 @@ export const About: FC = () => {
           <li><strong>Learning from real mistakes:</strong> By spotlighting actual audits, common pitfalls, and expert insights, we help you avoid repeating others&apos; errors — and encourage resilient, secure code.</li>
         </ul>
       </TextBlock>
+
       <H5 text="For whom" />
       <TextBlock>
         <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -99,6 +153,18 @@ export const About: FC = () => {
           </Box>
         </Box>
       </TextBlock>
+
+      <H5 text="Get Involved"/>
+      <TextBlock>
+        The portal is only as good as the community behind it. Here&apos;s how you can help:
+        <ul>
+          <li>Leave a star review on a protocol or auditor you&apos;ve worked with — your experience helps others make informed decisions;</li>
+          <li>Know of a missing audit report? Submit it directly or let us know in Discord;</li>
+          <li>Are you an audited protocol? Share your experience or comment on your report to update the community on what changed post-audit;</li>
+          <li>Want to contribute code or data? Check out the{' '}<ExternalLink url="https://github.com/Inferara/soroban-security-portal" text="open-source repository on GitHub" />.</li>
+        </ul>
+      </TextBlock>
+
       <H5 text="Our Gratitude"/>
       <Box component="img"
         sx={{ width: { xs: '80%', md: '50%' }, display: 'flex', justifyContent: 'left', my: 3 }}
