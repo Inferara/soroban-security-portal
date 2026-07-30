@@ -40,6 +40,7 @@ import { ReportDetails } from '../report-details/report-details';
 import { AuditorDetails } from '../auditor-details/auditor-details';
 import { CompanyDetails } from '../company-details/company-details';
 import { BadgeDemoPage } from '../../BadgeDemoPage';
+import { NotFound } from '../not-found/not-found';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToolbarAvatar } from '../../../../hooks/useToolbarAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
@@ -440,6 +441,7 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/company/:id`} element={<CompanyDetails />} />
             <Route path={`${environment.basePath}/badge-demo`} element={<BadgeDemoPage />} />
             <Route path={`${environment.basePath}/mentions`} element={<MentionsInbox />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Box>
       </Box>
