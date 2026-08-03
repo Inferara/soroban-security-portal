@@ -159,7 +159,7 @@ export const About: FC = () => {
         The portal is only as good as the community behind it. Here&apos;s how you can help:
         <ul>
           <li>Leave a star review on a protocol or auditor you&apos;ve worked with — your experience helps others make informed decisions;</li>
-          <li>Know of a missing audit report? Submit it directly or let us know in Discord;</li>
+          <li>Know of a missing audit report? If you hold the <strong>Navigator role</strong> in the <ExternalLink url="https://discord.gg/stellardev" text="official Stellar Discord" />, you can submit it directly — see our <ExternalLink url="https://medium.com/@inferara/how-the-soroban-security-portal-is-evolving-5a37cb674217" text="Medium article" /> for details. Otherwise, let us know in our <ExternalLink url="https://discord.com/channels/897514728459468821/1394263673278697483" text="Discord projects channel" />;</li>
           <li>Are you an audited protocol? Share your experience or comment on your report to update the community on what changed post-audit;</li>
           <li>Want to contribute code or data? Check out the{' '}<ExternalLink url="https://github.com/Inferara/soroban-security-portal" text="open-source repository on GitHub" />.</li>
         </ul>
