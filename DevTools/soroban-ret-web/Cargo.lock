@@ -1710,9 +1710,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-ret"
-version = "0.0.3"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1af26b02b578d69f87ff20ebbad70517c8c896fd47503d068f77c591d621b55b"
+checksum = "d436ff9def24798685877aadce7d7219d1a9b2f0ffd87a51180d1c3f27fea84c"
 dependencies = [
  "cov-mark",
  "log",
