@@ -18,6 +18,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string AuditorName { get; set; } = "";
         public int CompanyId { get; set; }
         public string CompanyName { get; set; } = "";
+        public bool IsHidden { get; set; }
+        public bool IsDeleted { get; set; }
     }
 
     public class AddReportViewModel

@@ -66,6 +66,12 @@ namespace SorobanSecurityPortalApi.Controllers
 
         private bool CanDownloadReport(ReportViewModel report)
         {
+            // Reject hidden or soft-deleted reports for unauthenticated users
+            if (report.IsHidden || report.IsDeleted)
+            {
+                return UserHasAnyRole(Role.Admin, Role.Moderator);
+            }
+
             return report.Status == ReportModelStatus.Approved
                 || UserHasAnyRole(Role.Admin, Role.Moderator, Role.Contributor);
         }
