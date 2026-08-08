@@ -55,11 +55,6 @@ export const Reports: FC = () => {
   };
 
   const handleReportDownload = async (reportName: string, reportId: number) => {
-    if (!isAuthorized(auth)) {
-      showMessage("Log in to download the report");
-      ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
-      return;
-    }
     try {
       await downloadReportPDF(reportName, reportId);
       ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });
