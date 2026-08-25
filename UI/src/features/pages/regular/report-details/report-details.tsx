@@ -49,7 +49,7 @@ import { downloadReportPDF, getCommentCountCall } from '../../../../api/soroban-
 import { DiscussionPanel } from '../../../comments/DiscussionPanel';
 import { CommentEntityType } from '../../../../api/soroban-security-portal/models/comment';
 import { useAppAuth } from '../../../authentication/useAppAuth';
-import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
+import { canEdit } from '../../../authentication/authPermissions';
 import { EntityAvatar } from '../../../../components/EntityAvatar';
 import {
   DetailPageLayout,
@@ -143,15 +143,6 @@ export const ReportDetails: FC = () => {
   }, [vulnerabilities]);
 
   const handleReportDownload = async (reportName: string, reportId: number) => {
-    if (!isAuthorized(auth)) {
-      showMessage('Log in to download the report');
-      ReactGA.event({
-        category: 'Report',
-        action: 'download',
-        label: `Unauthorized attempt to download the report ${reportId}`,
-      });
-      return;
-    }
     try {
       await downloadReportPDF(reportName, reportId);
       ReactGA.event({
@@ -169,12 +160,12 @@ export const ReportDetails: FC = () => {
     }
   };
 
-  // Fetch PDF when tab changes to Full Report or when report/auth changes
+  // Fetch PDF when tab changes to Full Report or when report changes
   useEffect(() => {
-    if (tabValue === 1 && report && isAuthorized(auth) && !pdfBlobUrl && !pdfLoading) {
+    if (tabValue === 1 && report && !pdfBlobUrl && !pdfLoading && !pdfLoadError) {
       fetchPdfForViewing();
     }
-  }, [tabValue, report, auth.user?.access_token, pdfBlobUrl, pdfLoading, fetchPdfForViewing]);
+  }, [tabValue, report, pdfBlobUrl, pdfLoading, pdfLoadError, fetchPdfForViewing]);
 
   // Configure statistics cards
   const statsCards = [
@@ -668,116 +659,96 @@ export const ReportDetails: FC = () => {
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
                       Full Report (PDF)
                     </Typography>
-                    {isAuthorized(auth) && (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<GetApp />}
-                        onClick={() => handleReportDownload(report.name, report.id)}
-                      >
-                        Download
-                      </Button>
-                    )}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<GetApp />}
+                      onClick={() => handleReportDownload(report.name, report.id)}
+                    >
+                      Download
+                    </Button>
                   </Box>
 
-                  {isAuthorized(auth) ? (
-                    <Box sx={{ height: '80vh', width: '100%' }}>
-                      {pdfLoading ? (
-                        <Box
-                          sx={{
-                            p: 4,
-                            textAlign: 'center',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Box>
-                            <CircularProgress size={60} sx={{ mb: 2 }} />
-                            <Typography variant="h6" color="text.secondary">
-                              Loading PDF...
-                            </Typography>
-                          </Box>
-                        </Box>
-                      ) : pdfLoadError ? (
-                        <Box
-                          sx={{
-                            p: 4,
-                            textAlign: 'center',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Box>
-                            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                              Unable to Load PDF Preview
-                            </Typography>
-                            <Typography color="text.secondary" sx={{ mb: 3 }}>
-                              The PDF viewer encountered an authentication error. You can still download the report.
-                            </Typography>
-                            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
-                              <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<GetApp />}
-                                onClick={() => handleReportDownload(report.name, report.id)}
-                              >
-                                Download Report
-                              </Button>
-                              <Button variant="outlined" onClick={retryPdfLoad}>
-                                Retry
-                              </Button>
-                            </Stack>
-                          </Box>
-                        </Box>
-                      ) : pdfBlobUrl ? (
-                        <iframe
-                          src={`${pdfBlobUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                          width="100%"
-                          height="100%"
-                          style={{
-                            border: 'none',
-                            borderRadius: 0,
-                          }}
-                          title="Report PDF Viewer"
-                        />
-                      ) : (
-                        <Box
-                          sx={{
-                            p: 4,
-                            textAlign: 'center',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
+                  <Box sx={{ height: '80vh', width: '100%' }}>
+                    {pdfLoading ? (
+                      <Box
+                        sx={{
+                          p: 4,
+                          textAlign: 'center',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Box>
+                          <CircularProgress size={60} sx={{ mb: 2 }} />
                           <Typography variant="h6" color="text.secondary">
-                            Click on the &quot;Full Report (PDF)&quot; tab to load the document
+                            Loading PDF...
                           </Typography>
                         </Box>
-                      )}
-                    </Box>
-                  ) : (
-                    <Box sx={{ p: 4, textAlign: 'center' }}>
-                      <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                        Authentication Required
-                      </Typography>
-                      <Typography color="text.secondary" sx={{ mb: 3 }}>
-                        Please log in to view the full report
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => navigate('/login')}
+                      </Box>
+                    ) : pdfLoadError ? (
+                      <Box
+                        sx={{
+                          p: 4,
+                          textAlign: 'center',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
                       >
-                        Log In
-                      </Button>
-                    </Box>
-                  )}
+                        <Box>
+                          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                            Unable to Load PDF Preview
+                          </Typography>
+                          <Typography color="text.secondary" sx={{ mb: 3 }}>
+                            The PDF viewer encountered an error. You can still download the report.
+                          </Typography>
+                          <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              startIcon={<GetApp />}
+                              onClick={() => handleReportDownload(report.name, report.id)}
+                            >
+                              Download Report
+                            </Button>
+                            <Button variant="outlined" onClick={retryPdfLoad}>
+                              Retry
+                            </Button>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    ) : pdfBlobUrl ? (
+                      <iframe
+                        src={`${pdfBlobUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                        width="100%"
+                        height="100%"
+                        style={{
+                          border: 'none',
+                          borderRadius: 0,
+                        }}
+                        title="Report PDF Viewer"
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          p: 4,
+                          textAlign: 'center',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Typography variant="h6" color="text.secondary">
+                          Click on the &quot;Full Report (PDF)&quot; tab to load the document
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
                 </CardContent>
               </Card>
             </Box>

@@ -43,7 +43,7 @@ import ReactGA from 'react-ga4';
 import { VulnerabilityCard } from './vulnerability-card';
 import { downloadReportPDF, getVulnerabilityDescriptionCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppAuth } from '../../../authentication/useAppAuth';
-import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
+import { canEdit } from '../../../authentication/authPermissions';
 
 export const Vulnerabilities: FC = () => {
   // Filter/search state
@@ -197,11 +197,6 @@ export const Vulnerabilities: FC = () => {
   };
 
   const handleDownloadReport = async (reportName: string, reportId: number) => {
-    if (!isAuthorized(auth)) {
-      showMessage("Log in to download the report");
-      ReactGA.event({ category: "Report", action: "download", label: `Unauthorized attempt to download the report ${reportId}` });
-      return;
-    }
     try {
       await downloadReportPDF(reportName, reportId);
       ReactGA.event({ category: "Report", action: "view", label: `Downloaded report ${reportId}` });

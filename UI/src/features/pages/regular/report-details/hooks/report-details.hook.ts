@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 import { environment } from '../../../../../environments/environment';
@@ -60,8 +60,8 @@ export const useReportDetails = () => {
     };
   };
 
-  const fetchPdfForViewing = async () => {
-    if (!reportId || !auth.user?.access_token) {
+  const fetchPdfForViewing = useCallback(async () => {
+    if (!reportId) {
       return;
     }
 
@@ -69,11 +69,14 @@ export const useReportDetails = () => {
     setPdfLoadError(false);
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/pdf'
+      };
+      if (auth.user?.access_token) {
+        headers['Authorization'] = `Bearer ${auth.user.access_token}`;
+      }
       const response = await fetch(`${environment.apiUrl}/api/v1/reports/${reportId}/download`, {
-        headers: {
-          'Authorization': `Bearer ${auth.user.access_token}`,
-          'Content-Type': 'application/pdf'
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -89,7 +92,7 @@ export const useReportDetails = () => {
     } finally {
       setPdfLoading(false);
     }
-  };
+  }, [reportId, auth.user]);
 
   const retryPdfLoad = () => {
     setPdfLoadError(false);
