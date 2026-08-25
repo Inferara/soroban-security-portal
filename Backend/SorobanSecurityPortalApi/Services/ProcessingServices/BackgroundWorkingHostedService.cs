@@ -17,19 +17,22 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
         private readonly IVulnerabilityProcessor _vulnerabilityProcessor;
         private readonly IGeminiEmbeddingService _embeddingService;
         private readonly IAgentRunProcessor _agentRunProcessor;
+        private readonly ILogger<BackgroundWorkingHostedService> _logger;
 
         public BackgroundWorkingHostedService(
             IReportProcessor reportProcessor,
             IVulnerabilityProcessor vulnerabilityProcessor,
             IGeminiEmbeddingService embeddingService,
             IAgentRunProcessor agentRunProcessor,
-            Config config)
+            Config config,
+            ILogger<BackgroundWorkingHostedService> logger)
         {
             _reportProcessor = reportProcessor;
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _embeddingService = embeddingService;
             _agentRunProcessor = agentRunProcessor;
             _config = config;
+            _logger = logger;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -54,11 +57,14 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
             {
                 var reclaimed = await _agentRunProcessor.ReclaimStuckProcessing(StuckAgentRunTimeout);
                 if (reclaimed > 0)
-                    Console.WriteLine($"Reclaimed {reclaimed} stuck agent run(s) (processing > {StuckAgentRunTimeout.TotalMinutes:0} min).");
+                    _logger.LogInformation(
+                        "Reclaimed {ReclaimedCount} stuck agent run(s) (processing > {TimeoutMinutes:0} min).",
+                        reclaimed,
+                        StuckAgentRunTimeout.TotalMinutes);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during stuck agent-run reclaim: {ex.Message}");
+                _logger.LogError(ex, "Error during stuck agent-run reclaim.");
             }
         }
 
@@ -85,7 +91,11 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during report ({reportModel.Name} / {reportModel.Id}) fix: {ex.Message}");
+                    _logger.LogError(
+                        ex,
+                        "Error during report fix for {ReportName} ({ReportId}).",
+                        reportModel.Name,
+                        reportModel.Id);
                 }
             }
         }
@@ -103,7 +113,11 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during report ({reportModel.Name} / {reportModel.Id}) embedding: {ex.Message}");
+                    _logger.LogError(
+                        ex,
+                        "Error during report embedding for {ReportName} ({ReportId}).",
+                        reportModel.Name,
+                        reportModel.Id);
                 }
             }
         }
@@ -121,7 +135,11 @@ namespace SorobanSecurityPortalApi.Services.ProcessingServices
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during vulnerability ({vulnerability.Title} / {vulnerability.Id}) embedding: {ex.Message}");
+                    _logger.LogError(
+                        ex,
+                        "Error during vulnerability embedding for {VulnerabilityTitle} ({VulnerabilityId}).",
+                        vulnerability.Title,
+                        vulnerability.Id);
                 }
             }
         }
