@@ -143,15 +143,6 @@ export const ReportDetails: FC = () => {
   }, [vulnerabilities]);
 
   const handleReportDownload = async (reportName: string, reportId: number) => {
-    if (!isAuthorized(auth)) {
-      showMessage('Log in to download the report');
-      ReactGA.event({
-        category: 'Report',
-        action: 'download',
-        label: `Unauthorized attempt to download the report ${reportId}`,
-      });
-      return;
-    }
     try {
       await downloadReportPDF(reportName, reportId);
       ReactGA.event({
@@ -171,7 +162,7 @@ export const ReportDetails: FC = () => {
 
   // Fetch PDF when tab changes to Full Report or when report/auth changes
   useEffect(() => {
-    if (tabValue === 1 && report && isAuthorized(auth) && !pdfBlobUrl && !pdfLoading) {
+    if (tabValue === 1 && report && !pdfBlobUrl && !pdfLoading) {
       fetchPdfForViewing();
     }
   }, [tabValue, report, auth.user?.access_token, pdfBlobUrl, pdfLoading, fetchPdfForViewing]);

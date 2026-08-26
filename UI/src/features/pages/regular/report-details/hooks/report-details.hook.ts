@@ -61,7 +61,7 @@ export const useReportDetails = () => {
   };
 
   const fetchPdfForViewing = async () => {
-    if (!reportId || !auth.user?.access_token) {
+    if (!reportId) {
       return;
     }
 
@@ -69,11 +69,14 @@ export const useReportDetails = () => {
     setPdfLoadError(false);
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/pdf'
+      };
+      if (auth.user?.access_token) {
+        headers['Authorization'] = `Bearer ${auth.user.access_token}`;
+      }
       const response = await fetch(`${environment.apiUrl}/api/v1/reports/${reportId}/download`, {
-        headers: {
-          'Authorization': `Bearer ${auth.user.access_token}`,
-          'Content-Type': 'application/pdf'
-        }
+        headers
       });
 
       if (!response.ok) {
