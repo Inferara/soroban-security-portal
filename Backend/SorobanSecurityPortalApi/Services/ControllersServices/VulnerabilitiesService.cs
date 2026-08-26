@@ -52,14 +52,39 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return result;
         }
 
-        public async Task<List<IdValueUrl>> ListSources()
+        public async Task<List<IdValueUrl>> ListSources(bool includeNotApproved = false)
         {
+            if (includeNotApproved)
+            {
+                var reports = await _reportProcessor.GetList(true);
+                var result = new List<IdValueUrl>();
+                foreach (var report in reports)
+                {
+                    result.Add(new IdValueUrl
+                    {
+                        Id = report.Id,
+                        Name = report.Name,
+                        Url = "",
+                        ProtocolId = report.Protocol?.Id,
+                        AuditorId = report.Auditor?.Id
+                    });
+                }
+                result.Add(new IdValueUrl
+                {
+                    Id = 0,
+                    Name = "External",
+                    Url = ""
+                });
+                return result;
+            }
+
             return await _lookupCache.GetOrCreateAsync(LookupCacheKeys.Sources, async () =>
             {
                 // Include New (agent-created) reports as well as Approved ones so editing an agent-originated finding can resolve its source report; hidden/deleted/rejected reports are excluded.
                 var reports = await _reportProcessor.GetListForSources();
                 var result = new List<IdValueUrl>();
-                foreach (var report in reports) {
+                foreach (var report in reports)
+                {
                     result.Add(new IdValueUrl
                     {
                         Id = report.Id,
@@ -268,7 +293,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
     public interface IVulnerabilityService
     {
         Task<List<IdValue>> ListSeverities();
-        Task<List<IdValueUrl>> ListSources();
+        Task<List<IdValueUrl>> ListSources(bool includeNotApproved = false);
         Task<List<VulnerabilityViewModel>> Search(VulnerabilitySearchViewModel? vulnerabilitySearch);
         Task<int> SearchTotal(VulnerabilitySearchViewModel? vulnerabilitySearch);
         Task<(List<VulnerabilityViewModel> Items, int Total)> SearchWithTotal(VulnerabilitySearchViewModel? vulnerabilitySearch);

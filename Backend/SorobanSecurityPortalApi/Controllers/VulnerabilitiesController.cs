@@ -27,10 +27,20 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("sources")]
-        public async Task<IActionResult> ListSources()
+        public async Task<IActionResult> ListSources([FromQuery] bool includeNotApproved = false)
         {
-            var result = await _vulnerabilityService.ListSources();
+            if (includeNotApproved && !UserHasAnyRole(Role.Admin, Role.Moderator))
+            {
+                return User?.Identity?.IsAuthenticated == true ? Forbid() : Unauthorized();
+            }
+
+            var result = await _vulnerabilityService.ListSources(includeNotApproved);
             return Ok(result);
+        }
+
+        private bool UserHasAnyRole(params Role[] roles)
+        {
+            return roles.Any(role => User.IsInRole(role.ToString()));
         }
 
         [HttpPost]

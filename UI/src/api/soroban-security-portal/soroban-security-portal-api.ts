@@ -289,9 +289,10 @@ export const getSeveritiesCall = async (): Promise<VulnerabilitySeverity[]> => {
     const response = await client.request('api/v1/vulnerabilities/severities', 'GET');
     return response.data as VulnerabilitySeverity[];
 };
-export const getSourceCall = async (): Promise<VulnerabilitySource[]> => {
+export const getSourceCall = async (includeNotApproved = false): Promise<VulnerabilitySource[]> => {
     const client = await getRestClient();
-    const response = await client.request('api/v1/vulnerabilities/sources', 'GET');
+    const query = includeNotApproved ? '?includeNotApproved=true' : '';
+    const response = await client.request(`api/v1/vulnerabilities/sources${query}`, 'GET');
     return response.data as VulnerabilitySource[];
 };
 export const getVulnerabilitiesCall = async (vulnerabilitySearch?: VulnerabilitySearch): Promise<Vulnerability[]> => {
