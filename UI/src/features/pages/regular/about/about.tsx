@@ -62,10 +62,10 @@ export const About: FC = () => {
         , both of which outline the improvements and community value we&apos;ve delivered.
       </TextBlock>
       <TextBlock>
-        For more information on what has changed and how you can get involved, read our{' '}
-        <ExternalLink url="https://medium.com/@inferara/stellar-security-portal-update-whats-new-in-june-2026-f4b4f19fd953" text="June 2026 update on Medium" />{' '}
-        or follow frequent updates in our{' '}
-        <ExternalLink url="https://discord.com/channels/897514728459468821/1394263673278697483" text="Discord projects channel" />.
+        For more information on what has changed and how you can get involved, you can read about it through{' '}
+        <ExternalLink url="https://medium.com/@inferara/stellar-security-portal-update-whats-new-in-june-2026-f4b4f19fd953" text="this medium article" />{' '}
+        or see our more frequent updates directly through the discord{' '}
+        <ExternalLink url="https://discord.com/channels/897514728459468821/1394263673278697483" text="projects channel" />.
       </TextBlock>
 
       <H5 text="Recent Updates" />
