@@ -18,7 +18,7 @@ import { downloadReportPDF } from '../../../../api/soroban-security-portal/sorob
 import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
 import { useAppAuth } from '../../../authentication/useAppAuth';
-import { isAuthorized, canEdit } from '../../../authentication/authPermissions';
+import { canEdit } from '../../../authentication/authPermissions';
 
 export const Reports: FC = () => {
   const { themeMode } = useTheme();
