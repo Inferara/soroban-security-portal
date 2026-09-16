@@ -21,6 +21,10 @@ export interface StatisticCard {
   label: string;
   /** Optional tooltip explaining the metric */
   tooltip?: string;
+  /** Optional click handler to make card interactive */
+  onClick?: () => void;
+  /** Whether the card is currently selected / active */
+  selected?: boolean;
 }
 
 /**
@@ -124,8 +128,39 @@ export function StatisticsCards({
  * Internal component for rendering a single statistic card
  */
 function StatisticCardItem({ card }: { card: StatisticCard }) {
+  const isClickable = Boolean(card.onClick);
   const content = (
-    <Card sx={{ textAlign: 'center' }}>
+    <Card
+      onClick={card.onClick}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      aria-pressed={isClickable ? Boolean(card.selected) : undefined}
+      onKeyDown={
+        isClickable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                card.onClick?.();
+              }
+            }
+          : undefined
+      }
+      sx={{
+        textAlign: 'center',
+        cursor: isClickable ? 'pointer' : 'default',
+        transition: 'all 0.2s ease-in-out',
+        border: '2px solid',
+        borderColor: card.selected ? (card.iconColor || 'primary.main') : 'transparent',
+        boxShadow: card.selected ? 3 : 1,
+        ...(isClickable && {
+          '&:hover': {
+            boxShadow: 3,
+            transform: 'translateY(-2px)',
+            borderColor: card.selected ? (card.iconColor || 'primary.main') : 'action.hover',
+          },
+        }),
+      }}
+    >
       <CardContent>
         <Box sx={{ color: card.iconColor, mb: 1 }}>
           {card.icon}

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Assessment, BugReport, Business } from '@mui/icons-material';
 import { StatisticsCards, StatisticCard } from '../StatisticsCards';
@@ -228,6 +228,53 @@ describe('StatisticsCards', () => {
       // Check that labels are rendered as typography
       expect(screen.getByText('Reports')).toBeInTheDocument();
       expect(screen.getByText('Vulnerabilities')).toBeInTheDocument();
+    });
+  });
+
+  describe('interactivity and filtering', () => {
+    it('calls onClick when clickable card is clicked', async () => {
+      const handleClick = vi.fn();
+      const interactiveCards: StatisticCard[] = [
+        {
+          icon: <BugReport />,
+          iconColor: '#C2410C',
+          value: 10,
+          label: 'Fixed',
+          onClick: handleClick,
+          selected: true,
+        },
+      ];
+
+      render(<StatisticsCards cards={interactiveCards} />, { wrapper });
+
+      const cardButton = screen.getByRole('button');
+      expect(cardButton).toBeInTheDocument();
+      expect(cardButton).toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(cardButton);
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('triggers onClick on Enter and Space key presses', async () => {
+      const handleClick = vi.fn();
+      const interactiveCards: StatisticCard[] = [
+        {
+          icon: <BugReport />,
+          iconColor: '#C2410C',
+          value: 5,
+          label: 'Not Fixed',
+          onClick: handleClick,
+        },
+      ];
+
+      render(<StatisticsCards cards={interactiveCards} />, { wrapper });
+
+      const cardButton = screen.getByRole('button');
+      fireEvent.keyDown(cardButton, { key: 'Enter' });
+      expect(handleClick).toHaveBeenCalledTimes(1);
+
+      fireEvent.keyDown(cardButton, { key: ' ' });
+      expect(handleClick).toHaveBeenCalledTimes(2);
     });
   });
 });
