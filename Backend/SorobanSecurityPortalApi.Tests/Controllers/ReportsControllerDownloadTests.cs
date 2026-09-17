@@ -71,7 +71,39 @@ public class ReportsControllerDownloadTests
         fileResult.FileDownloadName.Should().Be("Test Report.pdf");
     }
 
-    private ReportsController CreateController(Role role)
+    [Fact]
+    public async Task GetFile_WhenReportIsApprovedAndUserIsAnonymous_ReturnsPdf()
+    {
+        var reportId = 42;
+        _reportServiceMock
+            .Setup(x => x.Get(reportId))
+            .ReturnsAsync(CreateReport(reportId, ReportModelStatus.Approved));
+
+        var controller = CreateController(role: null);
+
+        var result = await controller.GetFile(reportId);
+
+        var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
+        fileResult.ContentType.Should().Be("application/pdf");
+        fileResult.FileDownloadName.Should().Be("Test Report.pdf");
+    }
+
+    [Fact]
+    public async Task GetFile_WhenReportIsNotApprovedAndUserIsAnonymous_ReturnsForbid()
+    {
+        var reportId = 42;
+        _reportServiceMock
+            .Setup(x => x.Get(reportId))
+            .ReturnsAsync(CreateReport(reportId, ReportModelStatus.New));
+
+        var controller = CreateController(role: null);
+
+        var result = await controller.GetFile(reportId);
+
+        result.Should().BeOfType<ForbidResult>();
+    }
+
+    private ReportsController CreateController(Role? role)
     {
         var controller = new ReportsController(
             _reportServiceMock.Object,
@@ -92,13 +124,18 @@ public class ReportsControllerDownloadTests
         return controller;
     }
 
-    private static ClaimsPrincipal CreateUserWithRole(Role role)
+    private static ClaimsPrincipal CreateUserWithRole(Role? role)
     {
+        if (role == null)
+        {
+            return new ClaimsPrincipal(new ClaimsIdentity());
+        }
+
         var identity = new ClaimsIdentity(
             new[]
             {
                 new Claim(ClaimTypes.Name, "testuser"),
-                new Claim(ClaimTypes.Role, role.ToString())
+                new Claim(ClaimTypes.Role, role.Value.ToString())
             },
             "TestAuthType");
 
