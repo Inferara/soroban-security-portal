@@ -31,6 +31,9 @@ async function getFirstReport(): Promise<ReportListItem> {
 }
 
 test.describe('Anonymous report download (issue #227)', () => {
+  // Prod pages and PDFs can be slow to load.
+  test.setTimeout(120000);
+
   test('download endpoint returns PDF without authentication', async () => {
     const report = await getFirstReport();
 
@@ -48,13 +51,16 @@ test.describe('Anonymous report download (issue #227)', () => {
   });
 
   test('reports list: anonymous user can download a report', async ({ page }) => {
+    // Prod PDFs can be tens of MB — downloading them takes a while.
+    test.setTimeout(120000);
+
     await page.goto('/reports');
     await page.waitForLoadState('networkidle');
 
     const downloadButton = page.getByRole('button', { name: /download report/i }).first();
     await expect(downloadButton).toBeVisible({ timeout: 15000 });
 
-    const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
+    const downloadPromise = page.waitForEvent('download', { timeout: 90000 });
     await downloadButton.click();
     const download = await downloadPromise;
 
@@ -81,7 +87,8 @@ test.describe('Anonymous report download (issue #227)', () => {
     await expect(page.getByText(/authentication required/i)).not.toBeVisible();
     await expect(page.getByText(/please log in to view/i)).not.toBeVisible();
 
-    // PDF loads into the viewer (blob iframe appears only after a successful fetch)
-    await expect(page.locator('iframe[title="Report PDF Viewer"]')).toBeVisible({ timeout: 20000 });
+    // PDF loads into the viewer (the iframe appears only after a successful fetch;
+    // its accessible name may come from the loaded document, so match by tag)
+    await expect(page.locator('iframe').first()).toBeVisible({ timeout: 20000 });
   });
 });
