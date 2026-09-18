@@ -48,7 +48,8 @@ namespace SorobanSecurityPortalApi.Controllers
             return Ok(result);
         }
 
-        [RoleAuthorize(Role.Admin, Role.Moderator, Role.Contributor, Role.User)]
+        // Anonymous download is allowed for approved reports (see issue #227);
+        // unapproved reports still require an elevated role, enforced in CanDownloadReport.
         [HttpGet("{reportId}/download")]
         public async Task<IActionResult> GetFile(int reportId)
         {
