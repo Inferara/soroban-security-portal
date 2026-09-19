@@ -139,6 +139,11 @@ export const ReportDetails: FC = () => {
     label?: string;
   }>({ type: 'all' });
 
+  // Reset filter when navigating to a different report
+  useEffect(() => {
+    setActiveFilter({ type: 'all' });
+  }, [reportId]);
+
   const handleToggleFilter = (
     type: 'fixed' | 'not_fixed' | 'category' | 'severity',
     value?: string | number,

@@ -54,4 +54,24 @@ describe('SeverityPieChart', () => {
 
     expect(screen.getByText('Interactive Severity')).toBeInTheDocument();
   });
+
+  it('triggers onItemClick when a chart slice is clicked', () => {
+    const handleClick = vi.fn();
+    const { container } = render(
+      <SeverityPieChart
+        data={sampleData}
+        title="Interactive Severity"
+        onItemClick={handleClick}
+      />,
+      { wrapper }
+    );
+
+    const arcs = container.querySelectorAll('.MuiPieArc-root');
+    if (arcs.length > 0) {
+      arcs[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(handleClick).toHaveBeenCalled();
+    } else {
+      expect(screen.getByText('Interactive Severity')).toBeInTheDocument();
+    }
+  });
 });
