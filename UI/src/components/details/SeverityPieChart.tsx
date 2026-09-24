@@ -36,6 +36,8 @@ export interface SeverityPieChartProps {
   height?: number;
   /** Whether to show in a card wrapper (default: true) */
   showCard?: boolean;
+  /** Optional click handler when a slice is clicked */
+  onItemClick?: (item: PieChartDataPoint) => void;
 }
 
 /**
@@ -74,6 +76,7 @@ export function SeverityPieChart({
   emptyMessage = 'No data available',
   height = 300,
   showCard = true,
+  onItemClick,
 }: SeverityPieChartProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -99,6 +102,25 @@ export function SeverityPieChart({
             ]}
             width={chartWidth}
             height={height}
+            onItemClick={
+              onItemClick
+                ? (_event, itemIdentifier) => {
+                    const item = data[itemIdentifier.dataIndex];
+                    if (item) {
+                      onItemClick(item);
+                    }
+                  }
+                : undefined
+            }
+            sx={
+              onItemClick
+                ? {
+                    '& .MuiPieArc-root': {
+                      cursor: 'pointer',
+                    },
+                  }
+                : undefined
+            }
           />
         </Box>
       ) : (

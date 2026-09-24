@@ -132,15 +132,61 @@ export const ReportDetails: FC = () => {
     [statistics?.vulnerabilitiesByCategory]
   );
 
-  // Sort vulnerabilities by severity (memoized)
-  const sortedVulnerabilities = useMemo(() => {
+  // Category & Severity filter state
+  const [activeFilter, setActiveFilter] = useState<{
+    type: 'all' | 'fixed' | 'not_fixed' | 'category' | 'severity';
+    value?: string | number;
+    label?: string;
+  }>({ type: 'all' });
+
+  // Reset filter when navigating to a different report
+  useEffect(() => {
+    setActiveFilter({ type: 'all' });
+  }, [reportId]);
+
+  const handleToggleFilter = (
+    type: 'fixed' | 'not_fixed' | 'category' | 'severity',
+    value?: string | number,
+    label?: string
+  ) => {
+    setActiveFilter((prev) => {
+      // Toggle off to 'all' if user clicks the currently active filter
+      if (prev.type === type && (value === undefined || prev.value === value)) {
+        return { type: 'all' };
+      }
+      return { type, value, label };
+    });
+  };
+
+  const handleClearFilter = () => {
+    setActiveFilter({ type: 'all' });
+  };
+
+  // Filter and sort vulnerabilities by severity (memoized)
+  const filteredVulnerabilities = useMemo(() => {
+    const list = vulnerabilities.filter((vuln) => {
+      if (activeFilter.type === 'fixed') {
+        return vuln.category === VulnerabilityCategory.Valid;
+      }
+      if (activeFilter.type === 'not_fixed') {
+        return vuln.category !== VulnerabilityCategory.Valid;
+      }
+      if (activeFilter.type === 'category') {
+        return vuln.category === activeFilter.value;
+      }
+      if (activeFilter.type === 'severity') {
+        return vuln.severity?.toLowerCase() === String(activeFilter.value).toLowerCase();
+      }
+      return true;
+    });
+
     const severityOrder: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1, note: 0 };
-    return [...vulnerabilities].sort((a, b) => {
+    return [...list].sort((a, b) => {
       const aSeverity = severityOrder[a.severity?.toLowerCase()] || 0;
       const bSeverity = severityOrder[b.severity?.toLowerCase()] || 0;
       return bSeverity - aSeverity;
     });
-  }, [vulnerabilities]);
+  }, [vulnerabilities, activeFilter]);
 
   const handleReportDownload = async (reportName: string, reportId: number) => {
     try {
@@ -167,25 +213,34 @@ export const ReportDetails: FC = () => {
     }
   }, [tabValue, report, auth.user?.access_token, pdfBlobUrl, pdfLoading, fetchPdfForViewing]);
 
-  // Configure statistics cards
+  // Configure statistics cards with filtering capability
   const statsCards = [
     {
       icon: <BugReport sx={{ fontSize: 40 }} />,
       iconColor: SeverityColors['medium'],
       value: statistics?.totalVulnerabilities || 0,
       label: 'Total Vulnerabilities',
+      onClick: handleClearFilter,
+      selected: activeFilter.type === 'all',
+      tooltip: 'Click to show all vulnerabilities',
     },
     {
       icon: <CheckCircle sx={{ fontSize: 40 }} />,
       iconColor: SeverityColors['low'],
       value: fixedValidVulns,
       label: 'Fixed',
+      onClick: () => handleToggleFilter('fixed', undefined, 'Fixed'),
+      selected: activeFilter.type === 'fixed',
+      tooltip: 'Click to filter by fixed vulnerabilities',
     },
     {
       icon: <ErrorIcon sx={{ fontSize: 40 }} />,
       iconColor: SeverityColors['critical'],
       value: notFixedValidVulns,
       label: 'Not Fixed',
+      onClick: () => handleToggleFilter('not_fixed', undefined, 'Not Fixed'),
+      selected: activeFilter.type === 'not_fixed',
+      tooltip: 'Click to filter by not fixed vulnerabilities',
     },
     {
       icon: <Grading sx={{ fontSize: 40 }} />,
@@ -300,6 +355,9 @@ export const ReportDetails: FC = () => {
                     data={severityChartData}
                     title="Vulnerabilities by Severity"
                     emptyMessage="No vulnerability data available"
+                    onItemClick={(item) =>
+                      handleToggleFilter('severity', String(item.id), `${item.label} Severity`)
+                    }
                   />
 
                   {/* Fix Status Chart */}
@@ -307,20 +365,49 @@ export const ReportDetails: FC = () => {
                     data={vulnCategoryData}
                     title="Fix Status"
                     emptyMessage="No vulnerability data available"
+                    onItemClick={(item) =>
+                      handleToggleFilter('category', Number(item.id), item.label)
+                    }
                   />
                 </Box>
 
                 {/* Vulnerabilities List */}
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                      <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      Vulnerabilities ({vulnerabilities.length})
-                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        mb: 2,
+                        flexWrap: 'wrap',
+                        gap: 1,
+                      }}
+                    >
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        <BugReport sx={{ mr: 1, verticalAlign: 'middle' }} />
+                        Vulnerabilities ({filteredVulnerabilities.length}
+                        {activeFilter.type !== 'all' ? ` of ${vulnerabilities.length}` : ''})
+                      </Typography>
+                      {activeFilter.type !== 'all' && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Chip
+                            label={`Filtered: ${activeFilter.label || activeFilter.type}`}
+                            onDelete={handleClearFilter}
+                            color="primary"
+                            variant="outlined"
+                            size="small"
+                          />
+                          <Button size="small" onClick={handleClearFilter}>
+                            Clear Filter
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
 
-                    {sortedVulnerabilities.length > 0 ? (
+                    {filteredVulnerabilities.length > 0 ? (
                       <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                        {sortedVulnerabilities.map((vulnerability, index) => (
+                        {filteredVulnerabilities.map((vulnerability, index) => (
                           <Box key={vulnerability.id}>
                             <ListItem disablePadding>
                               <ListItemButton
@@ -420,14 +507,23 @@ export const ReportDetails: FC = () => {
                                 />
                               </ListItemButton>
                             </ListItem>
-                            {index < sortedVulnerabilities.length - 1 && <Divider />}
+                            {index < filteredVulnerabilities.length - 1 && <Divider />}
                           </Box>
                         ))}
                       </List>
                     ) : (
-                      <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                        No vulnerabilities found in this report
-                      </Typography>
+                      <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography color="text.secondary" sx={{ mb: 1 }}>
+                          {activeFilter.type !== 'all'
+                            ? `No vulnerabilities found matching "${activeFilter.label || activeFilter.type}"`
+                            : 'No vulnerabilities found in this report'}
+                        </Typography>
+                        {activeFilter.type !== 'all' && (
+                          <Button variant="outlined" size="small" onClick={handleClearFilter}>
+                            Show all vulnerabilities
+                          </Button>
+                        )}
+                      </Box>
                     )}
                   </CardContent>
                 </Card>
