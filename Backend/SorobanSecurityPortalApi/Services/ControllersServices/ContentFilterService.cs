@@ -24,7 +24,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private static readonly string[] AllowedTags = { "p", "br", "strong", "em", "code", "pre", "a", "ul", "ol", "li", "blockquote" };
         private static readonly Regex AnchorHrefRegex = new(@"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex MarkdownLinkRegex = new(@"(?<!!)\[[^\]\r\n]+\]\(([^)\r\n]+)\)", RegexOptions.Compiled);
-        private const int MaxLinksAllowed = 5;
+        private const int MaxLinksAllowed = 10;
         private const int RateLimitPerMinute = 10;
         private const string RateLimitKeyPrefix = "content_filter_rate_limit:";
         private const string DefaultProfanityWordsFile = "Data/default-profanity-words.txt";

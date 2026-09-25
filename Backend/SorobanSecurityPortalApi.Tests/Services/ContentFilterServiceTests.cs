@@ -267,22 +267,7 @@ public class ContentFilterServiceTests
     #region Link Flooding Tests
 
     [Fact]
-    public async Task FilterContentAsync_AllowsLimitedLinks()
-    {
-        // Arrange
-        SetupDefaultConfig();
-        var service = CreateService();
-        var content = "[Link1](https://github.com) [Link2](https://stellar.org)";
-
-        // Act
-        var result = await service.FilterContentAsync(content, 1);
-
-        // Assert
-        result.IsBlocked.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task FilterContentAsync_BlocksExcessiveLinks()
+    public async Task FilterContentAsync_AllowsTenLinks()
     {
         // Arrange
         SetupDefaultConfig();
@@ -293,8 +278,23 @@ public class ContentFilterServiceTests
         var result = await service.FilterContentAsync(content, 1);
 
         // Assert
+        result.IsBlocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task FilterContentAsync_BlocksElevenLinks()
+    {
+        // Arrange
+        SetupDefaultConfig();
+        var service = CreateService();
+        var content = string.Join(" ", Enumerable.Range(1, 11).Select(i => $"[Link{i}](https://example{i}.com)"));
+
+        // Act
+        var result = await service.FilterContentAsync(content, 1);
+
+        // Assert
         result.IsBlocked.Should().BeTrue();
-        result.Warnings.Should().Contain(w => w.Contains("Too many links"));
+        result.Warnings.Should().Contain("Too many links detected: 11 (max: 10)");
     }
 
     #endregion
