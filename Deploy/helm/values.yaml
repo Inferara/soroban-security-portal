@@ -14,9 +14,26 @@ global:
   sorobansecurityportal:
     service:
       tag: "latest"
+    # Memory cap so a runaway request gets the API pod OOM-killed and restarted instead of
+    # starving the whole single-node cluster (an unbounded query once froze the node, k8s API
+    # included). .NET sizes its GC heap from this limit. No CPU request: the node is CPU-tight.
+    resources:
+      requests:
+        memory: "256Mi"
+      limits:
+        memory: "2Gi"
   redis:
     user: ""
     password: ""
+    # Redis only backs IDistributedCache (lookup caches, SSO state, rating summaries, rate-limit
+    # counters), so evicting is safe. Keep maxMemory below the container limit to leave room for
+    # Redis's own overhead and fragmentation; past it, allkeys-lru evicts instead of failing writes.
+    maxMemory: "200mb"
+    resources:
+      requests:
+        memory: "32Mi"
+      limits:
+        memory: "256Mi"
   google:
     clientId: ""
     clientSecret: ""

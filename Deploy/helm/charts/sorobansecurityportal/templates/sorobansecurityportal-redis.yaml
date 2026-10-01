@@ -16,7 +16,9 @@ spec:
       containers:
         - name: "{{ .Values.global.environment.name }}-sorobansecurityportal-redis"
           image: redis:8.0.2
-          args: ["redis-server", "--requirepass", "{{ .Values.global.redis.password }}", "--save", "", "--appendonly", "no", "--loglevel", "warning"]
+          args: ["redis-server", "--requirepass", "{{ .Values.global.redis.password }}", "--save", "", "--appendonly", "no", "--loglevel", "warning", "--maxmemory", "{{ .Values.global.redis.maxMemory }}", "--maxmemory-policy", "allkeys-lru"]
           imagePullPolicy: "IfNotPresent"
+          resources:
+{{ toYaml .Values.global.redis.resources | indent 12 }}
           ports:
             - containerPort: 6379
