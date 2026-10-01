@@ -25,6 +25,10 @@ global:
   redis:
     user: ""
     password: ""
+    # Redis only backs IDistributedCache (lookup caches, SSO state, rating summaries, rate-limit
+    # counters), so evicting is safe. Keep maxMemory below the container limit to leave room for
+    # Redis's own overhead and fragmentation; past it, allkeys-lru evicts instead of failing writes.
+    maxMemory: "200mb"
     resources:
       requests:
         memory: "32Mi"
