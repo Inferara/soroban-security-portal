@@ -18,5 +18,7 @@ spec:
           image: redis:8.0.2
           args: ["redis-server", "--requirepass", "{{ .Values.global.redis.password }}", "--save", "", "--appendonly", "no", "--loglevel", "warning"]
           imagePullPolicy: "IfNotPresent"
+          resources:
+{{ toYaml .Values.global.redis.resources | indent 12 }}
           ports:
             - containerPort: 6379

@@ -38,4 +38,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: "{{ .Values.global.environment.name }}-sorobansecurityportal-api-config"
+          resources:
+{{ toYaml .Values.global.sorobansecurityportal.resources | indent 12 }}
           imagePullPolicy: "{{ .Values.global.containerRegistry.imagePullPolicy }}"
