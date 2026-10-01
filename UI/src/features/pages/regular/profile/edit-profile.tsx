@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, Grid, Paper, Typography, Box } from '@mui/material';
+import { TextField, Button, Grid, Paper, Typography, Box, IconButton, InputAdornment, Tooltip } from '@mui/material';
 import { useEditProfile } from './hooks/edit-profile.hook';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
@@ -10,8 +10,12 @@ import GoogleIcon from '@mui/icons-material/Google';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import XIcon from '@mui/icons-material/X';
 import ChatIcon from '@mui/icons-material/Chat';
+import LinkIcon from '@mui/icons-material/Link';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { AvatarUpload } from '../../../../components/AvatarUpload';
 import { getUserInitials } from '../../../../utils/user-utils';
+import { ConnectedAccountItem } from '../../../../api/soroban-security-portal/models/user';
 
 const ProfileContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -72,6 +76,39 @@ const AccountName = styled(Typography)(({ theme }) => ({
   fontWeight: 500,
 }));
 
+/** GitHub profile URL regex: https://github.com/username (https required) */
+const GITHUB_URL_REGEX = /^https:\/\/(www\.)?github\.com\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\/?$/;
+/** X (Twitter) profile URL regex: https://x.com/username or https://twitter.com/username (https required) */
+const X_URL_REGEX = /^https:\/\/(www\.)?(x\.com|twitter\.com)\/[a-zA-Z0-9_]{1,15}\/?$/;
+
+/** Extracts the service-specific AccountId from user's connected accounts, or returns empty string */
+const getConnectedAccountId = (accounts: ConnectedAccountItem[] | undefined, serviceName: string): string => {
+  if (!accounts) return '';
+  const match = accounts.find(a => a.serviceName === serviceName);
+  return match?.accountId || '';
+};
+
+/** Normalizes a social URL to use https scheme (upgrades http for legacy data). */
+const normalizeUrl = (url: string): string => {
+  if (!url) return url;
+  return url.replace(/^http:\/\//i, 'https://');
+};
+
+/** Validates + normalizes a social URL for safe preview. Returns null if unsafe. */
+const getSafePreviewUrl = (serviceName: string, url: string): string | null => {
+  if (!url) return null;
+  const normalized = normalizeUrl(url.trim());
+  if (serviceName === 'GitHub' && GITHUB_URL_REGEX.test(normalized)) return normalized;
+  if (serviceName === 'X' && X_URL_REGEX.test(normalized)) return normalized;
+  return null;
+};
+
+/** Returns the SSO-connected accounts only (Google, Discord) */
+const getSSOAccounts = (accounts: ConnectedAccountItem[] | undefined): ConnectedAccountItem[] => {
+  if (!accounts) return [];
+  return accounts.filter(a => a.serviceName === 'Google' || a.serviceName === 'Discord');
+};
+
 export const EditProfile: React.FC = () => {
   const navigate = useNavigate();
   const { themeMode } = useThemeContext();
@@ -79,6 +116,10 @@ export const EditProfile: React.FC = () => {
   const [username, setUsername] = useState('');
   const [aboutYou, setAboutYou] = useState('');
   const [image, setImage] = useState<string | null>(null);
+  const [githubUrl, setGithubUrl] = useState('');
+  const [xUrl, setXUrl] = useState('');
+  const [githubError, setGithubError] = useState('');
+  const [xError, setXError] = useState('');
 
   const {
     user,
@@ -91,14 +132,51 @@ export const EditProfile: React.FC = () => {
       setName(user.fullName || '');
       setUsername(user.login || '');
       setAboutYou(user.personalInfo || '');
+      setGithubUrl(normalizeUrl(getConnectedAccountId(user.connectedAccounts, 'GitHub')));
+      setXUrl(normalizeUrl(getConnectedAccountId(user.connectedAccounts, 'X')));
     }
   }, [user]);
+
+  const validateGithubUrl = (url: string): boolean => {
+    if (!url.trim()) {
+      setGithubError('');
+      return true;
+    }
+    if (!GITHUB_URL_REGEX.test(url.trim())) {
+      setGithubError('Enter a valid GitHub profile URL (e.g., https://github.com/username)');
+      return false;
+    }
+    setGithubError('');
+    return true;
+  };
+
+  const validateXUrl = (url: string): boolean => {
+    if (!url.trim()) {
+      setXError('');
+      return true;
+    }
+    if (!X_URL_REGEX.test(url.trim())) {
+      setXError('Enter a valid X/Twitter profile URL (e.g., https://x.com/username)');
+      return false;
+    }
+    setXError('');
+    return true;
+  };
 
   const handleSaveProfile = async () => {
     if (!name.trim()) {
       showError('Name is required');
       return;
     }
+
+    // Validate social URLs before saving
+    const isGithubValid = validateGithubUrl(githubUrl);
+    const isXValid = validateXUrl(xUrl);
+    if (!isGithubValid || !isXValid) {
+      showError('Please fix the social profile URL errors before saving.');
+      return;
+    }
+
     let avatarImage = image;
 
     if (!avatarImage) {
@@ -127,11 +205,30 @@ export const EditProfile: React.FC = () => {
       }
     }
 
+    // Build connected accounts: preserve non-editable accounts (SSO, etc.) + add/update social links
+    const updatedConnectedAccounts: ConnectedAccountItem[] = [
+      // Preserve all accounts that are not GitHub or X (e.g., Google SSO, Discord SSO, future types)
+      ...(user?.connectedAccounts || []).filter(
+        a => a.serviceName !== 'GitHub' && a.serviceName !== 'X'
+      ),
+    ];
+
+    // Add GitHub if URL is provided (normalized to https)
+    if (githubUrl.trim()) {
+      updatedConnectedAccounts.push({ serviceName: 'GitHub', accountId: normalizeUrl(githubUrl.trim()) });
+    }
+
+    // Add X if URL is provided (normalized to https)
+    if (xUrl.trim()) {
+      updatedConnectedAccounts.push({ serviceName: 'X', accountId: normalizeUrl(xUrl.trim()) });
+    }
+
     const updateSuccess = await updateProfile({
       fullName: name,
       login: username,
       personalInfo: aboutYou,
       image: avatarImage || undefined,
+      connectedAccounts: updatedConnectedAccounts,
     });
 
     if (updateSuccess) {
@@ -142,11 +239,19 @@ export const EditProfile: React.FC = () => {
     }
   };
 
-  const connectedAccounts = [
-    { name: 'Google account', icon: <GoogleIcon sx={{ color: 'primary.main' }} />, connected: false },
-    { name: 'Discord account', icon: <ChatIcon sx={{ color: 'primary.main' }} />, connected: false },
-    { name: 'GitHub account', icon: <GitHubIcon sx={{ color: 'primary.main' }} />, connected: false },
-    { name: 'X account', icon: <XIcon sx={{ color: 'primary.main' }} />, connected: false },
+  const handleDisconnectGithub = () => {
+    setGithubUrl('');
+    setGithubError('');
+  };
+
+  const handleDisconnectX = () => {
+    setXUrl('');
+    setXError('');
+  };
+
+  const ssoAccounts = [
+    { name: 'Google account', icon: <GoogleIcon sx={{ color: 'primary.main' }} />, connected: getSSOAccounts(user?.connectedAccounts).some(a => a.serviceName === 'Google') },
+    { name: 'Discord account', icon: <ChatIcon sx={{ color: 'primary.main' }} />, connected: getSSOAccounts(user?.connectedAccounts).some(a => a.serviceName === 'Discord') },
   ];
 
   return (
@@ -224,7 +329,9 @@ export const EditProfile: React.FC = () => {
           <SectionTitle>
             Connected accounts
           </SectionTitle>
-          {connectedAccounts.map((account, index) => (
+
+          {/* SSO accounts (Google, Discord) — read-only; connected via OAuth login */}
+          {ssoAccounts.map((account, index) => (
             <AccountItem key={index}>
               <AccountInfo>
                 <AccountIcon>
@@ -234,21 +341,141 @@ export const EditProfile: React.FC = () => {
                   {account.name}
                 </AccountName>
               </AccountInfo>
-              <Button disabled={false} variant="contained" sx={{
-                color: 'background.default',
-                borderColor: 'primary.main',
-                backgroundColor: 'primary.main',
-                textTransform: 'none',
-                '&:hover': {
-                  backgroundColor: 'rgba(250, 250, 250, 0.1)',
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                },
-              }}>
-                Connect
-              </Button>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: account.connected ? 'success.main' : 'text.disabled',
+                  fontWeight: 500,
+                }}
+              >
+                {account.connected ? 'Connected via SSO' : 'Not connected'}
+              </Typography>
             </AccountItem>
           ))}
+
+          {/* GitHub — editable social link */}
+          <AccountItem>
+            <AccountInfo>
+              <AccountIcon>
+                <GitHubIcon sx={{ color: githubUrl ? 'primary.main' : 'text.disabled' }} />
+              </AccountIcon>
+              <AccountName>
+                GitHub profile
+              </AccountName>
+            </AccountInfo>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, maxWidth: 400, ml: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="https://github.com/username"
+                value={githubUrl}
+                onChange={(e) => {
+                  setGithubUrl(e.target.value);
+                  if (githubError) validateGithubUrl(e.target.value);
+                }}
+                onBlur={() => validateGithubUrl(githubUrl)}
+                error={!!githubError}
+                helperText={githubError || undefined}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LinkIcon fontSize="small" color={githubUrl ? 'primary' : 'disabled'} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: githubUrl ? (
+                      <InputAdornment position="end">
+                        <Tooltip title="Open profile">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              const safe = getSafePreviewUrl('GitHub', githubUrl);
+                              if (safe) window.open(safe, '_blank', 'noopener,noreferrer');
+                            }}
+                            edge="end"
+                          >
+                            <OpenInNewIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Disconnect">
+                          <IconButton
+                            size="small"
+                            onClick={handleDisconnectGithub}
+                            edge="end"
+                            sx={{ color: 'error.main' }}
+                          >
+                            <LinkOffIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </InputAdornment>
+                    ) : undefined,
+                  },
+                }}
+              />
+            </Box>
+          </AccountItem>
+
+          {/* X (Twitter) — editable social link */}
+          <AccountItem>
+            <AccountInfo>
+              <AccountIcon>
+                <XIcon sx={{ color: xUrl ? 'primary.main' : 'text.disabled' }} />
+              </AccountIcon>
+              <AccountName>
+                X (Twitter) profile
+              </AccountName>
+            </AccountInfo>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, maxWidth: 400, ml: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="https://x.com/username"
+                value={xUrl}
+                onChange={(e) => {
+                  setXUrl(e.target.value);
+                  if (xError) validateXUrl(e.target.value);
+                }}
+                onBlur={() => validateXUrl(xUrl)}
+                error={!!xError}
+                helperText={xError || undefined}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LinkIcon fontSize="small" color={xUrl ? 'primary' : 'disabled'} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: xUrl ? (
+                      <InputAdornment position="end">
+                        <Tooltip title="Open profile">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              const safe = getSafePreviewUrl('X', xUrl);
+                              if (safe) window.open(safe, '_blank', 'noopener,noreferrer');
+                            }}
+                            edge="end"
+                          >
+                            <OpenInNewIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Disconnect">
+                          <IconButton
+                            size="small"
+                            onClick={handleDisconnectX}
+                            edge="end"
+                            sx={{ color: 'error.main' }}
+                          >
+                            <LinkOffIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </InputAdornment>
+                    ) : undefined,
+                  },
+                }}
+              />
+            </Box>
+          </AccountItem>
         </ContentSection>
       </Box>
     </ProfileContainer>
