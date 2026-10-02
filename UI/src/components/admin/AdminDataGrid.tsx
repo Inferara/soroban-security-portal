@@ -332,7 +332,6 @@ export function AdminDataGrid<T extends GridValidRowModel>({
           isRowSelectable={() => false}
           loading={loading}
           onColumnWidthChange={handleColumnResize}
-          onColumnResize={handleColumnResize}
         />
       </Box>
 
