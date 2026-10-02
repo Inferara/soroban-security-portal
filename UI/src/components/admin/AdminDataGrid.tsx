@@ -1,6 +1,6 @@
 import { ReactNode, useState, useMemo, useCallback } from 'react';
 import { Box, CircularProgress, IconButton, Stack, Tooltip } from '@mui/material';
-import { DataGrid, GridColDef, GridValidRowModel, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridValidRowModel, GridRenderCellParams, GridColumnResizeParams } from '@mui/x-data-grid';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
@@ -177,6 +177,47 @@ export function AdminDataGrid<T extends GridValidRowModel>({
     handleSetItemIdToRemove(0);
   };
 
+  // Track custom column widths resized by user so table sizing does not reset on data refresh or approval
+  const storageKey = useMemo(() => {
+    try {
+      const pageKey = window.location.pathname.replace(/[^a-zA-Z0-9_-]/g, '_');
+      return `admin_grid_col_widths_${pageKey}`;
+    } catch {
+      return 'admin_grid_col_widths_default';
+    }
+  }, []);
+
+  const [userColumnWidths, setUserColumnWidths] = useState<Record<string, number>>(() => {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const saved = sessionStorage.getItem(storageKey);
+        if (saved) return JSON.parse(saved);
+      }
+    } catch {
+      // ignore
+    }
+    return {};
+  });
+
+  const handleColumnResize = useCallback((params: GridColumnResizeParams) => {
+    if (params.colDef?.field && params.width) {
+      setUserColumnWidths((prev) => {
+        const updated = {
+          ...prev,
+          [params.colDef.field]: params.width,
+        };
+        try {
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            sessionStorage.setItem(storageKey, JSON.stringify(updated));
+          }
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
+    }
+  }, [storageKey]);
+
   // Build columns with optional remove action - memoized to prevent unnecessary recalculations
   const finalColumns = useMemo((): GridColDef[] => {
     const resultColumns: ResponsiveColumn[] = [];
@@ -219,8 +260,21 @@ export function AdminDataGrid<T extends GridValidRowModel>({
 
     // Combine action column with data columns and apply responsive transformations
     const allColumns: ResponsiveColumn[] = [...resultColumns, ...columns];
-    return getResponsiveColumns(allColumns, breakpoint);
-  }, [removeAction, isAdmin, columns, handleSetItemIdToRemove, breakpoint]);
+    const responsiveCols = getResponsiveColumns(allColumns, breakpoint);
+
+    // Apply user-resized column widths so table sizing stays consistent across actions
+    return responsiveCols.map((col) => {
+      const customWidth = userColumnWidths[col.field];
+      if (customWidth !== undefined) {
+        return {
+          ...col,
+          width: customWidth,
+          flex: undefined,
+        };
+      }
+      return col;
+    });
+  }, [removeAction, isAdmin, columns, handleSetItemIdToRemove, breakpoint, userColumnWidths]);
 
   const defaultGridSx = useMemo(() => ({
     ...(transparentBackground && { backgroundColor: 'transparent' }),
@@ -277,6 +331,7 @@ export function AdminDataGrid<T extends GridValidRowModel>({
           }}
           isRowSelectable={() => false}
           loading={loading}
+          onColumnWidthChange={handleColumnResize}
         />
       </Box>
 
