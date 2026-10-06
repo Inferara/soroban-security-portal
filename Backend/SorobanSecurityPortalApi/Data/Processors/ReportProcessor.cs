@@ -101,6 +101,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     Date = v.Date,
                     Status = v.Status,
                     CreatedBy = v.CreatedBy,
+                    CreatedAt = v.CreatedAt,
                     LastActionBy = v.LastActionBy,
                     LastActionAt = v.LastActionAt,
                     Auditor = v.Auditor,
@@ -116,6 +117,14 @@ namespace SorobanSecurityPortalApi.Data.Processors
             if (reportModel == null)
                 throw new ArgumentNullException(nameof(reportModel));
             reportModel.Status = ReportModelStatus.New;
+            if (reportModel.CreatedAt == default)
+            {
+                reportModel.CreatedAt = DateTime.UtcNow;
+            }
+            if (reportModel.LastActionAt == default)
+            {
+                reportModel.LastActionAt = DateTime.UtcNow;
+            }
             db.Report.Add(reportModel);
             await db.SaveChangesAsync();
             return reportModel;
@@ -290,6 +299,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 Date = v.Date,
                 Status = v.Status,
                 CreatedBy = v.CreatedBy,
+                CreatedAt = v.CreatedAt,
                 LastActionBy = v.LastActionBy,
                 LastActionAt = v.LastActionAt,
                 Auditor = v.Auditor,
@@ -317,6 +327,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     Date = v.Date,
                     Status = v.Status,
                     CreatedBy = v.CreatedBy,
+                    CreatedAt = v.CreatedAt,
                     LastActionBy = v.LastActionBy,
                     LastActionAt = v.LastActionAt,
                     Auditor = v.Auditor,
@@ -388,7 +399,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var ago = DateTime.UtcNow.AddMonths(-1);
             var newReports = await db.Report
                 .AsNoTracking()
-                .Where(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted && v.LastActionAt >= ago)
+                .Where(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted && v.CreatedAt >= ago)
                 .CountAsync();
             return new ReportStatisticsChangesViewModel
             {

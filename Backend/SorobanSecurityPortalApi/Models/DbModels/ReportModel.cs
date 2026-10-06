@@ -16,6 +16,7 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public DateTime Date { get; set; }
         public string Status { get; set; } = "";
         public int CreatedBy { get; set; }
+        public DateTime CreatedAt { get; set; }
         public int LastActionBy { get; set; }
         public DateTime LastActionAt { get; set; }
         [ForeignKey("Protocol")]

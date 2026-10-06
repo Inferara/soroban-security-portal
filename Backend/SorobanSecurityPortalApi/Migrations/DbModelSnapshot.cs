@@ -857,7 +857,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         {
                             LoginId = 1,
                             ConnectedAccounts = new List<ConnectedAccountModel>(),
-                            Created = new DateTime(2026, 5, 31, 11, 9, 6, 495, DateTimeKind.Utc).AddTicks(2065),
+                            Created = new DateTime(2026, 10, 6, 9, 30, 36, 51, DateTimeKind.Utc).AddTicks(4071),
                             CreatedBy = "system",
                             Email = "admin@sorobansecurity.com",
                             FullName = "Admin",
@@ -1239,6 +1239,10 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.Property<byte[]>("BinFile")
                         .HasColumnType("bytea")
                         .HasColumnName("bin_file");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<int>("CreatedBy")
                         .HasColumnType("integer")
