@@ -308,6 +308,28 @@ export const getVulnerabilitiesWithTotalCall = async (
     const total = header != null ? parseInt(String(header), 10) : (response.data as Vulnerability[]).length;
     return { items: response.data as Vulnerability[], total: Number.isNaN(total) ? 0 : total };
 };
+// Largest page the search API will return in one response (VulnerabilityProcessor.MaxPageSize).
+// Anything bigger, and the old "pageSize: -1 = everything" convention, is clamped server-side.
+export const VULNERABILITY_SEARCH_MAX_PAGE_SIZE = 100;
+// Upper bound on sequential requests so a runaway total can never loop forever (100 x 100 = 10k rows).
+const VULNERABILITY_SEARCH_MAX_PAGES = 100;
+// Loads every vulnerability matching the filter by walking the paged endpoint in MaxPageSize chunks.
+// Use this where a page needs the whole set (entity detail pages computing statistics); it replaces
+// the unbounded pageSize: -1 / pageSize: 1000 requests the API no longer honours.
+export const getAllVulnerabilitiesCall = async (vulnerabilitySearch?: VulnerabilitySearch): Promise<Vulnerability[]> => {
+    const all: Vulnerability[] = [];
+    for (let page = 1; page <= VULNERABILITY_SEARCH_MAX_PAGES; page++) {
+        const items = await getVulnerabilitiesCall({
+            ...vulnerabilitySearch,
+            page,
+            pageSize: VULNERABILITY_SEARCH_MAX_PAGE_SIZE,
+        });
+        all.push(...items);
+        // A short page is the last one. (An exact multiple costs one extra, empty request.)
+        if (items.length < VULNERABILITY_SEARCH_MAX_PAGE_SIZE) break;
+    }
+    return all;
+};
 export const getVulnerabilitiesStatistics = async (): Promise<VulnerabilityStatistics> => {
     const client = await getRestClient();
     const response = await client.request('api/v1/vulnerabilities/statistics', 'GET');
