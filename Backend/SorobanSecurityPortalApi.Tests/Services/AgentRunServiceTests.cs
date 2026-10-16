@@ -275,6 +275,9 @@ namespace SorobanSecurityPortalApi.Tests.Services
             cap.Report.ProtocolId.Should().Be(7);
             cap.Report.AuditorId.Should().Be(9);
             cap.Report.CreatedBy.Should().Be(99);
+            // Agent approval inserts the report directly (not via ReportProcessor.Add), so it must
+            // stamp CreatedAt itself or the home page's "new this month" count would miss it.
+            cap.Report.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
             cap.Vulns.Should().HaveCount(2);
             cap.Vulns!.Should().Contain(v => v.Title == "Bug A" && v.Severity == "high");
         }
