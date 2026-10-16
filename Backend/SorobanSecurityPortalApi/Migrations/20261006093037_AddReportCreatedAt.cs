@@ -19,16 +19,22 @@ namespace SorobanSecurityPortalApi.Migrations
                 defaultValueSql: "now()");
 
             // Backfill existing rows. The portal never recorded when a report was added, so for rows
-            // created before this column existed use the best available proxy: the earlier of the
-            // report's last action and the ingestion date of its first finding (vulnerability.date is
-            // stamped at extraction time). That is at or before the real creation moment, unlike the
-            // audit date (months earlier, which would hide recent uploads from the count) or now()
-            // (which would make every existing report count as "new this month" for 30 days).
+            // created before this column existed use the best available proxy: the ingestion date of
+            // the report's first finding (vulnerability.date is stamped at extraction time), clamped
+            // to [audit date, last action]. The clamp matters at both ends:
+            //  - a finding can carry a client-supplied date older than the upload, so the audit date
+            //    (which an upload can never precede) is the floor;
+            //  - last_action_at is the ceiling, since a report cannot be acted on before it exists,
+            //    and it is also the fallback for reports without findings.
+            // Using the audit date alone (months earlier) would hide recent uploads from the count;
+            // using now() would make every existing report count as "new this month" for 30 days.
             migrationBuilder.Sql(@"
                 UPDATE report r
-                SET created_at = LEAST(
-                    (SELECT MIN(v.date) FROM vulnerability v WHERE v.report_id = r.id),
-                    r.last_action_at);
+                SET created_at = GREATEST(
+                    r.date,
+                    LEAST(
+                        (SELECT MIN(v.date) FROM vulnerability v WHERE v.report_id = r.id),
+                        r.last_action_at));
             ");
         }
 
