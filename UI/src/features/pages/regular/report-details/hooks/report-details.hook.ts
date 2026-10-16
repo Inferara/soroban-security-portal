@@ -7,7 +7,7 @@ import {
   getProtocolByIdCall,
   getAuditorByIdCall,
   getCompanyByIdCall,
-  getVulnerabilitiesCall
+  getAllVulnerabilitiesCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { Report } from '../../../../../api/soroban-security-portal/models/report';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
@@ -152,10 +152,9 @@ export const useReportDetails = () => {
 
       // Fetch vulnerabilities for this report
       const query: VulnerabilitySearch = {
-        reports: [reportData.name],
-        pageSize: -1
+        reports: [reportData.name]
       };
-      const vulnerabilitiesData = await getVulnerabilitiesCall(query);
+      const vulnerabilitiesData = await getAllVulnerabilitiesCall(query);
       setVulnerabilities(vulnerabilitiesData);
 
       // Calculate statistics
