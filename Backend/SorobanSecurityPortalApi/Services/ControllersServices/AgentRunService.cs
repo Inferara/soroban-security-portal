@@ -177,6 +177,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                     AuditorId = auditorId,
                     IsAgentGenerated = true,
                     CreatedBy = loginId,
+                    // Inserted via AgentRunProcessor.CommitApproval, not ReportProcessor.Add, so stamp
+                    // the portal creation time here (an unset timestamptz would fail the insert).
+                    CreatedAt = DateTime.UtcNow,
                 };
             }
 
