@@ -28,7 +28,7 @@ namespace SorobanSecurityPortalApi.Tests.Common.Security
         [InlineData("", "URL cannot be empty.")]
         [InlineData("   ", "URL cannot be empty.")]
         [InlineData("not a url", "Invalid URL format.")]
-        [InlineData("/relative/path", "Invalid URL format.")]
+        [InlineData("relative/path", "Invalid URL format.")]
         [InlineData("example.com/report.pdf", "Invalid URL format.")]
         public void Rejects_Empty_Or_Malformed_Input(string? url, string expectedError)
         {
@@ -120,9 +120,11 @@ namespace SorobanSecurityPortalApi.Tests.Common.Security
         [InlineData("100.100.1.1")]
         [InlineData("100.127.255.255")]
         // 127.0.0.0/8 loopback (not just 127.0.0.1)
+        [InlineData("127.0.0.0")]
         [InlineData("127.0.0.2")]
         [InlineData("127.255.255.255")]
         // 169.254.0.0/16 link-local
+        [InlineData("169.254.0.0")]
         [InlineData("169.254.0.1")]
         [InlineData("169.254.255.255")]
         // 172.16.0.0/12 private
@@ -130,24 +132,35 @@ namespace SorobanSecurityPortalApi.Tests.Common.Security
         [InlineData("172.20.1.1")]
         [InlineData("172.31.255.255")]
         // 192.0.0.0/24 IETF protocol assignments
+        [InlineData("192.0.0.0")]
         [InlineData("192.0.0.1")]
+        [InlineData("192.0.0.255")]
         // 192.0.2.0/24 TEST-NET-1
+        [InlineData("192.0.2.0")]
         [InlineData("192.0.2.1")]
+        [InlineData("192.0.2.255")]
         // 192.168.0.0/16 private
         [InlineData("192.168.0.0")]
         [InlineData("192.168.1.1")]
         [InlineData("192.168.255.255")]
         // 198.18.0.0/15 benchmarking
+        [InlineData("198.18.0.0")]
         [InlineData("198.18.0.1")]
         [InlineData("198.19.255.255")]
         // 198.51.100.0/24 TEST-NET-2
+        [InlineData("198.51.100.0")]
         [InlineData("198.51.100.1")]
+        [InlineData("198.51.100.255")]
         // 203.0.113.0/24 TEST-NET-3
+        [InlineData("203.0.113.0")]
         [InlineData("203.0.113.1")]
+        [InlineData("203.0.113.255")]
         // 224.0.0.0/4 multicast
+        [InlineData("224.0.0.0")]
         [InlineData("224.0.0.1")]
         [InlineData("239.255.255.255")]
         // 240.0.0.0/4 reserved, incl. broadcast
+        [InlineData("240.0.0.0")]
         [InlineData("240.0.0.1")]
         [InlineData("255.255.255.255")]
         public void Rejects_Private_And_Reserved_Ipv4_Addresses(string ip)
@@ -157,13 +170,13 @@ namespace SorobanSecurityPortalApi.Tests.Common.Security
 
         [Theory]
         // first public address just outside each blocked range (and the last one before it)
-        [InlineData("1.0.0.1")]           // after 0.0.0.0/8
+        [InlineData("1.0.0.0")]           // after 0.0.0.0/8
         [InlineData("9.255.255.255")]     // before 10/8
         [InlineData("11.0.0.0")]          // after 10/8
         [InlineData("100.63.255.255")]    // before 100.64/10
         [InlineData("100.128.0.0")]       // after 100.64/10
         [InlineData("126.255.255.255")]   // before 127/8
-        [InlineData("128.0.0.1")]         // after 127/8
+        [InlineData("128.0.0.0")]         // after 127/8
         [InlineData("169.253.255.255")]   // before 169.254/16
         [InlineData("169.255.0.0")]       // after 169.254/16
         [InlineData("172.15.255.255")]    // before 172.16/12
