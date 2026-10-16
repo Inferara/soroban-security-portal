@@ -117,10 +117,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
             if (reportModel == null)
                 throw new ArgumentNullException(nameof(reportModel));
             reportModel.Status = ReportModelStatus.New;
-            if (reportModel.CreatedAt == default)
-            {
-                reportModel.CreatedAt = DateTime.UtcNow;
-            }
+            // Always stamped here: CreatedAt is server-owned and must not be settable by the caller.
+            reportModel.CreatedAt = DateTime.UtcNow;
             if (reportModel.LastActionAt == default)
             {
                 reportModel.LastActionAt = DateTime.UtcNow;

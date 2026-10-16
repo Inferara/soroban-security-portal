@@ -16,6 +16,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public DateTime Date { get; set; }
         public string Status { get; set; } = "";
         public int CreatedBy { get; set; }
+        // When the report row was added to the portal. Immutable after insert: Date is the audit's own
+        // date (usually months older) and LastActionAt moves on every edit/approval/cover refresh, so
+        // neither can drive the home page's "+N this month" counter (issue #201). The column also has
+        // a DB default of now() as a safety net for any insert path that forgets to set it.
         public DateTime CreatedAt { get; set; }
         public int LastActionBy { get; set; }
         public DateTime LastActionAt { get; set; }
