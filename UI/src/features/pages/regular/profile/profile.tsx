@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Alert, Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction } from '@mui/material';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Button, Paper, Typography, Box, Tabs, Tab, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction, Chip, Stack, TextField } from '@mui/material';
 import { useProfile } from './hooks';
 import { styled } from '@mui/material/styles';
 import { showError, showSuccess } from '../../../dialog-handler/dialog-handler';
@@ -10,10 +10,13 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import DeleteIcon from '@mui/icons-material/Delete';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import { MarkdownView } from '../../../../components/MarkdownView';
 import { useNavigate } from 'react-router-dom';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
 import { BookmarkType } from '../../../../api/soroban-security-portal/models/bookmark';
+import { PersonalNote } from '../../../../api/soroban-security-portal/models/personal-note';
+import { getPersonalNotesCall, savePersonalNoteCall, deletePersonalNoteCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { getUserInitials } from '../../../../utils/user-utils';
 import { BadgeShowcase } from '../../../../components/BadgeShowcase';
@@ -174,6 +177,32 @@ export const Profile: React.FC = () => {
   
   const { bookmarks, removeBookmark } = useBookmarks();
 
+  const [personalNotes, setPersonalNotes] = useState<PersonalNote[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editingNoteDraft, setEditingNoteDraft] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
+  const fetchPersonalNotes = useCallback(async () => {
+    if (userId !== 0) {
+      setPersonalNotes([]);
+      return;
+    }
+    setNotesLoading(true);
+    try {
+      const notes = await getPersonalNotesCall();
+      setPersonalNotes(notes);
+    } catch {
+      setPersonalNotes([]);
+    } finally {
+      setNotesLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    void fetchPersonalNotes();
+  }, [fetchPersonalNotes]);
+
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -192,6 +221,52 @@ export const Profile: React.FC = () => {
       showSuccess('Bookmark removed successfully');
     } else {
       showError('Failed to remove bookmark');
+    }
+  };
+
+  const handleStartEditNote = (note: PersonalNote) => {
+    setEditingNoteId(note.id);
+    setEditingNoteDraft(note.content);
+  };
+
+  const handleCancelEditNote = () => {
+    setEditingNoteId(null);
+    setEditingNoteDraft('');
+  };
+
+  const handleSaveEditedNote = async (note: PersonalNote) => {
+    const trimmed = editingNoteDraft.trim();
+    if (!trimmed) {
+      showError('Note content cannot be empty');
+      return;
+    }
+    setSavingNote(true);
+    try {
+      const updated = await savePersonalNoteCall(note.vulnerabilityId, trimmed);
+      setPersonalNotes((prev) =>
+        prev.map((item) => (item.id === note.id ? updated : item))
+      );
+      setEditingNoteId(null);
+      setEditingNoteDraft('');
+      showSuccess('Personal note updated successfully');
+    } catch {
+      showError('Failed to update personal note');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleRemovePersonalNote = async (noteId: number) => {
+    try {
+      await deletePersonalNoteCall(noteId);
+      setPersonalNotes((prev) => prev.filter((item) => item.id !== noteId));
+      if (editingNoteId === noteId) {
+        setEditingNoteId(null);
+        setEditingNoteDraft('');
+      }
+      showSuccess('Personal note removed successfully');
+    } catch {
+      showError('Failed to remove personal note');
     }
   };
 
@@ -270,6 +345,7 @@ export const Profile: React.FC = () => {
             <Tab label="Profile" {...a11yProps(0)} />
             <Tab label="Bookmarks" {...a11yProps(1)} />
             <Tab label="Badges" {...a11yProps(2)} />
+            {userId == 0 && <Tab label="Notes" {...a11yProps(3)} />}
           </Tabs>
         </Box>
 
@@ -400,6 +476,145 @@ export const Profile: React.FC = () => {
             </Alert>
             <BadgeShowcase badges={MOCK_BADGES} />
           </TabPanel>
+
+          {userId == 0 && (
+            <TabPanel value={tabValue} index={3}>
+              {/* Personal Notes */}
+              <SectionTitle>
+                My Personal Notes
+              </SectionTitle>
+              {notesLoading ? (
+                <PlaceholderText>
+                  Loading your personal notes...
+                </PlaceholderText>
+              ) : personalNotes.length === 0 ? (
+                <PlaceholderText>
+                  No personal notes yet. Add private notes on vulnerabilities to see them here.
+                </PlaceholderText>
+              ) : (
+                <List sx={{ width: '100%' }}>
+                  {personalNotes.map((note) => (
+                    <ListItem
+                      key={note.id}
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        mb: 2,
+                        backgroundColor: 'background.paper',
+                        alignItems: 'flex-start',
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                        },
+                      }}
+                    >
+                      <ListItemIcon sx={{ color: 'primary.main', mt: 0.5 }}>
+                        <NoteAltIcon />
+                      </ListItemIcon>
+                      <Box sx={{ flexGrow: 1, minWidth: 0, pr: 12 }}>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            {note.title || `Vulnerability #${note.vulnerabilityId}`}
+                          </Typography>
+                          {note.severity && (
+                            <Chip
+                              label={note.severity}
+                              size="small"
+                              variant="outlined"
+                              sx={{ height: 22, fontSize: '0.75rem' }}
+                            />
+                          )}
+                        </Stack>
+
+                        {editingNoteId === note.id ? (
+                          <Box sx={{ mt: 1 }}>
+                            <TextField
+                              fullWidth
+                              multiline
+                              minRows={3}
+                              maxRows={8}
+                              value={editingNoteDraft}
+                              onChange={(e) => setEditingNoteDraft(e.target.value)}
+                              disabled={savingNote}
+                              slotProps={{
+                                htmlInput: {
+                                  maxLength: 10000,
+                                  'aria-label': 'Edit personal note content',
+                                },
+                              }}
+                              sx={{ mb: 1 }}
+                            />
+                            <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+                              <Button
+                                size="small"
+                                variant="text"
+                                onClick={handleCancelEditNote}
+                                disabled={savingNote}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => void handleSaveEditedNote(note)}
+                                disabled={savingNote || !editingNoteDraft.trim()}
+                              >
+                                {savingNote ? 'Saving...' : 'Save Note'}
+                              </Button>
+                            </Stack>
+                          </Box>
+                        ) : (
+                          <>
+                            <MarkdownContainer sx={{ mt: 0.5 }}>
+                              <MarkdownView content={note.content} sx={{ p: 0 }} />
+                            </MarkdownContainer>
+                            {note.updatedAt && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ display: 'block', mt: 0.5 }}
+                              >
+                                Updated: {new Date(note.updatedAt).toLocaleString()}
+                              </Typography>
+                            )}
+                          </>
+                        )}
+                      </Box>
+                      <ListItemSecondaryAction sx={{ top: 24 }}>
+                        <IconButton
+                          edge="end"
+                          onClick={() => navigate(`/vulnerability/${note.vulnerabilityId}`)}
+                          sx={{ color: 'primary.main', mr: 0.5 }}
+                          title="Open vulnerability"
+                          aria-label="Open vulnerability"
+                        >
+                          <OpenInNewIcon />
+                        </IconButton>
+                        <IconButton
+                          edge="end"
+                          onClick={() => handleStartEditNote(note)}
+                          sx={{ mr: 0.5 }}
+                          title="Edit personal note"
+                          aria-label="Edit personal note"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          edge="end"
+                          onClick={() => void handleRemovePersonalNote(note.id)}
+                          sx={{ color: 'error.main' }}
+                          title="Remove personal note"
+                          aria-label="Remove personal note"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </TabPanel>
+          )}
         </ContentSection>
 
         {/* Password Change Section - Hidden by default, can be shown in Edit Profile

@@ -20,6 +20,7 @@ import { Comment, CommentEntityType, CreateCommentRequest, VoteResult, VoteType,
 import { Notification, NotificationType } from './models/notification';
 import { PageViewEntityType, PageViewCount, AnalyticsStatistics } from './models/analytics';
 import { AgentRun, AgentRunListResult, EnqueueAgentRun, ApproveAgentRun } from './models/agent-run';
+import { PersonalNote, UpsertPersonalNoteRequest } from './models/personal-note';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -728,6 +729,37 @@ export const enqueueAgentRunCall = async (request: EnqueueAgentRun): Promise<Age
     const client = await getRestClient();
     const response = await client.request('api/v1/agent-runs', 'POST', request);
     return response.data as AgentRun;
+};
+
+// --- PERSONAL NOTES ---
+export const getPersonalNotesCall = async (): Promise<PersonalNote[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/personal-notes', 'GET');
+    return (response.data as PersonalNote[]) ?? [];
+};
+
+export const getPersonalNoteByVulnerabilityCall = async (vulnerabilityId: number): Promise<PersonalNote | null> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/personal-notes/vulnerability/${vulnerabilityId}`, 'GET');
+    if (response.status === 204 || !response.data) return null;
+    return response.data as PersonalNote;
+};
+
+export const savePersonalNoteCall = async (vulnerabilityId: number, content: string): Promise<PersonalNote> => {
+    const client = await getRestClient();
+    const payload: UpsertPersonalNoteRequest = { content };
+    const response = await client.request(`api/v1/personal-notes/vulnerability/${vulnerabilityId}`, 'PUT', payload);
+    return response.data as PersonalNote;
+};
+
+export const deletePersonalNoteCall = async (noteId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/personal-notes/${noteId}`, 'DELETE');
+};
+
+export const deletePersonalNoteByVulnerabilityCall = async (vulnerabilityId: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/personal-notes/vulnerability/${vulnerabilityId}`, 'DELETE');
 };
 
 // Rest client

@@ -36,6 +36,7 @@ namespace SorobanSecurityPortalApi.Common.Data
         public virtual DbSet<NotificationModel> Notification { get; set; }
         public DbSet<PageViewModel> PageView { get; set; }
         public virtual DbSet<AgentRunModel> AgentRun { get; set; }
+        public virtual DbSet<PersonalNoteModel> PersonalNote { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
@@ -220,6 +221,12 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .WithMany()
                 .HasForeignKey(r => r.ReportId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<PersonalNoteModel>()
+                .HasIndex(n => new { n.LoginId, n.VulnerabilityId })
+                .IsUnique();
+            builder.Entity<PersonalNoteModel>()
+                .HasIndex(n => n.LoginId);
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function
