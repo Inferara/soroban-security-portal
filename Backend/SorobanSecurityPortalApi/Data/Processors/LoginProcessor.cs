@@ -79,6 +79,14 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await using var db = await _dbFactory.CreateDbContextAsync();
             var login = await db.Login.FirstOrDefaultAsync(item => item.LoginId == id);
             if (login == null) return;
+            if (db.PersonalNote != null)
+            {
+                var notes = await db.PersonalNote.Where(n => n.LoginId == id).ToListAsync();
+                if (notes.Count > 0)
+                {
+                    db.PersonalNote.RemoveRange(notes);
+                }
+            }
             db.Login.Remove(login);
             await db.SaveChangesAsync();
         }

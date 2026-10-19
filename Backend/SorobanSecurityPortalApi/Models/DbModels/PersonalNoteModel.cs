@@ -11,7 +11,11 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         public int LoginId { get; set; }
 
+        public LoginModel? Login { get; set; }
+
         public int VulnerabilityId { get; set; }
+
+        public VulnerabilityModel? Vulnerability { get; set; }
 
         [Required]
         [MaxLength(10000)]
@@ -20,8 +24,5 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        [NotMapped]
-        public virtual VulnerabilityModel? Vulnerability { get; set; }
     }
 }

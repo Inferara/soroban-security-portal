@@ -17,6 +17,17 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<PersonalNoteViewModel?> GetByVulnerability(int vulnerabilityId, int loginId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
+            var vulnerability = await db.Vulnerability
+                .AsNoTracking()
+                .Where(x => x.Id == vulnerabilityId && !x.IsHidden && !x.IsDeleted)
+                .Select(x => new { x.Id, x.Title, x.Description, x.Severity })
+                .FirstOrDefaultAsync();
+
+            if (vulnerability == null)
+            {
+                return null;
+            }
+
             var note = await db.PersonalNote
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.LoginId == loginId && x.VulnerabilityId == vulnerabilityId);
@@ -26,12 +37,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 return null;
             }
 
-            var vulnerability = await db.Vulnerability
-                .AsNoTracking()
-                .Where(x => x.Id == vulnerabilityId && !x.IsDeleted)
-                .Select(x => new { x.Id, x.Title, x.Description, x.Severity })
-                .FirstOrDefaultAsync();
-
             return new PersonalNoteViewModel
             {
                 Id = note.Id,
@@ -39,9 +44,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 Content = note.Content,
                 CreatedAt = note.CreatedAt,
                 UpdatedAt = note.UpdatedAt,
-                Title = vulnerability?.Title ?? string.Empty,
-                Description = vulnerability?.Description ?? string.Empty,
-                Severity = vulnerability?.Severity ?? string.Empty
+                Title = vulnerability.Title,
+                Description = vulnerability.Description,
+                Severity = vulnerability.Severity
             };
         }
 
@@ -50,7 +55,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await using var db = await _dbFactory.CreateDbContextAsync();
             var vulnerability = await db.Vulnerability
                 .AsNoTracking()
-                .Where(x => x.Id == vulnerabilityId && !x.IsDeleted)
+                .Where(x => x.Id == vulnerabilityId && !x.IsHidden && !x.IsDeleted)
                 .Select(x => new { x.Id, x.Title, x.Description, x.Severity })
                 .FirstOrDefaultAsync();
 
@@ -67,6 +72,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             {
                 existing.Content = content;
                 existing.UpdatedAt = now;
+                await db.SaveChangesAsync();
             }
             else
             {
@@ -79,9 +85,32 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     UpdatedAt = now
                 };
                 db.PersonalNote.Add(existing);
-            }
 
-            await db.SaveChangesAsync();
+                try
+                {
+                    await db.SaveChangesAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    db.PersonalNote.Remove(existing);
+
+                    // Another concurrent first-save for the same (loginId, vulnerabilityId) won the race
+                    // against the unique index. Re-open a clean context and apply the update to that row.
+                    await using var retryDb = await _dbFactory.CreateDbContextAsync();
+                    var concurrentExisting = await retryDb.PersonalNote
+                        .FirstOrDefaultAsync(x => x.LoginId == loginId && x.VulnerabilityId == vulnerabilityId);
+
+                    if (concurrentExisting == null)
+                    {
+                        throw;
+                    }
+
+                    concurrentExisting.Content = content;
+                    concurrentExisting.UpdatedAt = DateTime.UtcNow;
+                    await retryDb.SaveChangesAsync();
+                    existing = concurrentExisting;
+                }
+            }
 
             return new PersonalNoteViewModel
             {
@@ -147,7 +176,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
             var vulnerabilities = await db.Vulnerability
                 .AsNoTracking()
-                .Where(x => vulnerabilityIds.Contains(x.Id) && !x.IsDeleted)
+                .Where(x => vulnerabilityIds.Contains(x.Id) && !x.IsHidden && !x.IsDeleted)
                 .Select(x => new { x.Id, x.Title, x.Description, x.Severity })
                 .ToDictionaryAsync(x => x.Id);
 

@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -52,32 +52,64 @@ export const PersonalNoteSection: FC<PersonalNoteSectionProps> = ({
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const loadNote = useCallback(async () => {
+  const activeVulnerabilityIdRef = useRef<number>(vulnerabilityId);
+  const loadRequestIdRef = useRef<number>(0);
+  const mutationRequestIdRef = useRef<number>(0);
+
+  useEffect(() => {
+    activeVulnerabilityIdRef.current = vulnerabilityId;
+    const requestId = ++loadRequestIdRef.current;
+    mutationRequestIdRef.current += 1;
+
+    setNote(null);
+    setDraft('');
+    setEditing(false);
+    setError(null);
+    setSaving(false);
+
     if (!isAuthenticated || vulnerabilityId <= 0) {
-      setNote(null);
-      setDraft('');
-      setEditing(false);
+      setLoading(false);
       return;
     }
 
+    const targetVulnerabilityId = vulnerabilityId;
     setLoading(true);
-    setError(null);
-    try {
-      const existing = await getPersonalNoteByVulnerabilityCall(vulnerabilityId);
-      setNote(existing);
-      setDraft(existing?.content ?? '');
-      setEditing(false);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load personal note';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, vulnerabilityId]);
 
-  useEffect(() => {
-    void loadNote();
-  }, [loadNote]);
+    void (async () => {
+      try {
+        const existing = await getPersonalNoteByVulnerabilityCall(targetVulnerabilityId);
+        if (
+          loadRequestIdRef.current !== requestId ||
+          activeVulnerabilityIdRef.current !== targetVulnerabilityId
+        ) {
+          return;
+        }
+        setNote(existing);
+        setDraft(existing?.content ?? '');
+        setEditing(false);
+      } catch (err: unknown) {
+        if (
+          loadRequestIdRef.current !== requestId ||
+          activeVulnerabilityIdRef.current !== targetVulnerabilityId
+        ) {
+          return;
+        }
+        const message = err instanceof Error ? err.message : 'Failed to load personal note';
+        setError(message);
+      } finally {
+        if (
+          loadRequestIdRef.current === requestId &&
+          activeVulnerabilityIdRef.current === targetVulnerabilityId
+        ) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      loadRequestIdRef.current += 1;
+    };
+  }, [isAuthenticated, vulnerabilityId]);
 
   if (!isAuthenticated || vulnerabilityId <= 0) {
     return null;
@@ -112,40 +144,82 @@ export const PersonalNoteSection: FC<PersonalNoteSectionProps> = ({
       return;
     }
 
+    const targetVulnerabilityId = vulnerabilityId;
+    const mutationId = ++mutationRequestIdRef.current;
+    loadRequestIdRef.current += 1;
+
     setSaving(true);
     setError(null);
     try {
-      const saved = await savePersonalNoteCall(vulnerabilityId, trimmed);
+      const saved = await savePersonalNoteCall(targetVulnerabilityId, trimmed);
+      if (
+        mutationRequestIdRef.current !== mutationId ||
+        activeVulnerabilityIdRef.current !== targetVulnerabilityId
+      ) {
+        return;
+      }
       setNote(saved);
       setDraft(saved.content);
       setEditing(false);
       showSuccess('Personal note saved');
     } catch (err: unknown) {
+      if (
+        mutationRequestIdRef.current !== mutationId ||
+        activeVulnerabilityIdRef.current !== targetVulnerabilityId
+      ) {
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Failed to save personal note';
       setError(message);
       showError('Failed to save personal note');
     } finally {
-      setSaving(false);
+      if (
+        mutationRequestIdRef.current === mutationId &&
+        activeVulnerabilityIdRef.current === targetVulnerabilityId
+      ) {
+        setSaving(false);
+      }
     }
   };
 
   const handleDelete = async () => {
     if (!note) return;
 
+    const targetVulnerabilityId = vulnerabilityId;
+    const mutationId = ++mutationRequestIdRef.current;
+    loadRequestIdRef.current += 1;
+
     setSaving(true);
     setError(null);
     try {
-      await deletePersonalNoteByVulnerabilityCall(vulnerabilityId);
+      await deletePersonalNoteByVulnerabilityCall(targetVulnerabilityId);
+      if (
+        mutationRequestIdRef.current !== mutationId ||
+        activeVulnerabilityIdRef.current !== targetVulnerabilityId
+      ) {
+        return;
+      }
       setNote(null);
       setDraft('');
       setEditing(false);
       showSuccess('Personal note deleted');
     } catch (err: unknown) {
+      if (
+        mutationRequestIdRef.current !== mutationId ||
+        activeVulnerabilityIdRef.current !== targetVulnerabilityId
+      ) {
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Failed to delete personal note';
       setError(message);
       showError('Failed to delete personal note');
     } finally {
-      setSaving(false);
+      if (
+        mutationRequestIdRef.current === mutationId &&
+        activeVulnerabilityIdRef.current === targetVulnerabilityId
+      ) {
+        setSaving(false);
+      }
     }
   };
 

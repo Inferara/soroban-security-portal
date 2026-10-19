@@ -223,10 +223,22 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .OnDelete(DeleteBehavior.SetNull);
 
             builder.Entity<PersonalNoteModel>()
+                .HasOne(n => n.Login)
+                .WithMany()
+                .HasForeignKey(n => n.LoginId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<PersonalNoteModel>()
+                .HasOne(n => n.Vulnerability)
+                .WithMany()
+                .HasForeignKey(n => n.VulnerabilityId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<PersonalNoteModel>()
                 .HasIndex(n => new { n.LoginId, n.VulnerabilityId })
                 .IsUnique();
             builder.Entity<PersonalNoteModel>()
                 .HasIndex(n => n.LoginId);
+            builder.Entity<PersonalNoteModel>()
+                .HasIndex(n => n.VulnerabilityId);
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function

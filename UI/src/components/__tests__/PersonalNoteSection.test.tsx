@@ -110,4 +110,67 @@ describe('PersonalNoteSection', () => {
       await screen.findByRole('button', { name: /add personal note/i })
     ).toBeInTheDocument();
   });
+
+  it('ignores stale load and save responses when vulnerabilityId changes mid-flight', async () => {
+    mockUseAppAuth.mockReturnValue({ isAuthenticated: true });
+
+    let resolveVuln10Load!: (value: api.PersonalNoteItem | null) => void;
+    let resolveVuln10Save!: (value: api.PersonalNoteItem | null) => void;
+
+    vi.spyOn(api, 'getPersonalNoteByVulnerabilityCall').mockImplementation((vulnId: number) => {
+      if (vulnId === 10) {
+        return new Promise((resolve) => {
+          resolveVuln10Load = resolve;
+        });
+      }
+      return Promise.resolve({
+        id: 2,
+        vulnerabilityId: 20,
+        content: 'Vuln 20 fresh note',
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+        title: 'Vuln 20',
+        description: 'Desc 20',
+        severity: 'Medium',
+      });
+    });
+
+    vi.spyOn(api, 'savePersonalNoteCall').mockImplementation(() => {
+      return new Promise((resolve) => {
+        resolveVuln10Save = resolve;
+      });
+    });
+
+    const { rerender } = render(<PersonalNoteSection vulnerabilityId={10} />);
+
+    // Resolve initial load for vulnerability 10 as empty, start editing and trigger an in-flight save
+    resolveVuln10Load(null);
+    const addButton = await screen.findByRole('button', { name: /add personal note/i });
+    fireEvent.click(addButton);
+
+    const input = screen.getByLabelText('Personal note content');
+    fireEvent.change(input, { target: { value: 'Stale vuln 10 save' } });
+    fireEvent.click(screen.getByRole('button', { name: /save note/i }));
+
+    // Switch to vulnerability 20 before vulnerability 10's save finishes
+    rerender(<PersonalNoteSection vulnerabilityId={20} />);
+
+    expect(await screen.findByTestId('markdown-view')).toHaveTextContent('Vuln 20 fresh note');
+
+    // Now resolve the stale save from vulnerability 10 — it must NOT overwrite vulnerability 20's note
+    resolveVuln10Save({
+      id: 1,
+      vulnerabilityId: 10,
+      content: 'Stale vuln 10 save',
+      createdAt: '2026-06-01T00:00:00Z',
+      updatedAt: '2026-06-01T00:00:00Z',
+      title: 'Vuln 10',
+      description: 'Desc 10',
+      severity: 'High',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('markdown-view')).toHaveTextContent('Vuln 20 fresh note');
+    });
+  });
 });

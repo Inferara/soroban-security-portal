@@ -1151,6 +1151,9 @@ namespace SorobanSecurityPortalApi.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_personal_note_login_id_vulnerability_id");
 
+                    b.HasIndex("VulnerabilityId")
+                        .HasDatabaseName("ix_personal_note_vulnerability_id");
+
                     b.ToTable("personal_note");
                 });
 
@@ -1639,6 +1642,27 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.PersonalNoteModel", b =>
+                {
+                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Login")
+                        .WithMany()
+                        .HasForeignKey("LoginId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_personal_note_login_login_id");
+
+                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.VulnerabilityModel", "Vulnerability")
+                        .WithMany()
+                        .HasForeignKey("VulnerabilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_personal_note_vulnerability_vulnerability_id");
+
+                    b.Navigation("Login");
+
+                    b.Navigation("Vulnerability");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ProtocolModel", b =>

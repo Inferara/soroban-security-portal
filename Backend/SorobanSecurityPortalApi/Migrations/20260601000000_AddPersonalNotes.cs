@@ -27,6 +27,18 @@ namespace SorobanSecurityPortalApi.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_personal_note", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_personal_note_login_login_id",
+                        column: x => x.login_id,
+                        principalTable: "login",
+                        principalColumn: "login_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_personal_note_vulnerability_vulnerability_id",
+                        column: x => x.vulnerability_id,
+                        principalTable: "vulnerability",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -39,6 +51,11 @@ namespace SorobanSecurityPortalApi.Migrations
                 table: "personal_note",
                 columns: new[] { "login_id", "vulnerability_id" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_personal_note_vulnerability_id",
+                table: "personal_note",
+                column: "vulnerability_id");
         }
 
         /// <inheritdoc />

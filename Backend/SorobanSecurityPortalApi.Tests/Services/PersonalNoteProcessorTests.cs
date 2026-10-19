@@ -200,6 +200,235 @@ namespace SorobanSecurityPortalApi.Tests.Services
             _notes.Should().BeEmpty();
         }
 
+        [Fact]
+        public async Task Upsert_Should_ThrowKeyNotFound_WhenVulnerabilityIsHiddenOrDeleted()
+        {
+            _vulnerabilities.Add(new VulnerabilityModel
+            {
+                Id = 30,
+                Title = "Hidden Vulnerability",
+                Description = "Moderated content",
+                Severity = "High",
+                IsHidden = true,
+                IsDeleted = false
+            });
+            _vulnerabilities.Add(new VulnerabilityModel
+            {
+                Id = 40,
+                Title = "Deleted Vulnerability",
+                Description = "Soft-deleted content",
+                Severity = "Medium",
+                IsHidden = false,
+                IsDeleted = true
+            });
+
+            await Assert.ThrowsAsync<KeyNotFoundException>(
+                () => _processor.Upsert(30, loginId: 1, content: "Attempt on hidden"));
+            await Assert.ThrowsAsync<KeyNotFoundException>(
+                () => _processor.Upsert(40, loginId: 1, content: "Attempt on deleted"));
+
+            _notes.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task GetByVulnerability_Should_ReturnNull_WhenVulnerabilityIsHiddenOrDeleted()
+        {
+            _vulnerabilities.Add(new VulnerabilityModel
+            {
+                Id = 30,
+                Title = "Hidden Vulnerability",
+                Description = "Moderated content",
+                Severity = "High",
+                IsHidden = true,
+                IsDeleted = false
+            });
+            _notes.Add(new PersonalNoteModel
+            {
+                Id = 11,
+                LoginId = 100,
+                VulnerabilityId = 30,
+                Content = "Existing note before moderation"
+            });
+
+            var result = await _processor.GetByVulnerability(30, loginId: 100);
+
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task List_Should_ExcludeNotesForHiddenOrDeletedVulnerabilities()
+        {
+            _vulnerabilities.Add(new VulnerabilityModel
+            {
+                Id = 30,
+                Title = "Hidden Vulnerability",
+                Description = "Hidden description",
+                Severity = "High",
+                IsHidden = true,
+                IsDeleted = false
+            });
+            _vulnerabilities.Add(new VulnerabilityModel
+            {
+                Id = 40,
+                Title = "Deleted Vulnerability",
+                Description = "Deleted description",
+                Severity = "Low",
+                IsHidden = false,
+                IsDeleted = true
+            });
+
+            _notes.Add(new PersonalNoteModel
+            {
+                Id = 1,
+                LoginId = 100,
+                VulnerabilityId = 10,
+                Content = "Visible note",
+                UpdatedAt = DateTime.UtcNow
+            });
+            _notes.Add(new PersonalNoteModel
+            {
+                Id = 2,
+                LoginId = 100,
+                VulnerabilityId = 30,
+                Content = "Hidden vuln note",
+                UpdatedAt = DateTime.UtcNow.AddMinutes(1)
+            });
+            _notes.Add(new PersonalNoteModel
+            {
+                Id = 3,
+                LoginId = 100,
+                VulnerabilityId = 40,
+                Content = "Deleted vuln note",
+                UpdatedAt = DateTime.UtcNow.AddMinutes(2)
+            });
+
+            var result = await _processor.List(loginId: 100);
+
+            result.Should().ContainSingle();
+            result[0].VulnerabilityId.Should().Be(10);
+            result[0].Title.Should().Be("Missing Auth Check");
+        }
+
+        [Fact]
+        public async Task Upsert_Should_RetryAndUpdate_WhenSimultaneousFirstSavesConflictOnUniqueConstraint()
+        {
+            var committedNotes = new List<PersonalNoteModel>();
+            var gateLock = new object();
+            var bothEnteredInsertBranch = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var stagedInsertCount = 0;
+            var nextId = 1;
+
+            var concurrentFactoryMock = new Mock<IDbContextFactory<Db>>();
+            concurrentFactoryMock
+                .Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    var stagedAdds = new List<PersonalNoteModel>();
+                    var stagedRemoves = new List<PersonalNoteModel>();
+
+                    List<PersonalNoteModel> Snapshot()
+                    {
+                        lock (gateLock)
+                        {
+                            return committedNotes.ToList();
+                        }
+                    }
+
+                    var noteSet = new Mock<DbSet<PersonalNoteModel>>();
+                    noteSet.As<IQueryable<PersonalNoteModel>>()
+                        .Setup(m => m.Provider)
+                        .Returns(() => new TestAsyncQueryProvider<PersonalNoteModel>(Snapshot().AsQueryable().Provider));
+                    noteSet.As<IQueryable<PersonalNoteModel>>()
+                        .Setup(m => m.Expression)
+                        .Returns(() => Snapshot().AsQueryable().Expression);
+                    noteSet.As<IQueryable<PersonalNoteModel>>()
+                        .Setup(m => m.ElementType)
+                        .Returns(() => Snapshot().AsQueryable().ElementType);
+                    noteSet.As<IQueryable<PersonalNoteModel>>()
+                        .Setup(m => m.GetEnumerator())
+                        .Returns(() => Snapshot().GetEnumerator());
+                    noteSet.As<IAsyncEnumerable<PersonalNoteModel>>()
+                        .Setup(m => m.GetAsyncEnumerator(It.IsAny<CancellationToken>()))
+                        .Returns(() => new TestAsyncEnumerator<PersonalNoteModel>(Snapshot().GetEnumerator()));
+
+                    noteSet.Setup(d => d.Add(It.IsAny<PersonalNoteModel>()))
+                        .Callback<PersonalNoteModel>(entity =>
+                        {
+                            stagedAdds.Add(entity);
+                            if (Interlocked.Increment(ref stagedInsertCount) >= 2)
+                            {
+                                bothEnteredInsertBranch.TrySetResult();
+                            }
+                        });
+                    noteSet.Setup(d => d.Remove(It.IsAny<PersonalNoteModel>()))
+                        .Callback<PersonalNoteModel>(entity =>
+                        {
+                            stagedAdds.Remove(entity);
+                            stagedRemoves.Add(entity);
+                        });
+
+                    var db = new Mock<Db>(
+                        new Mock<IDbQuery>().Object,
+                        new Mock<ILogger<Db>>().Object,
+                        new Mock<IDataSourceProvider>().Object) { CallBase = true };
+
+                    db.Object.PersonalNote = noteSet.Object;
+                    db.Object.Vulnerability = _vulnerabilitySetMock.Object;
+                    db.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+                    db.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                        .Returns(async () =>
+                        {
+                            if (stagedAdds.Count > 0)
+                            {
+                                await bothEnteredInsertBranch.Task;
+                            }
+
+                            lock (gateLock)
+                            {
+                                foreach (var added in stagedAdds)
+                                {
+                                    var duplicate = committedNotes.Any(n =>
+                                        n.LoginId == added.LoginId &&
+                                        n.VulnerabilityId == added.VulnerabilityId);
+                                    if (duplicate)
+                                    {
+                                        throw new DbUpdateException(
+                                            "23505: duplicate key value violates unique constraint \"IX_personal_note_login_id_vulnerability_id\"");
+                                    }
+
+                                    added.Id = nextId++;
+                                    committedNotes.Add(added);
+                                }
+
+                                foreach (var removed in stagedRemoves)
+                                {
+                                    committedNotes.Remove(removed);
+                                }
+
+                                stagedAdds.Clear();
+                                stagedRemoves.Clear();
+                                return 1;
+                            }
+                        });
+
+                    return db.Object;
+                });
+
+            var concurrentProcessor = new PersonalNoteProcessor(concurrentFactoryMock.Object);
+
+            var firstSaveTask = Task.Run(() => concurrentProcessor.Upsert(10, loginId: 1, content: "First concurrent save"));
+            var secondSaveTask = Task.Run(() => concurrentProcessor.Upsert(10, loginId: 1, content: "Second concurrent save"));
+
+            var results = await Task.WhenAll(firstSaveTask, secondSaveTask);
+
+            results.Should().HaveCount(2);
+            committedNotes.Should().ContainSingle();
+            committedNotes[0].Id.Should().Be(1);
+            committedNotes[0].LoginId.Should().Be(1);
+            committedNotes[0].VulnerabilityId.Should().Be(10);
+            committedNotes[0].Content.Should().BeOneOf("First concurrent save", "Second concurrent save");
+        }
+
         private static Mock<DbSet<T>> CreateDbSetMock<T>(List<T> sourceList) where T : class
         {
             var queryable = sourceList.AsQueryable();
