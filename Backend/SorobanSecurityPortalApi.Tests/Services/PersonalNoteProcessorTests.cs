@@ -256,7 +256,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
         }
 
         [Fact]
-        public async Task List_Should_ExcludeNotesForHiddenOrDeletedVulnerabilities()
+        public async Task List_Should_ReturnNotesForHiddenOrDeletedVulnerabilities_WithoutVulnerabilityDetails()
         {
             _vulnerabilities.Add(new VulnerabilityModel
             {
@@ -304,9 +304,19 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             var result = await _processor.List(loginId: 100);
 
-            result.Should().ContainSingle();
-            result[0].VulnerabilityId.Should().Be(10);
-            result[0].Title.Should().Be("Missing Auth Check");
+            result.Should().HaveCount(3);
+
+            var visible = result.Single(n => n.VulnerabilityId == 10);
+            visible.IsVulnerabilityAvailable.Should().BeTrue();
+            visible.Title.Should().Be("Missing Auth Check");
+
+            foreach (var unavailable in result.Where(n => n.VulnerabilityId is 30 or 40))
+            {
+                unavailable.IsVulnerabilityAvailable.Should().BeFalse();
+                unavailable.Title.Should().BeEmpty();
+                unavailable.Description.Should().BeEmpty();
+                unavailable.Severity.Should().BeEmpty();
+            }
         }
 
         [Fact]

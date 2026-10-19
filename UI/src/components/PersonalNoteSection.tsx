@@ -29,7 +29,8 @@ import {
 import { useAppAuth } from '../features/authentication/useAppAuth';
 import { useTheme as useAppTheme } from '../contexts/ThemeContext';
 import { MarkdownView } from './MarkdownView';
-import { showError, showSuccess } from '../features/dialog-handler/dialog-handler';
+import { showSuccess } from '../features/dialog-handler/dialog-handler';
+import { ConfirmDialog } from '../features/pages/admin/admin-main-window/confirm-dialog';
 
 export const MAX_PERSONAL_NOTE_LENGTH = 10000;
 
@@ -51,6 +52,7 @@ export const PersonalNoteSection: FC<PersonalNoteSectionProps> = ({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const activeVulnerabilityIdRef = useRef<number>(vulnerabilityId);
   const loadRequestIdRef = useRef<number>(0);
@@ -87,15 +89,15 @@ export const PersonalNoteSection: FC<PersonalNoteSectionProps> = ({
         setNote(existing);
         setDraft(existing?.content ?? '');
         setEditing(false);
-      } catch (err: unknown) {
+      } catch {
         if (
           loadRequestIdRef.current !== requestId ||
           activeVulnerabilityIdRef.current !== targetVulnerabilityId
         ) {
           return;
         }
-        const message = err instanceof Error ? err.message : 'Failed to load personal note';
-        setError(message);
+        // RestApi.request has already shown an error popup with the server's message.
+        setError('Could not load your personal note.');
       } finally {
         if (
           loadRequestIdRef.current === requestId &&
@@ -162,16 +164,14 @@ export const PersonalNoteSection: FC<PersonalNoteSectionProps> = ({
       setDraft(saved.content);
       setEditing(false);
       showSuccess('Personal note saved');
-    } catch (err: unknown) {
+    } catch {
       if (
         mutationRequestIdRef.current !== mutationId ||
         activeVulnerabilityIdRef.current !== targetVulnerabilityId
       ) {
         return;
       }
-      const message = err instanceof Error ? err.message : 'Failed to save personal note';
-      setError(message);
-      showError('Failed to save personal note');
+      setError('Could not save your personal note. Please try again.');
     } finally {
       if (
         mutationRequestIdRef.current === mutationId &&
@@ -203,16 +203,14 @@ export const PersonalNoteSection: FC<PersonalNoteSectionProps> = ({
       setDraft('');
       setEditing(false);
       showSuccess('Personal note deleted');
-    } catch (err: unknown) {
+    } catch {
       if (
         mutationRequestIdRef.current !== mutationId ||
         activeVulnerabilityIdRef.current !== targetVulnerabilityId
       ) {
         return;
       }
-      const message = err instanceof Error ? err.message : 'Failed to delete personal note';
-      setError(message);
-      showError('Failed to delete personal note');
+      setError('Could not delete your personal note. Please try again.');
     } finally {
       if (
         mutationRequestIdRef.current === mutationId &&
@@ -266,7 +264,7 @@ export const PersonalNoteSection: FC<PersonalNoteSectionProps> = ({
             <IconButton
               size="small"
               color="error"
-              onClick={() => void handleDelete()}
+              onClick={() => setConfirmDeleteOpen(true)}
               disabled={saving}
               title="Delete personal note"
               aria-label="Delete personal note"
@@ -379,6 +377,19 @@ export const PersonalNoteSection: FC<PersonalNoteSectionProps> = ({
           No personal note yet. Add a private note for this vulnerability — it will also appear in your Profile under My Notes.
         </Typography>
       )}
+
+      <ConfirmDialog
+        title="Delete personal note?"
+        message="This permanently deletes your note for this vulnerability. It can't be undone."
+        okButtonText="Delete"
+        cancelButtonText="Cancel"
+        show={confirmDeleteOpen}
+        onConfirm={() => {
+          setConfirmDeleteOpen(false);
+          void handleDelete();
+        }}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
     </Box>
   );
 

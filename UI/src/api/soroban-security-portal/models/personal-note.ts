@@ -4,6 +4,8 @@ export interface PersonalNote {
     content: string;
     createdAt: string;
     updatedAt: string;
+    /** False when the vulnerability was hidden or deleted; title/description/severity are then empty. */
+    isVulnerabilityAvailable: boolean;
     title: string;
     description: string;
     severity: string;

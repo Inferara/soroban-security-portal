@@ -18,6 +18,7 @@ import { BookmarkType } from '../../../../api/soroban-security-portal/models/boo
 import { PersonalNote } from '../../../../api/soroban-security-portal/models/personal-note';
 import { getPersonalNotesCall, savePersonalNoteCall, deletePersonalNoteCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { StyledAvatar } from '../../../../components/common/StyledAvatar';
+import { ConfirmDialog } from '../../admin/admin-main-window/confirm-dialog';
 import { getUserInitials } from '../../../../utils/user-utils';
 import { BadgeShowcase } from '../../../../components/BadgeShowcase';
 // TODO: replace mockBadges with real badge API (no backend badge endpoint yet)
@@ -182,6 +183,7 @@ export const Profile: React.FC = () => {
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [editingNoteDraft, setEditingNoteDraft] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<PersonalNote | null>(null);
 
   const fetchPersonalNotes = useCallback(async () => {
     if (userId !== 0) {
@@ -250,7 +252,7 @@ export const Profile: React.FC = () => {
       setEditingNoteDraft('');
       showSuccess('Personal note updated successfully');
     } catch {
-      showError('Failed to update personal note');
+      // RestApi.request has already shown an error popup with the server's message.
     } finally {
       setSavingNote(false);
     }
@@ -266,7 +268,15 @@ export const Profile: React.FC = () => {
       }
       showSuccess('Personal note removed successfully');
     } catch {
-      showError('Failed to remove personal note');
+      // RestApi.request has already shown an error popup with the server's message.
+    }
+  };
+
+  const handleConfirmRemovePersonalNote = () => {
+    const note = noteToDelete;
+    setNoteToDelete(null);
+    if (note) {
+      void handleRemovePersonalNote(note.id);
     }
   };
 
@@ -493,7 +503,11 @@ export const Profile: React.FC = () => {
                 </PlaceholderText>
               ) : (
                 <List sx={{ width: '100%' }}>
-                  {personalNotes.map((note) => (
+                  {personalNotes.map((note) => {
+                    // Hidden or deleted vulnerability: keep the note readable and deletable, but it
+                    // can't be opened or edited (saving would 404).
+                    const isUnavailable = note.isVulnerabilityAvailable === false;
+                    return (
                     <ListItem
                       key={note.id}
                       sx={{
@@ -514,9 +528,20 @@ export const Profile: React.FC = () => {
                       <Box sx={{ flexGrow: 1, minWidth: 0, pr: 12 }}>
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                            {note.title || `Vulnerability #${note.vulnerabilityId}`}
+                            {isUnavailable
+                              ? `Vulnerability #${note.vulnerabilityId}`
+                              : note.title || `Vulnerability #${note.vulnerabilityId}`}
                           </Typography>
-                          {note.severity && (
+                          {isUnavailable && (
+                            <Chip
+                              label="No longer available"
+                              size="small"
+                              color="warning"
+                              variant="outlined"
+                              sx={{ height: 22, fontSize: '0.75rem' }}
+                            />
+                          )}
+                          {!isUnavailable && note.severity && (
                             <Chip
                               label={note.severity}
                               size="small"
@@ -581,6 +606,8 @@ export const Profile: React.FC = () => {
                         )}
                       </Box>
                       <ListItemSecondaryAction sx={{ top: 24 }}>
+                        {!isUnavailable && (
+                        <>
                         <IconButton
                           edge="end"
                           onClick={() => navigate(`/vulnerability/${note.vulnerabilityId}`)}
@@ -599,9 +626,11 @@ export const Profile: React.FC = () => {
                         >
                           <EditIcon />
                         </IconButton>
+                        </>
+                        )}
                         <IconButton
                           edge="end"
-                          onClick={() => void handleRemovePersonalNote(note.id)}
+                          onClick={() => setNoteToDelete(note)}
                           sx={{ color: 'error.main' }}
                           title="Remove personal note"
                           aria-label="Remove personal note"
@@ -610,9 +639,19 @@ export const Profile: React.FC = () => {
                         </IconButton>
                       </ListItemSecondaryAction>
                     </ListItem>
-                  ))}
+                    );
+                  })}
                 </List>
               )}
+              <ConfirmDialog
+                title="Delete personal note?"
+                message="This permanently deletes your note. It can't be undone."
+                okButtonText="Delete"
+                cancelButtonText="Cancel"
+                show={noteToDelete !== null}
+                onConfirm={handleConfirmRemovePersonalNote}
+                onCancel={() => setNoteToDelete(null)}
+              />
             </TabPanel>
           )}
         </ContentSection>

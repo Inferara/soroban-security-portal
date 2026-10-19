@@ -183,11 +183,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var result = new List<PersonalNoteViewModel>(notes.Count);
             foreach (var note in notes)
             {
-                if (!vulnerabilities.TryGetValue(note.VulnerabilityId, out var vulnerability))
-                {
-                    continue;
-                }
-
+                // Notes on hidden or deleted vulnerabilities are still returned so the owner can read
+                // and delete them, but without the moderated vulnerability's details.
+                var isAvailable = vulnerabilities.TryGetValue(note.VulnerabilityId, out var vulnerability);
                 result.Add(new PersonalNoteViewModel
                 {
                     Id = note.Id,
@@ -195,9 +193,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     Content = note.Content,
                     CreatedAt = note.CreatedAt,
                     UpdatedAt = note.UpdatedAt,
-                    Title = vulnerability.Title,
-                    Description = vulnerability.Description,
-                    Severity = vulnerability.Severity
+                    IsVulnerabilityAvailable = isAvailable,
+                    Title = vulnerability?.Title ?? string.Empty,
+                    Description = vulnerability?.Description ?? string.Empty,
+                    Severity = vulnerability?.Severity ?? string.Empty
                 });
             }
 

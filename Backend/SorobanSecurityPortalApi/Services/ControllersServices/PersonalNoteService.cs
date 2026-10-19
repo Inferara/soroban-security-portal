@@ -1,4 +1,5 @@
 using SorobanSecurityPortalApi.Common;
+using static SorobanSecurityPortalApi.Common.ExceptionHandlingMiddleware;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.ViewModels;
 
@@ -82,12 +83,14 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
         private async Task<int> GetAuthenticatedUserIdAsync()
         {
-            var userId = await _userContextAccessor.GetLoginIdAsync();
-            if (userId <= 0)
+            // GetLoginIdAsync throws InvalidOperationException (500) when the token's login no longer
+            // exists; the null-safe variant lets us return a 401 so the UI clears the session.
+            var userId = await _userContextAccessor.GetLoginIdOrNullAsync();
+            if (userId is not > 0)
             {
-                throw new UnauthorizedAccessException("User is not authenticated.");
+                throw new SorobanSecurityPortalAuthException("User is not authenticated.");
             }
-            return userId;
+            return userId.Value;
         }
     }
 
