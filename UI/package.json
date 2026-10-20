@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build && vite build --mode sorobansecurityportal",
+    "dev": "node init && vite",
+    "build": "node init && tsc && vite build && vite build --mode sorobansecurityportal",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
