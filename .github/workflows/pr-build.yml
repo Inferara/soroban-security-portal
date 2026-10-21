@@ -64,6 +64,17 @@ jobs:
       - name: Build
         run: dotnet build SorobanSecurityPortal.sln --no-restore
 
+      - name: Run tests
+        run: dotnet test SorobanSecurityPortal.sln --no-build --logger trx --results-directory TestResults
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: Backend/TestResults/
+          retention-days: 7
+
   test-devtools:
     runs-on: ubuntu-latest
     defaults:
