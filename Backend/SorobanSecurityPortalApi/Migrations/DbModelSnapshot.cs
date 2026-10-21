@@ -1287,6 +1287,12 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("bytea")
                         .HasColumnName("bin_file");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
                     b.Property<int>("CreatedBy")
                         .HasColumnType("integer")
                         .HasColumnName("created_by");

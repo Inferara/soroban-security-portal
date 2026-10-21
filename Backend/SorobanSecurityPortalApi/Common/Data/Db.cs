@@ -80,6 +80,12 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .Property(x => x.Embedding)
                 .HasColumnType("vector(3072)");
 
+            // Server-side default so a report inserted without an explicit CreatedAt still gets a
+            // real timestamp (EF omits the column from the INSERT when the CLR value is default).
+            builder.Entity<ReportModel>()
+                .Property(x => x.CreatedAt)
+                .HasDefaultValueSql("now()");
+
             builder.Entity<VulnerabilityModel>()
                 .Property(x => x.Embedding)
                 .HasColumnType("vector(3072)");
