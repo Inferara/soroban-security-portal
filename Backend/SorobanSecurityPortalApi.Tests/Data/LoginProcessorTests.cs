@@ -24,17 +24,29 @@ namespace SorobanSecurityPortalApi.Tests.Data
             m.As<IQueryable<T>>().Setup(x => x.ElementType).Returns(q.ElementType);
             m.As<IQueryable<T>>().Setup(x => x.GetEnumerator()).Returns(q.GetEnumerator());
             m.As<IAsyncEnumerable<T>>().Setup(x => x.GetAsyncEnumerator(It.IsAny<CancellationToken>()))
-                .Returns(new TestAsyncEnumerator<T>(q.GetEnumerator()));
+                .Returns(() => new TestAsyncEnumerator<T>(q.GetEnumerator()));
+            m.Setup(d => d.Remove(It.IsAny<T>())).Callback<T>(t => src.Remove(t));
+            m.Setup(d => d.RemoveRange(It.IsAny<IEnumerable<T>>()))
+                .Callback<IEnumerable<T>>(items =>
+                {
+                    foreach (var item in items.ToList())
+                    {
+                        src.Remove(item);
+                    }
+                });
             return m;
         }
 
-        private static LoginProcessor Build(List<LoginModel> logins)
+        private static LoginProcessor Build(List<LoginModel> logins, List<PersonalNoteModel>? notes = null)
         {
             var db = new Mock<Db>(
                 new Mock<IDbQuery>().Object,
                 new Mock<Microsoft.Extensions.Logging.ILogger<Db>>().Object,
                 new Mock<IDataSourceProvider>().Object) { CallBase = true };
             db.Object.Login = Set(logins).Object;
+            db.Object.PersonalNote = Set(notes ?? new List<PersonalNoteModel>()).Object;
+            db.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+            db.Setup(x => x.DisposeAsync()).Returns(System.Threading.Tasks.ValueTask.CompletedTask);
             var f = new Mock<IDbContextFactory<Db>>();
             f.Setup(x => x.CreateDbContextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(db.Object);
             return new LoginProcessor(f.Object);
@@ -77,6 +89,28 @@ namespace SorobanSecurityPortalApi.Tests.Data
             };
             var res = await Build(logins).SearchUsers("alice", 5);
             res.Select(l => l.LoginId).Should().BeEquivalentTo(new[] { 1 });
+        }
+
+        [Fact]
+        public async Task Delete_Removes_User_And_Their_PersonalNotes()
+        {
+            var logins = new List<LoginModel>
+            {
+                new() { LoginId = 1, Login = "alice", FullName = "Alice Adams", IsEnabled = true },
+                new() { LoginId = 2, Login = "bob", FullName = "Bob Brown", IsEnabled = true },
+            };
+            var notes = new List<PersonalNoteModel>
+            {
+                new() { Id = 10, LoginId = 1, VulnerabilityId = 100, Content = "Alice note 1" },
+                new() { Id = 11, LoginId = 1, VulnerabilityId = 101, Content = "Alice note 2" },
+                new() { Id = 12, LoginId = 2, VulnerabilityId = 100, Content = "Bob note" },
+            };
+
+            var processor = Build(logins, notes);
+            await processor.Delete(1);
+
+            logins.Select(l => l.LoginId).Should().Equal(2);
+            notes.Select(n => n.Id).Should().Equal(12);
         }
     }
 }
