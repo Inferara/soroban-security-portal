@@ -33,7 +33,8 @@ export const useReports = () => {
   };
 
   useEffect(() => {
-    void searchReports();
+    // Open sorted by the report's own date, newest first (matches the page's default sort toggle).
+    void searchReports({ sortBy: 'date', sortDirection: 'desc' });
     void getProtocols();
     void getCompanies();
     void getAuditors();
