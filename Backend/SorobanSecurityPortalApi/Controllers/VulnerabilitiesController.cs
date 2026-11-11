@@ -36,6 +36,7 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Search([FromBody] VulnerabilitySearchViewModel? vulnerabilitySearch)
         {
+            NormalizeClientPaging(vulnerabilitySearch);
             var (items, total) = await _vulnerabilityService.SearchWithTotal(vulnerabilitySearch);
             Response.Headers["X-Total-Count"] = total.ToString();
             return Ok(items);
@@ -44,8 +45,22 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpPost("total")]
         public async Task<IActionResult> SearchTotal([FromBody] VulnerabilitySearchViewModel? vulnerabilitySearch)
         {
+            NormalizeClientPaging(vulnerabilitySearch);
             var result = await _vulnerabilityService.SearchTotal(vulnerabilitySearch);
             return Ok(result);
+        }
+
+        // The HTTP boundary for search paging. Anonymous clients must never reach the processor's
+        // "return everything" path (PageSize < 0, reserved for in-process callers) or pull more than
+        // MaxPageSize rows in one response. Out-of-range values are reset so the processor applies
+        // its defaults (page 1, DefaultPageSize) instead of failing the request.
+        public static void NormalizeClientPaging(VulnerabilitySearchViewModel? search)
+        {
+            if (search == null) return;
+            if (search.Page is < 1) search.Page = null;
+            if (search.PageSize is < 1) search.PageSize = null;
+            else if (search.PageSize > Data.Processors.VulnerabilityProcessor.MaxPageSize)
+                search.PageSize = Data.Processors.VulnerabilityProcessor.MaxPageSize;
         }
 
         [RoleAuthorize(Role.Admin, Role.Moderator, Role.Contributor)]

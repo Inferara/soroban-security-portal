@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { 
   getAuditorByIdCall,
   getReportsCall,
-  getVulnerabilitiesCall,
+  getAllVulnerabilitiesCall,
   getProtocolListDataCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { AuditorItem } from '../../../../../api/soroban-security-portal/models/auditor';
@@ -100,10 +100,9 @@ export const useAuditorDetails = () => {
       setReports(reportsData);
 
       const query: VulnerabilitySearch = {
-        auditorIds: [auditorData.id],
-        pageSize: -1
+        auditorIds: [auditorData.id]
       };
-      const vulnerabilitiesData = await getVulnerabilitiesCall(query);
+      const vulnerabilitiesData = await getAllVulnerabilitiesCall(query);
       setVulnerabilities(vulnerabilitiesData);
 
       const protocolsData = await getProtocolListDataCall();

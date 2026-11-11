@@ -4,7 +4,7 @@ import {
   getProtocolByIdCall,
   getCompanyByIdCall,
   getReportsCall,
-  getVulnerabilitiesCall
+  getAllVulnerabilitiesCall
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
@@ -93,10 +93,9 @@ export const useProtocolDetails = () => {
       setReports(reportsData);
 
       // Fetch vulnerabilities for this protocol
-      const vulnerabilitiesData = await getVulnerabilitiesCall({
-        protocols: [protocolData.name],
-        page: 1,
-        pageSize: 1000 // Get all vulnerabilities for statistics
+      // All vulnerabilities for the statistics panels, fetched in server-sized pages.
+      const vulnerabilitiesData = await getAllVulnerabilitiesCall({
+        protocols: [protocolData.name]
       });
       setVulnerabilities(vulnerabilitiesData);
 
