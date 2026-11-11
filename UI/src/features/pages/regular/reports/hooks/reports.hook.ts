@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getAuditorListDataCall, getCompanyListDataCall, getProtocolListDataCall, getReportsCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { ReportSearch, Report } from '../../../../../api/soroban-security-portal/models/report';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
@@ -10,11 +10,17 @@ export const useReports = () => {
   const [protocolsList, setProtocolsList] = useState<ProtocolItem[]>([]);
   const [companiesList, setCompaniesList] = useState<CompanyItem[]>([]);
   const [auditorsList, setAuditorsList] = useState<AuditorItem[]>([]);
-  
+  // Searches can overlap (sort toggle, Search button, initial load). Only the latest
+  // request may update the list, so a slow earlier response cannot overwrite a newer one.
+  const searchRequestIdRef = useRef(0);
 
   const searchReports = async (params?: ReportSearch) => {
+    const requestId = ++searchRequestIdRef.current;
     const response = await getReportsCall(params);
-    setReportsList(response);  
+    if (searchRequestIdRef.current !== requestId) {
+      return;
+    }
+    setReportsList(response);
   };
 
   const getProtocols = async (): Promise<void> => {
@@ -33,7 +39,8 @@ export const useReports = () => {
   };
 
   useEffect(() => {
-    void searchReports();
+    // Open sorted by the report's own date, newest first (matches the page's default sort toggle).
+    void searchReports({ sortBy: 'date', sortDirection: 'desc' });
     void getProtocols();
     void getCompanies();
     void getAuditors();
@@ -46,4 +53,4 @@ export const useReports = () => {
     companiesList,
     auditorsList,
   };
-} 
+}

@@ -39,7 +39,9 @@ export const Reports: FC = () => {
   }, [])
 
   const toggleSortDirection = () => {
-    setSortDir(prev => prev === 'desc' ? 'asc' : 'desc');
+    const nextDir = sortDir === 'desc' ? 'asc' : 'desc';
+    setSortDir(nextDir);
+    handleSearch(nextDir);
   };
 
   const handleImageLoad = (reportId: number) => {
@@ -76,7 +78,7 @@ export const Reports: FC = () => {
     setLoadingImages(prev => ({ ...prev, ...initialLoadingState }));
   }, [reportsList]);
 
-  const handleSearch = () => {
+  const handleSearch = (direction: 'desc' | 'asc' = sortDir) => {
     searchReports({
       searchText,
       protocolName: protocol?.name || '',
@@ -85,7 +87,7 @@ export const Reports: FC = () => {
       from: startDate?.toISOString().split('T')[0] || '',
       to: endDate?.toISOString().split('T')[0] || '',
       sortBy: 'date',
-      sortDirection: sortDir,
+      sortDirection: direction,
     });
   };
 
@@ -234,7 +236,7 @@ export const Reports: FC = () => {
           </span>
           <Button
             variant="contained"
-            onClick={handleSearch}
+            onClick={() => handleSearch()}
           >
             Search
           </Button>
