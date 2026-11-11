@@ -31,6 +31,9 @@ import { CompanyItem } from '../../../../api/soroban-security-portal/models/comp
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { canEdit } from '../../../authentication/authPermissions';
 
+// Largest PDF a non-admin may upload; keep in step with ReportsController.MaxReportFileBytes.
+const MAX_REPORT_FILE_MB = 20;
+
 const STORAGE_KEY = 'addReportFormData';
 
 export const AddReport: FC = () => {
@@ -187,9 +190,9 @@ export const AddReport: FC = () => {
       return;
     }
     
-    // Check file size (max 10MB)
-    if (!isAdmin && file.size > 10 * 1024 * 1024) {
-      setFileError('File size must be less than 10MB');
+    // Check file size (admins have no limit here)
+    if (!isAdmin && file.size > MAX_REPORT_FILE_MB * 1024 * 1024) {
+      setFileError(`File size must be less than ${MAX_REPORT_FILE_MB}MB`);
       setSelectedFile(null);
       return;
     }
@@ -505,7 +508,7 @@ export const AddReport: FC = () => {
                   </Alert>
                 )}
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  Maximum file size: 10MB. Only PDF files are accepted.
+                  Maximum file size: {MAX_REPORT_FILE_MB}MB. Only PDF files are accepted.
                 </Typography>
               </Grid>
 

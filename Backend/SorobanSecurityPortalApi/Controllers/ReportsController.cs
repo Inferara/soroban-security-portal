@@ -15,6 +15,9 @@ namespace SorobanSecurityPortalApi.Controllers
     [Route("api/v1/reports")]
     public class ReportsController : ControllerBase
     {
+        // Largest PDF a non-admin may upload. Halborn's web reports are often 10-15 MB.
+        private const long MaxReportFileBytes = 20 * 1024 * 1024;
+
         private readonly IReportService _reportService;
         private readonly IVulnerabilityExtractionService _extractionService;
         private readonly UserContextAccessor _userContextAccessor;
@@ -135,9 +138,9 @@ namespace SorobanSecurityPortalApi.Controllers
             };
             if (file != null && file.Length > 0)
             {
-                if (!await _userContextAccessor.IsLoginIdAdmin(userLoginId) && file.Length > 10 * 1024 * 1024)
+                if (!await _userContextAccessor.IsLoginIdAdmin(userLoginId) && file.Length > MaxReportFileBytes)
                 {
-                    return BadRequest("Report file size cannot exceed 10MB");
+                    return BadRequest($"Report file size cannot exceed {MaxReportFileBytes / (1024 * 1024)}MB");
                 }
                 using var memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
