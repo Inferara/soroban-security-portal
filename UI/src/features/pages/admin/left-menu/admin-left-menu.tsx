@@ -9,6 +9,7 @@ import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import TaskIcon from '@mui/icons-material/Task';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import ApiIcon from '@mui/icons-material/Api';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
@@ -55,6 +56,12 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
       label: 'Statistics',
       icon: <QueryStatsIcon />,
       path: 'admin/statistics',
+      visible: isAdminOrModerator(auth),
+    },
+    {
+      label: 'API usage',
+      icon: <ApiIcon />,
+      path: 'admin/api-usage',
       visible: isAdminOrModerator(auth),
     },
     {

@@ -150,6 +150,130 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.ToTable("agent_run");
                 });
 
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ApiKeyModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key_hash");
+
+                    b.Property<string>("KeyPrefix")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("key_prefix");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<int>("LoginId")
+                        .HasColumnType("integer")
+                        .HasColumnName("login_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("RateLimitPerDay")
+                        .HasColumnType("integer")
+                        .HasColumnName("rate_limit_per_day");
+
+                    b.Property<int?>("RateLimitPerMinute")
+                        .HasColumnType("integer")
+                        .HasColumnName("rate_limit_per_minute");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_api_key");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_api_key_key_hash");
+
+                    b.HasIndex("LoginId")
+                        .HasDatabaseName("ix_api_key_login_id");
+
+                    b.ToTable("api_key");
+                });
+
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ApiUsageLogModel", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ApiKeyId")
+                        .HasColumnType("integer")
+                        .HasColumnName("api_key_id");
+
+                    b.Property<string>("Arguments")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("arguments");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<int>("LoginId")
+                        .HasColumnType("integer")
+                        .HasColumnName("login_id");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("operation");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer")
+                        .HasColumnName("source");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_api_usage_log");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_api_usage_log_created_at");
+
+                    b.HasIndex("ApiKeyId", "CreatedAt")
+                        .HasDatabaseName("ix_api_usage_log_api_key_id_created_at");
+
+                    b.ToTable("api_usage_log");
+                });
+
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.AuditorModel", b =>
                 {
                     b.Property<int>("Id")
@@ -1147,12 +1271,12 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.HasIndex("LoginId")
                         .HasDatabaseName("ix_personal_note_login_id");
 
+                    b.HasIndex("VulnerabilityId")
+                        .HasDatabaseName("ix_personal_note_vulnerability_id");
+
                     b.HasIndex("LoginId", "VulnerabilityId")
                         .IsUnique()
                         .HasDatabaseName("ix_personal_note_login_id_vulnerability_id");
-
-                    b.HasIndex("VulnerabilityId")
-                        .HasDatabaseName("ix_personal_note_vulnerability_id");
 
                     b.ToTable("personal_note");
                 });
@@ -1600,6 +1724,18 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasConstraintName("fk_agent_run_report_report_id");
 
                     b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ApiKeyModel", b =>
+                {
+                    b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Login")
+                        .WithMany()
+                        .HasForeignKey("LoginId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_api_key_login_login_id");
+
+                    b.Navigation("Login");
                 });
 
             modelBuilder.Entity("SorobanSecurityPortalApi.Models.DbModels.ForumPostModel", b =>

@@ -35,6 +35,10 @@ public interface IExtendedConfig
     string AgentIngestionPreamble { get; }
     string AgentIngestionInstructions { get; }
     string AgentIngestionExamplesGuidance { get; }
+    bool PublicApiEnabled { get; }
+    int PublicApiRateLimitPerMinute { get; }
+    int PublicApiRateLimitPerDay { get; }
+    int PublicApiGlobalRateLimitPerMinute { get; }
     void Reset();
 }
 
@@ -255,6 +259,30 @@ public class ExtendedConfig : IExtendedConfig
     [Tooltip("Appended to the prompt only when example content exists. Tells the agent to read the example articles/vulnerabilities for house style and to avoid duplicating existing findings/reports. Leave blank to fall back to the built-in default.")]
     public string AgentIngestionExamplesGuidance => GetValue<string>("AgentIngestionExamplesGuidance", AgentIngestionPromptDefaults.ExamplesGuidance);
 
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Enable public API and MCP server")]
+    [Tooltip("Master switch for the public surface: the MCP endpoint (/api/mcp) and the REST API (/api/public/v1). When off, every call is refused with a clear error; existing API keys are kept.")]
+    public bool PublicApiEnabled => GetValue<bool>("PublicApiEnabled", true);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Calls per minute, per API key")]
+    [Tooltip("How many public API / MCP calls one API key may make per minute. Service keys can carry their own value.")]
+    public int PublicApiRateLimitPerMinute => GetValue<int>("PublicApiRateLimitPerMinute", 60);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Calls per day, per API key")]
+    [Tooltip("How many public API / MCP calls one API key may make per UTC day. Service keys can carry their own value.")]
+    public int PublicApiRateLimitPerDay => GetValue<int>("PublicApiRateLimitPerDay", 2000);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Calls per minute, all API keys together")]
+    [Tooltip("Upper bound on public API / MCP calls per minute across all keys. Protects the server (and the embedding budget) from a flood spread over many keys.")]
+    public int PublicApiGlobalRateLimitPerMinute => GetValue<int>("PublicApiGlobalRateLimitPerMinute", 600);
+
 }
 
 [AttributeUsage(AttributeTargets.Property)]
@@ -338,5 +366,7 @@ public class CategoryAttribute : Attribute, IAttributeHandler
         ContentFilter,
         [System.ComponentModel.Description("Agent Ingestion")]
         AgentIngestion,
+        [System.ComponentModel.Description("Public API & MCP")]
+        PublicApi,
     }
 }

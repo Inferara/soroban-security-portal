@@ -37,6 +37,8 @@ namespace SorobanSecurityPortalApi.Common.Data
         public DbSet<PageViewModel> PageView { get; set; }
         public virtual DbSet<AgentRunModel> AgentRun { get; set; }
         public virtual DbSet<PersonalNoteModel> PersonalNote { get; set; }
+        public virtual DbSet<ApiKeyModel> ApiKey { get; set; }
+        public virtual DbSet<ApiUsageLogModel> ApiUsageLog { get; set; }
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;
@@ -239,6 +241,24 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .HasIndex(n => n.LoginId);
             builder.Entity<PersonalNoteModel>()
                 .HasIndex(n => n.VulnerabilityId);
+
+            // API keys: looked up by hash on every public API call; a deleted user takes their keys along.
+            builder.Entity<ApiKeyModel>()
+                .HasOne(k => k.Login)
+                .WithMany()
+                .HasForeignKey(k => k.LoginId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<ApiKeyModel>()
+                .HasIndex(k => k.KeyHash)
+                .IsUnique();
+            builder.Entity<ApiKeyModel>()
+                .HasIndex(k => k.LoginId);
+
+            // Usage log: deliberately no foreign keys, so rows outlive the key/user they refer to.
+            builder.Entity<ApiUsageLogModel>()
+                .HasIndex(u => u.CreatedAt);
+            builder.Entity<ApiUsageLogModel>()
+                .HasIndex(u => new { u.ApiKeyId, u.CreatedAt });
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function

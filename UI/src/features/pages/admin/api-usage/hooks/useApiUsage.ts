@@ -1,0 +1,76 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { setCurrentPage } from '../../admin-main-window/current-page-slice';
+import {
+  createServiceApiKeyCall,
+  downloadApiUsageCsvCall,
+  getAllApiKeysCall,
+  getApiUsageStatisticsCall,
+  revokeAnyApiKeyCall,
+} from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
+import {
+  ApiKey,
+  ApiUsageStatistics,
+  CreatedApiKey,
+  CreateServiceApiKeyRequest,
+} from '../../../../../api/soroban-security-portal/models/api-key';
+
+export const useApiUsage = (canManageKeys: boolean) => {
+  const dispatch = useDispatch();
+  const [days, setDays] = useState(30);
+  const [stats, setStats] = useState<ApiUsageStatistics | null>(null);
+  const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Moderators see the statistics; only admins may list and manage keys.
+      const [loadedStats, loadedKeys] = await Promise.all([
+        getApiUsageStatisticsCall(days),
+        canManageKeys ? getAllApiKeysCall() : Promise.resolve([] as ApiKey[]),
+      ]);
+      setStats(loadedStats);
+      setKeys(loadedKeys);
+    } catch {
+      setError('Failed to load API usage');
+    } finally {
+      setLoading(false);
+    }
+  }, [days, canManageKeys]);
+
+  useEffect(() => {
+    dispatch(setCurrentPage({ pageName: 'API usage', pageCode: 'api-usage', pageUrl: window.location.pathname, routePath: 'api-usage' }));
+  }, [dispatch]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const revokeKey = async (id: number) => {
+    await revokeAnyApiKeyCall(id);
+    await load();
+  };
+
+  const createServiceKey = async (request: CreateServiceApiKeyRequest): Promise<CreatedApiKey> => {
+    const created = await createServiceApiKeyCall(request);
+    await load();
+    return created;
+  };
+
+  const downloadCsv = async () => {
+    const blob = await downloadApiUsageCsvCall(days);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `api-usage-last-${days}-days.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  return { days, setDays, stats, keys, loading, error, revokeKey, createServiceKey, downloadCsv };
+};

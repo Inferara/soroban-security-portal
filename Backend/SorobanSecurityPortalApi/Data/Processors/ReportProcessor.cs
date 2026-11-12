@@ -60,6 +60,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 {
                     var searchText = reportSearch.SearchText ?? "";
                     var queryEmbedding = reportSearch.Embedding;
+                    var minRelevance = reportSearch.MinRelevance ?? _extendedConfig.MinRelevanceForSearch;
 
                     q = q
                         .Select(v => new
@@ -75,7 +76,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                                     ? 0.0
                                     : (1.0 - v.Embedding.CosineDistance(queryEmbedding!)) * _extendedConfig.VectorContentWeight
                         })
-                        .Where(x => _extendedConfig.MinRelevanceForSearch < (x.TextScore + x.VecScore))
+                        .Where(x => minRelevance < (x.TextScore + x.VecScore))
                         .OrderByDescending(x => x.TextScore + x.VecScore)
                         .Select(x => x.v);
                 }
