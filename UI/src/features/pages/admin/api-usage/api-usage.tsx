@@ -33,13 +33,11 @@ import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { BarChart } from '@mui/x-charts/BarChart';
-import { useAuth } from 'react-oidc-context';
 import { useApiUsage } from './hooks/useApiUsage';
 import { StatisticsCards } from '../../../../components/details';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { ApiKey, ApiKeyKind, ApiUsageSource, CreatedApiKey } from '../../../../api/soroban-security-portal/models/api-key';
 import { ConfirmDialog } from '../admin-main-window/confirm-dialog';
-import { isAdmin } from '../../../authentication/authPermissions';
 
 const sourceLabel = (source: ApiUsageSource): string => (source === ApiUsageSource.Mcp ? 'MCP' : 'REST');
 const kindLabel = (kind: ApiKeyKind): string => (kind === ApiKeyKind.Service ? 'Service' : 'Personal');
@@ -54,12 +52,10 @@ const parseLimit = (value: string): number | null => {
 
 /**
  * Admin view of the public API / MCP usage: totals, calls per day, per tool and per key,
- * CSV export for reporting, and (admins only) API key management including service keys.
+ * CSV export for reporting, and API key management including service keys.
  */
 export const ApiUsage: FC = () => {
-  const auth = useAuth();
-  const canManageKeys = isAdmin(auth);
-  const { days, setDays, stats, keys, loading, error, revokeKey, createServiceKey, downloadCsv } = useApiUsage(canManageKeys);
+  const { days, setDays, stats, keys, loading, error, reload, revokeKey, createServiceKey, downloadCsv } = useApiUsage();
 
   const [keyToRevoke, setKeyToRevoke] = useState<ApiKey | null>(null);
   const [serviceOpen, setServiceOpen] = useState(false);
@@ -71,8 +67,14 @@ export const ApiUsage: FC = () => {
   const [copied, setCopied] = useState(false);
 
   if (loading && !stats) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
-  if (error) return <Typography color="error" sx={{ p: 2 }}>{error}</Typography>;
-  if (!stats) return null;
+  // Nothing loaded yet: there is no page to show, only the error and a way to retry.
+  if (!stats) {
+    return error ? (
+      <Alert severity="error" sx={{ m: 2 }} action={<Button color="inherit" size="small" onClick={() => void reload()}>Retry</Button>}>
+        {error}
+      </Alert>
+    ) : null;
+  }
 
   const cards = [
     { icon: <ApiIcon sx={{ fontSize: 40 }} />, iconColor: SeverityColors['note'], value: stats.totalCalls, label: 'Calls' },
@@ -132,6 +134,12 @@ export const ApiUsage: FC = () => {
 
   return (
     <Box sx={{ p: { xs: 1, md: 2 } }}>
+      {/* A failed refresh keeps the page, and any open one-time key dialog, on screen. */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={() => void reload()}>Retry</Button>}>
+          {error}
+        </Alert>
+      )}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="body1">Period:</Typography>
         <Select size="small" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Period">
@@ -222,8 +230,7 @@ export const ApiUsage: FC = () => {
         </Table>
       </Paper>
 
-      {canManageKeys && (
-        <Paper sx={{ p: 2, mt: 3 }}>
+      <Paper sx={{ p: 2, mt: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="h6">All API keys</Typography>
             <Button variant="contained" startIcon={<AddIcon />} onClick={openServiceDialog}>
@@ -275,8 +282,7 @@ export const ApiUsage: FC = () => {
               )}
             </TableBody>
           </Table>
-        </Paper>
-      )}
+      </Paper>
 
       {/* Issue service key */}
       <Dialog open={serviceOpen} onClose={() => !busy && setServiceOpen(false)} fullWidth maxWidth="xs">

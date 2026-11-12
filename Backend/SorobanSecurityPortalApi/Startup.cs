@@ -81,6 +81,7 @@ public class Startup
         // Public API rate limiter: one instance for the whole process (it holds the counters),
         // registered before the convention scan so the scan skips it.
         services.AddSingleton<IApiRateLimiter, ApiRateLimiter>();
+        services.AddSingleton<QueryEmbeddingCache>();
 
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())

@@ -76,11 +76,12 @@ namespace SorobanSecurityPortalApi.Controllers
             return await _service.RevokeAny(id) ? NoContent() : NotFound(new { message = "API key not found." });
         }
 
-        [RoleAuthorize(Role.Admin, Role.Moderator)]
+        [RoleAuthorize(Role.Admin)]
         [HttpGet("usage/statistics")]
         public async Task<IActionResult> UsageStatistics([FromQuery] int days = 30) => Ok(await _service.GetStatistics(days));
 
-        [RoleAuthorize(Role.Admin, Role.Moderator)]
+        // Admin only: the export includes callers' search text.
+        [RoleAuthorize(Role.Admin)]
         [HttpGet("usage/export.csv")]
         public async Task<IActionResult> UsageExport([FromQuery] int days = 30)
         {

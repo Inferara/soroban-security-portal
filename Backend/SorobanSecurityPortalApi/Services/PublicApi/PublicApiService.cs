@@ -32,6 +32,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         private readonly IExtendedConfig _extendedConfig;
         private readonly Config _config;
         private readonly IMemoryCache _memoryCache;
+        private readonly QueryEmbeddingCache _embeddingCache;
         private readonly ILogger<PublicApiService> _logger;
 
         public PublicApiService(
@@ -42,8 +43,10 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             IExtendedConfig extendedConfig,
             Config config,
             IMemoryCache memoryCache,
+            QueryEmbeddingCache embeddingCache,
             ILogger<PublicApiService> logger)
         {
+            _embeddingCache = embeddingCache;
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _reportProcessor = reportProcessor;
             _publicProcessor = publicProcessor;
@@ -146,7 +149,8 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             var all = await _reportProcessor.Search(search);
             return new PublicPage<PublicReportSummary>
             {
-                Items = all.Skip((page - 1) * pageSize).Take(pageSize).Select(ToReportSummary).ToList(),
+                // 64-bit offset: (page - 1) * pageSize overflows int for a page number a caller can send.
+                Items = all.Skip((int)Math.Min((page - 1L) * pageSize, all.Count)).Take(pageSize).Select(ToReportSummary).ToList(),
                 Total = all.Count,
                 Page = page,
                 PageSize = pageSize,
@@ -329,7 +333,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             // After a failure, skip the provider for a minute for every query, not just this one.
             if (_memoryCache.TryGetValue(EmbeddingDownCacheKey, out _)) return null;
             var cacheKey = "public-api:embedding:" + text.ToLowerInvariant();
-            if (_memoryCache.TryGetValue(cacheKey, out float[]? cached) && cached != null)
+            if (_embeddingCache.Cache.TryGetValue(cacheKey, out float[]? cached) && cached != null)
                 return new Vector(cached);
             try
             {
@@ -344,7 +348,11 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                     throw new TimeoutException($"No embedding after {EmbeddingTimeout.TotalSeconds:0} seconds.");
                 }
                 var embedding = await embeddingTask;
-                _memoryCache.Set(cacheKey, embedding, EmbeddingCacheTime);
+                _embeddingCache.Cache.Set(cacheKey, embedding, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = EmbeddingCacheTime,
+                    Size = 1,
+                });
                 return new Vector(embedding);
             }
             catch (Exception ex)
@@ -398,6 +406,17 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             Url = $"{SiteBase}/report/{r.Id}",
             DownloadUrl = $"{_config.AppUrl}/reports/{r.Id}/download",
         };
+    }
+
+    // Query embeddings get their own cache with a hard entry limit: each one is tens of kilobytes
+    // and callers choose the query text, so an unbounded cache would be theirs to fill.
+    public sealed class QueryEmbeddingCache : IDisposable
+    {
+        public const int MaxEntries = 500;
+
+        public MemoryCache Cache { get; } = new(new MemoryCacheOptions { SizeLimit = MaxEntries });
+
+        public void Dispose() => Cache.Dispose();
     }
 
     public interface IPublicApiService

@@ -62,7 +62,7 @@ export const AdminLeftMenu: FC<AdminLeftMenuProps> = ({ onNavigate }) => {
       label: 'API usage',
       icon: <ApiIcon />,
       path: 'admin/api-usage',
-      visible: isAdminOrModerator(auth),
+      visible: isAdmin(auth),
     },
     {
       label: 'General',

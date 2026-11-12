@@ -104,8 +104,18 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     CreatedBy = v.CreatedBy,
                     LastActionBy = v.LastActionBy,
                     LastActionAt = v.LastActionAt,
-                    Auditor = v.Auditor,
-                    Protocol = v.Protocol
+                    // Only ids and names: the full entities carry logo images and embeddings.
+                    Auditor = v.Auditor == null ? null : new AuditorModel { Id = v.Auditor.Id, Name = v.Auditor.Name },
+                    Protocol = v.Protocol == null ? null : new ProtocolModel
+                    {
+                        Id = v.Protocol.Id,
+                        Name = v.Protocol.Name,
+                        Company = v.Protocol.Company == null ? null : new CompanyModel
+                        {
+                            Id = v.Protocol.Company.Id,
+                            Name = v.Protocol.Company.Name,
+                        },
+                    }
                 })
                 .ToListAsync();
         }

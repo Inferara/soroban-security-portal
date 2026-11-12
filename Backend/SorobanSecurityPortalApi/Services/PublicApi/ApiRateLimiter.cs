@@ -60,17 +60,19 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             // Seed outside the lock (it hits the database). Two concurrent first calls may both
             // seed; they read the same number, so the result is the same.
             int? seededDayCount = null;
-            if (Volatile.Read(ref state.DayWindow) != dayWindow)
+            if (Volatile.Read(ref state.DayWindow) < dayWindow)
                 seededDayCount = await seedDailyCount(now.UtcDateTime.Date);
 
             lock (state)
             {
-                if (state.DayWindow != dayWindow)
+                // "<", not "!=": a call that read the clock just before a window turned over and
+                // then waited (on the seed query, or for this lock) must not move the window back.
+                if (state.DayWindow < dayWindow)
                 {
                     state.DayWindow = dayWindow;
                     state.DayCount = seededDayCount ?? 0;
                 }
-                if (state.MinuteWindow != minuteWindow)
+                if (state.MinuteWindow < minuteWindow)
                 {
                     state.MinuteWindow = minuteWindow;
                     state.MinuteCount = 0;
@@ -85,7 +87,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 // consume the key's own quota.
                 lock (_globalLock)
                 {
-                    if (_globalWindow != minuteWindow)
+                    if (_globalWindow < minuteWindow)
                     {
                         _globalWindow = minuteWindow;
                         _globalCount = 0;

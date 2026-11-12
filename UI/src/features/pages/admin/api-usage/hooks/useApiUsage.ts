@@ -15,7 +15,7 @@ import {
   CreateServiceApiKeyRequest,
 } from '../../../../../api/soroban-security-portal/models/api-key';
 
-export const useApiUsage = (canManageKeys: boolean) => {
+export const useApiUsage = () => {
   const dispatch = useDispatch();
   const [days, setDays] = useState(30);
   const [stats, setStats] = useState<ApiUsageStatistics | null>(null);
@@ -27,11 +27,7 @@ export const useApiUsage = (canManageKeys: boolean) => {
     try {
       setLoading(true);
       setError(null);
-      // Moderators see the statistics; only admins may list and manage keys.
-      const [loadedStats, loadedKeys] = await Promise.all([
-        getApiUsageStatisticsCall(days),
-        canManageKeys ? getAllApiKeysCall() : Promise.resolve([] as ApiKey[]),
-      ]);
+      const [loadedStats, loadedKeys] = await Promise.all([getApiUsageStatisticsCall(days), getAllApiKeysCall()]);
       setStats(loadedStats);
       setKeys(loadedKeys);
     } catch {
@@ -39,7 +35,7 @@ export const useApiUsage = (canManageKeys: boolean) => {
     } finally {
       setLoading(false);
     }
-  }, [days, canManageKeys]);
+  }, [days]);
 
   useEffect(() => {
     dispatch(setCurrentPage({ pageName: 'API usage', pageCode: 'api-usage', pageUrl: window.location.pathname, routePath: 'api-usage' }));
@@ -72,5 +68,5 @@ export const useApiUsage = (canManageKeys: boolean) => {
     URL.revokeObjectURL(url);
   };
 
-  return { days, setDays, stats, keys, loading, error, revokeKey, createServiceKey, downloadCsv };
+  return { days, setDays, stats, keys, loading, error, reload: load, revokeKey, createServiceKey, downloadCsv };
 };

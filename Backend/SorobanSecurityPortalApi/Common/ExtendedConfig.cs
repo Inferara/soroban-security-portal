@@ -262,7 +262,7 @@ public class ExtendedConfig : IExtendedConfig
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
     [Description("Enable public API and MCP server")]
-    [Tooltip("Master switch for the public surface: the MCP endpoint (/api/mcp) and the REST API (/api/public/v1). When off, every call is refused with a clear error; existing API keys are kept.")]
+    [Tooltip("Master switch for the public surface: the MCP endpoint (/api/mcp) and the REST API (/api/public/v1). When off, every tool call and API request is refused with a clear error; existing API keys are kept.")]
     public bool PublicApiEnabled => GetValue<bool>("PublicApiEnabled", true);
 
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]

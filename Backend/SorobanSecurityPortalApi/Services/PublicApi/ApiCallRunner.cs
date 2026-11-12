@@ -37,6 +37,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public class ApiCallRunner : IApiCallRunner
     {
         private const int MaxArgumentsLength = 300;
+        public const int MaxLoggedRefusalsPerMinute = 20;
 
         private readonly IApiCallerAccessor _callerAccessor;
         private readonly IApiRateLimiter _rateLimiter;
@@ -83,7 +84,8 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 caller.ApiKeyId, limits, dayStartUtc => _usageLog.CountCountedSince(caller.ApiKeyId, dayStartUtc));
             if (!decision.Allowed)
             {
-                await Log(caller, source, operation, arguments, ApiUsageStatus.RateLimited, 0);
+                if (ShouldLogRefusal(caller.ApiKeyId))
+                    await Log(caller, source, operation, arguments, ApiUsageStatus.RateLimited, 0);
                 return new ApiCallOutcome<T>
                 {
                     Status = ApiCallStatus.RateLimited,
@@ -154,6 +156,25 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             {
                 _logger.LogError(ex, "Failed to write the API usage log for {Operation}", operation);
             }
+        }
+
+        // A client that keeps hammering after it was refused must not turn every refusal into a
+        // database write. The first few refusals per key per minute are logged (enough to see
+        // who hit a limit and how hard); the rest are refused without a log row.
+        private bool ShouldLogRefusal(int apiKeyId)
+        {
+            var cacheKey = $"api-key-refusals:{apiKeyId}:{DateTime.UtcNow:yyyyMMddHHmm}";
+            var counter = _memoryCache.GetOrCreate(cacheKey, entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2);
+                return new RefusalCounter();
+            })!;
+            return Interlocked.Increment(ref counter.Count) <= MaxLoggedRefusalsPerMinute;
+        }
+
+        private sealed class RefusalCounter
+        {
+            public int Count;
         }
 
         // At most one write per key per minute; "last used" does not need to be more precise.

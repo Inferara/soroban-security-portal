@@ -27,7 +27,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { Link as RouterLink } from 'react-router-dom';
-import { ApiKey, ApiLimits, CreatedApiKey } from '../../../../api/soroban-security-portal/models/api-key';
+import { ApiKey, ApiKeyKind, ApiLimits, CreatedApiKey } from '../../../../api/soroban-security-portal/models/api-key';
 import {
   createApiKeyCall,
   getApiKeysCall,
@@ -78,7 +78,8 @@ export const ApiKeysSection: FC = () => {
     void load();
   }, [load]);
 
-  const activeKeys = keys.filter((k) => !k.revokedAt);
+  // The per-user limit counts personal keys only (service keys are issued by admins).
+  const activeKeys = keys.filter((k) => !k.revokedAt && k.kind === ApiKeyKind.Personal);
   const atLimit = limits !== null && activeKeys.length >= limits.maxKeysPerUser;
 
   const openCreate = () => {

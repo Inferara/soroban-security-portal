@@ -106,6 +106,23 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         }
 
         [Fact]
+        public async Task A_Client_Hammering_After_Refusal_Cannot_Flood_The_Usage_Log()
+        {
+            _limiter.Setup(l => l.TryAcquireAsync(It.IsAny<int>(), It.IsAny<ApiRateLimits>(), It.IsAny<Func<DateTime, Task<int>>>()))
+                .ReturnsAsync(new ApiRateLimitDecision(false, ApiRateLimitKind.PerMinute, 60, 17));
+            var runner = Build();
+
+            for (var i = 0; i < 500; i++)
+            {
+                var outcome = await runner.Run(ApiUsageSource.Rest, "list_protocols", null, () => Task.FromResult<string?>("x"));
+                outcome.Status.Should().Be(ApiCallStatus.RateLimited); // still refused every time
+            }
+
+            // 500 refusals, but only a bounded number of rows (the run may straddle a minute boundary).
+            _logged.Count.Should().BeInRange(ApiCallRunner.MaxLoggedRefusalsPerMinute, ApiCallRunner.MaxLoggedRefusalsPerMinute * 2);
+        }
+
+        [Fact]
         public async Task Default_Limits_Come_From_Settings()
         {
             await Build().Run(ApiUsageSource.Rest, "list_protocols", null, () => Task.FromResult<string?>("x"));

@@ -63,7 +63,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
 
         private PublicApiService Build() => new(
             _vulns.Object, _reports.Object, _public.Object, _embedding.Object, _extendedConfig.Object, _config,
-            new MemoryCache(new MemoryCacheOptions()), NullLogger<PublicApiService>.Instance);
+            new MemoryCache(new MemoryCacheOptions()), new QueryEmbeddingCache(), NullLogger<PublicApiService>.Instance);
 
         private static VulnerabilityModel Vuln(int id, string severity = "High") => new()
         {
@@ -332,6 +332,34 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             page.HasMore.Should().BeFalse();
             page.Items[0].Url.Should().Be("https://portal.example/report/41");
             page.Items[0].DownloadUrl.Should().Be("https://portal.example/api/v1/reports/41/download");
+        }
+
+        [Fact]
+        public async Task A_Huge_Report_Page_Number_Is_An_Empty_Page_Not_Page_One()
+        {
+            var all = Enumerable.Range(1, 45).Select(i => new ReportModel { Id = i, Name = $"R{i}" }).ToList();
+            _reports.Setup(r => r.Search(It.IsAny<ReportSearchModel?>())).ReturnsAsync(all);
+
+            // 30_000_000 * 100 overflows int; a 32-bit offset would wrap and serve the first page.
+            var page = await Build().SearchReports(new PublicReportQuery { Page = 30_000_000, PageSize = 100 });
+
+            page.Items.Should().BeEmpty();
+            page.Total.Should().Be(45);
+            page.HasMore.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task The_Query_Embedding_Cache_Is_Bounded()
+        {
+            var cache = new QueryEmbeddingCache();
+            var service = new PublicApiService(
+                _vulns.Object, _reports.Object, _public.Object, _embedding.Object, _extendedConfig.Object, _config,
+                new MemoryCache(new MemoryCacheOptions()), cache, NullLogger<PublicApiService>.Instance);
+
+            for (var i = 0; i < QueryEmbeddingCache.MaxEntries + 50; i++)
+                await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = $"query {i}" });
+
+            cache.Cache.Count.Should().BeLessThanOrEqualTo(QueryEmbeddingCache.MaxEntries);
         }
 
         [Fact]
