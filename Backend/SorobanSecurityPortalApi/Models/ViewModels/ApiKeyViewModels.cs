@@ -58,6 +58,8 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public List<ApiUsageDailyViewModel> Daily { get; set; } = new();
         public List<ApiUsageOperationViewModel> ByOperation { get; set; } = new();
         public List<ApiUsageKeyViewModel> ByKey { get; set; } = new();
+        // The CSV export returns at most this many rows (the newest ones).
+        public int MaxExportRows { get; set; }
     }
 
     public class ApiUsageDailyViewModel

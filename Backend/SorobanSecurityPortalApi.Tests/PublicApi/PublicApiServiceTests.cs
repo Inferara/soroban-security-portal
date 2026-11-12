@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
@@ -43,7 +44,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         public PublicApiServiceTests()
         {
             _extendedConfig.SetupGet(c => c.GeminiApiKey).Returns("key");
-            _embedding.Setup(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>())).ReturnsAsync(new float[] { 0.1f, 0.2f });
+            _embedding.Setup(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new float[] { 0.1f, 0.2f });
             _vulns.Setup(v => v.Search(It.IsAny<VulnerabilitySearchModel>()))
                 .Callback<VulnerabilitySearchModel>(s => _vulnSearch = s)
                 .ReturnsAsync(new List<VulnerabilityModel>());
@@ -248,7 +249,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task Query_When_Embeddings_Fail_Falls_Back_To_Keyword_Search_Instead_Of_Failing()
         {
-            _embedding.Setup(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>())).ThrowsAsync(new Exception("402"));
+            _embedding.Setup(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("402"));
 
             var result = await Build().SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "reentrancy" });
 
@@ -260,14 +261,33 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task After_A_Failure_The_Provider_Is_Skipped_For_Other_Queries_Too()
         {
-            _embedding.Setup(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>())).ThrowsAsync(new Exception("down"));
+            _embedding.Setup(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("down"));
             var service = Build();
 
             await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "first" });
             await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "second" });
             await service.SearchReports(new PublicReportQuery { Query = "third" });
 
-            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>()), Times.Once);
+            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task A_Slow_Provider_Is_Cancelled_Not_Left_Running()
+        {
+            // A provider call that only ends when its token is cancelled, like a request stuck in retries.
+            CancellationToken seen = default;
+            _embedding.Setup(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns<string, CancellationToken>(async (_, token) =>
+                {
+                    seen = token;
+                    await Task.Delay(Timeout.Infinite, token);
+                    return Array.Empty<float>();
+                });
+
+            var result = await Build().SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "reentrancy" });
+
+            result.SearchMode.Should().Be("keyword");
+            seen.IsCancellationRequested.Should().BeTrue();
         }
 
         [Fact]
@@ -278,7 +298,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "Reentrancy" });
             await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "reentrancy", Page = 2 });
 
-            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>()), Times.Once);
+            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -289,7 +309,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var result = await Build().SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "reentrancy" });
 
             result.SearchMode.Should().Be("keyword");
-            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>()), Times.Never);
+            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         // ---- single items ----

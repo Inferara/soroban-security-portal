@@ -154,6 +154,13 @@ export const ApiUsage: FC = () => {
         {loading && <CircularProgress size={20} />}
       </Box>
 
+      {stats.totalCalls > stats.maxExportRows && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          This period has {stats.totalCalls.toLocaleString()} calls. The CSV export holds the newest{' '}
+          {stats.maxExportRows.toLocaleString()} only; choose a shorter period to get every row.
+        </Alert>
+      )}
+
       <StatisticsCards cards={cards} columns={{ xs: 12, sm: 6, md: 2.4 }} />
 
       <Paper sx={{ p: 2, mt: 3 }}>

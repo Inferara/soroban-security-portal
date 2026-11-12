@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setCurrentPage } from '../../admin-main-window/current-page-slice';
 import {
@@ -23,17 +23,24 @@ export const useApiUsage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Loads can overlap (period change, refresh after an action). Only the latest one may update
+  // the page, so a slow earlier response cannot show one period under another period's selector.
+  const requestIdRef = useRef(0);
+
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     try {
       setLoading(true);
       setError(null);
       const [loadedStats, loadedKeys] = await Promise.all([getApiUsageStatisticsCall(days), getAllApiKeysCall()]);
+      if (requestIdRef.current !== requestId) return;
       setStats(loadedStats);
       setKeys(loadedKeys);
     } catch {
+      if (requestIdRef.current !== requestId) return;
       setError('Failed to load API usage');
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
   }, [days]);
 

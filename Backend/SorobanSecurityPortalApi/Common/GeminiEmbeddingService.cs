@@ -36,7 +36,9 @@ public class GeminiEmbeddingService : IGeminiEmbeddingService
         }
     }
 
-    public async Task<float[]> GenerateEmbeddingAsync(string input)
+    public Task<float[]> GenerateEmbeddingAsync(string input) => GenerateEmbeddingAsync(input, CancellationToken.None);
+
+    private async Task<float[]> GenerateEmbeddingAsync(string input, CancellationToken cancellationToken)
     {
         var payload = new
         {
@@ -52,10 +54,10 @@ public class GeminiEmbeddingService : IGeminiEmbeddingService
         request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
         request.Headers.Add("x-goog-api-key", _extendedConfig.GeminiApiKey);
 
-        using var response = await GetHttpClient().SendAsync(request);
+        using var response = await GetHttpClient().SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
         var emb = doc.RootElement.GetProperty("embedding").GetProperty("values");
         var vector = new float[emb.GetArrayLength()];
         int i = 0;
@@ -65,23 +67,29 @@ public class GeminiEmbeddingService : IGeminiEmbeddingService
         return vector;
     }
 
-    public async Task<List<float[]>> GenerateEmbeddingsAsync(string input)
+    public Task<List<float[]>> GenerateEmbeddingsAsync(string input) => GenerateEmbeddingsAsync(input, CancellationToken.None);
+
+    private async Task<List<float[]>> GenerateEmbeddingsAsync(string input, CancellationToken cancellationToken)
     {
         var chunks = ChunkText(input).ToList();
         var embeddings = new List<float[]>();
 
         foreach (var chunk in chunks)
         {
-            var emb = await GenerateEmbeddingAsync(chunk);
+            var emb = await GenerateEmbeddingAsync(chunk, cancellationToken);
             embeddings.Add(emb);
         }
 
         return embeddings;
     }
 
-    public async Task<float[]> GenerateEmbeddingForDocumentAsync(string input)
+    public Task<float[]> GenerateEmbeddingForDocumentAsync(string input) =>
+        GenerateEmbeddingForDocumentAsync(input, CancellationToken.None);
+
+    // Cancelling stops the provider request and its retries, not just the wait for them.
+    public async Task<float[]> GenerateEmbeddingForDocumentAsync(string input, CancellationToken cancellationToken)
     {
-        var embeddings = await GenerateEmbeddingsAsync(input);
+        var embeddings = await GenerateEmbeddingsAsync(input, cancellationToken);
         if (embeddings.Count == 0)
             throw new InvalidOperationException("No chunks were created from input.");
 
@@ -104,4 +112,5 @@ public interface IGeminiEmbeddingService
     Task<float[]> GenerateEmbeddingAsync(string chunk); // One chunk
     Task<List<float[]>> GenerateEmbeddingsAsync(string input); // All chunks
     Task<float[]> GenerateEmbeddingForDocumentAsync(string input); // Average of all chunks
+    Task<float[]> GenerateEmbeddingForDocumentAsync(string input, CancellationToken cancellationToken);
 }

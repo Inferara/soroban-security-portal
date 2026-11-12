@@ -85,8 +85,10 @@ namespace SorobanSecurityPortalApi.Controllers
         [HttpGet("usage/export.csv")]
         public async Task<IActionResult> UsageExport([FromQuery] int days = 30)
         {
-            var csv = await _service.ExportCsv(days);
-            return File(Encoding.UTF8.GetBytes(csv), "text/csv", $"api-usage-last-{Math.Clamp(days, 1, ApiKeyService.MaxStatisticsDays)}-days.csv");
+            var export = await _service.ExportCsv(days);
+            // The file itself stays plain CSV; a cut-off export is flagged in a header.
+            if (export.Truncated) Response.Headers["X-Export-Truncated"] = "true";
+            return File(Encoding.UTF8.GetBytes(export.Csv), "text/csv", $"api-usage-last-{Math.Clamp(days, 1, ApiKeyService.MaxStatisticsDays)}-days.csv");
         }
     }
 }

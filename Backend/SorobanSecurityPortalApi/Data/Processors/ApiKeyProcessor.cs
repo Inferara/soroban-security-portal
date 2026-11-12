@@ -6,6 +6,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
 {
     public class ApiKeyProcessor : IApiKeyProcessor
     {
+        // First half of the advisory lock key used while creating a user's key (the second is the login id).
+        private const int KeyCreationLockClass = 258001;
+
         private readonly IDbContextFactory<Db> _dbFactory;
 
         public ApiKeyProcessor(IDbContextFactory<Db> dbFactory)
@@ -31,10 +34,22 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .ToListAsync();
         }
 
-        public async Task<int> CountActiveByLogin(int loginId, ApiKeyKind kind)
+        // Adds the key unless the user already has maxActive active keys of this kind; returns
+        // null in that case. The count and the insert run in one transaction under a per-user
+        // advisory lock, so parallel requests cannot slip past the cap together.
+        public async Task<ApiKeyModel?> AddWithinLimit(ApiKeyModel key, int maxActive)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
-            return await db.ApiKey.CountAsync(k => k.LoginId == loginId && k.Kind == kind && k.RevokedAt == null);
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            await db.Database.ExecuteSqlInterpolatedAsync($"select pg_advisory_xact_lock({KeyCreationLockClass}, {key.LoginId})");
+
+            var active = await db.ApiKey.CountAsync(k => k.LoginId == key.LoginId && k.Kind == key.Kind && k.RevokedAt == null);
+            if (active >= maxActive) return null;
+
+            db.ApiKey.Add(key);
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return key;
         }
 
         public async Task<List<ApiKeyWithOwner>> ListAll()
@@ -98,7 +113,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
     {
         Task<ApiKeyModel> Add(ApiKeyModel key);
         Task<List<ApiKeyModel>> ListByLogin(int loginId);
-        Task<int> CountActiveByLogin(int loginId, ApiKeyKind kind);
+        Task<ApiKeyModel?> AddWithinLimit(ApiKeyModel key, int maxActive);
         Task<List<ApiKeyWithOwner>> ListAll();
         Task<ApiKeyModel?> FindUsableByHash(string keyHash);
         Task<bool> Revoke(int keyId, int? ownerLoginId);

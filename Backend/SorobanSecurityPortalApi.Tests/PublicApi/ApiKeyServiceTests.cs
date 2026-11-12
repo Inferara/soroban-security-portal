@@ -29,6 +29,9 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             _apiKeys.Setup(k => k.Add(It.IsAny<ApiKeyModel>()))
                 .Callback<ApiKeyModel>(k => { k.Id = 1; _stored = k; })
                 .ReturnsAsync((ApiKeyModel k) => k);
+            _apiKeys.Setup(k => k.AddWithinLimit(It.IsAny<ApiKeyModel>(), It.IsAny<int>()))
+                .Callback<ApiKeyModel, int>((k, _) => { k.Id = 1; _stored = k; })
+                .ReturnsAsync((ApiKeyModel k, int _) => k);
         }
 
         private ApiKeyService Build() => new(_apiKeys.Object, _usageLog.Object, _userContext.Object, _config.Object);
@@ -61,7 +64,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var result = await Build().CreateMine(new CreateApiKeyRequest { Name = name });
 
             result.Should().BeOfType<Result<CreatedApiKeyViewModel, string>.Err>();
-            _apiKeys.Verify(k => k.Add(It.IsAny<ApiKeyModel>()), Times.Never);
+            _apiKeys.Verify(k => k.AddWithinLimit(It.IsAny<ApiKeyModel>(), It.IsAny<int>()), Times.Never);
         }
 
         [Fact]
@@ -75,12 +78,14 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task Create_Stops_At_Five_Active_Personal_Keys()
         {
-            _apiKeys.Setup(k => k.CountActiveByLogin(42, ApiKeyKind.Personal)).ReturnsAsync(5);
+            // The processor checks the cap and inserts atomically; null means the cap was reached.
+            _apiKeys.Setup(k => k.AddWithinLimit(It.IsAny<ApiKeyModel>(), 5)).ReturnsAsync((ApiKeyModel?)null);
 
             var result = await Build().CreateMine(new CreateApiKeyRequest { Name = "sixth" });
 
             result.Should().BeOfType<Result<CreatedApiKeyViewModel, string>.Err>().Which.Error.Should().Contain("5 active");
-            _apiKeys.Verify(k => k.Add(It.IsAny<ApiKeyModel>()), Times.Never);
+            _apiKeys.Verify(k => k.AddWithinLimit(It.Is<ApiKeyModel>(m => m.LoginId == 42 && m.Kind == ApiKeyKind.Personal), 5), Times.Once);
+            _apiKeys.Verify(k => k.Add(It.IsAny<ApiKeyModel>()), Times.Never); // never the uncapped path
         }
 
         [Fact]
@@ -168,6 +173,21 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         }
 
         [Fact]
+        public async Task Csv_Says_When_The_Period_Holds_More_Rows_Than_It_Returns()
+        {
+            var requested = 0;
+            _usageLog.Setup(u => u.Export(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+                .Callback<DateTime, DateTime, int>((_, _, max) => requested = max)
+                .ReturnsAsync(() => Enumerable.Range(0, requested).Select(_ => new ApiUsageExportRow { Operation = "x" }).ToList());
+
+            var export = await Build().ExportCsv(30);
+
+            requested.Should().Be(ApiKeyService.MaxExportRows + 1); // one extra row to detect the cut-off
+            export.Truncated.Should().BeTrue();
+            export.Csv.Count(c => c == '\n').Should().Be(ApiKeyService.MaxExportRows + 1); // header + rows, extra row dropped
+        }
+
+        [Fact]
         public async Task Csv_Has_A_Header_Stable_Status_Names_And_Safe_Text_Cells()
         {
             _usageLog.Setup(u => u.Export(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>())).ReturnsAsync(new List<ApiUsageExportRow>
@@ -187,7 +207,9 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                 },
             });
 
-            var lines = (await Build().ExportCsv(30)).TrimEnd('\n').Split('\n');
+            var export = await Build().ExportCsv(30);
+            export.Truncated.Should().BeFalse();
+            var lines = export.Csv.TrimEnd('\n').Split('\n');
 
             lines[0].Should().Be("timestamp_utc,source,operation,status,duration_ms,api_key_id,api_key_name,api_key_kind,user_id,arguments");
             lines.Should().HaveCount(2); // the newline inside the argument did not split the row

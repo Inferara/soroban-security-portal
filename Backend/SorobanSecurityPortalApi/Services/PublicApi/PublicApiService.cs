@@ -339,11 +339,14 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             {
                 // The embedding client retries for minutes when the provider is failing. A caller
                 // of the public API should not wait for that: give up after a few seconds and
-                // answer with a text-only search.
-                var embeddingTask = _embeddingService.GenerateEmbeddingForDocumentAsync(text);
+                // answer with a text-only search. The token cancels the provider request and its
+                // retries, so abandoned calls do not pile up during an outage.
+                using var timeout = new CancellationTokenSource();
+                var embeddingTask = _embeddingService.GenerateEmbeddingForDocumentAsync(text, timeout.Token);
                 if (await Task.WhenAny(embeddingTask, Task.Delay(EmbeddingTimeout)) != embeddingTask)
                 {
-                    // Let the abandoned call finish on its own; just make sure its failure is observed.
+                    await timeout.CancelAsync();
+                    // Make sure the cancelled call's exception is observed.
                     _ = embeddingTask.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
                     throw new TimeoutException($"No embedding after {EmbeddingTimeout.TotalSeconds:0} seconds.");
                 }

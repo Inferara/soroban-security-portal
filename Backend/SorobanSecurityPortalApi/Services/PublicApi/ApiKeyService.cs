@@ -54,11 +54,12 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             var name = NormalizeName(request?.Name, out var nameError);
             if (nameError != null) return new Result<CreatedApiKeyViewModel, string>.Err(nameError);
 
-            if (await _apiKeys.CountActiveByLogin(loginId, ApiKeyKind.Personal) >= MaxActiveKeysPerUser)
+            var created = await Create(loginId, name!, ApiKeyKind.Personal, null, null, MaxActiveKeysPerUser);
+            if (created == null)
                 return new Result<CreatedApiKeyViewModel, string>.Err(
                     $"You already have {MaxActiveKeysPerUser} active API keys. Revoke one before creating another.");
 
-            return new Result<CreatedApiKeyViewModel, string>.Ok(await Create(loginId, name!, ApiKeyKind.Personal, null, null));
+            return new Result<CreatedApiKeyViewModel, string>.Ok(created);
         }
 
         public async Task<bool> RevokeMine(int keyId)
@@ -93,7 +94,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 return new Result<CreatedApiKeyViewModel, string>.Err("Calls per day must be between 1 and 10000000.");
 
             return new Result<CreatedApiKeyViewModel, string>.Ok(
-                await Create(loginId, name!, ApiKeyKind.Service, request?.RateLimitPerMinute, request?.RateLimitPerDay));
+                (await Create(loginId, name!, ApiKeyKind.Service, request?.RateLimitPerMinute, request?.RateLimitPerDay, null))!);
         }
 
         public async Task<bool> RevokeAny(int keyId) => await _apiKeys.Revoke(keyId, null);
@@ -104,15 +105,20 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             // Whole UTC days, today included.
             var to = DateTime.UtcNow.Date.AddDays(1);
             var from = to.AddDays(-days);
-            return await _usageLog.GetStatistics(from, to);
+            var statistics = await _usageLog.GetStatistics(from, to);
+            statistics.MaxExportRows = MaxExportRows;
+            return statistics;
         }
 
-        public async Task<string> ExportCsv(int days)
+        public async Task<ApiUsageExport> ExportCsv(int days)
         {
             days = Math.Clamp(days, 1, MaxStatisticsDays);
             var to = DateTime.UtcNow.Date.AddDays(1);
             var from = to.AddDays(-days);
-            var rows = await _usageLog.Export(from, to, MaxExportRows);
+            // One row more than the limit tells us whether the period holds more than we return.
+            var rows = await _usageLog.Export(from, to, MaxExportRows + 1);
+            var truncated = rows.Count > MaxExportRows;
+            if (truncated) rows.RemoveAt(rows.Count - 1);
 
             var sb = new StringBuilder();
             // One line ending for the whole file, whatever OS the API runs on.
@@ -131,13 +137,14 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                     .Append(Csv(r.Arguments ?? ""))
                     .Append('\n');
             }
-            return sb.ToString();
+            return new ApiUsageExport(sb.ToString(), truncated);
         }
 
-        private async Task<CreatedApiKeyViewModel> Create(int loginId, string name, ApiKeyKind kind, int? perMinute, int? perDay)
+        // maxActive: the per-user cap to enforce, or null for no cap. Returns null when the cap is reached.
+        private async Task<CreatedApiKeyViewModel?> Create(int loginId, string name, ApiKeyKind kind, int? perMinute, int? perDay, int? maxActive)
         {
             var key = ApiKeyGenerator.Generate();
-            var model = await _apiKeys.Add(new ApiKeyModel
+            var newKey = new ApiKeyModel
             {
                 LoginId = loginId,
                 Name = name,
@@ -147,7 +154,11 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 RateLimitPerMinute = perMinute,
                 RateLimitPerDay = perDay,
                 CreatedAt = DateTime.UtcNow,
-            });
+            };
+            var model = maxActive.HasValue
+                ? await _apiKeys.AddWithinLimit(newKey, maxActive.Value)
+                : await _apiKeys.Add(newKey);
+            if (model == null) return null;
             var vm = new CreatedApiKeyViewModel { Key = key };
             CopyTo(model, vm);
             return vm;
@@ -228,6 +239,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         Task<Result<CreatedApiKeyViewModel, string>> CreateService(CreateServiceApiKeyRequest? request);
         Task<bool> RevokeAny(int keyId);
         Task<ApiUsageStatisticsViewModel> GetStatistics(int days);
-        Task<string> ExportCsv(int days);
+        Task<ApiUsageExport> ExportCsv(int days);
     }
+
+    // Truncated: the period holds more rows than MaxExportRows; the CSV has the newest ones.
+    public sealed record ApiUsageExport(string Csv, bool Truncated);
 }

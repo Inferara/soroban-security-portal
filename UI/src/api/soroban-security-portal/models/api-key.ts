@@ -78,4 +78,6 @@ export interface ApiUsageStatistics {
     daily: ApiUsageDaily[];
     byOperation: ApiUsageOperation[];
     byKey: ApiUsageKey[];
+    /** The CSV export returns at most this many rows (the newest ones). */
+    maxExportRows: number;
 }
