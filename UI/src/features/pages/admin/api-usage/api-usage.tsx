@@ -58,7 +58,7 @@ const parseLimit = (value: string): number | null => {
  */
 export const ApiUsage: FC = () => {
   const auth = useAuth();
-  const admin = isAdmin(auth);
+  const admin = !auth.isLoading && isAdmin(auth);
   const { days, setDays, stats, keys, loading, error, reload, revokeKey, createServiceKey, downloadCsv } = useApiUsage(admin);
 
   const [keyToRevoke, setKeyToRevoke] = useState<ApiKey | null>(null);
@@ -71,6 +71,7 @@ export const ApiUsage: FC = () => {
   const [copied, setCopied] = useState(false);
 
   // The statistics hold callers' search text and key owners, so only admins may open this page.
+  if (auth.isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
   if (!admin) return <Alert severity="warning" sx={{ m: 2 }}>API usage is available to administrators only.</Alert>;
   if (loading && !stats) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
   // Nothing loaded yet: there is no page to show, only the error and a way to retry.

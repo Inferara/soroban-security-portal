@@ -4,6 +4,7 @@ using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.ViewModels;
 using AutoMapper;
+using SorobanSecurityPortalApi.Services.PublicApi;
 
 namespace SorobanSecurityPortalApi.Services.ControllersServices
 {
@@ -12,15 +13,18 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IMapper _mapper;
         private readonly ILoginProcessor _loginProcessor;
         private readonly ExtendedConfig _extendedConfig;
+        private readonly ApiKeyLookupCache _apiKeyCache;
 
         public UserService(
             IMapper mapper,
             ILoginProcessor loginProcessor,
-            ExtendedConfig extendedConfig)
+            ExtendedConfig extendedConfig,
+            ApiKeyLookupCache apiKeyCache)
         {
             _mapper = mapper;
             _loginProcessor = loginProcessor;
             _extendedConfig = extendedConfig;
+            _apiKeyCache = apiKeyCache;
         }
 
         public async Task<LoginSummaryViewModel> GetLoginById(int loginId)
@@ -37,6 +41,8 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             {
                 login.IsEnabled = isEnabled;
                 await _loginProcessor.Update(login);
+                // The user's API keys stop working at once, not when their cache entries expire.
+                if (!isEnabled) _apiKeyCache.Clear();
             }
         }
 
@@ -108,6 +114,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             if (login == null)
                 return null;
             await _loginProcessor.Delete(loginId);
+            _apiKeyCache.Clear();
             return true;
         }
 

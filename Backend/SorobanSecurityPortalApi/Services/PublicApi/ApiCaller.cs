@@ -13,8 +13,10 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         // buys more calls. A service key has its own allowance (it carries its own limits).
         public string LimitScope => Kind == ApiKeyKind.Personal ? $"u:{LoginId}" : $"k:{ApiKeyId}";
 
-        // Value written to the usage log (the log column is not nullable).
-        public int LoggedLoginId => LoginId ?? 0;
+        // Value written to the usage log: the user behind a personal key. A service key's traffic is
+        // the partner's, not the issuing admin's, so it is logged with no user (0); the key itself
+        // identifies it. (The column is not nullable.)
+        public int LoggedLoginId => Kind == ApiKeyKind.Personal ? LoginId ?? 0 : 0;
     }
 
     public static class ApiKeyClaims

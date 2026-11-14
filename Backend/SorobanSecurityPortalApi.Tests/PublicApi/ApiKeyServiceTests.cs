@@ -143,9 +143,9 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             (await Build().RevokeMine(9)).Should().BeTrue();
             (await Build().RevokeAny(10)).Should().BeTrue();
 
-            await _lookupCache.GetAsync("hash-of-key-9", Load);
-            await _lookupCache.GetAsync("hash-of-key-10", Load);
-            loads.Should().Be(4); // both were looked up again after the revoke
+            (await _lookupCache.GetAsync("hash-of-key-9", Load)).Should().BeNull();
+            (await _lookupCache.GetAsync("hash-of-key-10", Load)).Should().BeNull();
+            loads.Should().Be(2); // refused straight away, even though the (stale) loader would still return the key
         }
 
         [Fact]

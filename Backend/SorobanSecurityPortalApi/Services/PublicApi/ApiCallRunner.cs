@@ -77,8 +77,19 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             if (!_config.PublicApiEnabled)
                 return new ApiCallOutcome<T> { Status = ApiCallStatus.Disabled, Message = "The public API is temporarily disabled." };
 
-            var decision = await _rateLimiter.TryAcquireAsync(
-                caller.LimitScope, LimitsFor(caller), SeedDailyCount(caller), countsGlobally: true);
+            ApiRateLimitDecision decision;
+            try
+            {
+                decision = await _rateLimiter.TryAcquireAsync(
+                    caller.LimitScope, LimitsFor(caller), SeedDailyCount(caller), countsGlobally: true);
+            }
+            catch (Exception ex)
+            {
+                // The limiter reads today's usage from the database the first time it sees a scope.
+                // If that fails we cannot tell what is allowed, so refuse rather than let it through.
+                _logger.LogError(ex, "Rate limiter failed for {Operation}", operation);
+                return new ApiCallOutcome<T> { Status = ApiCallStatus.Error, Message = "Internal error. Please try again later." };
+            }
             if (!decision.Allowed)
             {
                 // Counted in memory and written in aggregate: a client that keeps calling after it

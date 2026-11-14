@@ -169,7 +169,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         }
 
         [Fact]
-        public async Task Evicting_A_Key_Makes_The_Next_Lookup_Go_To_The_Database()
+        public async Task Evicting_A_Key_Refuses_It_At_Once_Without_Asking_The_Database_Again()
         {
             var cache = new ApiKeyLookupCache();
             var usable = true;
@@ -182,7 +182,74 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             cache.Evict("hash");
 
             (await cache.GetAsync("hash", Load)).Should().BeNull();
-            loads.Should().Be(2);
+            loads.Should().Be(1); // refused from the tombstone, without a second query
+        }
+
+        [Fact]
+        public async Task A_Lookup_That_Was_In_Flight_When_The_Key_Was_Revoked_Cannot_Bring_It_Back()
+        {
+            var cache = new ApiKeyLookupCache();
+
+            // The query read the key as usable, then the revoke ran (and evicted) before the lookup returned.
+            var result = await cache.GetAsync("hash", async () =>
+            {
+                var read = Key();
+                cache.Evict("hash");
+                await Task.Yield();
+                return read;
+            });
+
+            result.Should().BeNull();
+            var loads = 0;
+            (await cache.GetAsync("hash", () => { loads++; return Task.FromResult<ApiKeyModel?>(Key()); })).Should().BeNull();
+            loads.Should().Be(0); // refused from the tombstone, without asking the database
+        }
+
+        [Fact]
+        public async Task A_Revoked_Key_Stays_Refused_For_The_Whole_Tombstone_Window_Even_If_The_Database_Is_Stale()
+        {
+            var cache = new ApiKeyLookupCache();
+            await cache.GetAsync("hash", () => Task.FromResult<ApiKeyModel?>(Key()));
+
+            cache.Evict("hash");
+
+            (await cache.GetAsync("hash", () => Task.FromResult<ApiKeyModel?>(Key()))).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Clear_Drops_Every_Entry_So_A_Disabled_Users_Keys_Are_Checked_Again()
+        {
+            var cache = new ApiKeyLookupCache();
+            var usable = true;
+            var loads = 0;
+            Task<ApiKeyModel?> Load() { loads++; return Task.FromResult(usable ? Key() : null); }
+            await cache.GetAsync("a", Load);
+            await cache.GetAsync("b", Load);
+            usable = false; // the owner was disabled
+
+            cache.Clear();
+
+            (await cache.GetAsync("a", Load)).Should().BeNull();
+            (await cache.GetAsync("b", Load)).Should().BeNull();
+            loads.Should().Be(4);
+        }
+
+        [Fact]
+        public async Task A_Lookup_In_Flight_During_Clear_Is_Not_Cached()
+        {
+            var cache = new ApiKeyLookupCache();
+            var loads = 0;
+
+            await cache.GetAsync("hash", async () =>
+            {
+                loads++;
+                cache.Clear(); // a user was disabled while this lookup ran
+                await Task.Yield();
+                return Key();
+            });
+            await cache.GetAsync("hash", () => { loads++; return Task.FromResult<ApiKeyModel?>(null); });
+
+            loads.Should().Be(2); // the stale result was not cached, so the second call asked again
         }
 
         [Fact]
