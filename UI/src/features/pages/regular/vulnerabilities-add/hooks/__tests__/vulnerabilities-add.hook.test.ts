@@ -4,8 +4,10 @@ import { useVulnerabilityAdd } from '../vulnerabilities-add.hook';
 import * as api from '../../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { Vulnerability } from '../../../../../../api/soroban-security-portal/models/vulnerability';
 
+const mockDispatch = vi.fn();
+
 vi.mock('../../../../../../app/hooks', () => ({
-  useAppDispatch: () => vi.fn(),
+  useAppDispatch: () => mockDispatch,
 }));
 
 vi.mock('../../../../../../api/soroban-security-portal/soroban-security-portal-api', () => ({
