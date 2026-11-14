@@ -20,7 +20,6 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         private static readonly TimeSpan CatalogCacheTime = TimeSpan.FromMinutes(1);
         private static readonly TimeSpan EmbeddingCacheTime = TimeSpan.FromHours(1);
         private static readonly TimeSpan EmbeddingFailureCacheTime = TimeSpan.FromMinutes(1);
-        private static readonly TimeSpan EmbeddingTimeout = TimeSpan.FromSeconds(8);
         private const string EmbeddingDownCacheKey = "public-api:embedding-down";
         // Minimum trigram score for a text-only search (see VulnerabilitySearchModel.MinRelevance).
         private const double KeywordMinRelevance = 0.5;
@@ -58,6 +57,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         }
 
         // Config.AppUrl is "https://<domain>/api/v1"; the public site is that minus "/api/v1".
+        // How long a search waits for the embedding provider before it falls back to text-only.
+        public TimeSpan EmbeddingTimeout { get; init; } = TimeSpan.FromSeconds(8);
+
         private string SiteBase => (_config.AppUrl ?? string.Empty).Replace("/api/v1", string.Empty).TrimEnd('/');
 
         public async Task<PublicVulnerabilityPage> SearchVulnerabilities(PublicVulnerabilityQuery query)
@@ -332,7 +334,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             if (string.IsNullOrWhiteSpace(_extendedConfig.GeminiApiKey)) return null;
             // After a failure, skip the provider for a minute for every query, not just this one.
             if (_memoryCache.TryGetValue(EmbeddingDownCacheKey, out _)) return null;
-            var cacheKey = "public-api:embedding:" + text.ToLowerInvariant();
+            // Keyed by the exact text: the embedding is made from that text, so another spelling of
+            // the query must not be served this one's embedding.
+            var cacheKey = "public-api:embedding:" + text;
             if (_embeddingCache.Cache.TryGetValue(cacheKey, out float[]? cached) && cached != null)
                 return new Vector(cached);
             try
@@ -341,16 +345,8 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 // of the public API should not wait for that: give up after a few seconds and
                 // answer with a text-only search. The token cancels the provider request and its
                 // retries, so abandoned calls do not pile up during an outage.
-                using var timeout = new CancellationTokenSource();
-                var embeddingTask = _embeddingService.GenerateEmbeddingForDocumentAsync(text, timeout.Token);
-                if (await Task.WhenAny(embeddingTask, Task.Delay(EmbeddingTimeout)) != embeddingTask)
-                {
-                    await timeout.CancelAsync();
-                    // Make sure the cancelled call's exception is observed.
-                    _ = embeddingTask.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
-                    throw new TimeoutException($"No embedding after {EmbeddingTimeout.TotalSeconds:0} seconds.");
-                }
-                var embedding = await embeddingTask;
+                using var timeout = new CancellationTokenSource(EmbeddingTimeout);
+                var embedding = await _embeddingService.GenerateEmbeddingForDocumentAsync(text, timeout.Token);
                 _embeddingCache.Cache.Set(cacheKey, embedding, new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = EmbeddingCacheTime,

@@ -50,7 +50,10 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
     {
         public DateTime From { get; set; }
         public DateTime To { get; set; }
+        // Calls, with refusals counted one by one.
         public int TotalCalls { get; set; }
+        // Rows in the usage log for the period. The CSV export has one line per row.
+        public int LogRows { get; set; }
         public int FailedCalls { get; set; }
         public int RateLimitedCalls { get; set; }
         public int ActiveKeys { get; set; }
@@ -97,6 +100,7 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public string Operation { get; set; } = "";
         public ApiUsageStatus Status { get; set; }
         public int DurationMs { get; set; }
+        public int Count { get; set; }
         public string? Arguments { get; set; }
         public int ApiKeyId { get; set; }
         public string KeyName { get; set; } = "";

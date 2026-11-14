@@ -183,7 +183,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_used_at");
 
-                    b.Property<int>("LoginId")
+                    b.Property<int?>("LoginId")
                         .HasColumnType("integer")
                         .HasColumnName("login_id");
 
@@ -236,6 +236,10 @@ namespace SorobanSecurityPortalApi.Migrations
                         .HasColumnType("character varying(300)")
                         .HasColumnName("arguments");
 
+                    b.Property<int>("Count")
+                        .HasColumnType("integer")
+                        .HasColumnName("count");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -270,6 +274,9 @@ namespace SorobanSecurityPortalApi.Migrations
 
                     b.HasIndex("ApiKeyId", "CreatedAt")
                         .HasDatabaseName("ix_api_usage_log_api_key_id_created_at");
+
+                    b.HasIndex("LoginId", "CreatedAt")
+                        .HasDatabaseName("ix_api_usage_log_login_id_created_at");
 
                     b.ToTable("api_usage_log");
                 });
@@ -1731,8 +1738,7 @@ namespace SorobanSecurityPortalApi.Migrations
                     b.HasOne("SorobanSecurityPortalApi.Models.DbModels.LoginModel", "Login")
                         .WithMany()
                         .HasForeignKey("LoginId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
+                        .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_api_key_login_login_id");
 
                     b.Navigation("Login");

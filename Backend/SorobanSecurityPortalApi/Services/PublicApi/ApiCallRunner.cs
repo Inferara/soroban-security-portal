@@ -37,10 +37,10 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public class ApiCallRunner : IApiCallRunner
     {
         private const int MaxArgumentsLength = 300;
-        public const int MaxLoggedRefusalsPerMinute = 20;
 
         private readonly IApiCallerAccessor _callerAccessor;
         private readonly IApiRateLimiter _rateLimiter;
+        private readonly IApiRefusalAggregator _refusals;
         private readonly IApiUsageLogProcessor _usageLog;
         private readonly IApiKeyProcessor _apiKeys;
         private readonly IExtendedConfig _config;
@@ -50,6 +50,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         public ApiCallRunner(
             IApiCallerAccessor callerAccessor,
             IApiRateLimiter rateLimiter,
+            IApiRefusalAggregator refusals,
             IApiUsageLogProcessor usageLog,
             IApiKeyProcessor apiKeys,
             IExtendedConfig config,
@@ -58,6 +59,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         {
             _callerAccessor = callerAccessor;
             _rateLimiter = rateLimiter;
+            _refusals = refusals;
             _usageLog = usageLog;
             _apiKeys = apiKeys;
             _config = config;
@@ -75,17 +77,13 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             if (!_config.PublicApiEnabled)
                 return new ApiCallOutcome<T> { Status = ApiCallStatus.Disabled, Message = "The public API is temporarily disabled." };
 
-            var limits = new ApiRateLimits(
-                Math.Max(1, caller.RateLimitPerMinute ?? _config.PublicApiRateLimitPerMinute),
-                Math.Max(1, caller.RateLimitPerDay ?? _config.PublicApiRateLimitPerDay),
-                Math.Max(1, _config.PublicApiGlobalRateLimitPerMinute));
-
             var decision = await _rateLimiter.TryAcquireAsync(
-                caller.ApiKeyId, limits, dayStartUtc => _usageLog.CountCountedSince(caller.ApiKeyId, dayStartUtc));
+                caller.LimitScope, LimitsFor(caller), SeedDailyCount(caller), countsGlobally: true);
             if (!decision.Allowed)
             {
-                if (ShouldLogRefusal(caller.ApiKeyId))
-                    await Log(caller, source, operation, arguments, ApiUsageStatus.RateLimited, 0);
+                // Counted in memory and written in aggregate: a client that keeps calling after it
+                // was refused costs no database write per request.
+                _refusals.Record(caller, source, operation);
                 return new ApiCallOutcome<T>
                 {
                     Status = ApiCallStatus.RateLimited,
@@ -135,6 +133,25 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             return outcome;
         }
 
+        // Personal keys use the configured defaults; only a service key can carry its own limits.
+        private ApiRateLimits LimitsFor(ApiCaller caller)
+        {
+            var perMinute = _config.PublicApiRateLimitPerMinute;
+            var perDay = _config.PublicApiRateLimitPerDay;
+            if (caller.Kind == ApiKeyKind.Service)
+            {
+                perMinute = caller.RateLimitPerMinute ?? perMinute;
+                perDay = caller.RateLimitPerDay ?? perDay;
+            }
+            return new ApiRateLimits(Math.Max(1, perMinute), Math.Max(1, perDay), Math.Max(1, _config.PublicApiGlobalRateLimitPerMinute));
+        }
+
+        // What was already used today, from the usage log, for the scope the limiter counts.
+        private Func<DateTime, Task<int>> SeedDailyCount(ApiCaller caller) =>
+            caller.Kind == ApiKeyKind.Personal
+                ? dayStartUtc => _usageLog.CountCountedForLoginSince(caller.LoginId!.Value, dayStartUtc)
+                : dayStartUtc => _usageLog.CountCountedSince(caller.ApiKeyId, dayStartUtc);
+
         // The usage log is bookkeeping: a failure to write it must never fail the caller's request.
         private async Task Log(ApiCaller caller, ApiUsageSource source, string operation, string? arguments, ApiUsageStatus status, int durationMs)
         {
@@ -143,7 +160,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 await _usageLog.Add(new ApiUsageLogModel
                 {
                     ApiKeyId = caller.ApiKeyId,
-                    LoginId = caller.LoginId,
+                    LoginId = caller.LoggedLoginId,
                     Source = source,
                     Operation = operation,
                     Arguments = Truncate(arguments),
@@ -156,25 +173,6 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             {
                 _logger.LogError(ex, "Failed to write the API usage log for {Operation}", operation);
             }
-        }
-
-        // A client that keeps hammering after it was refused must not turn every refusal into a
-        // database write. The first few refusals per key per minute are logged (enough to see
-        // who hit a limit and how hard); the rest are refused without a log row.
-        private bool ShouldLogRefusal(int apiKeyId)
-        {
-            var cacheKey = $"api-key-refusals:{apiKeyId}:{DateTime.UtcNow:yyyyMMddHHmm}";
-            var counter = _memoryCache.GetOrCreate(cacheKey, entry =>
-            {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2);
-                return new RefusalCounter();
-            })!;
-            return Interlocked.Increment(ref counter.Count) <= MaxLoggedRefusalsPerMinute;
-        }
-
-        private sealed class RefusalCounter
-        {
-            public int Count;
         }
 
         // At most one write per key per minute; "last used" does not need to be more precise.

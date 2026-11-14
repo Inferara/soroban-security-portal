@@ -29,6 +29,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
 
         public int DurationMs { get; set; }
 
+        // How many calls this row stands for. 1 for an ordinary call; refused calls are written in
+        // aggregate (one row per key, operation and minute), so they carry the number of refusals.
+        public int Count { get; set; } = 1;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 

@@ -44,7 +44,7 @@ public class Startup
                 .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .WithExposedHeaders("X-Total-Count")
+                .WithExposedHeaders("X-Total-Count", "X-Export-Truncated")
             );
         });
 
@@ -82,6 +82,10 @@ public class Startup
         // registered before the convention scan so the scan skips it.
         services.AddSingleton<IApiRateLimiter, ApiRateLimiter>();
         services.AddSingleton<QueryEmbeddingCache>();
+        services.AddSingleton<ApiKeyLookupCache>();
+        // Refused calls are counted in memory and written in aggregate by the flusher.
+        services.AddSingleton<IApiRefusalAggregator, ApiRefusalAggregator>();
+        services.AddHostedService<ApiRefusalFlusher>();
 
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())

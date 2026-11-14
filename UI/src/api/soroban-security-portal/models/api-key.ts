@@ -14,7 +14,7 @@ export interface ApiKey {
     createdAt: string;
     lastUsedAt: string | null;
     revokedAt: string | null;
-    /** Only present in the admin listing. */
+    /** Only present in the admin listing. Null once the owner (or the admin who issued a service key) is gone. */
     ownerLoginId?: number | null;
     ownerName?: string | null;
     ownerLogin?: string | null;
@@ -70,7 +70,10 @@ export interface ApiUsageKey {
 export interface ApiUsageStatistics {
     from: string;
     to: string;
+    /** Calls, with refused calls counted one by one. */
     totalCalls: number;
+    /** Rows in the usage log for the period; the CSV export has one line per row. */
+    logRows: number;
     failedCalls: number;
     rateLimitedCalls: number;
     activeKeys: number;

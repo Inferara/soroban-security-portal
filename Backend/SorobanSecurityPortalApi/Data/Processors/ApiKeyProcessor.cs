@@ -34,22 +34,29 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .ToListAsync();
         }
 
-        // Adds the key unless the user already has maxActive active keys of this kind; returns
-        // null in that case. The count and the insert run in one transaction under a per-user
-        // advisory lock, so parallel requests cannot slip past the cap together.
-        public async Task<ApiKeyModel?> AddWithinLimit(ApiKeyModel key, int maxActive)
+        // Adds a key unless the user is over a creation limit. The checks and the insert run in one
+        // transaction under a per-user advisory lock, so parallel requests cannot slip past a cap
+        // together:
+        //  - at most maxActive active keys of this kind;
+        //  - at most maxCreatedPerDay keys of this kind created in the last 24 hours (revoked ones
+        //    count), so rotating keys over and over is throttled.
+        public async Task<ApiKeyCreateResult> AddWithinLimits(ApiKeyModel key, int maxActive, int maxCreatedPerDay)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             await using var transaction = await db.Database.BeginTransactionAsync();
             await db.Database.ExecuteSqlInterpolatedAsync($"select pg_advisory_xact_lock({KeyCreationLockClass}, {key.LoginId})");
 
             var active = await db.ApiKey.CountAsync(k => k.LoginId == key.LoginId && k.Kind == key.Kind && k.RevokedAt == null);
-            if (active >= maxActive) return null;
+            if (active >= maxActive) return new ApiKeyCreateResult(ApiKeyCreateOutcome.ActiveLimitReached, null);
+
+            var since = DateTime.UtcNow.AddHours(-24);
+            var createdToday = await db.ApiKey.CountAsync(k => k.LoginId == key.LoginId && k.Kind == key.Kind && k.CreatedAt >= since);
+            if (createdToday >= maxCreatedPerDay) return new ApiKeyCreateResult(ApiKeyCreateOutcome.DailyCreateLimitReached, null);
 
             db.ApiKey.Add(key);
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
-            return key;
+            return new ApiKeyCreateResult(ApiKeyCreateOutcome.Created, key);
         }
 
         public async Task<List<ApiKeyWithOwner>> ListAll()
@@ -67,30 +74,34 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .ToListAsync();
         }
 
-        // The lookup done on every public API call. Returns the key only while it is usable:
-        // not revoked and owned by an enabled user.
+        // The lookup done on every public API call (through ApiKeyLookupCache). Returns the key
+        // only while it is usable: not revoked and, for a personal key, owned by an enabled user.
+        // A service key does not depend on the admin who issued it.
         public async Task<ApiKeyModel?> FindUsableByHash(string keyHash)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             return await db.ApiKey
                 .AsNoTracking()
-                .Where(k => k.KeyHash == keyHash && k.RevokedAt == null && k.Login != null && k.Login.IsEnabled)
+                .Where(k => k.KeyHash == keyHash
+                            && k.RevokedAt == null
+                            && (k.Kind == ApiKeyKind.Service || (k.Login != null && k.Login.IsEnabled)))
                 .FirstOrDefaultAsync();
         }
 
-        // Revokes a key. With ownerLoginId set, only that user's key can be revoked.
-        // Returns false when there is no such key (or it belongs to someone else).
-        public async Task<bool> Revoke(int keyId, int? ownerLoginId)
+        // Revokes a key. With ownerLoginId set, only that user's key can be revoked. Returns the
+        // key's hash (so the lookup cache can drop it), or null when there is no such key (or it
+        // belongs to someone else).
+        public async Task<string?> Revoke(int keyId, int? ownerLoginId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             var key = await db.ApiKey.FirstOrDefaultAsync(k => k.Id == keyId && (ownerLoginId == null || k.LoginId == ownerLoginId));
-            if (key == null) return false;
+            if (key == null) return null;
             if (key.RevokedAt == null)
             {
                 key.RevokedAt = DateTime.UtcNow;
                 await db.SaveChangesAsync();
             }
-            return true;
+            return key.KeyHash;
         }
 
         public async Task TouchLastUsed(int keyId, DateTime usedAt)
@@ -109,14 +120,23 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public string OwnerLogin { get; set; } = "";
     }
 
+    public enum ApiKeyCreateOutcome
+    {
+        Created,
+        ActiveLimitReached,
+        DailyCreateLimitReached,
+    }
+
+    public sealed record ApiKeyCreateResult(ApiKeyCreateOutcome Outcome, ApiKeyModel? Key);
+
     public interface IApiKeyProcessor
     {
         Task<ApiKeyModel> Add(ApiKeyModel key);
         Task<List<ApiKeyModel>> ListByLogin(int loginId);
-        Task<ApiKeyModel?> AddWithinLimit(ApiKeyModel key, int maxActive);
+        Task<ApiKeyCreateResult> AddWithinLimits(ApiKeyModel key, int maxActive, int maxCreatedPerDay);
         Task<List<ApiKeyWithOwner>> ListAll();
         Task<ApiKeyModel?> FindUsableByHash(string keyHash);
-        Task<bool> Revoke(int keyId, int? ownerLoginId);
+        Task<string?> Revoke(int keyId, int? ownerLoginId);
         Task TouchLastUsed(int keyId, DateTime usedAt);
     }
 }

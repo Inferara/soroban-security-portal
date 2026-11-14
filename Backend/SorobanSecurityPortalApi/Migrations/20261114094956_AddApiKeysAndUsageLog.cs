@@ -20,7 +20,7 @@ namespace SorobanSecurityPortalApi.Migrations
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    login_id = table.Column<int>(type: "integer", nullable: false),
+                    login_id = table.Column<int>(type: "integer", nullable: true),
                     name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     key_prefix = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     key_hash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
@@ -39,7 +39,7 @@ namespace SorobanSecurityPortalApi.Migrations
                         column: x => x.login_id,
                         principalTable: "login",
                         principalColumn: "login_id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -55,6 +55,7 @@ namespace SorobanSecurityPortalApi.Migrations
                     arguments = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
                     status = table.Column<int>(type: "integer", nullable: false),
                     duration_ms = table.Column<int>(type: "integer", nullable: false),
+                    count = table.Column<int>(type: "integer", nullable: false),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -82,6 +83,11 @@ namespace SorobanSecurityPortalApi.Migrations
                 name: "ix_api_usage_log_created_at",
                 table: "api_usage_log",
                 column: "created_at");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_api_usage_log_login_id_created_at",
+                table: "api_usage_log",
+                columns: new[] { "login_id", "created_at" });
         }
 
         /// <inheritdoc />

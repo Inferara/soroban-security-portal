@@ -29,12 +29,14 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             _apiKeys.Setup(k => k.Add(It.IsAny<ApiKeyModel>()))
                 .Callback<ApiKeyModel>(k => { k.Id = 1; _stored = k; })
                 .ReturnsAsync((ApiKeyModel k) => k);
-            _apiKeys.Setup(k => k.AddWithinLimit(It.IsAny<ApiKeyModel>(), It.IsAny<int>()))
-                .Callback<ApiKeyModel, int>((k, _) => { k.Id = 1; _stored = k; })
-                .ReturnsAsync((ApiKeyModel k, int _) => k);
+            _apiKeys.Setup(k => k.AddWithinLimits(It.IsAny<ApiKeyModel>(), It.IsAny<int>(), It.IsAny<int>()))
+                .Callback<ApiKeyModel, int, int>((k, _, _) => { k.Id = 1; _stored = k; })
+                .ReturnsAsync((ApiKeyModel k, int _, int _) => new ApiKeyCreateResult(ApiKeyCreateOutcome.Created, k));
         }
 
-        private ApiKeyService Build() => new(_apiKeys.Object, _usageLog.Object, _userContext.Object, _config.Object);
+        private readonly ApiKeyLookupCache _lookupCache = new();
+
+        private ApiKeyService Build() => new(_apiKeys.Object, _usageLog.Object, _userContext.Object, _config.Object, _lookupCache);
 
         [Fact]
         public async Task Create_Returns_The_Key_Once_And_Stores_Only_Its_Hash_And_Prefix()
@@ -64,7 +66,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var result = await Build().CreateMine(new CreateApiKeyRequest { Name = name });
 
             result.Should().BeOfType<Result<CreatedApiKeyViewModel, string>.Err>();
-            _apiKeys.Verify(k => k.AddWithinLimit(It.IsAny<ApiKeyModel>(), It.IsAny<int>()), Times.Never);
+            _apiKeys.Verify(k => k.AddWithinLimits(It.IsAny<ApiKeyModel>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
 
         [Fact]
@@ -78,14 +80,26 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task Create_Stops_At_Five_Active_Personal_Keys()
         {
-            // The processor checks the cap and inserts atomically; null means the cap was reached.
-            _apiKeys.Setup(k => k.AddWithinLimit(It.IsAny<ApiKeyModel>(), 5)).ReturnsAsync((ApiKeyModel?)null);
+            // The processor checks the caps and inserts atomically.
+            _apiKeys.Setup(k => k.AddWithinLimits(It.IsAny<ApiKeyModel>(), 5, 10))
+                .ReturnsAsync(new ApiKeyCreateResult(ApiKeyCreateOutcome.ActiveLimitReached, null));
 
             var result = await Build().CreateMine(new CreateApiKeyRequest { Name = "sixth" });
 
             result.Should().BeOfType<Result<CreatedApiKeyViewModel, string>.Err>().Which.Error.Should().Contain("5 active");
-            _apiKeys.Verify(k => k.AddWithinLimit(It.Is<ApiKeyModel>(m => m.LoginId == 42 && m.Kind == ApiKeyKind.Personal), 5), Times.Once);
+            _apiKeys.Verify(k => k.AddWithinLimits(It.Is<ApiKeyModel>(m => m.LoginId == 42 && m.Kind == ApiKeyKind.Personal), 5, 10), Times.Once);
             _apiKeys.Verify(k => k.Add(It.IsAny<ApiKeyModel>()), Times.Never); // never the uncapped path
+        }
+
+        [Fact]
+        public async Task Create_Is_Throttled_When_Too_Many_Keys_Were_Created_Today()
+        {
+            _apiKeys.Setup(k => k.AddWithinLimits(It.IsAny<ApiKeyModel>(), 5, 10))
+                .ReturnsAsync(new ApiKeyCreateResult(ApiKeyCreateOutcome.DailyCreateLimitReached, null));
+
+            var result = await Build().CreateMine(new CreateApiKeyRequest { Name = "again" });
+
+            result.Should().BeOfType<Result<CreatedApiKeyViewModel, string>.Err>().Which.Error.Should().Contain("10").And.Contain("per day");
         }
 
         [Fact]
@@ -101,7 +115,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task A_User_Can_Only_Revoke_Their_Own_Keys()
         {
-            _apiKeys.Setup(k => k.Revoke(9, 42)).ReturnsAsync(false); // key 9 belongs to someone else
+            _apiKeys.Setup(k => k.Revoke(9, 42)).ReturnsAsync((string?)null); // key 9 belongs to someone else
 
             (await Build().RevokeMine(9)).Should().BeFalse();
             _apiKeys.Verify(k => k.Revoke(9, 42), Times.Once);
@@ -111,9 +125,36 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task Admin_Revoke_Is_Not_Restricted_To_An_Owner()
         {
-            _apiKeys.Setup(k => k.Revoke(9, null)).ReturnsAsync(true);
+            _apiKeys.Setup(k => k.Revoke(9, null)).ReturnsAsync("hash-of-key-9");
 
             (await Build().RevokeAny(9)).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Revoking_Evicts_The_Key_From_The_Lookup_Cache_So_It_Stops_Working_At_Once()
+        {
+            var loads = 0;
+            Task<ApiKeyModel?> Load() { loads++; return Task.FromResult<ApiKeyModel?>(new ApiKeyModel { Id = 9 }); }
+            await _lookupCache.GetAsync("hash-of-key-9", Load);
+            _apiKeys.Setup(k => k.Revoke(9, 42)).ReturnsAsync("hash-of-key-9");
+            _apiKeys.Setup(k => k.Revoke(10, null)).ReturnsAsync("hash-of-key-10");
+            await _lookupCache.GetAsync("hash-of-key-10", Load);
+
+            (await Build().RevokeMine(9)).Should().BeTrue();
+            (await Build().RevokeAny(10)).Should().BeTrue();
+
+            await _lookupCache.GetAsync("hash-of-key-9", Load);
+            await _lookupCache.GetAsync("hash-of-key-10", Load);
+            loads.Should().Be(4); // both were looked up again after the revoke
+        }
+
+        [Fact]
+        public async Task A_Service_Key_Is_Created_Without_The_Per_User_Caps()
+        {
+            await Build().CreateService(new CreateServiceApiKeyRequest { Name = "Raven" });
+
+            _apiKeys.Verify(k => k.Add(It.Is<ApiKeyModel>(m => m.Kind == ApiKeyKind.Service)), Times.Once);
+            _apiKeys.Verify(k => k.AddWithinLimits(It.IsAny<ApiKeyModel>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
 
         [Fact]
@@ -203,6 +244,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                     KeyName = "Raven, \"prod\"",
                     KeyKind = ApiKeyKind.Service,
                     LoginId = 1,
+                    Count = 7,
                     Arguments = "=HYPERLINK(\"http://evil\")\nquery=x",
                 },
             });
@@ -211,10 +253,10 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             export.Truncated.Should().BeFalse();
             var lines = export.Csv.TrimEnd('\n').Split('\n');
 
-            lines[0].Should().Be("timestamp_utc,source,operation,status,duration_ms,api_key_id,api_key_name,api_key_kind,user_id,arguments");
+            lines[0].Should().Be("timestamp_utc,source,operation,status,duration_ms,api_key_id,api_key_name,api_key_kind,user_id,count,arguments");
             lines.Should().HaveCount(2); // the newline inside the argument did not split the row
             lines[1].Should().Be(
-                "2026-11-12T09:30:00Z,mcp,\"search_vulnerabilities\",rate_limited,12,3,\"Raven, \"\"prod\"\"\",service,1,"
+                "2026-11-12T09:30:00Z,mcp,\"search_vulnerabilities\",rate_limited,12,3,\"Raven, \"\"prod\"\"\",service,1,7,"
                 + "\"'=HYPERLINK(\"\"http://evil\"\") query=x\"");
         }
     }

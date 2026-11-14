@@ -21,7 +21,14 @@ namespace SorobanSecurityPortalApi.Data.Processors
             await db.SaveChangesAsync();
         }
 
-        // Calls that count against the daily quota (everything except the ones we refused).
+        public async Task AddRange(IEnumerable<ApiUsageLogModel> entries)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            db.ApiUsageLog.AddRange(entries);
+            await db.SaveChangesAsync();
+        }
+
+        // Calls that count against the daily quota of one key (everything except the ones we refused).
         public async Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -29,25 +36,39 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 u.ApiKeyId == apiKeyId && u.CreatedAt >= sinceUtc && u.Status != ApiUsageStatus.RateLimited);
         }
 
+        // Same for a user: calls made with any of their personal keys (service keys issued by the
+        // same person count against the service key, not against them).
+        public async Task<int> CountCountedForLoginSince(int loginId, DateTime sinceUtc)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.ApiUsageLog.CountAsync(u =>
+                u.LoginId == loginId
+                && u.CreatedAt >= sinceUtc
+                && u.Status != ApiUsageStatus.RateLimited
+                && db.ApiKey.Any(k => k.Id == u.ApiKeyId && k.Kind == ApiKeyKind.Personal));
+        }
+
         public async Task<ApiUsageStatisticsViewModel> GetStatistics(DateTime fromUtc, DateTime toUtc)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             var rows = db.ApiUsageLog.AsNoTracking().Where(u => u.CreatedAt >= fromUtc && u.CreatedAt < toUtc);
 
+            // A row stands for Count calls (refusals are written in aggregate), so calls are sums.
             var result = new ApiUsageStatisticsViewModel
             {
                 From = fromUtc,
                 To = toUtc,
-                TotalCalls = await rows.CountAsync(),
-                FailedCalls = await rows.CountAsync(u => u.Status == ApiUsageStatus.Error),
-                RateLimitedCalls = await rows.CountAsync(u => u.Status == ApiUsageStatus.RateLimited),
+                LogRows = await rows.CountAsync(),
+                TotalCalls = await rows.SumAsync(u => u.Count),
+                FailedCalls = await rows.Where(u => u.Status == ApiUsageStatus.Error).SumAsync(u => u.Count),
+                RateLimitedCalls = await rows.Where(u => u.Status == ApiUsageStatus.RateLimited).SumAsync(u => u.Count),
                 ActiveKeys = await rows.Select(u => u.ApiKeyId).Distinct().CountAsync(),
-                ActiveUsers = await rows.Select(u => u.LoginId).Distinct().CountAsync(),
+                ActiveUsers = await rows.Where(u => u.LoginId != 0).Select(u => u.LoginId).Distinct().CountAsync(),
             };
 
             var daily = await rows
                 .GroupBy(u => new { u.CreatedAt.Date, u.Source })
-                .Select(g => new { g.Key.Date, g.Key.Source, Count = g.Count() })
+                .Select(g => new { g.Key.Date, g.Key.Source, Count = g.Sum(u => u.Count) })
                 .ToListAsync();
             // Every day in the range gets a row, so the chart has no gaps.
             for (var day = fromUtc.Date; day < toUtc; day = day.AddDays(1))
@@ -66,9 +87,10 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     {
                         Operation = g.Key.Operation,
                         Source = g.Key.Source,
-                        Calls = g.Count(),
-                        Errors = g.Count(u => u.Status == ApiUsageStatus.Error),
-                        AverageDurationMs = (int)g.Average(u => u.DurationMs),
+                        Calls = g.Sum(u => u.Count),
+                        Errors = g.Where(u => u.Status == ApiUsageStatus.Error).Sum(u => u.Count),
+                        // Refusals take no time; leave them out of the average.
+                        AverageDurationMs = (int)(g.Where(u => u.Status != ApiUsageStatus.RateLimited).Average(u => (double?)u.DurationMs) ?? 0),
                     })
                     .ToListAsync())
                 .OrderByDescending(o => o.Calls)
@@ -76,7 +98,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
             var byKey = await rows
                 .GroupBy(u => u.ApiKeyId)
-                .Select(g => new { ApiKeyId = g.Key, Calls = g.Count(), LastCallAt = g.Max(u => u.CreatedAt) })
+                .Select(g => new { ApiKeyId = g.Key, Calls = g.Sum(u => u.Count), LastCallAt = g.Max(u => u.CreatedAt) })
                 .OrderByDescending(g => g.Calls)
                 .Take(50)
                 .ToListAsync();
@@ -129,6 +151,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                         Operation = u.Operation,
                         Status = u.Status,
                         DurationMs = u.DurationMs,
+                        Count = u.Count,
                         Arguments = u.Arguments,
                         ApiKeyId = u.ApiKeyId,
                         KeyName = k != null ? k.Name : "",
@@ -143,7 +166,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
     public interface IApiUsageLogProcessor
     {
         Task Add(ApiUsageLogModel entry);
+        Task AddRange(IEnumerable<ApiUsageLogModel> entries);
         Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc);
+        Task<int> CountCountedForLoginSince(int loginId, DateTime sinceUtc);
         Task<ApiUsageStatisticsViewModel> GetStatistics(DateTime fromUtc, DateTime toUtc);
         Task<List<ApiUsageExportRow>> Export(DateTime fromUtc, DateTime toUtc, int maxRows);
     }

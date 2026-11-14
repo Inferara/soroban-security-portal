@@ -15,12 +15,13 @@ import {
   CreateServiceApiKeyRequest,
 } from '../../../../../api/soroban-security-portal/models/api-key';
 
-export const useApiUsage = () => {
+/** enabled: load only for admins; the endpoints refuse everyone else. */
+export const useApiUsage = (enabled: boolean) => {
   const dispatch = useDispatch();
   const [days, setDays] = useState(30);
   const [stats, setStats] = useState<ApiUsageStatistics | null>(null);
   const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   // Loads can overlap (period change, refresh after an action). Only the latest one may update
@@ -28,6 +29,7 @@ export const useApiUsage = () => {
   const requestIdRef = useRef(0);
 
   const load = useCallback(async () => {
+    if (!enabled) return;
     const requestId = ++requestIdRef.current;
     try {
       setLoading(true);
@@ -42,7 +44,7 @@ export const useApiUsage = () => {
     } finally {
       if (requestIdRef.current === requestId) setLoading(false);
     }
-  }, [days]);
+  }, [days, enabled]);
 
   useEffect(() => {
     dispatch(setCurrentPage({ pageName: 'API usage', pageCode: 'api-usage', pageUrl: window.location.pathname, routePath: 'api-usage' }));

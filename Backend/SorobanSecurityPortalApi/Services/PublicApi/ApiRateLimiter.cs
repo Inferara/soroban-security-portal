@@ -17,16 +17,17 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
     public sealed record ApiRateLimits(int PerMinute, int PerDay, int GlobalPerMinute);
 
-    // Fixed-window limiter for the public API: per key per minute, per key per UTC day, and one
-    // global per-minute cap across all keys.
+    // Fixed-window limiter for the public API: per scope per minute, per scope per UTC day, and
+    // one global per-minute cap. A scope is whatever the caller wants limited as one unit: the
+    // runner uses one scope per user for personal keys and one per key for service keys.
     //
     // Counters live in memory. The API runs as a single replica, so that is exact. The per-day
-    // counter is seeded from the usage log the first time a key is seen (seedDailyCount), so an
+    // counter is seeded from the usage log the first time a scope is seen (seedDailyCount), so an
     // API restart does not hand everyone a fresh daily quota. If the API is ever scaled out,
     // this is the one class to back with Redis.
     public class ApiRateLimiter : IApiRateLimiter
     {
-        private sealed class KeyState
+        private sealed class ScopeState
         {
             public long MinuteWindow;
             public int MinuteCount;
@@ -34,7 +35,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             public int DayCount;
         }
 
-        private readonly ConcurrentDictionary<int, KeyState> _keys = new();
+        private readonly ConcurrentDictionary<string, ScopeState> _scopes = new();
         private readonly object _globalLock = new();
         private readonly TimeProvider _time;
         private long _globalWindow;
@@ -47,7 +48,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             _time = time;
         }
 
-        public async Task<ApiRateLimitDecision> TryAcquireAsync(int apiKeyId, ApiRateLimits limits, Func<DateTime, Task<int>> seedDailyCount)
+        // countsGlobally: whether this call also counts against (and is refused by) the global cap.
+        public async Task<ApiRateLimitDecision> TryAcquireAsync(
+            string scope, ApiRateLimits limits, Func<DateTime, Task<int>> seedDailyCount, bool countsGlobally)
         {
             var now = _time.GetUtcNow();
             var minuteWindow = now.ToUnixTimeSeconds() / 60;
@@ -55,7 +58,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             var secondsToNextMinute = 60 - (int)(now.ToUnixTimeSeconds() % 60);
             var secondsToNextDay = 86400 - (int)(now.ToUnixTimeSeconds() % 86400);
 
-            var state = _keys.GetOrAdd(apiKeyId, _ => new KeyState());
+            var state = _scopes.GetOrAdd(scope, _ => new ScopeState());
 
             // Seed outside the lock (it hits the database). Two concurrent first calls may both
             // seed; they read the same number, so the result is the same.
@@ -83,18 +86,21 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 if (state.MinuteCount >= limits.PerMinute)
                     return new ApiRateLimitDecision(false, ApiRateLimitKind.PerMinute, limits.PerMinute, secondsToNextMinute);
 
-                // The global check sits inside the key lock so a call refused globally does not
-                // consume the key's own quota.
-                lock (_globalLock)
+                // The global check sits inside the scope lock so a call refused globally does not
+                // consume the scope's own quota.
+                if (countsGlobally)
                 {
-                    if (_globalWindow < minuteWindow)
+                    lock (_globalLock)
                     {
-                        _globalWindow = minuteWindow;
-                        _globalCount = 0;
+                        if (_globalWindow < minuteWindow)
+                        {
+                            _globalWindow = minuteWindow;
+                            _globalCount = 0;
+                        }
+                        if (_globalCount >= limits.GlobalPerMinute)
+                            return new ApiRateLimitDecision(false, ApiRateLimitKind.Global, limits.GlobalPerMinute, secondsToNextMinute);
+                        _globalCount++;
                     }
-                    if (_globalCount >= limits.GlobalPerMinute)
-                        return new ApiRateLimitDecision(false, ApiRateLimitKind.Global, limits.GlobalPerMinute, secondsToNextMinute);
-                    _globalCount++;
                 }
 
                 state.MinuteCount++;
@@ -106,6 +112,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
     public interface IApiRateLimiter
     {
-        Task<ApiRateLimitDecision> TryAcquireAsync(int apiKeyId, ApiRateLimits limits, Func<DateTime, Task<int>> seedDailyCount);
+        Task<ApiRateLimitDecision> TryAcquireAsync(
+            string scope, ApiRateLimits limits, Func<DateTime, Task<int>> seedDailyCount, bool countsGlobally);
     }
 }

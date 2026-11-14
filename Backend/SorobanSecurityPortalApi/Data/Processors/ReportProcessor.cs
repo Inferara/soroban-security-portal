@@ -24,10 +24,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<List<ReportModel>> Search(ReportSearchModel? reportSearch)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
+            // No Include: the result is a projection of ids and names (below), and the filters reach
+            // the related rows through the navigation properties.
             var q = db.Report
-                .Include(v => v.Auditor)
-                .Include(v => v.Protocol)
-                .ThenInclude(p => p!.Company)
                 .AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted);
 
             if (reportSearch != null)

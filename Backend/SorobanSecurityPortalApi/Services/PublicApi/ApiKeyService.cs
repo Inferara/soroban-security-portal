@@ -14,6 +14,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public class ApiKeyService : IApiKeyService
     {
         public const int MaxActiveKeysPerUser = 5;
+        public const int MaxKeysCreatedPerUserPerDay = 10;
         public const int MaxNameLength = 100;
         public const int MaxStatisticsDays = 366;
         public const int MaxExportRows = 100_000;
@@ -22,17 +23,20 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         private readonly IApiUsageLogProcessor _usageLog;
         private readonly IUserContextAccessor _userContext;
         private readonly IExtendedConfig _config;
+        private readonly ApiKeyLookupCache _lookupCache;
 
         public ApiKeyService(
             IApiKeyProcessor apiKeys,
             IApiUsageLogProcessor usageLog,
             IUserContextAccessor userContext,
-            IExtendedConfig config)
+            IExtendedConfig config,
+            ApiKeyLookupCache lookupCache)
         {
             _apiKeys = apiKeys;
             _usageLog = usageLog;
             _userContext = userContext;
             _config = config;
+            _lookupCache = lookupCache;
         }
 
         public ApiLimitsViewModel GetLimits() => new()
@@ -54,18 +58,21 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             var name = NormalizeName(request?.Name, out var nameError);
             if (nameError != null) return new Result<CreatedApiKeyViewModel, string>.Err(nameError);
 
-            var created = await Create(loginId, name!, ApiKeyKind.Personal, null, null, MaxActiveKeysPerUser);
-            if (created == null)
-                return new Result<CreatedApiKeyViewModel, string>.Err(
-                    $"You already have {MaxActiveKeysPerUser} active API keys. Revoke one before creating another.");
-
-            return new Result<CreatedApiKeyViewModel, string>.Ok(created);
+            var (created, outcome) = await Create(loginId, name!, ApiKeyKind.Personal, null, null, limited: true);
+            return outcome switch
+            {
+                ApiKeyCreateOutcome.ActiveLimitReached => new Result<CreatedApiKeyViewModel, string>.Err(
+                    $"You already have {MaxActiveKeysPerUser} active API keys. Revoke one before creating another."),
+                ApiKeyCreateOutcome.DailyCreateLimitReached => new Result<CreatedApiKeyViewModel, string>.Err(
+                    $"You can create at most {MaxKeysCreatedPerUserPerDay} API keys per day. Try again later."),
+                _ => new Result<CreatedApiKeyViewModel, string>.Ok(created!),
+            };
         }
 
         public async Task<bool> RevokeMine(int keyId)
         {
             var loginId = await GetLoginId();
-            return await _apiKeys.Revoke(keyId, loginId);
+            return Evicted(await _apiKeys.Revoke(keyId, loginId));
         }
 
         public async Task<List<ApiKeyViewModel>> ListAll()
@@ -74,7 +81,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 .Select(k =>
                 {
                     var vm = ToViewModel(k.Key);
-                    vm.OwnerLoginId = k.Key.LoginId;
+                    vm.OwnerLoginId = k.Key.LoginId; // null once the owner/issuer account is gone
                     vm.OwnerName = k.OwnerName;
                     vm.OwnerLogin = k.OwnerLogin;
                     return vm;
@@ -82,7 +89,8 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 .ToList();
         }
 
-        // A service key is owned by the admin who issues it and may carry its own limits.
+        // A service key records the admin who issued it, but does not depend on that account, and it
+        // may carry its own limits.
         public async Task<Result<CreatedApiKeyViewModel, string>> CreateService(CreateServiceApiKeyRequest? request)
         {
             var loginId = await GetLoginId();
@@ -93,11 +101,19 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             if (request?.RateLimitPerDay is <= 0 or > 10_000_000)
                 return new Result<CreatedApiKeyViewModel, string>.Err("Calls per day must be between 1 and 10000000.");
 
-            return new Result<CreatedApiKeyViewModel, string>.Ok(
-                (await Create(loginId, name!, ApiKeyKind.Service, request?.RateLimitPerMinute, request?.RateLimitPerDay, null))!);
+            var (created, _) = await Create(loginId, name!, ApiKeyKind.Service, request?.RateLimitPerMinute, request?.RateLimitPerDay, limited: false);
+            return new Result<CreatedApiKeyViewModel, string>.Ok(created!);
         }
 
-        public async Task<bool> RevokeAny(int keyId) => await _apiKeys.Revoke(keyId, null);
+        public async Task<bool> RevokeAny(int keyId) => Evicted(await _apiKeys.Revoke(keyId, null));
+
+        // A revoked key must stop working at once, not when its cache entry expires.
+        private bool Evicted(string? keyHash)
+        {
+            if (keyHash == null) return false;
+            _lookupCache.Evict(keyHash);
+            return true;
+        }
 
         public async Task<ApiUsageStatisticsViewModel> GetStatistics(int days)
         {
@@ -122,7 +138,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
             var sb = new StringBuilder();
             // One line ending for the whole file, whatever OS the API runs on.
-            sb.Append("timestamp_utc,source,operation,status,duration_ms,api_key_id,api_key_name,api_key_kind,user_id,arguments").Append('\n');
+            sb.Append("timestamp_utc,source,operation,status,duration_ms,api_key_id,api_key_name,api_key_kind,user_id,count,arguments").Append('\n');
             foreach (var r in rows)
             {
                 sb.Append(r.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)).Append(',')
@@ -134,14 +150,16 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                     .Append(Csv(r.KeyName)).Append(',')
                     .Append(r.KeyKind.ToString().ToLowerInvariant()).Append(',')
                     .Append(r.LoginId.ToString(CultureInfo.InvariantCulture)).Append(',')
+                    .Append(r.Count.ToString(CultureInfo.InvariantCulture)).Append(',')
                     .Append(Csv(r.Arguments ?? ""))
                     .Append('\n');
             }
             return new ApiUsageExport(sb.ToString(), truncated);
         }
 
-        // maxActive: the per-user cap to enforce, or null for no cap. Returns null when the cap is reached.
-        private async Task<CreatedApiKeyViewModel?> Create(int loginId, string name, ApiKeyKind kind, int? perMinute, int? perDay, int? maxActive)
+        // limited: apply the per-user caps (active keys, keys created per day); only for personal keys.
+        private async Task<(CreatedApiKeyViewModel? Key, ApiKeyCreateOutcome Outcome)> Create(
+            int loginId, string name, ApiKeyKind kind, int? perMinute, int? perDay, bool limited)
         {
             var key = ApiKeyGenerator.Generate();
             var newKey = new ApiKeyModel
@@ -155,13 +173,23 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 RateLimitPerDay = perDay,
                 CreatedAt = DateTime.UtcNow,
             };
-            var model = maxActive.HasValue
-                ? await _apiKeys.AddWithinLimit(newKey, maxActive.Value)
-                : await _apiKeys.Add(newKey);
-            if (model == null) return null;
+            ApiKeyModel? model;
+            var outcome = ApiKeyCreateOutcome.Created;
+            if (limited)
+            {
+                var result = await _apiKeys.AddWithinLimits(newKey, MaxActiveKeysPerUser, MaxKeysCreatedPerUserPerDay);
+                model = result.Key;
+                outcome = result.Outcome;
+            }
+            else
+            {
+                model = await _apiKeys.Add(newKey);
+            }
+            if (model == null) return (null, outcome);
+
             var vm = new CreatedApiKeyViewModel { Key = key };
             CopyTo(model, vm);
-            return vm;
+            return (vm, outcome);
         }
 
         private static string? NormalizeName(string? name, out string? error)

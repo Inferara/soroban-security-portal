@@ -72,8 +72,8 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var limits = new ApiRateLimits(PerMinute: 3, PerDay: 100, GlobalPerMinute: 100);
 
             for (var i = 0; i < 3; i++)
-                (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeTrue();
-            var refused = await limiter.TryAcquireAsync(1, limits, NoHistory);
+                (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            var refused = await limiter.TryAcquireAsync("k:1", limits, NoHistory, true);
 
             refused.Allowed.Should().BeFalse();
             refused.Kind.Should().Be(ApiRateLimitKind.PerMinute);
@@ -88,11 +88,11 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var limiter = new ApiRateLimiter(time);
             var limits = new ApiRateLimits(1, 100, 100);
 
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeTrue();
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeFalse();
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeFalse();
             time.Now = time.Now.AddSeconds(60);
 
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
         }
 
         [Fact]
@@ -101,10 +101,10 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var limiter = new ApiRateLimiter(new FakeTime());
             var limits = new ApiRateLimits(1, 100, 100);
 
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeTrue();
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeFalse();
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeFalse();
 
-            (await limiter.TryAcquireAsync(2, limits, NoHistory)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:2", limits, NoHistory, true)).Allowed.Should().BeTrue();
         }
 
         [Fact]
@@ -114,17 +114,17 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var limiter = new ApiRateLimiter(time);
             var limits = new ApiRateLimits(PerMinute: 10, PerDay: 2, GlobalPerMinute: 100);
 
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
             time.Now = time.Now.AddMinutes(1);
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeTrue();
-            var refused = await limiter.TryAcquireAsync(1, limits, NoHistory);
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            var refused = await limiter.TryAcquireAsync("k:1", limits, NoHistory, true);
 
             refused.Allowed.Should().BeFalse();
             refused.Kind.Should().Be(ApiRateLimitKind.PerDay);
             refused.RetryAfterSeconds.Should().Be(60); // 23:59:00 -> 00:00:00
 
             time.Now = time.Now.AddMinutes(1);
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
         }
 
         [Fact]
@@ -140,8 +140,8 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                 return Task.FromResult(4); // four calls already logged today
             }
 
-            (await limiter.TryAcquireAsync(1, limits, History)).Allowed.Should().BeTrue();
-            var refused = await limiter.TryAcquireAsync(1, limits, History);
+            (await limiter.TryAcquireAsync("k:1", limits, History, true)).Allowed.Should().BeTrue();
+            var refused = await limiter.TryAcquireAsync("k:1", limits, History, true);
 
             refused.Allowed.Should().BeFalse();
             refused.Kind.Should().Be(ApiRateLimitKind.PerDay);
@@ -155,18 +155,42 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var limiter = new ApiRateLimiter(time);
             var limits = new ApiRateLimits(PerMinute: 5, PerDay: 2, GlobalPerMinute: 2);
 
-            (await limiter.TryAcquireAsync(1, limits, NoHistory)).Allowed.Should().BeTrue();
-            (await limiter.TryAcquireAsync(2, limits, NoHistory)).Allowed.Should().BeTrue();
-            var refused = await limiter.TryAcquireAsync(3, limits, NoHistory);
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:2", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            var refused = await limiter.TryAcquireAsync("k:3", limits, NoHistory, true);
 
             refused.Allowed.Should().BeFalse();
             refused.Kind.Should().Be(ApiRateLimitKind.Global);
 
             // Key 3 was refused globally twice; its daily quota of 2 must still be whole.
-            (await limiter.TryAcquireAsync(3, limits, NoHistory)).Allowed.Should().BeFalse();
+            (await limiter.TryAcquireAsync("k:3", limits, NoHistory, true)).Allowed.Should().BeFalse();
             time.Now = time.Now.AddMinutes(1);
-            (await limiter.TryAcquireAsync(3, limits, NoHistory)).Allowed.Should().BeTrue();
-            (await limiter.TryAcquireAsync(3, limits, NoHistory)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:3", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:3", limits, NoHistory, true)).Allowed.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task A_Call_That_Does_Not_Count_Globally_Is_Not_Stopped_By_Or_Counted_In_The_Global_Cap()
+        {
+            var limiter = new ApiRateLimiter(new FakeTime());
+            var limits = new ApiRateLimits(PerMinute: 10, PerDay: 100, GlobalPerMinute: 1);
+
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, countsGlobally: true)).Allowed.Should().BeTrue(); // uses the one global slot
+            (await limiter.TryAcquireAsync("k:2", limits, NoHistory, countsGlobally: true)).Kind.Should().Be(ApiRateLimitKind.Global);
+
+            (await limiter.TryAcquireAsync("k:2", limits, NoHistory, countsGlobally: false)).Allowed.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Two_Names_For_One_Scope_Share_The_Allowance()
+        {
+            // The runner gives every personal key of a user the same scope; the limiter just counts per scope.
+            var limiter = new ApiRateLimiter(new FakeTime());
+            var limits = new ApiRateLimits(PerMinute: 2, PerDay: 100, GlobalPerMinute: 100);
+
+            (await limiter.TryAcquireAsync("u:42", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("u:42", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("u:42", limits, NoHistory, true)).Allowed.Should().BeFalse();
         }
 
         [Fact]
@@ -176,7 +200,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var limits = new ApiRateLimits(PerMinute: 50, PerDay: 1000, GlobalPerMinute: 1000);
 
             var results = await Task.WhenAll(Enumerable.Range(0, 200)
-                .Select(_ => Task.Run(() => limiter.TryAcquireAsync(1, limits, NoHistory))));
+                .Select(_ => Task.Run(() => limiter.TryAcquireAsync("k:1", limits, NoHistory, true))));
 
             results.Count(r => r.Allowed).Should().Be(50);
         }

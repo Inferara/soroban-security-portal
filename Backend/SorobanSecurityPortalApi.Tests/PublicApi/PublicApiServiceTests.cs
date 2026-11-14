@@ -64,7 +64,10 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
 
         private PublicApiService Build() => new(
             _vulns.Object, _reports.Object, _public.Object, _embedding.Object, _extendedConfig.Object, _config,
-            new MemoryCache(new MemoryCacheOptions()), new QueryEmbeddingCache(), NullLogger<PublicApiService>.Instance);
+            new MemoryCache(new MemoryCacheOptions()), new QueryEmbeddingCache(), NullLogger<PublicApiService>.Instance)
+        {
+            EmbeddingTimeout = TimeSpan.FromMilliseconds(150),
+        };
 
         private static VulnerabilityModel Vuln(int id, string severity = "High") => new()
         {
@@ -296,9 +299,21 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var service = Build();
 
             await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "Reentrancy" });
-            await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "reentrancy", Page = 2 });
+            await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "Reentrancy", Page = 2 });
 
-            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync("Reentrancy", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Another_Spelling_Of_A_Query_Gets_Its_Own_Embedding_Not_The_First_Ones()
+        {
+            var service = Build();
+
+            await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "DoS in AMM" });
+            await service.SearchVulnerabilities(new PublicVulnerabilityQuery { Query = "dos in amm" });
+
+            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync("DoS in AMM", It.IsAny<CancellationToken>()), Times.Once);
+            _embedding.Verify(e => e.GenerateEmbeddingForDocumentAsync("dos in amm", It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]

@@ -27,12 +27,13 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
     public class ApiKeyAuthenticationHandlerTests
     {
         private readonly Mock<IApiKeyProcessor> _apiKeys = new();
+        private readonly ApiKeyLookupCache _cache = new();
 
         private async Task<AuthenticateResult> Authenticate(Action<HttpRequest> configure)
         {
             var options = new Mock<IOptionsMonitor<AuthenticationSchemeOptions>>();
             options.Setup(o => o.Get(It.IsAny<string>())).Returns(new AuthenticationSchemeOptions());
-            var handler = new ApiKeyAuthenticationHandler(options.Object, NullLoggerFactory.Instance, UrlEncoder.Default, _apiKeys.Object);
+            var handler = new ApiKeyAuthenticationHandler(options.Object, NullLoggerFactory.Instance, UrlEncoder.Default, _apiKeys.Object, _cache);
             var context = new DefaultHttpContext();
             configure(context.Request);
             await handler.InitializeAsync(
@@ -58,7 +59,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             var key = ApiKeyGenerator.Generate();
             _apiKeys.Setup(k => k.FindUsableByHash(ApiKeyGenerator.Hash(key)))
-                .ReturnsAsync(new ApiKeyModel { Id = 7, LoginId = 42, RateLimitPerMinute = 300 });
+                .ReturnsAsync(new ApiKeyModel { Id = 7, LoginId = 42, Kind = ApiKeyKind.Service, RateLimitPerMinute = 300 });
 
             var result = await Authenticate(r => r.Headers.Authorization = $"Bearer {key}");
 
@@ -66,11 +67,49 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var principal = result.Principal!;
             principal.FindFirstValue(ApiKeyClaims.ApiKeyId).Should().Be("7");
             principal.FindFirstValue(ApiKeyClaims.LoginId).Should().Be("42");
+            principal.FindFirstValue(ApiKeyClaims.Kind).Should().Be("Service");
             principal.FindFirstValue(ApiKeyClaims.RateLimitPerMinute).Should().Be("300");
             principal.FindFirstValue(ApiKeyClaims.RateLimitPerDay).Should().BeNull();
             // The portal's own checks look at these; an API key identity must have neither.
             principal.FindFirstValue(ClaimTypes.Role).Should().BeNull();
             principal.FindFirstValue(ClaimTypes.NameIdentifier).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task A_Service_Key_Without_An_Issuer_Authenticates_Without_A_Login_Claim()
+        {
+            var key = ApiKeyGenerator.Generate();
+            _apiKeys.Setup(k => k.FindUsableByHash(ApiKeyGenerator.Hash(key)))
+                .ReturnsAsync(new ApiKeyModel { Id = 7, LoginId = null, Kind = ApiKeyKind.Service });
+
+            var result = await Authenticate(r => r.Headers.Authorization = $"Bearer {key}");
+
+            result.Succeeded.Should().BeTrue();
+            result.Principal!.FindFirstValue(ApiKeyClaims.LoginId).Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Repeated_Calls_With_One_Key_Hit_The_Database_Once()
+        {
+            var key = ApiKeyGenerator.Generate();
+            _apiKeys.Setup(k => k.FindUsableByHash(It.IsAny<string>())).ReturnsAsync(new ApiKeyModel { Id = 7, LoginId = 42 });
+
+            for (var i = 0; i < 25; i++)
+                (await Authenticate(r => r.Headers.Authorization = $"Bearer {key}")).Succeeded.Should().BeTrue();
+
+            _apiKeys.Verify(k => k.FindUsableByHash(It.IsAny<string>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Repeated_Calls_With_A_Wrong_Key_Hit_The_Database_Once()
+        {
+            var key = ApiKeyGenerator.Generate();
+            _apiKeys.Setup(k => k.FindUsableByHash(It.IsAny<string>())).ReturnsAsync((ApiKeyModel?)null);
+
+            for (var i = 0; i < 25; i++)
+                (await Authenticate(r => r.Headers.Authorization = $"Bearer {key}")).Succeeded.Should().BeFalse();
+
+            _apiKeys.Verify(k => k.FindUsableByHash(It.IsAny<string>()), Times.Once);
         }
 
         [Fact]
@@ -127,10 +166,35 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             {
                 new Claim(ApiKeyClaims.ApiKeyId, "7"),
                 new Claim(ApiKeyClaims.LoginId, "42"),
+                new Claim(ApiKeyClaims.Kind, "Service"),
                 new Claim(ApiKeyClaims.RateLimitPerDay, "900"),
             }, ApiKeyClaims.AuthenticationScheme);
 
-            Caller(new ClaimsPrincipal(identity)).Should().Be(new ApiCaller(7, 42, null, 900));
+            Caller(new ClaimsPrincipal(identity)).Should().Be(new ApiCaller(7, 42, ApiKeyKind.Service, null, 900));
+        }
+
+        [Fact]
+        public void A_Service_Key_Does_Not_Need_A_Login()
+        {
+            var identity = new ClaimsIdentity(new[]
+            {
+                new Claim(ApiKeyClaims.ApiKeyId, "7"),
+                new Claim(ApiKeyClaims.Kind, "Service"),
+            }, ApiKeyClaims.AuthenticationScheme);
+
+            Caller(new ClaimsPrincipal(identity)).Should().Be(new ApiCaller(7, null, ApiKeyKind.Service, null, null));
+        }
+
+        [Fact]
+        public void A_Personal_Key_Needs_An_Owner_To_Be_Limited_By()
+        {
+            var identity = new ClaimsIdentity(new[]
+            {
+                new Claim(ApiKeyClaims.ApiKeyId, "7"),
+                new Claim(ApiKeyClaims.Kind, "Personal"),
+            }, ApiKeyClaims.AuthenticationScheme);
+
+            Caller(new ClaimsPrincipal(identity)).Should().BeNull();
         }
 
         [Fact]
@@ -141,6 +205,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             {
                 new Claim(ApiKeyClaims.ApiKeyId, "7"),
                 new Claim(ApiKeyClaims.LoginId, "42"),
+                new Claim(ApiKeyClaims.Kind, "Personal"),
             }, "Bearer");
 
             Caller(new ClaimsPrincipal(identity)).Should().BeNull();

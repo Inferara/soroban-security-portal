@@ -242,12 +242,14 @@ namespace SorobanSecurityPortalApi.Common.Data
             builder.Entity<PersonalNoteModel>()
                 .HasIndex(n => n.VulnerabilityId);
 
-            // API keys: looked up by hash on every public API call; a deleted user takes their keys along.
+            // API keys: looked up by hash on every public API call. When the owner/issuer account is
+            // deleted the key is kept with no owner: a service key (partner integration) must not die
+            // with the admin who issued it, and a personal key without an owner is simply unusable.
             builder.Entity<ApiKeyModel>()
                 .HasOne(k => k.Login)
                 .WithMany()
                 .HasForeignKey(k => k.LoginId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);
             builder.Entity<ApiKeyModel>()
                 .HasIndex(k => k.KeyHash)
                 .IsUnique();
@@ -259,6 +261,9 @@ namespace SorobanSecurityPortalApi.Common.Data
                 .HasIndex(u => u.CreatedAt);
             builder.Entity<ApiUsageLogModel>()
                 .HasIndex(u => new { u.ApiKeyId, u.CreatedAt });
+            // Seeds the per-user daily allowance after a restart.
+            builder.Entity<ApiUsageLogModel>()
+                .HasIndex(u => new { u.LoginId, u.CreatedAt });
 
             builder.HasDbFunction(typeof(TrigramExtensions).GetMethod(nameof(TrigramExtensions.TrigramSimilarity))!)
                 .HasName("similarity"); // PostgreSQL built-in function

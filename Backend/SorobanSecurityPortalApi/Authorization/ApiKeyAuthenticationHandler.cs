@@ -21,14 +21,17 @@ namespace SorobanSecurityPortalApi.Authorization
         public const string HeaderName = "X-API-Key";
 
         private readonly IApiKeyProcessor _apiKeys;
+        private readonly ApiKeyLookupCache _lookupCache;
 
         public ApiKeyAuthenticationHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
-            IApiKeyProcessor apiKeys) : base(options, logger, encoder)
+            IApiKeyProcessor apiKeys,
+            ApiKeyLookupCache lookupCache) : base(options, logger, encoder)
         {
             _apiKeys = apiKeys;
+            _lookupCache = lookupCache;
         }
 
         public static bool IsPublicApiPath(PathString path) =>
@@ -52,14 +55,17 @@ namespace SorobanSecurityPortalApi.Authorization
             if (string.IsNullOrEmpty(key)) return AuthenticateResult.NoResult();
             if (!ApiKeyGenerator.LooksLikeKey(key)) return AuthenticateResult.Fail("Malformed API key.");
 
-            var model = await _apiKeys.FindUsableByHash(ApiKeyGenerator.Hash(key));
+            var keyHash = ApiKeyGenerator.Hash(key);
+            var model = await _lookupCache.GetAsync(keyHash, () => _apiKeys.FindUsableByHash(keyHash));
             if (model == null) return AuthenticateResult.Fail("Unknown or revoked API key.");
 
             var claims = new List<Claim>
             {
                 new(ApiKeyClaims.ApiKeyId, model.Id.ToString(CultureInfo.InvariantCulture)),
-                new(ApiKeyClaims.LoginId, model.LoginId.ToString(CultureInfo.InvariantCulture)),
+                new(ApiKeyClaims.Kind, model.Kind.ToString()),
             };
+            if (model.LoginId.HasValue)
+                claims.Add(new Claim(ApiKeyClaims.LoginId, model.LoginId.Value.ToString(CultureInfo.InvariantCulture)));
             if (model.RateLimitPerMinute is > 0)
                 claims.Add(new Claim(ApiKeyClaims.RateLimitPerMinute, model.RateLimitPerMinute.Value.ToString(CultureInfo.InvariantCulture)));
             if (model.RateLimitPerDay is > 0)

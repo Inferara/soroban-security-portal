@@ -38,6 +38,8 @@ import { StatisticsCards } from '../../../../components/details';
 import { SeverityColors } from '../../../../contexts/ThemeContext';
 import { ApiKey, ApiKeyKind, ApiUsageSource, CreatedApiKey } from '../../../../api/soroban-security-portal/models/api-key';
 import { ConfirmDialog } from '../admin-main-window/confirm-dialog';
+import { useAuth } from 'react-oidc-context';
+import { isAdmin } from '../../../authentication/authPermissions';
 
 const sourceLabel = (source: ApiUsageSource): string => (source === ApiUsageSource.Mcp ? 'MCP' : 'REST');
 const kindLabel = (kind: ApiKeyKind): string => (kind === ApiKeyKind.Service ? 'Service' : 'Personal');
@@ -55,7 +57,9 @@ const parseLimit = (value: string): number | null => {
  * CSV export for reporting, and API key management including service keys.
  */
 export const ApiUsage: FC = () => {
-  const { days, setDays, stats, keys, loading, error, reload, revokeKey, createServiceKey, downloadCsv } = useApiUsage();
+  const auth = useAuth();
+  const admin = isAdmin(auth);
+  const { days, setDays, stats, keys, loading, error, reload, revokeKey, createServiceKey, downloadCsv } = useApiUsage(admin);
 
   const [keyToRevoke, setKeyToRevoke] = useState<ApiKey | null>(null);
   const [serviceOpen, setServiceOpen] = useState(false);
@@ -66,6 +70,8 @@ export const ApiUsage: FC = () => {
   const [createdKey, setCreatedKey] = useState<CreatedApiKey | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // The statistics hold callers' search text and key owners, so only admins may open this page.
+  if (!admin) return <Alert severity="warning" sx={{ m: 2 }}>API usage is available to administrators only.</Alert>;
   if (loading && !stats) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
   // Nothing loaded yet: there is no page to show, only the error and a way to retry.
   if (!stats) {
@@ -154,9 +160,9 @@ export const ApiUsage: FC = () => {
         {loading && <CircularProgress size={20} />}
       </Box>
 
-      {stats.totalCalls > stats.maxExportRows && (
+      {stats.logRows > stats.maxExportRows && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          This period has {stats.totalCalls.toLocaleString()} calls. The CSV export holds the newest{' '}
+          This period has {stats.logRows.toLocaleString()} log rows. The CSV export holds the newest{' '}
           {stats.maxExportRows.toLocaleString()} only; choose a shorter period to get every row.
         </Alert>
       )}
@@ -225,7 +231,7 @@ export const ApiUsage: FC = () => {
               <TableRow key={k.apiKeyId}>
                 <TableCell>{k.name} <Typography component="span" variant="caption" sx={{ fontFamily: 'monospace' }}>{k.keyPrefix && `(${k.keyPrefix}…)`}</Typography></TableCell>
                 <TableCell>{kindLabel(k.kind)}</TableCell>
-                <TableCell>{k.ownerName || k.ownerLogin}</TableCell>
+                <TableCell>{k.ownerName || k.ownerLogin || (k.kind === ApiKeyKind.Service ? 'Partner' : '')}</TableCell>
                 <TableCell align="right">{k.calls}</TableCell>
                 <TableCell>{formatDate(k.lastCallAt)}</TableCell>
               </TableRow>
@@ -250,7 +256,7 @@ export const ApiUsage: FC = () => {
                 <TableCell>Name</TableCell>
                 <TableCell>Key</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Owner</TableCell>
+                <TableCell>Owner / issuer</TableCell>
                 <TableCell>Limits (min / day)</TableCell>
                 <TableCell>Created</TableCell>
                 <TableCell>Last used</TableCell>
@@ -264,7 +270,9 @@ export const ApiUsage: FC = () => {
                   <TableCell>{key.name}</TableCell>
                   <TableCell sx={{ fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{key.keyPrefix}…</TableCell>
                   <TableCell>{kindLabel(key.kind)}</TableCell>
-                  <TableCell>{key.ownerName || key.ownerLogin}</TableCell>
+                  <TableCell>
+                    {key.ownerName || key.ownerLogin || '(account removed)'}
+                  </TableCell>
                   <TableCell>
                     {key.rateLimitPerMinute ?? 'default'} / {key.rateLimitPerDay ?? 'default'}
                   </TableCell>
@@ -365,7 +373,7 @@ export const ApiUsage: FC = () => {
 
       <ConfirmDialog
         title="Revoke API key"
-        message={`Revoke "${keyToRevoke?.name ?? ''}" of ${keyToRevoke?.ownerName || keyToRevoke?.ownerLogin || 'this user'}? Anything using it stops working immediately. This cannot be undone.`}
+        message={`Revoke "${keyToRevoke?.name ?? ''}" of ${keyToRevoke?.ownerName || keyToRevoke?.ownerLogin || 'a removed account'}? Anything using it stops working immediately. This cannot be undone.`}
         okButtonText="Revoke"
         cancelButtonText="Cancel"
         show={keyToRevoke !== null}

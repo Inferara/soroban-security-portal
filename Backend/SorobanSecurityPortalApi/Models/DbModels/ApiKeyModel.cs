@@ -11,7 +11,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         [Key]
         public int Id { get; set; }
 
-        public int LoginId { get; set; }
+        // The owner of a personal key, or the admin who issued a service key. A service key keeps
+        // working without it (it is set to null if that account is ever deleted); a personal key
+        // without an owner is unusable.
+        public int? LoginId { get; set; }
 
         public LoginModel? Login { get; set; }
 
