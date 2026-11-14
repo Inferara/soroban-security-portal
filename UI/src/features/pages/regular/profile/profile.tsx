@@ -21,6 +21,7 @@ import { StyledAvatar } from '../../../../components/common/StyledAvatar';
 import { ConfirmDialog } from '../../admin/admin-main-window/confirm-dialog';
 import { getUserInitials } from '../../../../utils/user-utils';
 import { BadgeShowcase } from '../../../../components/BadgeShowcase';
+import { ApiKeysSection } from './api-keys-section';
 // TODO: replace mockBadges with real badge API (no backend badge endpoint yet)
 import { MOCK_BADGES } from '../../../../utils/mockBadges';
 
@@ -356,6 +357,7 @@ export const Profile: React.FC = () => {
             <Tab label="Bookmarks" {...a11yProps(1)} />
             <Tab label="Badges" {...a11yProps(2)} />
             {userId == 0 && <Tab label="Notes" {...a11yProps(3)} />}
+            {userId == 0 && <Tab label="API keys" {...a11yProps(4)} />}
           </Tabs>
         </Box>
 
@@ -652,6 +654,12 @@ export const Profile: React.FC = () => {
                 onConfirm={handleConfirmRemovePersonalNote}
                 onCancel={() => setNoteToDelete(null)}
               />
+            </TabPanel>
+          )}
+
+          {userId == 0 && (
+            <TabPanel value={tabValue} index={4}>
+              <ApiKeysSection />
             </TabPanel>
           )}
         </ContentSection>

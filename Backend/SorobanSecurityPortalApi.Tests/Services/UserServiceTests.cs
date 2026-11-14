@@ -17,7 +17,44 @@ namespace SorobanSecurityPortalApi.Tests.Services
         {
             var mapperMock = new Mock<AutoMapper.IMapper>();
             // ExtendedConfig is not used by SearchUsers — pass null (cast to suppress nullable warning).
-            return new UserService(mapperMock.Object, processorMock.Object, null!);
+            return new UserService(mapperMock.Object, processorMock.Object, null!, new SorobanSecurityPortalApi.Services.PublicApi.ApiKeyLookupCache());
+        }
+
+        [Fact]
+        public async Task Disabling_A_User_Clears_The_Api_Key_Cache_But_Enabling_Does_Not()
+        {
+            var cache = new SorobanSecurityPortalApi.Services.PublicApi.ApiKeyLookupCache();
+            var processor = new Mock<ILoginProcessor>();
+            processor.Setup(p => p.GetById(5)).ReturnsAsync(new LoginModel { LoginId = 5, IsEnabled = true });
+            var service = new UserService(new Mock<AutoMapper.IMapper>().Object, processor.Object, null!, cache);
+            var loads = 0;
+            Task<SorobanSecurityPortalApi.Models.DbModels.ApiKeyModel?> Load() { loads++; return Task.FromResult<SorobanSecurityPortalApi.Models.DbModels.ApiKeyModel?>(new() { Id = 1, LoginId = 5 }); }
+            await cache.GetAsync("h", Load);
+
+            await service.EnabledChange(5, true);
+            await cache.GetAsync("h", Load);
+            loads.Should().Be(1); // enabling leaves the cache alone
+
+            await service.EnabledChange(5, false);
+            await cache.GetAsync("h", Load);
+            loads.Should().Be(2); // disabling dropped it
+        }
+
+        [Fact]
+        public async Task Deleting_A_User_Clears_The_Api_Key_Cache()
+        {
+            var cache = new SorobanSecurityPortalApi.Services.PublicApi.ApiKeyLookupCache();
+            var processor = new Mock<ILoginProcessor>();
+            processor.Setup(p => p.GetById(5)).ReturnsAsync(new LoginModel { LoginId = 5 });
+            var service = new UserService(new Mock<AutoMapper.IMapper>().Object, processor.Object, null!, cache);
+            var loads = 0;
+            Task<SorobanSecurityPortalApi.Models.DbModels.ApiKeyModel?> Load() { loads++; return Task.FromResult<SorobanSecurityPortalApi.Models.DbModels.ApiKeyModel?>(new() { Id = 1, LoginId = 5 }); }
+            await cache.GetAsync("h", Load);
+
+            await service.Delete(5);
+            await cache.GetAsync("h", Load);
+
+            loads.Should().Be(2);
         }
 
         [Fact]
