@@ -118,8 +118,8 @@ in-cluster URL set in its `DEVTOOLSURL` setting (Helm: `{env}-soroban-ret-web-ip
 - **Limits.** Decompiling is CPU heavy (a large contract takes tens of seconds), so these calls have their own
   allowance per user, on top of the general one: 6 per minute and 100 per day by default. Tune them under
   *Settings, Public API & MCP* (`RetRateLimitPerMinute`, `RetRateLimitPerDay`). The portal API also runs at most
-  3 decompile requests at once and answers "busy, try again" instead of queueing, and gives up after
-  `RetRequestTimeoutSeconds` (90 by default).
+  2 decompile requests at once and answers "busy, try again" instead of queueing, and gives up after
+  `RetRequestTimeoutSeconds` (120 by default).
 - **Size cap.** `wasmBase64` is limited to `RetMaxWasmBytes` (512 KB by default) and is checked before it is
   decoded; the module must start with the WebAssembly header.
 - The answer carries the recovered `source`, the function and type lists, the code hash, SDK version and warnings,

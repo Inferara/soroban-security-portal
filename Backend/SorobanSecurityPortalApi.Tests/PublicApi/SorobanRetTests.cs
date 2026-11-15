@@ -55,11 +55,11 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             _config.SetupGet(c => c.RetRequestTimeoutSeconds).Returns(90);
         }
 
-        private SorobanRetClient Build(int maxConcurrent = 3, TimeSpan? slotWait = null)
+        private SorobanRetClient Build(int maxConcurrent = 3, TimeSpan? slotWait = null, TimeSpan? abortedHold = null)
         {
             var factory = new Mock<IHttpClientFactory>();
             factory.Setup(f => f.CreateClient(HttpClients.NoRetryClient)).Returns(() => new HttpClient(_handler, disposeHandler: false));
-            return new SorobanRetClient(factory.Object, _config.Object, NullLogger<SorobanRetClient>.Instance, maxConcurrent, slotWait ?? TimeSpan.FromSeconds(5));
+            return new SorobanRetClient(factory.Object, _config.Object, NullLogger<SorobanRetClient>.Instance, maxConcurrent, slotWait ?? TimeSpan.FromSeconds(5), abortedHold ?? TimeSpan.Zero);
         }
 
         [Fact]
@@ -304,6 +304,44 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             release.SetResult();
             await Task.WhenAll(first, second);
             (await client.DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None)).Should().NotBeNull(); // slots are free again
+        }
+
+        [Fact]
+        public async Task A_Request_That_Timed_Out_Keeps_Its_Slot_For_A_While_Because_The_Node_May_Still_Be_Working()
+        {
+            _config.SetupGet(c => c.RetRequestTimeoutSeconds).Returns(5);
+            var calls = 0;
+            _handler.Respond = async (_, token) =>
+            {
+                calls++;
+                if (calls == 1) { await Task.Delay(Timeout.Infinite, token); }
+                return Json(HttpStatusCode.OK, @"{""current"":""0.0.4"",""available"":[]}");
+            };
+            var client = Build(maxConcurrent: 1, slotWait: TimeSpan.FromMilliseconds(100), abortedHold: TimeSpan.FromSeconds(7));
+
+            (await ((Func<Task>)(() => client.GetVersionsAsync(CancellationToken.None))).Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().Contain("took too long");
+
+            // The only slot is still held: the next caller is told to retry instead of adding more work to the node.
+            (await ((Func<Task>)(() => client.GetVersionsAsync(CancellationToken.None))).Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().Contain("busy");
+
+            await Task.Delay(TimeSpan.FromSeconds(7.5)); // the hold ends
+            (await client.GetVersionsAsync(CancellationToken.None)).Current.Should().Be("0.0.4");
+        }
+
+        [Fact]
+        public async Task A_Caller_Who_Goes_Away_Also_Keeps_The_Slot_For_The_Hold()
+        {
+            var started = new TaskCompletionSource();
+            _handler.Respond = async (_, token) => { started.TrySetResult(); await Task.Delay(Timeout.Infinite, token); return Json(HttpStatusCode.OK, "{}"); };
+            var client = Build(maxConcurrent: 1, slotWait: TimeSpan.FromMilliseconds(100), abortedHold: TimeSpan.FromSeconds(30));
+            using var caller = new CancellationTokenSource();
+
+            var call = client.GetVersionsAsync(caller.Token);
+            await started.Task;
+            caller.Cancel();
+            await call.Awaiting(c => c).Should().ThrowAsync<OperationCanceledException>();
+
+            (await ((Func<Task>)(() => client.GetVersionsAsync(CancellationToken.None))).Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().Contain("busy");
         }
 
         [Fact]

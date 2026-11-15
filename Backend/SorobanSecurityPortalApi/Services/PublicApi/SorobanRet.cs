@@ -105,30 +105,36 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
         // Decompiling a large contract takes tens of seconds of CPU on the shared node, so only a
         // few run at once. A caller that cannot get a slot soon is told to retry instead of queueing.
-        public const int DefaultMaxConcurrentRequests = 3;
+        public const int DefaultMaxConcurrentRequests = 2; // soroban-ret-web itself runs at most max(2, cores) at once
         public static readonly TimeSpan DefaultSlotWaitTime = TimeSpan.FromSeconds(5);
+        // soroban-ret-web keeps decompiling after its caller is gone (the work runs on a blocking
+        // thread), so a request that was cancelled or timed out may still be using the node. Its slot is
+        // held this long before it is given back, so such requests cannot pile up past the cap.
+        public static readonly TimeSpan DefaultAbortedSlotHold = TimeSpan.FromSeconds(60);
         private const string ApiPath = "api/dev-tools/";
 
         private readonly SemaphoreSlim _slots;
         private readonly TimeSpan _slotWaitTime;
+        private readonly TimeSpan _abortedSlotHold;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IExtendedConfig _config;
         private readonly ILogger<SorobanRetClient> _logger;
 
         public SorobanRetClient(IHttpClientFactory httpClientFactory, IExtendedConfig config, ILogger<SorobanRetClient> logger)
-            : this(httpClientFactory, config, logger, DefaultMaxConcurrentRequests, DefaultSlotWaitTime)
+            : this(httpClientFactory, config, logger, DefaultMaxConcurrentRequests, DefaultSlotWaitTime, DefaultAbortedSlotHold)
         {
         }
 
         public SorobanRetClient(
             IHttpClientFactory httpClientFactory, IExtendedConfig config, ILogger<SorobanRetClient> logger,
-            int maxConcurrentRequests, TimeSpan slotWaitTime)
+            int maxConcurrentRequests, TimeSpan slotWaitTime, TimeSpan abortedSlotHold)
         {
             _httpClientFactory = httpClientFactory;
             _config = config;
             _logger = logger;
             _slots = new SemaphoreSlim(maxConcurrentRequests, maxConcurrentRequests);
             _slotWaitTime = slotWaitTime;
+            _abortedSlotHold = abortedSlotHold;
         }
 
         public async Task<RetVersionsResult> GetVersionsAsync(CancellationToken cancellationToken)
@@ -167,6 +173,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
             if (!await _slots.WaitAsync(_slotWaitTime, cancellationToken))
                 throw new PublicApiUnavailableException("The decompiler is busy. Try again in a moment.") { ChargesAllowance = false };
+            var aborted = false;
             try
             {
                 using var request = new HttpRequestMessage(method, $"{baseUrl}/{ApiPath}{path}");
@@ -185,7 +192,13 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested)
                 {
+                    aborted = true;
                     throw new PublicApiUnavailableException("The decompiler took too long. The contract may be very large; try again later.");
+                }
+                catch (OperationCanceledException)
+                {
+                    aborted = true; // the caller went away
+                    throw;
                 }
                 catch (HttpRequestException ex)
                 {
@@ -195,7 +208,10 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             }
             finally
             {
-                _slots.Release();
+                if (aborted && _abortedSlotHold > TimeSpan.Zero)
+                    _ = Task.Delay(_abortedSlotHold).ContinueWith(_ => _slots.Release(), TaskScheduler.Default);
+                else
+                    _slots.Release();
             }
         }
 

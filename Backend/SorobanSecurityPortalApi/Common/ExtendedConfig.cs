@@ -285,8 +285,8 @@ public class ExtendedConfig : IExtendedConfig
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Calls per minute, all API keys together")]
-    [Tooltip("Upper bound on public API / MCP calls per minute across all keys. Protects the server (and the embedding budget) from a flood spread over many keys.")]
-    public int PublicApiGlobalRateLimitPerMinute => GetValue<int>("PublicApiGlobalRateLimitPerMinute", 600);
+    [Tooltip("Upper bound on public API / MCP calls per minute across all keys. Protects the server (and the embedding budget) from a flood spread over many keys. A text search scores every finding, and the server is a single small node, so keep this modest.")]
+    public int PublicApiGlobalRateLimitPerMinute => GetValue<int>("PublicApiGlobalRateLimitPerMinute", 120);
 
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
@@ -316,7 +316,7 @@ public class ExtendedConfig : IExtendedConfig
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Decompiler request timeout, in seconds")]
     [Tooltip("How long one decompiler call may take. Large contracts can need over half a minute.")]
-    public int RetRequestTimeoutSeconds => GetValue<int>("RetRequestTimeoutSeconds", 90);
+    public int RetRequestTimeoutSeconds => GetValue<int>("RetRequestTimeoutSeconds", 120);
 
 }
 
