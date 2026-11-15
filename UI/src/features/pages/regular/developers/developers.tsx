@@ -21,6 +21,9 @@ const tools: { name: string; rest: string; description: string }[] = [
   { name: 'list_protocols', rest: 'GET /protocols', description: 'All protocols, with company and number of reports.' },
   { name: 'list_auditors', rest: 'GET /auditors', description: 'All audit firms, with number of reports.' },
   { name: 'list_companies', rest: 'GET /companies', description: 'All companies, with number of reports.' },
+  { name: 'ret_versions', rest: 'MCP only', description: 'The soroban-ret versions the decompiler can use.' },
+  { name: 'ret_decompile_address', rest: 'MCP only', description: 'Recover Rust source from a deployed contract, by address (mainnet or testnet).' },
+  { name: 'ret_decompile_wasm', rest: 'MCP only', description: 'Recover Rust source from a compiled contract (.wasm, base64, up to 512 KB).' },
 ];
 
 const Section: FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -102,6 +105,15 @@ export const Developers: FC = () => {
           </Table>
         </TableContainer>
         <Typography sx={{ mt: 2 }}>
+          The decompiler tools run{' '}
+          <Link href="https://github.com/Inferara/soroban-ret" target="_blank" rel="noopener">
+            soroban-ret
+          </Link>
+          , the same engine as the <Link component={RouterLink} to={`${environment.basePath}/dev-tools`}>Dev Tools</Link> page. They return
+          an approximation of the original Rust (function signatures, types and recovered bodies), which is useful for understanding
+          or reviewing a contract you do not have the source for. Large contracts can take up to a minute.
+        </Typography>
+        <Typography sx={{ mt: 2 }}>
           Filters that take a protocol, auditor or company accept either its name or its id. Search results are compact;
           ask for a single finding to get the full description. Every item carries a <code>url</code> to its page on the
           portal.
@@ -129,8 +141,9 @@ export const Developers: FC = () => {
 
       <Section title="5. Limits and errors">
         <Typography sx={{ mb: 1 }}>
-          Each key has a per-minute and a per-day call limit; the current values are shown on the API keys tab. When a
-          limit is reached:
+          The limits are per user: all your keys share one allowance, with a per-minute and a per-day call limit (the
+          current values are shown on the API keys tab). Decompiler calls also have to fit a stricter allowance of their own,
+          because they are CPU heavy: start with a few calls a minute and reuse results. When a limit is reached:
         </Typography>
         <Box component="ul" sx={{ mt: 0 }}>
           <li>

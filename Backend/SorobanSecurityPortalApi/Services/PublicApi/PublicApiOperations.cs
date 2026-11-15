@@ -21,6 +21,50 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         public const string ListProtocols = "list_protocols";
         public const string ListAuditors = "list_auditors";
         public const string ListCompanies = "list_companies";
+        public const string RetVersions = "ret_versions";
+        public const string RetDecompileAddress = "ret_decompile_address";
+        public const string RetDecompileWasm = "ret_decompile_wasm";
+
+        // The calls that run the decompiler. They are CPU heavy, so they also count against a much
+        // stricter limit of their own (ret_versions is a cheap lookup and does not).
+        public static bool IsDecompile(string operation) =>
+            operation is RetDecompileAddress or RetDecompileWasm;
+
+        public const string DecompilePrefix = "ret_decompile";
+
+        public static string Describe(string address, string? network, string? version)
+        {
+            var sb = new StringBuilder();
+            Append(sb, "address", address);
+            Append(sb, "network", string.IsNullOrWhiteSpace(network) ? "mainnet" : network);
+            Append(sb, "version", version);
+            return sb.ToString();
+        }
+
+        // The module itself is never logged: a fingerprint is enough to tell calls apart.
+        public static string DescribeWasm(string? wasmBase64, string? version, int maxBytes)
+        {
+            var sb = new StringBuilder();
+            var text = (wasmBase64 ?? "").Trim();
+            string fingerprint;
+            if (text.Length == 0) fingerprint = "empty";
+            else if (text.Length > (maxBytes + 2) / 3 * 4 + 8) fingerprint = $"oversized chars={text.Length}";
+            else
+            {
+                try
+                {
+                    var bytes = Convert.FromBase64String(text);
+                    fingerprint = $"sha256={Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes))[..16]} bytes={bytes.Length}";
+                }
+                catch (FormatException)
+                {
+                    fingerprint = $"invalid-base64 chars={text.Length}";
+                }
+            }
+            Append(sb, "wasm", fingerprint);
+            Append(sb, "version", version);
+            return sb.ToString();
+        }
 
         // Short "key=value" summaries for the usage log. Only what was actually set.
         public static string? Describe(PublicVulnerabilityQuery q)

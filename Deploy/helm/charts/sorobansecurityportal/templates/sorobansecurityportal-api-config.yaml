@@ -47,3 +47,6 @@ data:
   DISCORDCLIENTSECRET: "{{ .Values.global.discord.clientSecret }}"
   GEMINIEMBEDDINGMODEL: "{{ .Values.global.embedding.model }}"
   GEMINIAPIKEY: "{{ .Values.global.embedding.key }}"
+
+  # Decompiler behind the soroban-ret MCP tools (in-cluster service of the soroban-ret-web chart).
+  DEVTOOLSURL: "http://{{ .Values.global.environment.name }}-soroban-ret-web-ip:8787"

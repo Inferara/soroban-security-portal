@@ -83,6 +83,8 @@ public class Startup
         services.AddSingleton<IApiRateLimiter, ApiRateLimiter>();
         services.AddSingleton<QueryEmbeddingCache>();
         services.AddSingleton<ApiKeyLookupCache>();
+        // One client for the whole process: it holds the cap on concurrent decompile requests.
+        services.AddSingleton<ISorobanRetClient, SorobanRetClient>();
         // Refused calls are counted in memory and written in aggregate by the flusher.
         services.AddSingleton<IApiRefusalAggregator, ApiRefusalAggregator>();
         services.AddHostedService<ApiRefusalFlusher>();
@@ -284,6 +286,20 @@ public class Startup
             return next();
         });
         app.UseCors("CorsPolicy");
+        // The public surface takes small requests (the biggest is a WASM module, base64 encoded):
+        // anything larger is refused by the server before it is read, instead of the default 30 MB.
+        app.Use((context, next) =>
+        {
+            if (SorobanSecurityPortalApi.Authorization.ApiKeyAuthenticationHandler.IsPublicApiPath(context.Request.Path)
+                && context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } feature)
+            {
+                var maxWasm = context.RequestServices.GetRequiredService<IExtendedConfig>().RetMaxWasmBytes;
+                // Three times the base64 size of the largest accepted module, so a module over the limit still gets
+                // the tool's clear "too large" answer; far bigger bodies are refused unread.
+                feature.MaxRequestBodySize = Math.Max(256 * 1024, (long)maxWasm / 3 * 4 * 3 + 64 * 1024);
+            }
+            return next();
+        });
         app.UseRouting();
         app.UseSwagger(options =>
         {

@@ -28,6 +28,7 @@ services:
       - DISCORDCLIENTSECRET=${DISCORDCLIENTSECRET}
       - GEMINIEMBEDDINGMODEL=gemini-embedding-001
       - GEMINIAPIKEY=${GEMINIAPIKEY}
+      - DEVTOOLSURL=http://soroban-ret-web:8787
     ports:
       - "7848:80"
     networks:

@@ -29,6 +29,11 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public class PublicApiValidationException : Exception
     {
         public PublicApiValidationException(string message) : base(message) { }
+
+        // False for a mistake spotted before any real work was done (a typo, a missing argument): such a
+        // call does not use up the caller's allowance for expensive operations. True when the work
+        // had to be started to find out (for example a module the decompiler could not read).
+        public bool ChargesAllowance { get; init; }
     }
 
     // Every public operation, on either transport, goes through here. This is the one place
@@ -67,7 +72,14 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             _logger = logger;
         }
 
-        public async Task<ApiCallOutcome<T>> Run<T>(ApiUsageSource source, string operation, string? arguments, Func<Task<T?>> action)
+        public Task<ApiCallOutcome<T>> Run<T>(ApiUsageSource source, string operation, string? arguments, Func<Task<T?>> action)
+            where T : class =>
+            Run(source, operation, arguments, action, null);
+
+        // describeResult: what to add to the logged arguments once the result is known (for example
+        // the soroban-ret version that produced it).
+        public async Task<ApiCallOutcome<T>> Run<T>(
+            ApiUsageSource source, string operation, string? arguments, Func<Task<T?>> action, Func<T, string?>? describeResult)
             where T : class
         {
             var caller = _callerAccessor.GetCaller();
@@ -76,6 +88,30 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
             if (!_config.PublicApiEnabled)
                 return new ApiCallOutcome<T> { Status = ApiCallStatus.Disabled, Message = "The public API is temporarily disabled." };
+
+            // The decompiler is CPU heavy: those calls must also fit a much stricter allowance of their own.
+            // It is checked first, so a call refused here uses up none of the general allowance (or of the
+            // global cap that protects everybody else); the reverse mistake costs at most one decompile slot.
+            ApiRateLimitDecision? decompileDecision = null;
+            if (PublicApiOperations.IsDecompile(operation))
+            {
+                decompileDecision = await TryAcquireDecompile(caller);
+                var decompile = decompileDecision;
+                if (decompile is { Allowed: false })
+                {
+                    _refusals.Record(caller, source, operation);
+                    return new ApiCallOutcome<T>
+                    {
+                        Status = ApiCallStatus.RateLimited,
+                        RetryAfterSeconds = decompile.RetryAfterSeconds,
+                        Message = decompile.Kind == ApiRateLimitKind.PerDay
+                            ? $"Daily limit of {decompile.Limit} decompiler calls reached. Try again in {decompile.RetryAfterSeconds} seconds (resets at 00:00 UTC)."
+                            : $"Decompiler limit of {decompile.Limit} calls per minute reached. Try again in {decompile.RetryAfterSeconds} seconds.",
+                    };
+                }
+                if (decompile == null)
+                    return new ApiCallOutcome<T> { Status = ApiCallStatus.Error, Message = "Internal error. Please try again later." };
+            }
 
             ApiRateLimitDecision decision;
             try
@@ -101,14 +137,15 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                     RetryAfterSeconds = decision.RetryAfterSeconds,
                     Message = decision.Kind switch
                     {
-                        ApiRateLimitKind.PerDay => $"Daily limit of {decision.Limit} calls reached for this API key. Try again in {decision.RetryAfterSeconds} seconds (resets at 00:00 UTC).",
-                        ApiRateLimitKind.PerMinute => $"Rate limit of {decision.Limit} calls per minute reached for this API key. Try again in {decision.RetryAfterSeconds} seconds.",
+                        ApiRateLimitKind.PerDay => $"Daily limit of {decision.Limit} calls reached. Try again in {decision.RetryAfterSeconds} seconds (resets at 00:00 UTC).",
+                        ApiRateLimitKind.PerMinute => $"Rate limit of {decision.Limit} calls per minute reached. Try again in {decision.RetryAfterSeconds} seconds.",
                         _ => $"The API is receiving too many requests right now. Try again in {decision.RetryAfterSeconds} seconds.",
                     },
                 };
             }
 
             var stopwatch = Stopwatch.StartNew();
+            ApiUsageStatus? refundedAs = null;
             ApiCallOutcome<T> outcome;
             try
             {
@@ -120,6 +157,15 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             catch (PublicApiValidationException ex)
             {
                 outcome = new ApiCallOutcome<T> { Status = ApiCallStatus.BadRequest, Message = ex.Message };
+                // A typo should not cost the caller one of their few expensive calls.
+                if (!ex.ChargesAllowance && RefundDecompile(caller, operation, decompileDecision)) refundedAs = ApiUsageStatus.Refunded;
+            }
+            catch (PublicApiUnavailableException ex)
+            {
+                // A dependency (the decompiler) is down, busy or slow: not the caller's fault, and the
+                // message says what to do. Anything else is reported generically below.
+                outcome = new ApiCallOutcome<T> { Status = ApiCallStatus.Error, Message = ex.Message };
+                if (!ex.ChargesAllowance && RefundDecompile(caller, operation, decompileDecision)) refundedAs = ApiUsageStatus.RefundedError;
             }
             catch (OperationCanceledException)
             {
@@ -139,9 +185,62 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 ApiCallStatus.BadRequest => ApiUsageStatus.BadRequest,
                 _ => ApiUsageStatus.Error,
             };
-            await Log(caller, source, operation, arguments, logStatus, (int)stopwatch.ElapsedMilliseconds);
+            // A refunded call is logged as such, so the allowance rebuilt from the log after a restart leaves it out.
+            // (A failure on our side stays counted with the errors in the statistics.)
+            if (refundedAs.HasValue) logStatus = refundedAs.Value;
+            var logged = arguments;
+            if (outcome.Value != null && describeResult != null)
+            {
+                var note = SafeDescribe(describeResult, outcome.Value);
+                if (!string.IsNullOrEmpty(note)) logged = string.IsNullOrEmpty(arguments) ? note : $"{arguments} {note}";
+            }
+            await Log(caller, source, operation, logged, logStatus, (int)stopwatch.ElapsedMilliseconds);
             await TouchLastUsed(caller.ApiKeyId);
             return outcome;
+        }
+
+        // True when the call was given back (it will be logged as Refunded).
+        private bool RefundDecompile(ApiCaller caller, string operation, ApiRateLimitDecision? acquired)
+        {
+            if (acquired is not { Allowed: true } || !PublicApiOperations.IsDecompile(operation)) return false;
+            try
+            {
+                _rateLimiter.Refund($"ret:{caller.LimitScope}", acquired);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Refunding a decompiler call failed");
+                return false;
+            }
+        }
+
+        private string? SafeDescribe<T>(Func<T, string?> describe, T value)
+        {
+            try { return describe(value); }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Describing a public API result failed");
+                return null;
+            }
+        }
+
+        // null: the limiter itself failed (reported as an error, like the general limiter).
+        private async Task<ApiRateLimitDecision?> TryAcquireDecompile(ApiCaller caller)
+        {
+            var limits = new ApiRateLimits(Math.Max(1, _config.RetRateLimitPerMinute), Math.Max(1, _config.RetRateLimitPerDay), int.MaxValue);
+            Func<DateTime, Task<int>> seed = caller.Kind == ApiKeyKind.Personal
+                ? since => _usageLog.CountCountedForLoginSince(caller.LoginId!.Value, since, PublicApiOperations.DecompilePrefix)
+                : since => _usageLog.CountCountedSince(caller.ApiKeyId, since, PublicApiOperations.DecompilePrefix);
+            try
+            {
+                return await _rateLimiter.TryAcquireAsync($"ret:{caller.LimitScope}", limits, seed, countsGlobally: false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Decompiler rate limiter failed");
+                return null;
+            }
         }
 
         // Personal keys use the configured defaults; only a service key can carry its own limits.
@@ -212,6 +311,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public interface IApiCallRunner
     {
         Task<ApiCallOutcome<T>> Run<T>(ApiUsageSource source, string operation, string? arguments, Func<Task<T?>> action)
+            where T : class;
+
+        Task<ApiCallOutcome<T>> Run<T>(ApiUsageSource source, string operation, string? arguments, Func<Task<T?>> action, Func<T, string?>? describeResult)
             where T : class;
     }
 }

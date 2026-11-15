@@ -48,6 +48,27 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 && db.ApiKey.Any(k => k.Id == u.ApiKeyId && k.Kind == ApiKeyKind.Personal));
         }
 
+        // The same, for one family of operations (those whose name starts with operationPrefix). Calls that were
+        // refunded (see ApiUsageStatus.Refunded) did not use that allowance, so they are left out.
+        public async Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc, string operationPrefix)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.ApiUsageLog.CountAsync(u =>
+                u.ApiKeyId == apiKeyId && u.CreatedAt >= sinceUtc && u.Status != ApiUsageStatus.RateLimited && u.Status != ApiUsageStatus.Refunded && u.Status != ApiUsageStatus.RefundedError
+                && u.Operation.StartsWith(operationPrefix));
+        }
+
+        public async Task<int> CountCountedForLoginSince(int loginId, DateTime sinceUtc, string operationPrefix)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.ApiUsageLog.CountAsync(u =>
+                u.LoginId == loginId
+                && u.CreatedAt >= sinceUtc
+                && u.Status != ApiUsageStatus.RateLimited && u.Status != ApiUsageStatus.Refunded && u.Status != ApiUsageStatus.RefundedError
+                && u.Operation.StartsWith(operationPrefix)
+                && db.ApiKey.Any(k => k.Id == u.ApiKeyId && k.Kind == ApiKeyKind.Personal));
+        }
+
         public async Task<ApiUsageStatisticsViewModel> GetStatistics(DateTime fromUtc, DateTime toUtc)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -60,7 +81,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 To = toUtc,
                 LogRows = await rows.CountAsync(),
                 TotalCalls = await rows.SumAsync(u => u.Count),
-                FailedCalls = await rows.Where(u => u.Status == ApiUsageStatus.Error).SumAsync(u => u.Count),
+                FailedCalls = await rows.Where(u => u.Status == ApiUsageStatus.Error || u.Status == ApiUsageStatus.RefundedError).SumAsync(u => u.Count),
                 RateLimitedCalls = await rows.Where(u => u.Status == ApiUsageStatus.RateLimited).SumAsync(u => u.Count),
                 ActiveKeys = await rows.Select(u => u.ApiKeyId).Distinct().CountAsync(),
                 ActiveUsers = await rows.Where(u => u.LoginId != 0).Select(u => u.LoginId).Distinct().CountAsync(),
@@ -88,7 +109,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                         Operation = g.Key.Operation,
                         Source = g.Key.Source,
                         Calls = g.Sum(u => u.Count),
-                        Errors = g.Where(u => u.Status == ApiUsageStatus.Error).Sum(u => u.Count),
+                        Errors = g.Where(u => u.Status == ApiUsageStatus.Error || u.Status == ApiUsageStatus.RefundedError).Sum(u => u.Count),
                         // Refusals take no time; leave them out of the average.
                         AverageDurationMs = (int)(g.Where(u => u.Status != ApiUsageStatus.RateLimited).Average(u => (double?)u.DurationMs) ?? 0),
                     })
@@ -169,6 +190,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task AddRange(IEnumerable<ApiUsageLogModel> entries);
         Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc);
         Task<int> CountCountedForLoginSince(int loginId, DateTime sinceUtc);
+        Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc, string operationPrefix);
+        Task<int> CountCountedForLoginSince(int loginId, DateTime sinceUtc, string operationPrefix);
         Task<ApiUsageStatisticsViewModel> GetStatistics(DateTime fromUtc, DateTime toUtc);
         Task<List<ApiUsageExportRow>> Export(DateTime fromUtc, DateTime toUtc, int maxRows);
     }

@@ -10,7 +10,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         Global = 3,
     }
 
-    public sealed record ApiRateLimitDecision(bool Allowed, ApiRateLimitKind Kind, int Limit, int RetryAfterSeconds)
+    // For an allowed call, MinuteWindow and DayWindow say which windows it was counted in, so that a
+    // refund later takes it out of those windows only (not of a newer one the clock has moved on to).
+    public sealed record ApiRateLimitDecision(bool Allowed, ApiRateLimitKind Kind, int Limit, int RetryAfterSeconds, long MinuteWindow = 0, long DayWindow = 0)
     {
         public static readonly ApiRateLimitDecision Ok = new(true, ApiRateLimitKind.None, 0, 0);
     }
@@ -46,6 +48,18 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         public ApiRateLimiter(TimeProvider time)
         {
             _time = time;
+        }
+
+        public void Refund(string scope, ApiRateLimitDecision acquired)
+        {
+            if (!acquired.Allowed || !_scopes.TryGetValue(scope, out var state)) return;
+            lock (state)
+            {
+                // If a window has turned over since the call was counted, its count is gone with it and
+                // the newer window must not lose a call that belongs to someone else.
+                if (state.MinuteWindow == acquired.MinuteWindow && state.MinuteCount > 0) state.MinuteCount--;
+                if (state.DayWindow == acquired.DayWindow && state.DayCount > 0) state.DayCount--;
+            }
         }
 
         // countsGlobally: whether this call also counts against (and is refused by) the global cap.
@@ -105,13 +119,18 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
                 state.MinuteCount++;
                 state.DayCount++;
-                return ApiRateLimitDecision.Ok;
+                return new ApiRateLimitDecision(true, ApiRateLimitKind.None, 0, 0, minuteWindow, dayWindow);
             }
         }
     }
 
     public interface IApiRateLimiter
     {
+        // Gives back one call taken by TryAcquireAsync, for a call that turned out not to deserve being
+        // counted. `acquired` is what TryAcquireAsync returned for it: only the windows it was counted
+        // in are touched, and a count never goes below zero.
+        void Refund(string scope, ApiRateLimitDecision acquired);
+
         Task<ApiRateLimitDecision> TryAcquireAsync(
             string scope, ApiRateLimits limits, Func<DateTime, Task<int>> seedDailyCount, bool countsGlobally);
     }

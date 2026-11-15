@@ -39,6 +39,11 @@ public interface IExtendedConfig
     int PublicApiRateLimitPerMinute { get; }
     int PublicApiRateLimitPerDay { get; }
     int PublicApiGlobalRateLimitPerMinute { get; }
+    string DevToolsUrl { get; }
+    int RetRateLimitPerMinute { get; }
+    int RetRateLimitPerDay { get; }
+    int RetMaxWasmBytes { get; }
+    int RetRequestTimeoutSeconds { get; }
     void Reset();
 }
 
@@ -280,8 +285,38 @@ public class ExtendedConfig : IExtendedConfig
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Calls per minute, all API keys together")]
-    [Tooltip("Upper bound on public API / MCP calls per minute across all keys. Protects the server (and the embedding budget) from a flood spread over many keys.")]
-    public int PublicApiGlobalRateLimitPerMinute => GetValue<int>("PublicApiGlobalRateLimitPerMinute", 600);
+    [Tooltip("Upper bound on public API / MCP calls per minute across all keys. Protects the server (and the embedding budget) from a flood spread over many keys. A text search scores every finding, and the server is a single small node, so keep this modest.")]
+    public int PublicApiGlobalRateLimitPerMinute => GetValue<int>("PublicApiGlobalRateLimitPerMinute", 120);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
+    [Description("Decompiler (soroban-ret-web) URL")]
+    [Tooltip("Base URL of the Dev Tools backend that runs soroban-ret, for example http://prod-soroban-ret-web-ip:8787. The MCP tools ret_decompile_address and ret_decompile_wasm call it; /compile is never used. Leave empty to turn the decompiler tools off.")]
+    public string DevToolsUrl => GetValue<string>("DevToolsUrl", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Decompiler calls per minute, per user")]
+    [Tooltip("How many ret_decompile_address / ret_decompile_wasm calls one user (all their personal keys together) may make per minute. Decompiling is CPU heavy, so this is much stricter than the general limit. Counts on top of the general limit.")]
+    public int RetRateLimitPerMinute => GetValue<int>("RetRateLimitPerMinute", 6);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Decompiler calls per day, per user")]
+    [Tooltip("How many decompiler calls one user may make per UTC day. Start strict and raise it once the load on the server is known.")]
+    public int RetRateLimitPerDay => GetValue<int>("RetRateLimitPerDay", 100);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Largest WASM accepted by ret_decompile_wasm, in bytes")]
+    [Tooltip("Larger modules are refused before anything is decoded. Soroban contracts are limited to 128 KB on the network, so the default of 512 KB is generous.")]
+    public int RetMaxWasmBytes => GetValue<int>("RetMaxWasmBytes", 524288);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Decompiler request timeout, in seconds")]
+    [Tooltip("How long one decompiler call may take, between 5 and 170 seconds. Large contracts can need over half a minute.")]
+    public int RetRequestTimeoutSeconds => GetValue<int>("RetRequestTimeoutSeconds", 120);
 
 }
 

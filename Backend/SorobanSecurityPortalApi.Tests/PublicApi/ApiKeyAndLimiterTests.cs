@@ -194,6 +194,72 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         }
 
         [Fact]
+        public async Task A_Refund_Gives_Back_One_Call_In_The_Minute_And_The_Day()
+        {
+            var limiter = new ApiRateLimiter(new FakeTime());
+            var limits = new ApiRateLimits(PerMinute: 2, PerDay: 3, GlobalPerMinute: 100);
+
+            (await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false)).Allowed.Should().BeTrue();
+            var second = await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false);
+            second.Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false)).Allowed.Should().BeFalse(); // minute is full
+
+            limiter.Refund("ret:u:1", second);
+
+            (await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false)).Allowed.Should().BeTrue(); // one slot is back
+            (await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false)).Allowed.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Refunds_Never_Take_The_Count_Below_Zero_And_Unknown_Scopes_Are_Ignored()
+        {
+            var limiter = new ApiRateLimiter(new FakeTime());
+            var limits = new ApiRateLimits(PerMinute: 1, PerDay: 100, GlobalPerMinute: 100);
+            limiter.Refund("never-seen", ApiRateLimitDecision.Ok);
+            var first = await limiter.TryAcquireAsync("k:1", limits, NoHistory, true);
+
+            limiter.Refund("k:1", first);
+            limiter.Refund("k:1", first);
+            limiter.Refund("k:1", first);
+            limiter.Refund("k:1", new ApiRateLimitDecision(false, ApiRateLimitKind.PerMinute, 1, 5)); // a refused call has nothing to give back
+
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeTrue();
+            (await limiter.TryAcquireAsync("k:1", limits, NoHistory, true)).Allowed.Should().BeFalse(); // not 4 free calls
+        }
+
+        [Fact]
+        public async Task A_Refund_Does_Not_Erase_A_Newer_Minutes_Call()
+        {
+            var time = new FakeTime { Now = new DateTimeOffset(2026, 11, 12, 10, 0, 58, TimeSpan.Zero) };
+            var limiter = new ApiRateLimiter(time);
+            var limits = new ApiRateLimits(PerMinute: 1, PerDay: 100, GlobalPerMinute: 100);
+
+            var early = await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false); // counted in minute 10:00
+            time.Now = time.Now.AddSeconds(5);                                              // now 10:01
+            (await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false)).Allowed.Should().BeTrue(); // another call, minute 10:01
+
+            limiter.Refund("ret:u:1", early); // the early call (busy decompiler, say) is given back late
+
+            // The 10:01 allowance still holds the other call: the refund took the early call out of 10:00 only.
+            (await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false)).Allowed.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task A_Refund_Still_Frees_The_Day_When_Only_The_Minute_Moved_On()
+        {
+            var time = new FakeTime { Now = new DateTimeOffset(2026, 11, 12, 10, 0, 58, TimeSpan.Zero) };
+            var limiter = new ApiRateLimiter(time);
+            var limits = new ApiRateLimits(PerMinute: 10, PerDay: 1, GlobalPerMinute: 100);
+            var early = await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false);
+            time.Now = time.Now.AddSeconds(5);
+            (await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false)).Kind.Should().Be(ApiRateLimitKind.PerDay);
+
+            limiter.Refund("ret:u:1", early); // same UTC day: the day's call is given back
+
+            (await limiter.TryAcquireAsync("ret:u:1", limits, NoHistory, false)).Allowed.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task Concurrent_Calls_Never_Exceed_The_Limit()
         {
             var limiter = new ApiRateLimiter(new FakeTime());

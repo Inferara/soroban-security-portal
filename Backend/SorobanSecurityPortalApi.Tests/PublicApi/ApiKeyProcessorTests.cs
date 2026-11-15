@@ -140,5 +140,36 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             (await processor.CountCountedForLoginSince(42, dayStart)).Should().Be(3);
             (await processor.CountCountedSince(3, dayStart)).Should().Be(1);
         }
+
+        [Fact]
+        public async Task Decompiler_Counts_Include_Only_Decompile_Calls_Of_Counted_Statuses()
+        {
+            var now = DateTime.UtcNow;
+            var dayStart = now.Date;
+            ApiUsageLogModel Row(string op, ApiUsageStatus status = ApiUsageStatus.Ok, int key = 1, int login = 42) =>
+                new() { ApiKeyId = key, LoginId = login, Operation = op, Status = status, CreatedAt = now };
+            var keys = new List<ApiKeyModel>
+            {
+                new() { Id = 1, Kind = ApiKeyKind.Personal, LoginId = 42 },
+                new() { Id = 2, Kind = ApiKeyKind.Personal, LoginId = 42 },
+                new() { Id = 3, Kind = ApiKeyKind.Service, LoginId = 0 },
+            };
+            var usage = new List<ApiUsageLogModel>
+            {
+                Row("ret_decompile_address"), Row("ret_decompile_wasm", key: 2),     // counted: two keys of one user
+                Row("ret_decompile_address", ApiUsageStatus.Error),                  // a failed call still used the decompiler
+                Row("ret_decompile_address", ApiUsageStatus.RateLimited),            // refusals never count
+                Row("ret_decompile_address", ApiUsageStatus.Refunded),               // a typo or a busy decompiler was given back
+                Row("ret_decompile_wasm", ApiUsageStatus.Refunded, key: 2),
+                Row("ret_decompile_wasm", ApiUsageStatus.RefundedError),             // the decompiler was busy
+                Row("ret_versions"), Row("search_vulnerabilities"),                  // other operations
+                Row("ret_decompile_wasm", key: 3, login: 0),                         // service key
+            };
+            var processor = new ApiUsageLogProcessor(Factory(keys, usage));
+
+            (await processor.CountCountedForLoginSince(42, dayStart, "ret_decompile")).Should().Be(3);
+            (await processor.CountCountedSince(3, dayStart, "ret_decompile")).Should().Be(1);
+            (await processor.CountCountedSince(1, dayStart, "ret_decompile")).Should().Be(2);
+        }
     }
 }
