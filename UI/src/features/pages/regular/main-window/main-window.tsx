@@ -30,6 +30,7 @@ import { Vulnerabilities } from '../vulnerabilities/vulnerabilities';
 import { AddVulnerability } from '../vulnerabilities-add/vulnerabilities-add';
 import { AddReport } from '../reports-add/reports-add';
 import { About } from '../about/about';
+import { Developers } from '../developers/developers';
 import { DevTools } from '../dev-tools/dev-tools';
 import { Profile } from '../profile/profile';
 import { EditProfile } from '../profile/edit-profile';
@@ -431,6 +432,7 @@ export const MainWindow: FC = () => {
             <Route path={`${environment.basePath}/vulnerabilities/add`} element={<AddVulnerability />} />
             <Route path={`${environment.basePath}/dev-tools`} element={<DevTools />} />
             <Route path={`${environment.basePath}/about`} element={<About />} />
+            <Route path={`${environment.basePath}/developers`} element={<Developers />} />
             <Route path={`${environment.basePath}/profile`} element={<Profile />} />
             <Route path={`${environment.basePath}/profile/edit`} element={<EditProfile />} />
             <Route path={`${environment.basePath}/profile/:id`} element={<PublicProfile />} />

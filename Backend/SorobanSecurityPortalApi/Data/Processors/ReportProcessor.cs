@@ -24,10 +24,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
         public async Task<List<ReportModel>> Search(ReportSearchModel? reportSearch)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
+            // No Include: the result is a projection of ids and names (below), and the filters reach
+            // the related rows through the navigation properties.
             var q = db.Report
-                .Include(v => v.Auditor)
-                .Include(v => v.Protocol)
-                .ThenInclude(p => p!.Company)
                 .AsNoTracking().Where(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted);
 
             if (reportSearch != null)
@@ -60,6 +59,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 {
                     var searchText = reportSearch.SearchText ?? "";
                     var queryEmbedding = reportSearch.Embedding;
+                    var minRelevance = reportSearch.MinRelevance ?? _extendedConfig.MinRelevanceForSearch;
 
                     q = q
                         .Select(v => new
@@ -75,7 +75,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
                                     ? 0.0
                                     : (1.0 - v.Embedding.CosineDistance(queryEmbedding!)) * _extendedConfig.VectorContentWeight
                         })
-                        .Where(x => _extendedConfig.MinRelevanceForSearch < (x.TextScore + x.VecScore))
+                        .Where(x => minRelevance < (x.TextScore + x.VecScore))
                         .OrderByDescending(x => x.TextScore + x.VecScore)
                         .Select(x => x.v);
                 }
@@ -103,8 +103,18 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     CreatedBy = v.CreatedBy,
                     LastActionBy = v.LastActionBy,
                     LastActionAt = v.LastActionAt,
-                    Auditor = v.Auditor,
-                    Protocol = v.Protocol
+                    // Only ids and names: the full entities carry logo images and embeddings.
+                    Auditor = v.Auditor == null ? null : new AuditorModel { Id = v.Auditor.Id, Name = v.Auditor.Name },
+                    Protocol = v.Protocol == null ? null : new ProtocolModel
+                    {
+                        Id = v.Protocol.Id,
+                        Name = v.Protocol.Name,
+                        Company = v.Protocol.Company == null ? null : new CompanyModel
+                        {
+                            Id = v.Protocol.Company.Id,
+                            Name = v.Protocol.Company.Name,
+                        },
+                    }
                 })
                 .ToListAsync();
         }

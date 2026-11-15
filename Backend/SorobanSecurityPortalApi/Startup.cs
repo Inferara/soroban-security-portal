@@ -13,6 +13,10 @@ using Microsoft.OpenApi;
 using SorobanSecurityPortalApi.Services.ControllersServices;
 using SorobanSecurityPortalApi.Services.Moderation;
 using SorobanSecurityPortalApi.Services.Realtime;
+using SorobanSecurityPortalApi.Services.PublicApi;
+using SorobanSecurityPortalApi.Mcp;
+using Microsoft.AspNetCore.Authorization;
+using ModelContextProtocol.Protocol;
 
 namespace SorobanSecurityPortalApi;
 
@@ -20,6 +24,7 @@ public class Startup
 {
     private readonly Config _config;
     private static ILogger<Startup>? _logger;
+    private const string PublicApiPolicy = "PublicApi";
     public Startup(IConfiguration configuration)
     {
         _config = new Config();
@@ -39,7 +44,7 @@ public class Startup
                 .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .WithExposedHeaders("X-Total-Count")
+                .WithExposedHeaders("X-Total-Count", "X-Export-Truncated")
             );
         });
 
@@ -72,6 +77,15 @@ public class Startup
         services.AddScoped<IModerationTarget, RatingModerationTarget>();
         services.AddScoped<IModerationTarget, CommentModerationTarget>();
         services.AddScoped<IModerationTargetRegistry, ModerationTargetRegistry>();
+
+        // Public API rate limiter: one instance for the whole process (it holds the counters),
+        // registered before the convention scan so the scan skips it.
+        services.AddSingleton<IApiRateLimiter, ApiRateLimiter>();
+        services.AddSingleton<QueryEmbeddingCache>();
+        services.AddSingleton<ApiKeyLookupCache>();
+        // Refused calls are counted in memory and written in aggregate by the flusher.
+        services.AddSingleton<IApiRefusalAggregator, ApiRefusalAggregator>();
+        services.AddHostedService<ApiRefusalFlusher>();
 
         services.ForInterfacesMatching("^I(?!.*Processor$).*")
             .OfAssemblies(Assembly.GetExecutingAssembly())
@@ -143,6 +157,9 @@ public class Startup
                 options.ForwardDefaultSelector = context =>
                 {
                     var isCombinedAuthorize = context.GetEndpoint()?.Metadata.FirstOrDefault(x => x.GetType() == typeof(CombinedAuthorizeAttribute)) != null;
+                    // The public surface (MCP + public REST) is the only place API keys are accepted.
+                    if (ApiKeyAuthenticationHandler.IsPublicApiPath(context.Request.Path))
+                        return ApiKeyAuthenticationHandler.SchemeName;
                     var header = (string?)context.Request.Headers.Authorization ?? "";
                     if (header.StartsWith("Basic") && isCombinedAuthorize)
                         return BasicDefaults.AuthenticationScheme;
@@ -165,7 +182,32 @@ public class Startup
                     }
                 };
             })
-            .AddBasic<BasicUserValidationService>(options => { options.SuppressWWWAuthenticateHeader = true; });
+            .AddBasic<BasicUserValidationService>(options => { options.SuppressWWWAuthenticateHeader = true; })
+            .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+                ApiKeyAuthenticationHandler.SchemeName, _ => { });
+
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(PublicApiPolicy, policy => policy
+                .AddAuthenticationSchemes(ApiKeyAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser());
+        });
+
+        // MCP server for AI agents, served at /api/mcp (see Mcp/PortalMcpTools.cs).
+        // Stateless: every request stands alone, so there is no session to pin to an instance
+        // and each tool call runs inside its own HTTP request (API key, limits, usage log).
+        services.AddMcpServer(options =>
+            {
+                options.ServerInfo = new Implementation
+                {
+                    Name = PortalMcpTools.ServerName,
+                    Title = "Stellar Security Portal",
+                    Version = _config.ProductVersion.ToString(),
+                };
+                options.ServerInstructions = PortalMcpTools.ServerInstructions;
+            })
+            .WithHttpTransport(options => options.Stateless = true)
+            .WithTools<PortalMcpTools>();
 
         services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
         services.AddHealthChecks();
@@ -190,7 +232,31 @@ public class Startup
                     Url = new Uri("https://domain.com")
                 },
             });
+            options.SwaggerDoc(PublicApiDocument.Name, new OpenApiInfo
+            {
+                Version = "v1",
+                Title = "Stellar Security Portal - Public API",
+                Description = "Read-only access to the portal's audit findings, audit reports, protocols, auditors and companies.\n\n" +
+                    "Every call needs an API key. Sign in to the portal, open your profile and create one, then send it as " +
+                    "`Authorization: Bearer <key>` (or `X-API-Key: <key>`).\n\n" +
+                    "Calls are limited per key (per minute and per day). When a limit is hit the API answers `429` with a `Retry-After` header.\n\n" +
+                    "The same operations are available to AI agents as MCP tools at `/api/mcp`.",
+            });
+            // Controllers tagged with the public group go to the public document; everything else stays in v1.
+            options.DocInclusionPredicate((documentName, api) =>
+                documentName == PublicApiDocument.Name
+                    ? api.GroupName == PublicApiDocument.Name
+                    : api.GroupName != PublicApiDocument.Name);
             options.EnableAnnotations();
+            options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "ssp_...",
+                In = ParameterLocation.Header,
+                Description = "API key created on your portal profile page."
+            });
             options.AddSecurityDefinition("Basic", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
@@ -202,7 +268,8 @@ public class Startup
             options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
             {
                 {
-                    new OpenApiSecuritySchemeReference("Basic", document, null),
+                    new OpenApiSecuritySchemeReference(
+                        document.Info?.Title?.Contains("Public API") == true ? "ApiKey" : "Basic", document, null),
                     new List<string>()
                 }
             });
@@ -225,6 +292,8 @@ public class Startup
         app.UseSwaggerUI(options =>
         {
             options.RoutePrefix = "api/swagger";
+            options.SwaggerEndpoint($"{PublicApiDocument.Name}/swagger.json", "Public API v1");
+            options.SwaggerEndpoint("v1/swagger.json", "Portal API (internal)");
         });
         app.UseAuthentication();
         app.UseAuthorization();
@@ -235,6 +304,7 @@ public class Startup
         {
             endpoints.MapControllers();
             endpoints.MapHub<SorobanSecurityPortalApi.Hubs.NotificationHub>("/hubs/notifications");
+            endpoints.MapMcp("/api/mcp").RequireAuthorization(PublicApiPolicy);
             endpoints.MapHealthChecks("/health", new HealthCheckOptions
             {
                 ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse

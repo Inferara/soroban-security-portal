@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
-import { useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -487,6 +487,13 @@ export const DevTools: FC = () => {
             Compile Rust to WebAssembly, disassemble Soroban contracts, and inspect on-chain bytecode with{' '}
             <MuiLink href="https://github.com/Inferara/soroban-ret" target="_blank" rel="noopener noreferrer">
               soroban-ret
+            </MuiLink>
+            .
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Working with an AI agent? Connect it to the portal through{' '}
+            <MuiLink component={RouterLink} to="/developers">
+              MCP or the REST API
             </MuiLink>
             .
           </Typography>

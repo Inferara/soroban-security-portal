@@ -16,6 +16,10 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         public int? AuditorId { get; set; } = null;
         public string? AuditorName { get; set; } = null;
         public Vector? Embedding { get; set; } = null;
+        // Overrides the configured minimum relevance for this search. The configured value is tuned
+        // for text + vector scores together; a text-only search (no embedding available) needs a
+        // lower bar or it finds nothing.
+        public double? MinRelevance { get; set; }
 
     }
 }

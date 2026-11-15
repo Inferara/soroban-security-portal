@@ -21,6 +21,7 @@ import { Notification, NotificationType } from './models/notification';
 import { PageViewEntityType, PageViewCount, AnalyticsStatistics } from './models/analytics';
 import { AgentRun, AgentRunListResult, EnqueueAgentRun, ApproveAgentRun } from './models/agent-run';
 import { PersonalNote, UpsertPersonalNoteRequest } from './models/personal-note';
+import { ApiKey, ApiLimits, ApiUsageStatistics, CreatedApiKey, CreateServiceApiKeyRequest } from './models/api-key';
 
 // --- TAGS ---
 export const getTagsCall = async (): Promise<TagItem[]> => {
@@ -782,6 +783,60 @@ export const deletePersonalNoteCall = async (noteId: number): Promise<void> => {
 export const deletePersonalNoteByVulnerabilityCall = async (vulnerabilityId: number): Promise<void> => {
     const client = await getRestClient();
     await client.request(`api/v1/personal-notes/vulnerability/${vulnerabilityId}`, 'DELETE');
+};
+
+// --- API KEYS (public API + MCP) ---
+export const getApiLimitsCall = async (): Promise<ApiLimits> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/api-keys/limits', 'GET');
+    return response.data as ApiLimits;
+};
+
+export const getApiKeysCall = async (): Promise<ApiKey[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/api-keys', 'GET');
+    return (response.data as ApiKey[]) ?? [];
+};
+
+// The returned object carries the full key. This is the only time the server sends it.
+export const createApiKeyCall = async (name: string): Promise<CreatedApiKey> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/api-keys', 'POST', { name });
+    return response.data as CreatedApiKey;
+};
+
+export const revokeApiKeyCall = async (id: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/api-keys/${id}`, 'DELETE');
+};
+
+// Admin
+export const getAllApiKeysCall = async (): Promise<ApiKey[]> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/api-keys/all', 'GET');
+    return (response.data as ApiKey[]) ?? [];
+};
+
+export const createServiceApiKeyCall = async (request: CreateServiceApiKeyRequest): Promise<CreatedApiKey> => {
+    const client = await getRestClient();
+    const response = await client.request('api/v1/api-keys/service', 'POST', request);
+    return response.data as CreatedApiKey;
+};
+
+export const revokeAnyApiKeyCall = async (id: number): Promise<void> => {
+    const client = await getRestClient();
+    await client.request(`api/v1/api-keys/all/${id}`, 'DELETE');
+};
+
+export const getApiUsageStatisticsCall = async (days: number): Promise<ApiUsageStatistics> => {
+    const client = await getRestClient();
+    const response = await client.request(`api/v1/api-keys/usage/statistics?days=${days}`, 'GET');
+    return response.data as ApiUsageStatistics;
+};
+
+export const downloadApiUsageCsvCall = async (days: number): Promise<Blob> => {
+    const client = await getRestClient();
+    return client.downloadBlob(`api/v1/api-keys/usage/export.csv?days=${days}`);
 };
 
 // Rest client
