@@ -286,6 +286,18 @@ public class Startup
             return next();
         });
         app.UseCors("CorsPolicy");
+        // The public surface takes small requests (the biggest is a WASM module, base64 encoded):
+        // anything larger is refused by the server before it is read, instead of the default 30 MB.
+        app.Use((context, next) =>
+        {
+            if (SorobanSecurityPortalApi.Authorization.ApiKeyAuthenticationHandler.IsPublicApiPath(context.Request.Path)
+                && context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } feature)
+            {
+                var maxWasm = context.RequestServices.GetRequiredService<IExtendedConfig>().RetMaxWasmBytes;
+                feature.MaxRequestBodySize = Math.Max(64 * 1024, (long)maxWasm / 3 * 4 + 64 * 1024);
+            }
+            return next();
+        });
         app.UseRouting();
         app.UseSwagger(options =>
         {

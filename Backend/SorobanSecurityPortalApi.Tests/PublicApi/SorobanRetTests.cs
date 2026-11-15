@@ -67,7 +67,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.OK, @"{""current"":""0.0.4"",""available"":[""0.0.3"",""0.0.4""],""compile_enabled"":false}"));
 
-            var result = await Build().GetVersionsAsync();
+            var result = await Build().GetVersionsAsync(CancellationToken.None);
 
             result.Current.Should().Be("0.0.4");
             result.Available.Should().Equal("0.0.3", "0.0.4");
@@ -79,7 +79,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.OK, Sample));
 
-            var result = await Build().DisassembleAddressAsync("CABC", "mainnet", "0.0.3");
+            var result = await Build().DisassembleAddressAsync("CABC", "mainnet", "0.0.3", CancellationToken.None);
 
             var request = _handler.Requests.Single();
             request.Method.Should().Be(HttpMethod.Post);
@@ -113,7 +113,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.OK, Sample));
 
-            await Build().DisassembleWasmAsync(new byte[] { 0, 0x61, 0x73, 0x6D }, null);
+            await Build().DisassembleWasmAsync(new byte[] { 0, 0x61, 0x73, 0x6D }, null, CancellationToken.None);
 
             var request = _handler.Requests.Single();
             request.Url.Should().Be("http://ret.internal:8787/api/dev-tools/disassemble");
@@ -126,9 +126,9 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.OK, Sample));
             var client = Build();
 
-            await client.GetVersionsAsync();
-            await client.DisassembleAddressAsync("C", "mainnet", null);
-            await client.DisassembleWasmAsync(new byte[] { 1 }, null);
+            await client.GetVersionsAsync(CancellationToken.None);
+            await client.DisassembleAddressAsync("C", "mainnet", null, CancellationToken.None);
+            await client.DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None);
 
             _handler.Requests.Select(r => r.Url).Should().OnlyContain(u => !u.Contains("compile"));
         }
@@ -136,17 +136,64 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Theory]
         [InlineData("invalid_input", "Unknown version '9.9.9'", typeof(PublicApiValidationException), "Unknown version '9.9.9'")]
         [InlineData("decompile_error", "bad section", typeof(PublicApiValidationException), "Could not decompile this module: bad section")]
-        [InlineData("network_error", "contract not found", typeof(PublicApiUnavailableException), "Could not fetch the contract from the network: contract not found")]
+        [InlineData("network_error", "Contract not found on-chain", typeof(PublicApiUnavailableException), "Could not fetch the contract from the network: Contract not found on-chain")]
         public async Task The_Backends_Error_Kinds_Become_Messages_For_The_Caller(string kind, string error, Type expected, string message)
         {
             var status = kind == "network_error" ? HttpStatusCode.BadGateway : kind == "decompile_error" ? HttpStatusCode.UnprocessableEntity : HttpStatusCode.BadRequest;
             _handler.Respond = (_, _) => Task.FromResult(Json(status, $"{{\"error\":\"{error}\",\"kind\":\"{kind}\"}}"));
 
-            var act = () => Build().DisassembleAddressAsync("CABC", "mainnet", null);
+            var act = () => Build().DisassembleAddressAsync("CABC", "mainnet", null, CancellationToken.None);
 
             var thrown = (await act.Should().ThrowAsync<Exception>()).Which;
             thrown.GetType().Should().Be(expected);
             thrown.Message.Should().Be(message);
+        }
+
+        [Theory]
+        [InlineData("RPC request failed: error sending request for url (https://rpc.internal.example:8443/?api-key=SECRET)")]
+        [InlineData("RPC error: node 10.1.2.3 is behind by 41 ledgers")]
+        [InlineData("Failed to parse RPC response: expected value at line 1 column 1 from http://10.0.0.5")]
+        public async Task A_Network_Error_That_Could_Carry_The_Nodes_Address_Is_Replaced_By_A_Fixed_Message(string upstream)
+        {
+            _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.BadGateway, $"{{\"error\":\"{upstream}\",\"kind\":\"network_error\"}}"));
+
+            var act = () => Build().DisassembleAddressAsync("CABC", "mainnet", null, CancellationToken.None);
+
+            var message = (await act.Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message;
+            message.Should().Be("Could not fetch the contract from the Stellar network right now. Try again later.");
+            message.Should().NotContainAny("rpc.internal", "SECRET", "10.", "api-key");
+        }
+
+        [Theory]
+        [InlineData("Contract not found on-chain")]
+        [InlineData("RPC returned HTTP 503 Service Unavailable")]
+        [InlineData("Unexpected ledger entry type")]
+        public async Task The_Few_Known_Safe_Network_Messages_Are_Passed_On(string upstream)
+        {
+            _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.BadGateway, $"{{\"error\":\"{upstream}\",\"kind\":\"network_error\"}}"));
+
+            var act = () => Build().DisassembleAddressAsync("CABC", "mainnet", null, CancellationToken.None);
+
+            (await act.Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().EndWith(upstream);
+        }
+
+        [Fact]
+        public async Task A_Caller_Who_Goes_Away_Stops_The_Request_And_Frees_The_Slot()
+        {
+            CancellationToken seen = default;
+            var started = new TaskCompletionSource();
+            _handler.Respond = async (_, token) => { seen = token; started.SetResult(); await Task.Delay(Timeout.Infinite, token); return Json(HttpStatusCode.OK, "{}"); };
+            var client = Build(maxConcurrent: 1, slotWait: TimeSpan.FromMilliseconds(200));
+            using var caller = new CancellationTokenSource();
+
+            var call = client.GetVersionsAsync(caller.Token);
+            await started.Task;
+            caller.Cancel();
+
+            await call.Awaiting(c => c).Should().ThrowAsync<OperationCanceledException>(); // the caller's own cancellation, not the "took too long" message
+            seen.IsCancellationRequested.Should().BeTrue();
+            _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.OK, @"{""current"":""0.0.4"",""available"":[]}"));
+            (await client.GetVersionsAsync(CancellationToken.None)).Current.Should().Be("0.0.4"); // the only slot is free again
         }
 
         [Fact]
@@ -154,7 +201,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.InternalServerError, @"{""error"":""panic at /srv/secret/path.rs:12"",""kind"":""something_else""}"));
 
-            var act = () => Build().DisassembleWasmAsync(new byte[] { 1 }, null);
+            var act = () => Build().DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None);
 
             (await act.Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().NotContain("secret").And.Contain("temporarily unavailable");
         }
@@ -164,7 +211,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             _handler.Respond = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<html>proxy error</html>") });
 
-            var act = () => Build().DisassembleWasmAsync(new byte[] { 1 }, null);
+            var act = () => Build().DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None);
 
             await act.Should().ThrowAsync<PublicApiUnavailableException>();
         }
@@ -174,7 +221,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             _handler.Respond = (_, _) => throw new HttpRequestException("connection refused 10.0.0.7:8787");
 
-            var act = () => Build().GetVersionsAsync();
+            var act = () => Build().GetVersionsAsync(CancellationToken.None);
 
             (await act.Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().NotContain("10.0.0.7");
         }
@@ -188,7 +235,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var client = Build();
 
             // Use a short timeout through the config minimum: wait it out with a cancellable probe.
-            var act = () => client.GetVersionsAsync();
+            var act = () => client.GetVersionsAsync(CancellationToken.None);
             var task = act.Should().ThrowAsync<PublicApiUnavailableException>();
 
             (await task).Which.Message.Should().Contain("took too long");
@@ -202,7 +249,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             _config.SetupGet(c => c.DevToolsUrl).Returns(url);
 
-            var act = () => Build().GetVersionsAsync();
+            var act = () => Build().GetVersionsAsync(CancellationToken.None);
 
             (await act.Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().Contain("not available");
             _handler.Requests.Should().BeEmpty();
@@ -216,17 +263,17 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             _handler.Respond = async (_, _) => { Interlocked.Increment(ref running); await release.Task; return Json(HttpStatusCode.OK, Sample); };
             var client = Build(maxConcurrent: 2, slotWait: TimeSpan.FromMilliseconds(200));
 
-            var first = client.DisassembleWasmAsync(new byte[] { 1 }, null);
-            var second = client.DisassembleWasmAsync(new byte[] { 1 }, null);
+            var first = client.DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None);
+            var second = client.DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None);
             while (Volatile.Read(ref running) < 2) await Task.Delay(10);
 
-            var third = () => client.DisassembleWasmAsync(new byte[] { 1 }, null);
+            var third = () => client.DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None);
             (await third.Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().Contain("busy");
             running.Should().Be(2);
 
             release.SetResult();
             await Task.WhenAll(first, second);
-            (await client.DisassembleWasmAsync(new byte[] { 1 }, null)).Should().NotBeNull(); // slots are free again
+            (await client.DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None)).Should().NotBeNull(); // slots are free again
         }
 
         [Fact]
@@ -237,7 +284,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
 
             for (var i = 0; i < 5; i++)
             {
-                var act = () => client.GetVersionsAsync();
+                var act = () => client.GetVersionsAsync(CancellationToken.None);
                 (await act.Should().ThrowAsync<PublicApiUnavailableException>()).Which.Message.Should().NotContain("busy");
             }
         }
@@ -254,9 +301,9 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         public RetServiceTests()
         {
             _config.SetupGet(c => c.RetMaxWasmBytes).Returns(1024);
-            _client.Setup(c => c.DisassembleAddressAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            _client.Setup(c => c.DisassembleAddressAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result());
-            _client.Setup(c => c.DisassembleWasmAsync(It.IsAny<byte[]>(), It.IsAny<string?>()))
+            _client.Setup(c => c.DisassembleWasmAsync(It.IsAny<byte[]>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result());
         }
 
@@ -276,7 +323,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [InlineData("CAG5LRYQ5JVEUI5TEID72EYOVX44TTUJT5BQR2J6J77FH65PCCFAJDDH/../x")]
         public async Task A_Malformed_Address_Is_Refused_Before_Anything_Is_Called(string? address)
         {
-            var act = () => Build().DecompileAddress(address, null, null, false);
+            var act = () => Build().DecompileAddress(address, null, null, false, CancellationToken.None);
 
             await act.Should().ThrowAsync<PublicApiValidationException>().WithMessage("*address*");
             _client.VerifyNoOtherCalls();
@@ -289,10 +336,10 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [InlineData(" testnet ", "testnet")]
         public async Task Network_Defaults_To_Mainnet_And_Is_Normalised(string? network, string expected)
         {
-            var result = await Build().DecompileAddress(ValidAddress, network, null, false);
+            var result = await Build().DecompileAddress(ValidAddress, network, null, false, CancellationToken.None);
 
             result.Network.Should().Be(expected);
-            _client.Verify(c => c.DisassembleAddressAsync(ValidAddress, expected, null), Times.Once);
+            _client.Verify(c => c.DisassembleAddressAsync(ValidAddress, expected, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Theory]
@@ -301,7 +348,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [InlineData("http://evil")]
         public async Task An_Unknown_Network_Is_Refused(string network)
         {
-            var act = () => Build().DecompileAddress(ValidAddress, network, null, false);
+            var act = () => Build().DecompileAddress(ValidAddress, network, null, false, CancellationToken.None);
 
             await act.Should().ThrowAsync<PublicApiValidationException>().WithMessage("*network*");
         }
@@ -314,20 +361,21 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [InlineData("", null)]
         public async Task The_Version_Is_Cleaned_Or_Left_Out(string? version, string? expected)
         {
-            await Build().DecompileAddress(ValidAddress, null, version, false);
+            await Build().DecompileAddress(ValidAddress, null, version, false, CancellationToken.None);
 
-            _client.Verify(c => c.DisassembleAddressAsync(ValidAddress, "mainnet", expected), Times.Once);
+            _client.Verify(c => c.DisassembleAddressAsync(ValidAddress, "mainnet", expected, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Theory]
         [InlineData("latest")]
+        [InlineData("٠.٠.٤")]           // Arabic-Indic digits: \d would accept them
         [InlineData("0.0")]
         [InlineData("0.0.4-beta")]
         [InlineData("../../etc/passwd")]
         [InlineData("0.0.4; rm -rf /")]
         public async Task A_Version_That_Is_Not_A_Plain_Number_Is_Refused(string version)
         {
-            var act = () => Build().DecompileAddress(ValidAddress, null, version, false);
+            var act = () => Build().DecompileAddress(ValidAddress, null, version, false, CancellationToken.None);
 
             await act.Should().ThrowAsync<PublicApiValidationException>().WithMessage("*version*");
             _client.VerifyNoOtherCalls();
@@ -336,7 +384,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task The_Result_Has_Source_Functions_And_The_Version_That_Made_It_But_No_Module_Bytes()
         {
-            var result = await Build().DecompileAddress(ValidAddress, null, null, false);
+            var result = await Build().DecompileAddress(ValidAddress, null, null, false, CancellationToken.None);
 
             result.Source.Should().Be("pub fn x() {}");
             result.Functions.Should().ContainSingle().Which.Name.Should().Be("x");
@@ -351,8 +399,8 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task Wat_Only_Comes_Back_When_Asked_For()
         {
-            (await Build().DecompileAddress(ValidAddress, null, null, includeWat: false)).Wat.Should().BeNull();
-            var with = await Build().DecompileAddress(ValidAddress, null, null, includeWat: true);
+            (await Build().DecompileAddress(ValidAddress, null, null, includeWat: false, CancellationToken.None)).Wat.Should().BeNull();
+            var with = await Build().DecompileAddress(ValidAddress, null, null, includeWat: true, CancellationToken.None);
 
             with.Wat.Should().Be("(module)");
             with.WatTruncated.Should().BeFalse();
@@ -361,10 +409,10 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task Very_Long_Source_And_Wat_Are_Cut_And_Flagged()
         {
-            _client.Setup(c => c.DisassembleAddressAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
+            _client.Setup(c => c.DisassembleAddressAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result(new string('s', RetService.MaxTextChars + 10), new string('w', RetService.MaxTextChars + 10)));
 
-            var result = await Build().DecompileAddress(ValidAddress, null, null, includeWat: true);
+            var result = await Build().DecompileAddress(ValidAddress, null, null, includeWat: true, CancellationToken.None);
 
             result.Source.Should().HaveLength(RetService.MaxTextChars);
             result.SourceTruncated.Should().BeTrue();
@@ -377,9 +425,9 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [Fact]
         public async Task A_Valid_Module_Is_Decoded_Forwarded_And_Hashed()
         {
-            var result = await Build().DecompileWasm(Convert.ToBase64String(Module), "0.0.3", false);
+            var result = await Build().DecompileWasm(Convert.ToBase64String(Module), "0.0.3", false, CancellationToken.None);
 
-            _client.Verify(c => c.DisassembleWasmAsync(It.Is<byte[]>(b => b.SequenceEqual(Module)), "0.0.3"), Times.Once);
+            _client.Verify(c => c.DisassembleWasmAsync(It.Is<byte[]>(b => b.SequenceEqual(Module)), "0.0.3", It.IsAny<CancellationToken>()), Times.Once);
             result.WasmSha256.Should().Be(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Module)));
             result.Address.Should().BeNull();
         }
@@ -389,9 +437,9 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             var b64 = Convert.ToBase64String(Module);
 
-            await Build().DecompileWasm("  " + b64 + "\n", null, false);
+            await Build().DecompileWasm("  " + b64 + "\n", null, false, CancellationToken.None);
 
-            _client.Verify(c => c.DisassembleWasmAsync(It.IsAny<byte[]>(), null), Times.Once);
+            _client.Verify(c => c.DisassembleWasmAsync(It.IsAny<byte[]>(), null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Theory]
@@ -403,7 +451,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         [InlineData("AGFzbQ==", "not a WebAssembly module")]                  // "\0asm" but no version
         public async Task A_Bad_Module_Is_Refused_Without_Calling_The_Decompiler(string? input, string message)
         {
-            var act = () => Build().DecompileWasm(input, null, false);
+            var act = () => Build().DecompileWasm(input, null, false, CancellationToken.None);
 
             await act.Should().ThrowAsync<PublicApiValidationException>().WithMessage($"*{message}*");
             _client.VerifyNoOtherCalls();
@@ -416,7 +464,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             Module.CopyTo(tooBig, 0);
             var b64 = Convert.ToBase64String(tooBig);
 
-            var act = () => Build().DecompileWasm(b64, null, false);
+            var act = () => Build().DecompileWasm(b64, null, false, CancellationToken.None);
 
             await act.Should().ThrowAsync<PublicApiValidationException>().WithMessage("*too large*1 KB*");
             _client.VerifyNoOtherCalls();
@@ -428,9 +476,9 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var exact = new byte[1024];
             Module.CopyTo(exact, 0);
 
-            await Build().DecompileWasm(Convert.ToBase64String(exact), null, false);
+            await Build().DecompileWasm(Convert.ToBase64String(exact), null, false, CancellationToken.None);
 
-            _client.Verify(c => c.DisassembleWasmAsync(It.Is<byte[]>(b => b.Length == 1024), null), Times.Once);
+            _client.Verify(c => c.DisassembleWasmAsync(It.Is<byte[]>(b => b.Length == 1024), null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -438,7 +486,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             var huge = new string('A', 50_000_000);
 
-            var act = () => Build().DecompileWasm(huge, null, false);
+            var act = () => Build().DecompileWasm(huge, null, false, CancellationToken.None);
 
             await act.Should().ThrowAsync<PublicApiValidationException>().WithMessage("*too large*");
         }

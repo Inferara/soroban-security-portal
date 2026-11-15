@@ -145,10 +145,10 @@ namespace SorobanSecurityPortalApi.Mcp
 
         [McpServerTool(Name = PublicApiOperations.RetVersions, Title = "List soroban-ret versions", ReadOnly = true, Idempotent = true, OpenWorld = false)]
         [Description("List the soroban-ret versions the decompiler tools can use: { current, available }. Pass one as `version` to ret_decompile_address or ret_decompile_wasm; leave it out to use `current`.")]
-        public async Task<CallToolResult> RetVersions()
+        public async Task<CallToolResult> RetVersions(CancellationToken cancellationToken = default)
         {
             return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.RetVersions,
-                null, async () => await _ret.Versions()));
+                null, async () => await _ret.Versions(cancellationToken)));
         }
 
         [McpServerTool(Name = PublicApiOperations.RetDecompileAddress, Title = "Decompile a deployed contract", ReadOnly = true, Idempotent = true, OpenWorld = true)]
@@ -160,11 +160,12 @@ namespace SorobanSecurityPortalApi.Mcp
             [Description("The contract address: 56 characters starting with C.")] string address,
             [Description("mainnet (default) or testnet.")] string? network = null,
             [Description("A soroban-ret version from ret_versions. Default: the current one.")] string? version = null,
-            [Description("Also return the WebAssembly text (WAT). Off by default: it is very long.")] bool includeWat = false)
+            [Description("Also return the WebAssembly text (WAT). Off by default: it is very long.")] bool includeWat = false,
+            CancellationToken cancellationToken = default)
         {
             return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.RetDecompileAddress,
                 PublicApiOperations.Describe(address, network, version),
-                async () => await _ret.DecompileAddress(address, network, version, includeWat),
+                async () => await _ret.DecompileAddress(address, network, version, includeWat, cancellationToken),
                 r => $"engine={r.EngineVersion} wasm={r.WasmSha256[..Math.Min(16, r.WasmSha256.Length)]}"));
         }
 
@@ -175,11 +176,12 @@ namespace SorobanSecurityPortalApi.Mcp
         public async Task<CallToolResult> RetDecompileWasm(
             [Description("The contract's .wasm file, base64 encoded.")] string wasmBase64,
             [Description("A soroban-ret version from ret_versions. Default: the current one.")] string? version = null,
-            [Description("Also return the WebAssembly text (WAT). Off by default: it is very long.")] bool includeWat = false)
+            [Description("Also return the WebAssembly text (WAT). Off by default: it is very long.")] bool includeWat = false,
+            CancellationToken cancellationToken = default)
         {
             return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.RetDecompileWasm,
                 PublicApiOperations.DescribeWasm(wasmBase64, version, _ret.MaxWasmBytes),
-                async () => await _ret.DecompileWasm(wasmBase64, version, includeWat),
+                async () => await _ret.DecompileWasm(wasmBase64, version, includeWat, cancellationToken),
                 r => $"engine={r.EngineVersion}"));
         }
 

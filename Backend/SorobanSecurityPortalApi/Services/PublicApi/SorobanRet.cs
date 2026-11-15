@@ -83,17 +83,22 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         List<string> StandardInterfaces, List<string> Warnings, List<RetFunction> Functions, List<RetType> Types,
         string EngineVersion, long ElapsedMs);
 
+    // The token is the caller's (their request being aborted); it stops the work and frees the slot.
     public interface ISorobanRetClient
     {
-        Task<RetVersionsResult> GetVersionsAsync();
-        Task<RetDisassembly> DisassembleAddressAsync(string address, string network, string? version);
-        Task<RetDisassembly> DisassembleWasmAsync(byte[] wasm, string? version);
+        Task<RetVersionsResult> GetVersionsAsync(CancellationToken cancellationToken);
+        Task<RetDisassembly> DisassembleAddressAsync(string address, string network, string? version, CancellationToken cancellationToken);
+        Task<RetDisassembly> DisassembleWasmAsync(byte[] wasm, string? version, CancellationToken cancellationToken);
     }
 
     // Calls the Dev Tools backend (soroban-ret-web) that already runs next to the portal. Only the
     // read-only decompile endpoints are used: never /compile, which runs user code on the server.
-    public class SorobanRetClient : ISorobanRetClient
+    public partial class SorobanRetClient : ISorobanRetClient
     {
+        // The messages soroban-ret-web builds for a contract the node cannot give us, free of addresses.
+        [GeneratedRegex("^(Contract not found on-chain|RPC returned HTTP [0-9]{3}[^\\r\\n]{0,40}|Unexpected [A-Za-z ]{1,60})$")]
+        private static partial Regex SafeNetworkMessage();
+
         // Decompiling a large contract takes tens of seconds of CPU on the shared node, so only a
         // few run at once. A caller that cannot get a slot soon is told to retry instead of queueing.
         public const int DefaultMaxConcurrentRequests = 3;
@@ -122,9 +127,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             _slotWaitTime = slotWaitTime;
         }
 
-        public async Task<RetVersionsResult> GetVersionsAsync()
+        public async Task<RetVersionsResult> GetVersionsAsync(CancellationToken cancellationToken)
         {
-            using var response = await SendAsync(HttpMethod.Get, "versions", null);
+            using var response = await SendAsync(HttpMethod.Get, "versions", null, cancellationToken);
             using var doc = await ReadAsync(response);
             var root = doc.RootElement;
             return new RetVersionsResult
@@ -134,36 +139,38 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             };
         }
 
-        public async Task<RetDisassembly> DisassembleAddressAsync(string address, string network, string? version)
+        public async Task<RetDisassembly> DisassembleAddressAsync(string address, string network, string? version, CancellationToken cancellationToken)
         {
             using var response = await SendAsync(HttpMethod.Post, "address",
-                new { address, network, spec_only = false, version });
+                new { address, network, spec_only = false, version }, cancellationToken);
             using var doc = await ReadAsync(response);
             return Map(doc.RootElement);
         }
 
-        public async Task<RetDisassembly> DisassembleWasmAsync(byte[] wasm, string? version)
+        public async Task<RetDisassembly> DisassembleWasmAsync(byte[] wasm, string? version, CancellationToken cancellationToken)
         {
             using var response = await SendAsync(HttpMethod.Post, "disassemble",
-                new { wasm_base64 = Convert.ToBase64String(wasm), spec_only = false, version });
+                new { wasm_base64 = Convert.ToBase64String(wasm), spec_only = false, version }, cancellationToken);
             using var doc = await ReadAsync(response);
             return Map(doc.RootElement);
         }
 
-        private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body)
+        private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
         {
             var baseUrl = (_config.DevToolsUrl ?? "").Trim().TrimEnd('/');
             if (baseUrl.Length == 0)
                 throw new PublicApiUnavailableException("The decompiler is not available on this server.");
 
-            if (!await _slots.WaitAsync(_slotWaitTime))
+            if (!await _slots.WaitAsync(_slotWaitTime, cancellationToken))
                 throw new PublicApiUnavailableException("The decompiler is busy. Try again in a moment.");
             try
             {
                 using var request = new HttpRequestMessage(method, $"{baseUrl}/{ApiPath}{path}");
                 if (body != null) request.Content = JsonContent.Create(body);
 
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, _config.RetRequestTimeoutSeconds)));
+                // Ends when the time is up or the caller goes away, whichever comes first.
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, _config.RetRequestTimeoutSeconds)));
                 try
                 {
                     var client = _httpClientFactory.CreateClient(HttpClients.NoRetryClient);
@@ -172,7 +179,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                     if (response.IsSuccessStatusCode) return response;
                     using (response) throw await ToException(response);
                 }
-                catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested)
                 {
                     throw new PublicApiUnavailableException("The decompiler took too long. The contract may be very large; try again later.");
                 }
@@ -209,9 +216,12 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                     return new PublicApiValidationException(message);
                 case "decompile_error" when !string.IsNullOrEmpty(message):
                     return new PublicApiValidationException($"Could not decompile this module: {message}");
-                // The Stellar node did not give us the contract (not found, unreachable, ...).
-                case "network_error" when !string.IsNullOrEmpty(message):
-                    return new PublicApiUnavailableException($"Could not fetch the contract from the network: {message}");
+                // The Stellar node did not give us the contract. Only a few known messages are passed on:
+                // the others (for example "RPC request failed: ... url ...") can carry the node's address.
+                case "network_error":
+                    return new PublicApiUnavailableException(message != null && SafeNetworkMessage().IsMatch(message)
+                        ? $"Could not fetch the contract from the network: {message}"
+                        : "Could not fetch the contract from the Stellar network right now. Try again later.");
             }
             _logger.LogError("soroban-ret-web answered {Status} ({Kind}): {Message}", (int)response.StatusCode, kind, message);
             return new PublicApiUnavailableException("The decompiler is temporarily unavailable. Try again later.");
@@ -287,9 +297,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public interface IRetService
     {
         int MaxWasmBytes { get; }
-        Task<RetVersionsResult> Versions();
-        Task<RetDecompileResult> DecompileAddress(string? address, string? network, string? version, bool includeWat);
-        Task<RetDecompileResult> DecompileWasm(string? wasmBase64, string? version, bool includeWat);
+        Task<RetVersionsResult> Versions(CancellationToken cancellationToken);
+        Task<RetDecompileResult> DecompileAddress(string? address, string? network, string? version, bool includeWat, CancellationToken cancellationToken);
+        Task<RetDecompileResult> DecompileWasm(string? wasmBase64, string? version, bool includeWat, CancellationToken cancellationToken);
     }
 
     // Validates what a caller sends and shapes what soroban-ret answers. The transports (MCP today)
@@ -300,7 +310,8 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         [GeneratedRegex("^C[A-Z2-7]{55}$")]
         private static partial Regex ContractAddress();
 
-        [GeneratedRegex(@"^\d{1,3}\.\d{1,3}\.\d{1,3}$")]
+        // [0-9], not \d: \d also matches digits of other scripts.
+        [GeneratedRegex(@"^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$")]
         private static partial Regex VersionNumber();
 
         public const int MaxTextChars = 300_000;
@@ -317,9 +328,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
         public int MaxWasmBytes => _config.RetMaxWasmBytes;
 
-        public async Task<RetVersionsResult> Versions() => await _client.GetVersionsAsync();
+        public async Task<RetVersionsResult> Versions(CancellationToken cancellationToken) => await _client.GetVersionsAsync(cancellationToken);
 
-        public async Task<RetDecompileResult> DecompileAddress(string? address, string? network, string? version, bool includeWat)
+        public async Task<RetDecompileResult> DecompileAddress(string? address, string? network, string? version, bool includeWat, CancellationToken cancellationToken)
         {
             var cleanAddress = (address ?? "").Trim();
             if (!ContractAddress().IsMatch(cleanAddress))
@@ -329,7 +340,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 throw new PublicApiValidationException("'network' must be 'mainnet' or 'testnet'.");
             var cleanVersion = CleanVersion(version);
 
-            var result = await _client.DisassembleAddressAsync(cleanAddress, cleanNetwork, cleanVersion);
+            var result = await _client.DisassembleAddressAsync(cleanAddress, cleanNetwork, cleanVersion, cancellationToken);
             var shaped = Shape(result, includeWat);
             shaped.Address = cleanAddress;
             shaped.Network = cleanNetwork;
@@ -338,12 +349,12 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             return shaped;
         }
 
-        public async Task<RetDecompileResult> DecompileWasm(string? wasmBase64, string? version, bool includeWat)
+        public async Task<RetDecompileResult> DecompileWasm(string? wasmBase64, string? version, bool includeWat, CancellationToken cancellationToken)
         {
             var wasm = DecodeWasm(wasmBase64, _config.RetMaxWasmBytes);
             var cleanVersion = CleanVersion(version);
 
-            var result = await _client.DisassembleWasmAsync(wasm, cleanVersion);
+            var result = await _client.DisassembleWasmAsync(wasm, cleanVersion, cancellationToken);
             var shaped = Shape(result, includeWat);
             shaped.WasmSha256 = Convert.ToHexStringLower(SHA256.HashData(wasm));
             return shaped;

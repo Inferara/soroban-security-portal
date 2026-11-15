@@ -249,8 +249,8 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             await Build().Run(ApiUsageSource.Mcp, "ret_decompile_address", "address=C", () => Task.FromResult<string?>("x"));
 
             calls.Should().HaveCount(2);
-            calls[0].Should().Be(("u:42", new ApiRateLimits(60, 2000, 600), true));
-            calls[1].Should().Be(("ret:u:42", new ApiRateLimits(6, 100, int.MaxValue), false)); // own allowance, not the global cap
+            calls[0].Should().Be(("ret:u:42", new ApiRateLimits(6, 100, int.MaxValue), false)); // own allowance, not the global cap; checked first
+            calls[1].Should().Be(("u:42", new ApiRateLimits(60, 2000, 600), true));
         }
 
         [Theory]
@@ -262,7 +262,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
 
             await Build().Run(ApiUsageSource.Mcp, operation, null, () => Task.FromResult<string?>("x"));
 
-            calls.Select(c => c.Scope).Should().Equal("u:42", "ret:u:42");
+            calls.Select(c => c.Scope).Should().Equal("ret:u:42", "u:42");
         }
 
         [Theory]
@@ -286,8 +286,8 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
 
             await Build().Run(ApiUsageSource.Mcp, "ret_decompile_wasm", null, () => Task.FromResult<string?>("x"));
 
-            calls.Select(c => c.Scope).Should().Equal("k:11", "ret:k:11");
-            calls[1].Limits.Should().Be(new ApiRateLimits(6, 100, int.MaxValue)); // widening the general limits does not widen this one
+            calls.Select(c => c.Scope).Should().Equal("ret:k:11", "k:11");
+            calls[0].Limits.Should().Be(new ApiRateLimits(6, 100, int.MaxValue)); // widening the general limits does not widen this one
         }
 
         [Fact]
@@ -308,7 +308,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             outcome.RetryAfterSeconds.Should().Be(33);
             outcome.Message.Should().Contain("Decompiler limit of 6 calls per minute").And.Contain("33 seconds");
             ran.Should().BeFalse();
-            calls.Should().Be(2);
+            calls.Should().Be(1); // refused by the decompiler allowance, which is checked first: the general allowance was never touched
             _refusals.Verify(r => r.Record(PersonalCaller, ApiUsageSource.Mcp, "ret_decompile_address"), Times.Once);
             _usageLog.Verify(u => u.Add(It.IsAny<ApiUsageLogModel>()), Times.Never);
         }
@@ -331,13 +331,66 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             _usageLog.Setup(u => u.CountCountedSince(11, It.IsAny<DateTime>(), "ret_decompile")).ReturnsAsync(9);
             var day = new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc);
 
-            CaptureLimiterCalls();
+            var seeds = new Dictionary<string, Func<DateTime, Task<int>>>();
+            _limiter.Setup(l => l.TryAcquireAsync(It.IsAny<string>(), It.IsAny<ApiRateLimits>(), It.IsAny<Func<DateTime, Task<int>>>(), It.IsAny<bool>()))
+                .Callback<string, ApiRateLimits, Func<DateTime, Task<int>>, bool>((scope, _, seed, _) => seeds[scope] = seed)
+                .ReturnsAsync(ApiRateLimitDecision.Ok);
+
             await Build().Run(ApiUsageSource.Mcp, "ret_decompile_wasm", null, () => Task.FromResult<string?>("x"));
-            (await _seedUsed!(day)).Should().Be(37); // the last limiter call was the decompiler one
+            (await seeds["ret:u:42"](day)).Should().Be(37); // decompile calls only
 
             _caller.Setup(c => c.GetCaller()).Returns(new ApiCaller(11, null, ApiKeyKind.Service, null, null));
             await Build().Run(ApiUsageSource.Mcp, "ret_decompile_wasm", null, () => Task.FromResult<string?>("x"));
-            (await _seedUsed!(day)).Should().Be(9);
+            (await seeds["ret:k:11"](day)).Should().Be(9);
+        }
+
+        // ---- with the real limiter ----
+
+        private ApiCallRunner BuildWithRealLimiter(int generalPerMinute, int retPerMinute)
+        {
+            _config.SetupGet(c => c.PublicApiRateLimitPerMinute).Returns(generalPerMinute);
+            _config.SetupGet(c => c.RetRateLimitPerMinute).Returns(retPerMinute);
+            _usageLog.Setup(u => u.CountCountedForLoginSince(It.IsAny<int>(), It.IsAny<DateTime>())).ReturnsAsync(0);
+            _usageLog.Setup(u => u.CountCountedForLoginSince(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<string>())).ReturnsAsync(0);
+            return new ApiCallRunner(_caller.Object, new ApiRateLimiter(), _refusals.Object, _usageLog.Object, _apiKeys.Object, _config.Object,
+                new MemoryCache(new MemoryCacheOptions()), NullLogger<ApiCallRunner>.Instance);
+        }
+
+        [Fact]
+        public async Task A_Call_Refused_By_The_Decompiler_Allowance_Costs_No_General_Allowance()
+        {
+            var runner = BuildWithRealLimiter(generalPerMinute: 8, retPerMinute: 3);
+            Task<ApiCallOutcome<string>> Decompile() => runner.Run(ApiUsageSource.Mcp, "ret_decompile_wasm", null, () => Task.FromResult<string?>("x"));
+            Task<ApiCallOutcome<string>> Search() => runner.Run(ApiUsageSource.Mcp, "search_vulnerabilities", null, () => Task.FromResult<string?>("x"));
+
+            for (var i = 0; i < 3; i++) (await Decompile()).Status.Should().Be(ApiCallStatus.Ok);      // 3 of 8 general used
+            for (var i = 0; i < 20; i++) (await Decompile()).Status.Should().Be(ApiCallStatus.RateLimited); // a retry loop: refused, costs nothing
+
+            // 5 general calls are still left, so the other tools keep working.
+            for (var i = 0; i < 5; i++) (await Search()).Status.Should().Be(ApiCallStatus.Ok);
+            (await Search()).Status.Should().Be(ApiCallStatus.RateLimited);
+        }
+
+        [Fact]
+        public async Task Cheap_Tools_Do_Not_Use_The_Decompiler_Allowance()
+        {
+            var runner = BuildWithRealLimiter(generalPerMinute: 100, retPerMinute: 2);
+
+            for (var i = 0; i < 30; i++)
+                (await runner.Run(ApiUsageSource.Mcp, "ret_versions", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.Ok);
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.Ok);
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.Ok);
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.RateLimited);
+        }
+
+        [Fact]
+        public async Task The_Two_Decompile_Tools_Share_One_Allowance()
+        {
+            var runner = BuildWithRealLimiter(generalPerMinute: 100, retPerMinute: 2);
+
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.Ok);
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_wasm", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.Ok);
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_wasm", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.RateLimited);
         }
 
         [Fact]

@@ -84,6 +84,28 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             if (!_config.PublicApiEnabled)
                 return new ApiCallOutcome<T> { Status = ApiCallStatus.Disabled, Message = "The public API is temporarily disabled." };
 
+            // The decompiler is CPU heavy: those calls must also fit a much stricter allowance of their own.
+            // It is checked first, so a call refused here uses up none of the general allowance (or of the
+            // global cap that protects everybody else); the reverse mistake costs at most one decompile slot.
+            if (PublicApiOperations.IsDecompile(operation))
+            {
+                var decompile = await TryAcquireDecompile(caller);
+                if (decompile is { Allowed: false })
+                {
+                    _refusals.Record(caller, source, operation);
+                    return new ApiCallOutcome<T>
+                    {
+                        Status = ApiCallStatus.RateLimited,
+                        RetryAfterSeconds = decompile.RetryAfterSeconds,
+                        Message = decompile.Kind == ApiRateLimitKind.PerDay
+                            ? $"Daily limit of {decompile.Limit} decompiler calls reached. Try again in {decompile.RetryAfterSeconds} seconds (resets at 00:00 UTC)."
+                            : $"Decompiler limit of {decompile.Limit} calls per minute reached. Try again in {decompile.RetryAfterSeconds} seconds.",
+                    };
+                }
+                if (decompile == null)
+                    return new ApiCallOutcome<T> { Status = ApiCallStatus.Error, Message = "Internal error. Please try again later." };
+            }
+
             ApiRateLimitDecision decision;
             try
             {
@@ -113,26 +135,6 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                         _ => $"The API is receiving too many requests right now. Try again in {decision.RetryAfterSeconds} seconds.",
                     },
                 };
-            }
-
-            // The decompiler is CPU heavy: those calls also have to fit a much stricter allowance of their own.
-            if (PublicApiOperations.IsDecompile(operation))
-            {
-                var decompile = await TryAcquireDecompile(caller);
-                if (decompile is { Allowed: false })
-                {
-                    _refusals.Record(caller, source, operation);
-                    return new ApiCallOutcome<T>
-                    {
-                        Status = ApiCallStatus.RateLimited,
-                        RetryAfterSeconds = decompile.RetryAfterSeconds,
-                        Message = decompile.Kind == ApiRateLimitKind.PerDay
-                            ? $"Daily limit of {decompile.Limit} decompiler calls reached. Try again in {decompile.RetryAfterSeconds} seconds (resets at 00:00 UTC)."
-                            : $"Decompiler limit of {decompile.Limit} calls per minute reached. Try again in {decompile.RetryAfterSeconds} seconds.",
-                    };
-                }
-                if (decompile == null)
-                    return new ApiCallOutcome<T> { Status = ApiCallStatus.Error, Message = "Internal error. Please try again later." };
             }
 
             var stopwatch = Stopwatch.StartNew();
