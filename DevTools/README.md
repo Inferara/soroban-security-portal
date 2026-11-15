@@ -98,6 +98,39 @@ A *disassembly result* contains: `source` (decompiled Rust), `wat`, `wasm_hex`
 `wasm_hash`, `contract_info` (functions + types with source line numbers), and
 `engine` / `engine_version` (which soroban-ret produced the output).
 
+### MCP tools (decompiler for AI agents)
+
+The portal API exposes the read-only decompile endpoints to AI agents through its MCP server
+(`/api/mcp`, see [issue #259](https://github.com/Inferara/soroban-security-portal/issues/259)), so
+people can use soroban-ret without finding this page first. The API calls this service over the
+in-cluster URL set in its `DEVTOOLSURL` setting (Helm: `{env}-soroban-ret-web-ip:8787`; local compose:
+`http://soroban-ret-web:8787`). Leave it empty to turn the tools off.
+
+| Tool | What it does | Calls |
+|---|---|---|
+| `ret_versions` | the soroban-ret versions available | `GET /versions` |
+| `ret_decompile_address` | `address`, `network` (mainnet/testnet, default mainnet), `version?`, `includeWat?` | `POST /address` |
+| `ret_decompile_wasm` | `wasmBase64`, `version?`, `includeWat?` | `POST /disassemble` |
+
+`/compile` is never used (it runs user code on the server). Behaviour worth knowing:
+
+- An API key is required, same as for every other portal MCP tool. Create one on the portal profile page.
+- **Limits.** Decompiling is CPU heavy (a large contract takes tens of seconds), so these calls have their own
+  allowance per user, on top of the general one: 6 per minute and 100 per day by default. Tune them under
+  *Settings, Public API & MCP* (`RetRateLimitPerMinute`, `RetRateLimitPerDay`). The portal API also runs at most
+  3 decompile requests at once and answers "busy, try again" instead of queueing, and gives up after
+  `RetRequestTimeoutSeconds` (90 by default).
+- **Size cap.** `wasmBase64` is limited to `RetMaxWasmBytes` (512 KB by default) and is checked before it is
+  decoded; the module must start with the WebAssembly header.
+- The answer carries the recovered `source`, the function and type lists, the code hash, SDK version and warnings,
+  and the soroban-ret version that produced it. The WAT is only returned on request; very long `source` or WAT
+  is cut at 300,000 characters and flagged.
+- **Logging.** Every call is written to the MCP usage statistics with the tool, key and user, the contract
+  address or a fingerprint of the WASM (never the module itself), the network, the requested version and the
+  version that ran, the duration and the result.
+- After launch, watch the load on the node (the usage page shows calls and durations per tool) and tighten the
+  limits if needed.
+
 ### Version selection
 
 `/versions` returns the builtin library version plus any external CLI versions

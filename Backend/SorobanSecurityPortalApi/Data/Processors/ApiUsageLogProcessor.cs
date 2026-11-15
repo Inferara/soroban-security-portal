@@ -48,6 +48,26 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 && db.ApiKey.Any(k => k.Id == u.ApiKeyId && k.Kind == ApiKeyKind.Personal));
         }
 
+        // The same, for one family of operations (those whose name starts with operationPrefix).
+        public async Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc, string operationPrefix)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.ApiUsageLog.CountAsync(u =>
+                u.ApiKeyId == apiKeyId && u.CreatedAt >= sinceUtc && u.Status != ApiUsageStatus.RateLimited
+                && u.Operation.StartsWith(operationPrefix));
+        }
+
+        public async Task<int> CountCountedForLoginSince(int loginId, DateTime sinceUtc, string operationPrefix)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.ApiUsageLog.CountAsync(u =>
+                u.LoginId == loginId
+                && u.CreatedAt >= sinceUtc
+                && u.Status != ApiUsageStatus.RateLimited
+                && u.Operation.StartsWith(operationPrefix)
+                && db.ApiKey.Any(k => k.Id == u.ApiKeyId && k.Kind == ApiKeyKind.Personal));
+        }
+
         public async Task<ApiUsageStatisticsViewModel> GetStatistics(DateTime fromUtc, DateTime toUtc)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -169,6 +189,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task AddRange(IEnumerable<ApiUsageLogModel> entries);
         Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc);
         Task<int> CountCountedForLoginSince(int loginId, DateTime sinceUtc);
+        Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc, string operationPrefix);
+        Task<int> CountCountedForLoginSince(int loginId, DateTime sinceUtc, string operationPrefix);
         Task<ApiUsageStatisticsViewModel> GetStatistics(DateTime fromUtc, DateTime toUtc);
         Task<List<ApiUsageExportRow>> Export(DateTime fromUtc, DateTime toUtc, int maxRows);
     }

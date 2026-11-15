@@ -83,6 +83,8 @@ public class Startup
         services.AddSingleton<IApiRateLimiter, ApiRateLimiter>();
         services.AddSingleton<QueryEmbeddingCache>();
         services.AddSingleton<ApiKeyLookupCache>();
+        // One client for the whole process: it holds the cap on concurrent decompile requests.
+        services.AddSingleton<ISorobanRetClient, SorobanRetClient>();
         // Refused calls are counted in memory and written in aggregate by the flusher.
         services.AddSingleton<IApiRefusalAggregator, ApiRefusalAggregator>();
         services.AddHostedService<ApiRefusalFlusher>();

@@ -288,6 +288,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
     public class PortalMcpToolsTests
     {
         private readonly Mock<IPublicApiService> _service = new();
+        private readonly Mock<IRetService> _ret = new();
         private readonly Mock<IApiCallRunner> _runner = new();
 
         private void RunnerReturns<T>(ApiCallOutcome<T> outcome) where T : class =>
@@ -305,7 +306,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                 Value = new PublicVulnerabilityDetail { Id = 5, Title = "a < b && \"c\"", Description = "let x: Vec<u8>;" },
             });
 
-            var result = await new PortalMcpTools(_service.Object, _runner.Object).GetVulnerability(5);
+            var result = await new PortalMcpTools(_service.Object, _ret.Object, _runner.Object).GetVulnerability(5);
 
             result.IsError.Should().NotBe(true);
             var text = Text(result);
@@ -323,7 +324,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             RunnerReturns(new ApiCallOutcome<PublicVulnerabilityDetail> { Status = status, Message = "Daily limit of 5 calls reached." });
 
-            var result = await new PortalMcpTools(_service.Object, _runner.Object).GetVulnerability(5);
+            var result = await new PortalMcpTools(_service.Object, _ret.Object, _runner.Object).GetVulnerability(5);
 
             result.IsError.Should().BeTrue();
             Text(result).Should().Be("Daily limit of 5 calls reached.");
@@ -343,8 +344,87 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                 PublicApiOperations.SearchVulnerabilities, PublicApiOperations.GetVulnerability,
                 PublicApiOperations.SearchReports, PublicApiOperations.GetReport,
                 PublicApiOperations.ListProtocols, PublicApiOperations.ListAuditors, PublicApiOperations.ListCompanies,
+                PublicApiOperations.RetVersions, PublicApiOperations.RetDecompileAddress, PublicApiOperations.RetDecompileWasm,
             });
             tools.Should().OnlyContain(t => t!.ReadOnly);
+        }
+
+        [Fact]
+        public void There_Is_No_Tool_That_Compiles_Or_Writes_Anything()
+        {
+            var names = typeof(PortalMcpTools).GetMethods()
+                .Select(m => m.GetCustomAttributes(typeof(ModelContextProtocol.Server.McpServerToolAttribute), false)
+                    .Cast<ModelContextProtocol.Server.McpServerToolAttribute>().SingleOrDefault()?.Name)
+                .Where(n => n != null);
+
+            // "ret_decompile_*" is fine; a tool that COMPILES (runs user code on the server) is not.
+            names.Should().NotContain(n => n!.Split('_', StringSplitOptions.None).Contains("compile") || n.StartsWith("add_") || n.StartsWith("delete_") || n.StartsWith("update_"));
+        }
+
+        private void RetRunnerReturns<T>(ApiCallOutcome<T> outcome) where T : class =>
+            _runner.Setup(r => r.Run(It.IsAny<ApiUsageSource>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<Func<Task<T?>>>(), It.IsAny<Func<T, string?>?>()))
+                .ReturnsAsync(outcome);
+
+        [Fact]
+        public async Task Decompiling_By_Address_Goes_Through_The_Gate_With_A_Loggable_Description()
+        {
+            const string address = "CAG5LRYQ5JVEUI5TEID72EYOVX44TTUJT5BQR2J6J77FH65PCCFAJDDH";
+            RetRunnerReturns(new ApiCallOutcome<RetDecompileResult>
+            {
+                Status = ApiCallStatus.Ok,
+                Value = new RetDecompileResult { Source = "pub fn x() {}", EngineVersion = "0.0.4", WasmSha256 = "abcdef0123456789abcdef" },
+            });
+
+            var result = await new PortalMcpTools(_service.Object, _ret.Object, _runner.Object).RetDecompileAddress(address, "testnet", "0.0.4", false);
+
+            result.IsError.Should().NotBe(true);
+            Text(result).Should().Contain("\"source\":\"pub fn x() {}\"").And.Contain("\"engineVersion\":\"0.0.4\"");
+            _runner.Verify(r => r.Run(ApiUsageSource.Mcp, "ret_decompile_address", $"address={address} network=testnet version=0.0.4",
+                It.IsAny<Func<Task<RetDecompileResult?>>>(), It.IsAny<Func<RetDecompileResult, string?>?>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task The_Logged_Note_Carries_The_Engine_Version_And_A_Short_Hash()
+        {
+            Func<RetDecompileResult, string?>? describe = null;
+            _runner.Setup(r => r.Run(It.IsAny<ApiUsageSource>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<Func<Task<RetDecompileResult?>>>(), It.IsAny<Func<RetDecompileResult, string?>?>()))
+                .Callback<ApiUsageSource, string, string?, Func<Task<RetDecompileResult?>>, Func<RetDecompileResult, string?>?>((_, _, _, _, d) => describe = d)
+                .ReturnsAsync(new ApiCallOutcome<RetDecompileResult> { Status = ApiCallStatus.Ok, Value = new RetDecompileResult() });
+
+            await new PortalMcpTools(_service.Object, _ret.Object, _runner.Object)
+                .RetDecompileAddress("CAG5LRYQ5JVEUI5TEID72EYOVX44TTUJT5BQR2J6J77FH65PCCFAJDDH", null, null, false);
+
+            describe!(new RetDecompileResult { EngineVersion = "0.0.4", WasmSha256 = "abcdef0123456789abcdef" }).Should().Be("engine=0.0.4 wasm=abcdef0123456789");
+            describe(new RetDecompileResult { EngineVersion = "0.0.4", WasmSha256 = "" }).Should().Be("engine=0.0.4 wasm=");
+        }
+
+        [Fact]
+        public async Task Decompiling_A_Wasm_Logs_A_Fingerprint_Not_The_Module()
+        {
+            _ret.SetupGet(r => r.MaxWasmBytes).Returns(1024);
+            var module = Convert.ToBase64String(new byte[] { 0, 0x61, 0x73, 0x6D, 1, 0, 0, 0 });
+            string? logged = null;
+            _runner.Setup(r => r.Run(It.IsAny<ApiUsageSource>(), "ret_decompile_wasm", It.IsAny<string?>(), It.IsAny<Func<Task<RetDecompileResult?>>>(), It.IsAny<Func<RetDecompileResult, string?>?>()))
+                .Callback<ApiUsageSource, string, string?, Func<Task<RetDecompileResult?>>, Func<RetDecompileResult, string?>?>((_, _, a, _, _) => logged = a)
+                .ReturnsAsync(new ApiCallOutcome<RetDecompileResult> { Status = ApiCallStatus.Ok, Value = new RetDecompileResult() });
+
+            await new PortalMcpTools(_service.Object, _ret.Object, _runner.Object).RetDecompileWasm(module, null, false);
+
+            logged.Should().Contain("sha256=").And.Contain("bytes=8").And.NotContain(module);
+        }
+
+        [Theory]
+        [InlineData(ApiCallStatus.RateLimited, "Decompiler limit of 6 calls per minute reached.")]
+        [InlineData(ApiCallStatus.BadRequest, "'address' must be a Stellar contract address.")]
+        [InlineData(ApiCallStatus.Error, "The decompiler is busy. Try again in a moment.")]
+        public async Task Decompiler_Failures_Are_Error_Results_With_The_Plain_Message(ApiCallStatus status, string message)
+        {
+            RetRunnerReturns(new ApiCallOutcome<RetDecompileResult> { Status = status, Message = message });
+
+            var result = await new PortalMcpTools(_service.Object, _ret.Object, _runner.Object).RetDecompileAddress("x", null, null, false);
+
+            result.IsError.Should().BeTrue();
+            Text(result).Should().Be(message);
         }
     }
 }

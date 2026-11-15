@@ -38,11 +38,13 @@ namespace SorobanSecurityPortalApi.Mcp
         };
 
         private readonly IPublicApiService _service;
+        private readonly IRetService _ret;
         private readonly IApiCallRunner _runner;
 
-        public PortalMcpTools(IPublicApiService service, IApiCallRunner runner)
+        public PortalMcpTools(IPublicApiService service, IRetService ret, IApiCallRunner runner)
         {
             _service = service;
+            _ret = ret;
             _runner = runner;
         }
 
@@ -139,6 +141,46 @@ namespace SorobanSecurityPortalApi.Mcp
         {
             return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.ListCompanies,
                 null, async () => await _service.ListCompanies()));
+        }
+
+        [McpServerTool(Name = PublicApiOperations.RetVersions, Title = "List soroban-ret versions", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+        [Description("List the soroban-ret versions the decompiler tools can use: { current, available }. Pass one as `version` to ret_decompile_address or ret_decompile_wasm; leave it out to use `current`.")]
+        public async Task<CallToolResult> RetVersions()
+        {
+            return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.RetVersions,
+                null, async () => await _ret.Versions()));
+        }
+
+        [McpServerTool(Name = PublicApiOperations.RetDecompileAddress, Title = "Decompile a deployed contract", ReadOnly = true, Idempotent = true, OpenWorld = true)]
+        [Description("Recover Rust source from a Soroban contract that is deployed on Stellar, given its contract address, using soroban-ret. "
+                     + "The result is an approximation of the original code (names and structure are inferred), good for understanding what a contract does or checking it for issues. "
+                     + "Returns JSON: { source (Rust), functions, types, wasmHash, sdkVersion, standardInterfaces, warnings, engineVersion, ... }. "
+                     + "Slow for large contracts (up to about a minute). Strictly rate limited: use it sparingly and reuse results.")]
+        public async Task<CallToolResult> RetDecompileAddress(
+            [Description("The contract address: 56 characters starting with C.")] string address,
+            [Description("mainnet (default) or testnet.")] string? network = null,
+            [Description("A soroban-ret version from ret_versions. Default: the current one.")] string? version = null,
+            [Description("Also return the WebAssembly text (WAT). Off by default: it is very long.")] bool includeWat = false)
+        {
+            return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.RetDecompileAddress,
+                PublicApiOperations.Describe(address, network, version),
+                async () => await _ret.DecompileAddress(address, network, version, includeWat),
+                r => $"engine={r.EngineVersion} wasm={r.WasmSha256[..Math.Min(16, r.WasmSha256.Length)]}"));
+        }
+
+        [McpServerTool(Name = PublicApiOperations.RetDecompileWasm, Title = "Decompile a WASM module", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+        [Description("Recover Rust source from a compiled Soroban contract (.wasm) using soroban-ret. Send the file base64 encoded. "
+                     + "Use this for a contract that is not deployed yet, or one you built yourself. The module size is limited (512 KB by default). "
+                     + "Returns the same JSON as ret_decompile_address. Strictly rate limited.")]
+        public async Task<CallToolResult> RetDecompileWasm(
+            [Description("The contract's .wasm file, base64 encoded.")] string wasmBase64,
+            [Description("A soroban-ret version from ret_versions. Default: the current one.")] string? version = null,
+            [Description("Also return the WebAssembly text (WAT). Off by default: it is very long.")] bool includeWat = false)
+        {
+            return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.RetDecompileWasm,
+                PublicApiOperations.DescribeWasm(wasmBase64, version, _ret.MaxWasmBytes),
+                async () => await _ret.DecompileWasm(wasmBase64, version, includeWat),
+                r => $"engine={r.EngineVersion}"));
         }
 
         // A successful call returns the JSON as text. Anything else becomes a tool result with
