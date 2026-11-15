@@ -72,6 +72,10 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public class PublicApiUnavailableException : Exception
     {
         public PublicApiUnavailableException(string message) : base(message) { }
+
+        // False when nothing was done for the caller (the decompiler was busy), so their allowance is
+        // not used up. True for a call that ran for a while and failed or timed out.
+        public bool ChargesAllowance { get; init; } = true;
     }
 
     // ---- the client of soroban-ret-web -----------------------------------------------------------
@@ -159,10 +163,10 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         {
             var baseUrl = (_config.DevToolsUrl ?? "").Trim().TrimEnd('/');
             if (baseUrl.Length == 0)
-                throw new PublicApiUnavailableException("The decompiler is not available on this server.");
+                throw new PublicApiUnavailableException("The decompiler is not available on this server.") { ChargesAllowance = false };
 
             if (!await _slots.WaitAsync(_slotWaitTime, cancellationToken))
-                throw new PublicApiUnavailableException("The decompiler is busy. Try again in a moment.");
+                throw new PublicApiUnavailableException("The decompiler is busy. Try again in a moment.") { ChargesAllowance = false };
             try
             {
                 using var request = new HttpRequestMessage(method, $"{baseUrl}/{ApiPath}{path}");
@@ -215,7 +219,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 case "invalid_input" when !string.IsNullOrEmpty(message):
                     return new PublicApiValidationException(message);
                 case "decompile_error" when !string.IsNullOrEmpty(message):
-                    return new PublicApiValidationException($"Could not decompile this module: {message}");
+                    return new PublicApiValidationException($"Could not decompile this module: {message}") { ChargesAllowance = true };
                 // The Stellar node did not give us the contract. Only a few known messages are passed on:
                 // the others (for example "RPC request failed: ... url ...") can carry the node's address.
                 case "network_error":

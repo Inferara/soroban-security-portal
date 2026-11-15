@@ -29,6 +29,11 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public class PublicApiValidationException : Exception
     {
         public PublicApiValidationException(string message) : base(message) { }
+
+        // False for a mistake spotted before any real work was done (a typo, a missing argument): such a
+        // call does not use up the caller's allowance for expensive operations. True when the work
+        // had to be started to find out (for example a module the decompiler could not read).
+        public bool ChargesAllowance { get; init; }
     }
 
     // Every public operation, on either transport, goes through here. This is the one place
@@ -149,12 +154,15 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             catch (PublicApiValidationException ex)
             {
                 outcome = new ApiCallOutcome<T> { Status = ApiCallStatus.BadRequest, Message = ex.Message };
+                // A typo should not cost the caller one of their few expensive calls.
+                if (!ex.ChargesAllowance) RefundDecompile(caller, operation);
             }
             catch (PublicApiUnavailableException ex)
             {
                 // A dependency (the decompiler) is down, busy or slow: not the caller's fault, and the
                 // message says what to do. Anything else is reported generically below.
                 outcome = new ApiCallOutcome<T> { Status = ApiCallStatus.Error, Message = ex.Message };
+                if (!ex.ChargesAllowance) RefundDecompile(caller, operation);
             }
             catch (OperationCanceledException)
             {
@@ -183,6 +191,13 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             await Log(caller, source, operation, logged, logStatus, (int)stopwatch.ElapsedMilliseconds);
             await TouchLastUsed(caller.ApiKeyId);
             return outcome;
+        }
+
+        private void RefundDecompile(ApiCaller caller, string operation)
+        {
+            if (!PublicApiOperations.IsDecompile(operation)) return;
+            try { _rateLimiter.Refund($"ret:{caller.LimitScope}"); }
+            catch (Exception ex) { _logger.LogError(ex, "Refunding a decompiler call failed"); }
         }
 
         private string? SafeDescribe<T>(Func<T, string?> describe, T value)

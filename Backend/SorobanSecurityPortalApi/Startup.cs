@@ -294,7 +294,9 @@ public class Startup
                 && context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } feature)
             {
                 var maxWasm = context.RequestServices.GetRequiredService<IExtendedConfig>().RetMaxWasmBytes;
-                feature.MaxRequestBodySize = Math.Max(64 * 1024, (long)maxWasm / 3 * 4 + 64 * 1024);
+                // Three times the base64 size of the largest accepted module, so a module over the limit still gets
+                // the tool's clear "too large" answer; far bigger bodies are refused unread.
+                feature.MaxRequestBodySize = Math.Max(256 * 1024, (long)maxWasm / 3 * 4 * 3 + 64 * 1024);
             }
             return next();
         });

@@ -48,6 +48,20 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             _time = time;
         }
 
+        public void Refund(string scope)
+        {
+            if (!_scopes.TryGetValue(scope, out var state)) return;
+            var now = _time.GetUtcNow();
+            var minuteWindow = now.ToUnixTimeSeconds() / 60;
+            var dayWindow = now.ToUnixTimeSeconds() / 86400;
+            lock (state)
+            {
+                // Only the window the call was counted in: if it has turned over, there is nothing to give back.
+                if (state.MinuteWindow == minuteWindow && state.MinuteCount > 0) state.MinuteCount--;
+                if (state.DayWindow == dayWindow && state.DayCount > 0) state.DayCount--;
+            }
+        }
+
         // countsGlobally: whether this call also counts against (and is refused by) the global cap.
         public async Task<ApiRateLimitDecision> TryAcquireAsync(
             string scope, ApiRateLimits limits, Func<DateTime, Task<int>> seedDailyCount, bool countsGlobally)
@@ -112,6 +126,10 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
     public interface IApiRateLimiter
     {
+        // Gives back one call taken by TryAcquireAsync (in the current minute and day), for a call that
+        // turned out not to deserve being counted. Never goes below zero.
+        void Refund(string scope);
+
         Task<ApiRateLimitDecision> TryAcquireAsync(
             string scope, ApiRateLimits limits, Func<DateTime, Task<int>> seedDailyCount, bool countsGlobally);
     }

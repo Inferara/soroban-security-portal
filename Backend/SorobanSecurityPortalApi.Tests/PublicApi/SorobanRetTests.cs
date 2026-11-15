@@ -197,6 +197,36 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         }
 
         [Fact]
+        public async Task Only_An_Upstream_Decompile_Failure_Counts_Against_The_Allowance()
+        {
+            _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.UnprocessableEntity, "{\"error\":\"bad section\",\"kind\":\"decompile_error\"}"));
+            var decompile = (await ((Func<Task>)(() => Build().DisassembleWasmAsync(new byte[] { 1 }, null, CancellationToken.None))).Should().ThrowAsync<PublicApiValidationException>()).Which;
+            decompile.ChargesAllowance.Should().BeTrue();
+
+            _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.BadRequest, "{\"error\":\"Unknown version\",\"kind\":\"invalid_input\"}"));
+            var invalid = (await ((Func<Task>)(() => Build().DisassembleWasmAsync(new byte[] { 1 }, "9.9.9", CancellationToken.None))).Should().ThrowAsync<PublicApiValidationException>()).Which;
+            invalid.ChargesAllowance.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Busy_And_Not_Configured_Do_Not_Charge_But_A_Timeout_Does()
+        {
+            _config.SetupGet(c => c.DevToolsUrl).Returns("");
+            (await ((Func<Task>)(() => Build().GetVersionsAsync(CancellationToken.None))).Should().ThrowAsync<PublicApiUnavailableException>()).Which.ChargesAllowance.Should().BeFalse();
+
+            _config.SetupGet(c => c.DevToolsUrl).Returns("http://ret.internal:8787/");
+            var release = new TaskCompletionSource();
+            _handler.Respond = async (_, _) => { await release.Task; return Json(HttpStatusCode.OK, "{}"); };
+            var client = Build(maxConcurrent: 1, slotWait: TimeSpan.FromMilliseconds(100));
+            var first = client.GetVersionsAsync(CancellationToken.None);
+            var busy = (await ((Func<Task>)(() => client.GetVersionsAsync(CancellationToken.None))).Should().ThrowAsync<PublicApiUnavailableException>()).Which;
+            busy.Message.Should().Contain("busy");
+            busy.ChargesAllowance.Should().BeFalse();
+            release.SetResult();
+            await first;
+        }
+
+        [Fact]
         public async Task An_Unexpected_Failure_Is_Reported_Generically_Without_Internals()
         {
             _handler.Respond = (_, _) => Task.FromResult(Json(HttpStatusCode.InternalServerError, @"{""error"":""panic at /srv/secret/path.rs:12"",""kind"":""something_else""}"));

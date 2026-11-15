@@ -313,6 +313,88 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             _usageLog.Verify(u => u.Add(It.IsAny<ApiUsageLogModel>()), Times.Never);
         }
 
+        // ---- a mistake or a busy decompiler does not use up the expensive allowance ----
+
+        [Fact]
+        public async Task A_Typo_Is_Refused_And_Costs_No_Decompiler_Allowance()
+        {
+            var outcome = await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", "address=x",
+                () => throw new PublicApiValidationException("'address' must be a Stellar contract address."));
+
+            outcome.Status.Should().Be(ApiCallStatus.BadRequest);
+            _limiter.Verify(l => l.Refund("ret:u:42"), Times.Once);
+        }
+
+        [Fact]
+        public async Task A_Busy_Decompiler_Costs_No_Allowance_Either()
+        {
+            await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_wasm", null,
+                () => throw new PublicApiUnavailableException("The decompiler is busy.") { ChargesAllowance = false });
+
+            _limiter.Verify(l => l.Refund("ret:u:42"), Times.Once);
+        }
+
+        [Fact]
+        public async Task A_Module_The_Decompiler_Could_Not_Read_Does_Cost_Allowance()
+        {
+            await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_wasm", null,
+                () => throw new PublicApiValidationException("Could not decompile this module: bad section") { ChargesAllowance = true });
+
+            _limiter.Verify(l => l.Refund(It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task A_Call_That_Timed_Out_Does_Cost_Allowance()
+        {
+            await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", null,
+                () => throw new PublicApiUnavailableException("The decompiler took too long."));
+
+            _limiter.Verify(l => l.Refund(It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task A_Successful_Call_Is_Never_Refunded()
+        {
+            await Build().Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"));
+
+            _limiter.Verify(l => l.Refund(It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Other_Tools_Have_Nothing_To_Refund()
+        {
+            await Build().Run<string>(ApiUsageSource.Mcp, "search_vulnerabilities", null,
+                () => throw new PublicApiValidationException("Unknown severity."));
+
+            _limiter.Verify(l => l.Refund(It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task A_Failing_Refund_Does_Not_Fail_The_Call()
+        {
+            _limiter.Setup(l => l.Refund(It.IsAny<string>())).Throws(new Exception("boom"));
+
+            var outcome = await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", null,
+                () => throw new PublicApiValidationException("bad"));
+
+            outcome.Status.Should().Be(ApiCallStatus.BadRequest);
+        }
+
+        [Fact]
+        public async Task With_The_Real_Limiter_Typos_Do_Not_Burn_The_Few_Expensive_Calls()
+        {
+            var runner = BuildWithRealLimiter(generalPerMinute: 100, retPerMinute: 2);
+
+            for (var i = 0; i < 10; i++)
+                (await runner.Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", null,
+                    () => throw new PublicApiValidationException("typo"))).Status.Should().Be(ApiCallStatus.BadRequest);
+
+            // Both real calls are still available.
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.Ok);
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.Ok);
+            (await runner.Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"))).Status.Should().Be(ApiCallStatus.RateLimited);
+        }
+
         [Fact]
         public async Task The_Daily_Decompiler_Limit_Has_Its_Own_Message()
         {
