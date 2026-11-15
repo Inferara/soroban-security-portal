@@ -225,6 +225,17 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         }
 
         [Fact]
+        public async Task Csv_Names_A_Refunded_Failure_Separately()
+        {
+            _usageLog.Setup(u => u.Export(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>())).ReturnsAsync(new List<ApiUsageExportRow>
+            {
+                new() { CreatedAt = DateTime.UtcNow, Operation = "ret_decompile_wasm", Status = ApiUsageStatus.RefundedError, Count = 1 },
+            });
+
+            (await Build().ExportCsv(1)).Csv.Should().Contain(",refunded_error,");
+        }
+
+        [Fact]
         public async Task Csv_Says_When_The_Period_Holds_More_Rows_Than_It_Returns()
         {
             var requested = 0;

@@ -346,7 +346,8 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_wasm", null,
                 () => throw new PublicApiUnavailableException("busy") { ChargesAllowance = false });
 
-            _logged.Select(l => l.Status).Should().Equal(ApiUsageStatus.Refunded, ApiUsageStatus.Refunded);
+            // A typo is "refunded"; a decompiler that could not take the call is a failure on our side, so it keeps counting as one.
+            _logged.Select(l => l.Status).Should().Equal(ApiUsageStatus.Refunded, ApiUsageStatus.RefundedError);
         }
 
         [Fact]

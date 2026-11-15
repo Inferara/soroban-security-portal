@@ -161,6 +161,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                 Row("ret_decompile_address", ApiUsageStatus.RateLimited),            // refusals never count
                 Row("ret_decompile_address", ApiUsageStatus.Refunded),               // a typo or a busy decompiler was given back
                 Row("ret_decompile_wasm", ApiUsageStatus.Refunded, key: 2),
+                Row("ret_decompile_wasm", ApiUsageStatus.RefundedError),             // the decompiler was busy
                 Row("ret_versions"), Row("search_vulnerabilities"),                  // other operations
                 Row("ret_decompile_wasm", key: 3, login: 0),                         // service key
             };

@@ -49,9 +49,12 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         RateLimited = 2,
         NotFound = 3,
         BadRequest = 4,
-        // A decompiler call that was turned away before any real work (a typo, a busy decompiler) and
-        // did not use up the caller's decompiler allowance. Kept as its own status so that the
-        // allowance rebuilt from the log after a restart leaves it out too.
+        // Decompiler calls that did not use up the caller's decompiler allowance, kept as their own
+        // statuses so that the allowance rebuilt from the log after a restart leaves them out too:
+        //  - Refunded: turned away for bad input before any real work (a typo);
+        //  - RefundedError: the decompiler could not take the call (busy, not configured). This is a
+        //    failure on our side, so the statistics count it with the errors.
         Refunded = 5,
+        RefundedError = 6,
     }
 }

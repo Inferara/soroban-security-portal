@@ -145,7 +145,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             }
 
             var stopwatch = Stopwatch.StartNew();
-            var refunded = false;
+            ApiUsageStatus? refundedAs = null;
             ApiCallOutcome<T> outcome;
             try
             {
@@ -158,14 +158,14 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             {
                 outcome = new ApiCallOutcome<T> { Status = ApiCallStatus.BadRequest, Message = ex.Message };
                 // A typo should not cost the caller one of their few expensive calls.
-                if (!ex.ChargesAllowance) refunded = RefundDecompile(caller, operation, decompileDecision);
+                if (!ex.ChargesAllowance && RefundDecompile(caller, operation, decompileDecision)) refundedAs = ApiUsageStatus.Refunded;
             }
             catch (PublicApiUnavailableException ex)
             {
                 // A dependency (the decompiler) is down, busy or slow: not the caller's fault, and the
                 // message says what to do. Anything else is reported generically below.
                 outcome = new ApiCallOutcome<T> { Status = ApiCallStatus.Error, Message = ex.Message };
-                if (!ex.ChargesAllowance) refunded = RefundDecompile(caller, operation, decompileDecision);
+                if (!ex.ChargesAllowance && RefundDecompile(caller, operation, decompileDecision)) refundedAs = ApiUsageStatus.RefundedError;
             }
             catch (OperationCanceledException)
             {
@@ -186,7 +186,8 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 _ => ApiUsageStatus.Error,
             };
             // A refunded call is logged as such, so the allowance rebuilt from the log after a restart leaves it out.
-            if (refunded) logStatus = ApiUsageStatus.Refunded;
+            // (A failure on our side stays counted with the errors in the statistics.)
+            if (refundedAs.HasValue) logStatus = refundedAs.Value;
             var logged = arguments;
             if (outcome.Value != null && describeResult != null)
             {
