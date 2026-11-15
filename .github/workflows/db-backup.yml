@@ -83,13 +83,18 @@ jobs:
             --title "$BACKUP_FILE" \
             --notes "Automated database backup ($BACKUP_FILE)."
 
+          # Order backups by the timestamp in their tag (backup-YYYYMMDD-HHMMSS), not by the release's
+          # createdAt: GitHub sets createdAt from the tagged commit, and every release here points at the
+          # same old commit of the backup repo, so all releases tie and the newest one could be pruned
+          # first (this deleted every new backup for months). Only tags of that exact shape are ever
+          # touched, and the backup that was just created is never deleted.
           echo "Pruning to the newest $RETAIN backups..."
-          gh release list --repo "$BACKUP_REPO" --limit 1000 \
-            --json tagName,createdAt \
-            | jq -r --argjson keep "$RETAIN" \
-                'sort_by(.createdAt) | reverse | .[$keep:] | .[].tagName' \
-            | while read -r tag; do
+          gh release list --repo "$BACKUP_REPO" --limit 1000 --json tagName             | jq -r --argjson keep "$RETAIN" --arg current "$BACKUP_TAG"                 '[.[].tagName | select(test("^backup-[0-9]{8}-[0-9]{6}$"))]
+                 | sort | reverse | .[$keep:] | .[] | select(. != $current)'             | while read -r tag; do
                 [ -z "$tag" ] && continue
                 echo "Deleting old release $tag"
                 gh release delete "$tag" --repo "$BACKUP_REPO" --yes --cleanup-tag
               done
+
+          # Fail the run (and so notify) if the backup we just made is not there.
+          gh release view "$BACKUP_TAG" --repo "$BACKUP_REPO" --json assets -q '.assets[].name' | grep -qx "$BACKUP_FILE"             || { echo "::error::Backup $BACKUP_FILE is missing from $BACKUP_REPO after pruning"; exit 1; }
