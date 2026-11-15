@@ -236,6 +236,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             ApiUsageStatus.RateLimited => "rate_limited",
             ApiUsageStatus.NotFound => "not_found",
             ApiUsageStatus.BadRequest => "bad_request",
+            ApiUsageStatus.Refunded => "refunded",
             _ => status.ToString().ToLowerInvariant(),
         };
 

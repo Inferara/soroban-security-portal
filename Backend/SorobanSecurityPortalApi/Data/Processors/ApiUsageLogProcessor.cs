@@ -48,12 +48,13 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 && db.ApiKey.Any(k => k.Id == u.ApiKeyId && k.Kind == ApiKeyKind.Personal));
         }
 
-        // The same, for one family of operations (those whose name starts with operationPrefix).
+        // The same, for one family of operations (those whose name starts with operationPrefix). Calls that were
+        // refunded (see ApiUsageStatus.Refunded) did not use that allowance, so they are left out.
         public async Task<int> CountCountedSince(int apiKeyId, DateTime sinceUtc, string operationPrefix)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             return await db.ApiUsageLog.CountAsync(u =>
-                u.ApiKeyId == apiKeyId && u.CreatedAt >= sinceUtc && u.Status != ApiUsageStatus.RateLimited
+                u.ApiKeyId == apiKeyId && u.CreatedAt >= sinceUtc && u.Status != ApiUsageStatus.RateLimited && u.Status != ApiUsageStatus.Refunded
                 && u.Operation.StartsWith(operationPrefix));
         }
 
@@ -63,7 +64,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return await db.ApiUsageLog.CountAsync(u =>
                 u.LoginId == loginId
                 && u.CreatedAt >= sinceUtc
-                && u.Status != ApiUsageStatus.RateLimited
+                && u.Status != ApiUsageStatus.RateLimited && u.Status != ApiUsageStatus.Refunded
                 && u.Operation.StartsWith(operationPrefix)
                 && db.ApiKey.Any(k => k.Id == u.ApiKeyId && k.Kind == ApiKeyKind.Personal));
         }

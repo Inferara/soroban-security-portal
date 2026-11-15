@@ -159,6 +159,8 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                 Row("ret_decompile_address"), Row("ret_decompile_wasm", key: 2),     // counted: two keys of one user
                 Row("ret_decompile_address", ApiUsageStatus.Error),                  // a failed call still used the decompiler
                 Row("ret_decompile_address", ApiUsageStatus.RateLimited),            // refusals never count
+                Row("ret_decompile_address", ApiUsageStatus.Refunded),               // a typo or a busy decompiler was given back
+                Row("ret_decompile_wasm", ApiUsageStatus.Refunded, key: 2),
                 Row("ret_versions"), Row("search_vulnerabilities"),                  // other operations
                 Row("ret_decompile_wasm", key: 3, login: 0),                         // service key
             };

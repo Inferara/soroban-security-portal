@@ -315,7 +315,7 @@ public class ExtendedConfig : IExtendedConfig
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Decompiler request timeout, in seconds")]
-    [Tooltip("How long one decompiler call may take. Large contracts can need over half a minute.")]
+    [Tooltip("How long one decompiler call may take, between 5 and 170 seconds. Large contracts can need over half a minute.")]
     public int RetRequestTimeoutSeconds => GetValue<int>("RetRequestTimeoutSeconds", 120);
 
 }

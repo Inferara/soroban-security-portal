@@ -92,9 +92,11 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             // The decompiler is CPU heavy: those calls must also fit a much stricter allowance of their own.
             // It is checked first, so a call refused here uses up none of the general allowance (or of the
             // global cap that protects everybody else); the reverse mistake costs at most one decompile slot.
+            ApiRateLimitDecision? decompileDecision = null;
             if (PublicApiOperations.IsDecompile(operation))
             {
-                var decompile = await TryAcquireDecompile(caller);
+                decompileDecision = await TryAcquireDecompile(caller);
+                var decompile = decompileDecision;
                 if (decompile is { Allowed: false })
                 {
                     _refusals.Record(caller, source, operation);
@@ -143,6 +145,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             }
 
             var stopwatch = Stopwatch.StartNew();
+            var refunded = false;
             ApiCallOutcome<T> outcome;
             try
             {
@@ -155,14 +158,14 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             {
                 outcome = new ApiCallOutcome<T> { Status = ApiCallStatus.BadRequest, Message = ex.Message };
                 // A typo should not cost the caller one of their few expensive calls.
-                if (!ex.ChargesAllowance) RefundDecompile(caller, operation);
+                if (!ex.ChargesAllowance) refunded = RefundDecompile(caller, operation, decompileDecision);
             }
             catch (PublicApiUnavailableException ex)
             {
                 // A dependency (the decompiler) is down, busy or slow: not the caller's fault, and the
                 // message says what to do. Anything else is reported generically below.
                 outcome = new ApiCallOutcome<T> { Status = ApiCallStatus.Error, Message = ex.Message };
-                if (!ex.ChargesAllowance) RefundDecompile(caller, operation);
+                if (!ex.ChargesAllowance) refunded = RefundDecompile(caller, operation, decompileDecision);
             }
             catch (OperationCanceledException)
             {
@@ -182,6 +185,8 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 ApiCallStatus.BadRequest => ApiUsageStatus.BadRequest,
                 _ => ApiUsageStatus.Error,
             };
+            // A refunded call is logged as such, so the allowance rebuilt from the log after a restart leaves it out.
+            if (refunded) logStatus = ApiUsageStatus.Refunded;
             var logged = arguments;
             if (outcome.Value != null && describeResult != null)
             {
@@ -193,11 +198,20 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             return outcome;
         }
 
-        private void RefundDecompile(ApiCaller caller, string operation)
+        // True when the call was given back (it will be logged as Refunded).
+        private bool RefundDecompile(ApiCaller caller, string operation, ApiRateLimitDecision? acquired)
         {
-            if (!PublicApiOperations.IsDecompile(operation)) return;
-            try { _rateLimiter.Refund($"ret:{caller.LimitScope}"); }
-            catch (Exception ex) { _logger.LogError(ex, "Refunding a decompiler call failed"); }
+            if (acquired is not { Allowed: true } || !PublicApiOperations.IsDecompile(operation)) return false;
+            try
+            {
+                _rateLimiter.Refund($"ret:{caller.LimitScope}", acquired);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Refunding a decompiler call failed");
+                return false;
+            }
         }
 
         private string? SafeDescribe<T>(Func<T, string?> describe, T value)

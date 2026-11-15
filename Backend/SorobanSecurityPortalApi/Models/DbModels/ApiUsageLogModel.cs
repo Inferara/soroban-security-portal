@@ -49,5 +49,9 @@ namespace SorobanSecurityPortalApi.Models.DbModels
         RateLimited = 2,
         NotFound = 3,
         BadRequest = 4,
+        // A decompiler call that was turned away before any real work (a typo, a busy decompiler) and
+        // did not use up the caller's decompiler allowance. Kept as its own status so that the
+        // allowance rebuilt from the log after a restart leaves it out too.
+        Refunded = 5,
     }
 }

@@ -322,7 +322,51 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                 () => throw new PublicApiValidationException("'address' must be a Stellar contract address."));
 
             outcome.Status.Should().Be(ApiCallStatus.BadRequest);
-            _limiter.Verify(l => l.Refund("ret:u:42"), Times.Once);
+            _limiter.Verify(l => l.Refund("ret:u:42", It.IsAny<ApiRateLimitDecision>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task A_Refund_Takes_The_Call_Out_Of_The_Window_It_Was_Counted_In()
+        {
+            var counted = new ApiRateLimitDecision(true, ApiRateLimitKind.None, 0, 0, MinuteWindow: 123, DayWindow: 45);
+            _limiter.Setup(l => l.TryAcquireAsync(It.Is<string>(s => s.StartsWith("ret:")), It.IsAny<ApiRateLimits>(), It.IsAny<Func<DateTime, Task<int>>>(), It.IsAny<bool>()))
+                .ReturnsAsync(counted);
+
+            await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", null,
+                () => throw new PublicApiValidationException("typo"));
+
+            _limiter.Verify(l => l.Refund("ret:u:42", counted), Times.Once);
+        }
+
+        [Fact]
+        public async Task A_Refunded_Call_Is_Logged_As_Refunded_So_A_Restart_Does_Not_Count_It_Again()
+        {
+            await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", "address=x",
+                () => throw new PublicApiValidationException("typo"));
+            await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_wasm", null,
+                () => throw new PublicApiUnavailableException("busy") { ChargesAllowance = false });
+
+            _logged.Select(l => l.Status).Should().Equal(ApiUsageStatus.Refunded, ApiUsageStatus.Refunded);
+        }
+
+        [Fact]
+        public async Task A_Charged_Failure_Keeps_Its_Own_Status()
+        {
+            await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_wasm", null,
+                () => throw new PublicApiValidationException("Could not decompile this module: bad") { ChargesAllowance = true });
+            await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", null,
+                () => throw new PublicApiUnavailableException("took too long"));
+
+            _logged.Select(l => l.Status).Should().Equal(ApiUsageStatus.BadRequest, ApiUsageStatus.Error);
+        }
+
+        [Fact]
+        public async Task A_Typo_On_Another_Tool_Is_Logged_As_A_Plain_Bad_Request()
+        {
+            await Build().Run<string>(ApiUsageSource.Mcp, "search_vulnerabilities", null,
+                () => throw new PublicApiValidationException("Unknown severity."));
+
+            _logged.Should().ContainSingle().Which.Status.Should().Be(ApiUsageStatus.BadRequest);
         }
 
         [Fact]
@@ -331,7 +375,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_wasm", null,
                 () => throw new PublicApiUnavailableException("The decompiler is busy.") { ChargesAllowance = false });
 
-            _limiter.Verify(l => l.Refund("ret:u:42"), Times.Once);
+            _limiter.Verify(l => l.Refund("ret:u:42", It.IsAny<ApiRateLimitDecision>()), Times.Once);
         }
 
         [Fact]
@@ -340,7 +384,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_wasm", null,
                 () => throw new PublicApiValidationException("Could not decompile this module: bad section") { ChargesAllowance = true });
 
-            _limiter.Verify(l => l.Refund(It.IsAny<string>()), Times.Never);
+            _limiter.Verify(l => l.Refund(It.IsAny<string>(), It.IsAny<ApiRateLimitDecision>()), Times.Never);
         }
 
         [Fact]
@@ -349,7 +393,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", null,
                 () => throw new PublicApiUnavailableException("The decompiler took too long."));
 
-            _limiter.Verify(l => l.Refund(It.IsAny<string>()), Times.Never);
+            _limiter.Verify(l => l.Refund(It.IsAny<string>(), It.IsAny<ApiRateLimitDecision>()), Times.Never);
         }
 
         [Fact]
@@ -357,7 +401,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         {
             await Build().Run(ApiUsageSource.Mcp, "ret_decompile_address", null, () => Task.FromResult<string?>("x"));
 
-            _limiter.Verify(l => l.Refund(It.IsAny<string>()), Times.Never);
+            _limiter.Verify(l => l.Refund(It.IsAny<string>(), It.IsAny<ApiRateLimitDecision>()), Times.Never);
         }
 
         [Fact]
@@ -366,13 +410,13 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             await Build().Run<string>(ApiUsageSource.Mcp, "search_vulnerabilities", null,
                 () => throw new PublicApiValidationException("Unknown severity."));
 
-            _limiter.Verify(l => l.Refund(It.IsAny<string>()), Times.Never);
+            _limiter.Verify(l => l.Refund(It.IsAny<string>(), It.IsAny<ApiRateLimitDecision>()), Times.Never);
         }
 
         [Fact]
         public async Task A_Failing_Refund_Does_Not_Fail_The_Call()
         {
-            _limiter.Setup(l => l.Refund(It.IsAny<string>())).Throws(new Exception("boom"));
+            _limiter.Setup(l => l.Refund(It.IsAny<string>(), It.IsAny<ApiRateLimitDecision>())).Throws(new Exception("boom"));
 
             var outcome = await Build().Run<string>(ApiUsageSource.Mcp, "ret_decompile_address", null,
                 () => throw new PublicApiValidationException("bad"));

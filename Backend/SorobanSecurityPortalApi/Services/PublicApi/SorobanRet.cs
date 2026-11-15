@@ -181,7 +181,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
                 // Ends when the time is up or the caller goes away, whichever comes first.
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, _config.RetRequestTimeoutSeconds)));
+                // Never longer than the shared HTTP client's own 3 minute timeout, which would cancel first
+                // and would not be recognised as ours.
+                timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(_config.RetRequestTimeoutSeconds, 5, 170)));
                 try
                 {
                     var client = _httpClientFactory.CreateClient(HttpClients.NoRetryClient);
