@@ -168,7 +168,7 @@ export class ChartErrorBoundary extends Component<
    */
   private logError(errorInfo: ChartErrorInfo): void {
     if (import.meta.env.DEV) {
-      console.groupCollapsed(
+      console.error(
         '%c Chart Error Boundary ',
         'background: #d32f2f; color: white; padding: 2px 6px; border-radius: 4px;'
       );
@@ -177,7 +177,6 @@ export class ChartErrorBoundary extends Component<
       console.error('Stack:', errorInfo.error.stack);
       console.error('Component Stack:', errorInfo.componentStack);
       console.error('Timestamp:', errorInfo.timestamp.toISOString());
-      console.groupEnd();
     } else {
       // In production, log a minimal message
       console.error(

@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
-import { 
-  getSeveritiesCall, 
-  getTagsCall, 
-  getProtocolListDataCall, 
-  getSourceCall, 
-  addVulnerabilityCall, 
+import {
+  getSeveritiesCall,
+  getTagsCall,
+  getProtocolListDataCall,
+  getSourceCall,
+  addVulnerabilityCall,
   getAuditorListDataCall,
   getCompanyListDataCall,
 } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppDispatch } from '../../../../../app/hooks';
-import { 
-  Vulnerability, 
-  VulnerabilitySeverity, 
-  VulnerabilitySource, 
+import {
+  Vulnerability,
+  VulnerabilitySeverity,
+  VulnerabilitySource,
 } from '../../../../../api/soroban-security-portal/models/vulnerability';
 import { ProtocolItem } from '../../../../../api/soroban-security-portal/models/protocol';
 import { CompanyItem } from '../../../../../api/soroban-security-portal/models/company';
@@ -63,17 +63,15 @@ export const useVulnerabilityAdd = () => {
 
   const addVulnerability = async (vulnerability: Vulnerability, images?: File[]): Promise<void> => {
     setIsUploading(true);
-    try {       
+    try {
       const formData = new FormData();
       formData.append('vulnerability', JSON.stringify(vulnerability));
-      if (images && images.length > 0){
+      if (images && images.length > 0) {
         images.forEach((image) => {
-          formData.append(`images`, image);
+          formData.append('images', image);
         });
-      }      
-      const response = await addVulnerabilityCall(formData);
-      console.log('Vulnerability added with images:', response);
-
+      }
+      await addVulnerabilityCall(formData);
     } catch (error) {
       console.error('Error adding vulnerability:', error);
       throw error;

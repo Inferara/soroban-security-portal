@@ -29,6 +29,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      'no-console': ['error', { allow: ['warn', 'error'] }],
       // Disable react-refresh warning for files exporting non-components
       'react-refresh/only-export-components': 'off',
       // Allow underscore-prefixed unused variables
