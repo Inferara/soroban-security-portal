@@ -17,6 +17,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
         private readonly Mock<IReportService> _report = new();
         private readonly Mock<IPageViewService> _pageViews = new();
         private readonly Mock<IReportSummaryCardService> _cards = new();
+        private readonly Mock<IVulnerabilitySummaryCardService> _vulnCards = new();
         // Config's constructor validates every key, so supply a complete settings blob.
         private readonly Config _config = new(@"{
             ""ProductVersion"": ""1.0"",
@@ -36,7 +37,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
 
         private OgController Sut()
         {
-            var ctrl = new OgController(_vuln.Object, _report.Object, _config, _pageViews.Object, _cards.Object);
+            var ctrl = new OgController(_vuln.Object, _report.Object, _config, _pageViews.Object, _cards.Object, _vulnCards.Object);
             ctrl.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
             { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() };
             return ctrl;
@@ -52,6 +53,7 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             var body = Body(await Sut().Vulnerability(7));
             body.Should().Contain("<meta property=\"og:title\" content=\"Reentrancy in vault\">");
             body.Should().Contain("<meta property=\"og:url\" content=\"https://sorobanshield.ru/vulnerability/7\">");
+            body.Should().Contain("og:image\" content=\"https://sorobanshield.ru/api/v1/og/vulnerability/7/summary.png\"");
             body.Should().Contain("twitter:card");
         }
 
@@ -141,6 +143,26 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             _cards.Setup(c => c.GetCardAsync(3)).ReturnsAsync(
                 new ReportSummaryCardContent(new byte[] { 1, 2, 3 }, "\"rsc3-abc\"", System.DateTimeOffset.UtcNow));
             var result = await Sut().ReportSummaryImage(3);
+            var file = result as FileContentResult;
+            file.Should().NotBeNull();
+            file!.ContentType.Should().Be("image/png");
+        }
+
+        [Fact]
+        public async Task VulnerabilitySummaryImage_Missing_Returns404()
+        {
+            _vulnCards.Setup(c => c.GetETagAsync(99)).ReturnsAsync((string?)null);
+            var result = await Sut().VulnerabilitySummaryImage(99);
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task VulnerabilitySummaryImage_ReturnsPngFile()
+        {
+            _vulnCards.Setup(c => c.GetETagAsync(7)).ReturnsAsync("\"vsc7-abc\"");
+            _vulnCards.Setup(c => c.GetCardAsync(7)).ReturnsAsync(
+                new ReportSummaryCardContent(new byte[] { 1, 2, 3 }, "\"vsc7-abc\"", System.DateTimeOffset.UtcNow));
+            var result = await Sut().VulnerabilitySummaryImage(7);
             var file = result as FileContentResult;
             file.Should().NotBeNull();
             file!.ContentType.Should().Be("image/png");

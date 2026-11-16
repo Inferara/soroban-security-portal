@@ -24,19 +24,22 @@ namespace SorobanSecurityPortalApi.Controllers
         private readonly Config _config;
         private readonly IPageViewService _pageViewService;
         private readonly IReportSummaryCardService _summaryCardService;
+        private readonly IVulnerabilitySummaryCardService? _vulnerabilityCardService;
 
         public OgController(
             IVulnerabilityService vulnerabilityService,
             IReportService reportService,
             Config config,
             IPageViewService pageViewService,
-            IReportSummaryCardService summaryCardService)
+            IReportSummaryCardService summaryCardService,
+            IVulnerabilitySummaryCardService? vulnerabilityCardService = null)
         {
             _vulnerabilityService = vulnerabilityService;
             _reportService = reportService;
             _config = config;
             _pageViewService = pageViewService;
             _summaryCardService = summaryCardService;
+            _vulnerabilityCardService = vulnerabilityCardService;
         }
 
         // Config.AppUrl is "https://<domain>/api/v1"; the public site base is that minus "/api/v1".
@@ -54,8 +57,9 @@ namespace SorobanSecurityPortalApi.Controllers
             if (v == null || v.Status != VulnerabilityModelStatus.Approved || v.Category == VulnerabilityCategory.Invalid)
                 return Generic(pageUrl);
 
+            var image = $"{_config.AppUrl}/og/vulnerability/{id}/summary.png";
             await RecordCrawlerView(EntityType.Vulnerability, id);
-            return Page(v.Title, Truncate(v.Description, MaxDescriptionLength), LogoUrl, pageUrl);
+            return Page(v.Title, Truncate(v.Description, MaxDescriptionLength), image, pageUrl);
         }
 
         [HttpGet("report/{id:int}")]
@@ -72,6 +76,33 @@ namespace SorobanSecurityPortalApi.Controllers
             var image = $"{_config.AppUrl}/og/report/{id}/summary.png";
             await RecordCrawlerView(EntityType.Report, id);
             return Page(r.Name, $"Security audit report: {r.Name}", image, pageUrl);
+        }
+
+
+        // Serves the generated 1200x630 summary-card PNG used as og:image for /vulnerability/{id}.
+        [HttpGet("vulnerability/{id:int}/summary.png")]
+        public async Task<IActionResult> VulnerabilitySummaryImage(int id)
+        {
+            if (_vulnerabilityCardService == null)
+                return NotFound();
+
+            var etag = await _vulnerabilityCardService.GetETagAsync(id);
+            if (etag == null)
+                return NotFound();
+
+            Response.Headers.ETag = etag;
+            Response.Headers.CacheControl = "public, max-age=3600";
+
+            var ifNoneMatch = Request.Headers.IfNoneMatch.ToString();
+            if (!string.IsNullOrEmpty(ifNoneMatch) && ifNoneMatch.Contains(etag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
+            var content = await _vulnerabilityCardService.GetCardAsync(id);
+            if (content == null)
+                return NotFound();
+
+            Response.Headers.LastModified = content.LastModified.ToString("R");
+            return File(content.Bytes, "image/png");
         }
 
         // Serves the generated 1200x630 summary-card PNG used as og:image for /report/{id}.
