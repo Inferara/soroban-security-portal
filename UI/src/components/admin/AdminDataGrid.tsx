@@ -1,6 +1,6 @@
 import { ReactNode, useState, useMemo, useCallback } from 'react';
 import { Box, CircularProgress, IconButton, Stack, Tooltip } from '@mui/material';
-import { DataGrid, GridColDef, GridValidRowModel, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridColumnResizeParams, GridValidRowModel, GridRenderCellParams } from '@mui/x-data-grid';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
@@ -156,6 +156,14 @@ export function AdminDataGrid<T extends GridValidRowModel>({
 
   // Internal state for uncontrolled mode
   const [internalItemIdToRemove, setInternalItemIdToRemove] = useState<number>(0);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+
+  const handleColumnWidthChange = useCallback((params: GridColumnResizeParams) => {
+    setColumnWidths((prev) => ({
+      ...prev,
+      [params.colDef.field]: params.width,
+    }));
+  }, []);
 
   // Use controlled value if provided, otherwise use internal state
   const isControlled = controlledItemIdToRemove !== undefined;
@@ -219,8 +227,12 @@ export function AdminDataGrid<T extends GridValidRowModel>({
 
     // Combine action column with data columns and apply responsive transformations
     const allColumns: ResponsiveColumn[] = [...resultColumns, ...columns];
-    return getResponsiveColumns(allColumns, breakpoint);
-  }, [removeAction, isAdmin, columns, handleSetItemIdToRemove, breakpoint]);
+    return getResponsiveColumns(allColumns, breakpoint).map((col) =>
+      columnWidths[col.field] !== undefined
+        ? { ...col, width: columnWidths[col.field] }
+        : col
+    );
+  }, [removeAction, isAdmin, columns, handleSetItemIdToRemove, breakpoint, columnWidths]);
 
   const defaultGridSx = useMemo(() => ({
     ...(transparentBackground && { backgroundColor: 'transparent' }),
@@ -271,6 +283,7 @@ export function AdminDataGrid<T extends GridValidRowModel>({
           sx={{ ...defaultGridSx, ...gridSx }}
           rows={rows}
           columns={finalColumns}
+          onColumnWidthChange={handleColumnWidthChange}
           showToolbar={true}
           slots={{
             toolbar: CustomToolbar,
