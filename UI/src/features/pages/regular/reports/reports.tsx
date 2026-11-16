@@ -19,6 +19,7 @@ import { showMessage } from '../../../dialog-handler/dialog-handler';
 import ReactGA from 'react-ga4';
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { canEdit } from '../../../authentication/authPermissions';
+import { SeoHead } from '../../../../components/common/SeoHead';
 
 export const Reports: FC = () => {
   const { themeMode } = useTheme();
@@ -93,6 +94,7 @@ export const Reports: FC = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <SeoHead title="Audit Reports" description="Explore security audit reports for Stellar and Soroban smart contracts." type="website" />
       <Box sx={{ padding: '24px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           {canEdit(auth) && (

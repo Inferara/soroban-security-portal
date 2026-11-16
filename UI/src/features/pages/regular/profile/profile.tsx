@@ -22,6 +22,7 @@ import { ConfirmDialog } from '../../admin/admin-main-window/confirm-dialog';
 import { getUserInitials } from '../../../../utils/user-utils';
 import { BadgeShowcase } from '../../../../components/BadgeShowcase';
 import { ApiKeysSection } from './api-keys-section';
+import { SeoHead } from '../../../../components/common/SeoHead';
 // TODO: replace mockBadges with real badge API (no backend badge endpoint yet)
 import { MOCK_BADGES } from '../../../../utils/mockBadges';
 
@@ -296,6 +297,7 @@ export const Profile: React.FC = () => {
 
   return (
     <ProfileContainer>
+      <SeoHead title={user?.fullName ? `${user.fullName} - Profile` : 'My Profile'} type="website" />
       <Box sx={{ margin: '0 auto' }}>
         {/* Profile Header */}
         <ProfileHeader>

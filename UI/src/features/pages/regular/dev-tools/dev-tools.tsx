@@ -48,6 +48,7 @@ import {
   isLikelyContractAddress,
 } from '../../../../api/dev-tools/dev-tools-api';
 import { DiagnosticsList } from './DiagnosticsList';
+import { SeoHead } from '../../../../components/common/SeoHead';
 
 const DEFAULT_RUST = `#![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, Env};
@@ -477,6 +478,7 @@ export const DevTools: FC = () => {
 
   return (
     <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
+      <SeoHead title="Dev Tools" description="Compile Rust to WebAssembly, disassemble Soroban contracts, and inspect on-chain bytecode." type="website" />
       {/* Header */}
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: { md: 'flex-end' }, justifyContent: 'space-between', mb: 2 }}>
         <Box>

@@ -37,6 +37,7 @@ import {
 } from '../../../../components/details';
 import { formatDateLong } from '../../../../utils';
 import { getSeverityColor } from '../../../../utils/color-utils';
+import { SeoHead } from '../../../../components/common/SeoHead';
 
 export const CompanyDetails: FC = () => {
   const navigate = useNavigate();
@@ -116,6 +117,7 @@ export const CompanyDetails: FC = () => {
     >
       {company && (
         <>
+          <SeoHead title={company.name} description={company.description?.substring(0, 160)} />
           {/* Header */}
           <DetailPageHeader
             entityType="company"

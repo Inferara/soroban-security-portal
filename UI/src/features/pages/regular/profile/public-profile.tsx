@@ -8,6 +8,7 @@ import { EntityAvatar } from '../../../../components/EntityAvatar';
 import { MarkdownView } from '../../../../components/MarkdownView';
 import { getPublicProfileCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { PublicUserProfile } from '../../../../api/soroban-security-portal/models/profile';
+import { SeoHead } from '../../../../components/common/SeoHead';
 
 // Read-only public profile for any user, reached by clicking an author's name.
 // The endpoint is privacy-safe (no name/email — issue #125); the display name,
@@ -44,6 +45,7 @@ export const PublicProfile: FC = () => {
   if (notFound || !profile) {
     return (
       <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+        <SeoHead title="Profile Not Found" type="website" />
         <Typography variant="h6">Profile not found</Typography>
         <Typography color="text.secondary">This user has no public profile.</Typography>
       </Box>
@@ -52,6 +54,7 @@ export const PublicProfile: FC = () => {
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+      <SeoHead title={passedName ? `${passedName} - Profile` : 'Member Profile'} description={profile.bio?.substring(0, 160)} type="website" />
       <Paper elevation={0} sx={{ p: 3, border: 1, borderColor: 'divider', borderRadius: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
           <EntityAvatar entityType="user" entityId={loginId} size="large" fallbackText={passedName ?? 'User'} />
