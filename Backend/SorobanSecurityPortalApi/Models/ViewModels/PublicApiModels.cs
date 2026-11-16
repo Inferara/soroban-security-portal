@@ -98,6 +98,14 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public int FindingsCount { get; set; }
     }
 
+    // The tags of one public finding, exactly as stored. HasFixStatus is false for a finding
+    // with no fix status (NA): a search only returns those when `category` asks for them.
+    public class PublicFindingTags
+    {
+        public List<string> Tags { get; set; } = new();
+        public bool HasFixStatus { get; set; }
+    }
+
     public class PublicError
     {
         public string Error { get; set; } = "";

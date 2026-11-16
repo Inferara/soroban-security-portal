@@ -202,8 +202,11 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
         public async Task<List<PublicEntity>> ListCompanies() => await Companies();
 
+        // Tags that only appear on findings with no fix status are left out: their count is 0.
+        // The tag filter still accepts them (with `category=NA`).
         public async Task<List<PublicTag>> ListTags() =>
-            (await Tags()).Select(t => new PublicTag { Name = t.Name, FindingsCount = t.FindingsCount }).ToList();
+            (await Tags()).Where(t => t.FindingsCount > 0)
+                .Select(t => new PublicTag { Name = t.Name, FindingsCount = t.FindingsCount }).ToList();
 
         // ---- catalog (cached briefly: it is read on every name filter) ----
 
@@ -234,8 +237,11 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 return list;
             }))!;
 
-        // One tag as callers see it: spellings that differ only in case are one tag. Name is the
-        // most used spelling; Spellings are all the stored ones, for the search filter.
+        // One tag as callers see it: spellings that differ only in case or in surrounding spaces
+        // are one tag. Name is the most used spelling, trimmed. Spellings are the stored values,
+        // untouched, because the search filter compares against what is stored. FindingsCount
+        // follows a search without a `category` filter (findings with no fix status are not
+        // counted), while Spellings cover every finding a search can return.
         private sealed record TagEntry(string Name, int FindingsCount, string[] Spellings);
 
         private async Task<List<TagEntry>> Tags() =>
@@ -245,22 +251,23 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 var perFinding = await _publicProcessor.ListFindingTags();
                 var spellingCounts = new Dictionary<string, int>(StringComparer.Ordinal);
                 var findingCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                foreach (var tags in perFinding)
+                foreach (var finding in perFinding)
                 {
-                    var names = tags.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList();
-                    foreach (var spelling in names.Distinct(StringComparer.Ordinal))
+                    var stored = finding.Tags.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+                    foreach (var spelling in stored.Distinct(StringComparer.Ordinal))
                         spellingCounts[spelling] = spellingCounts.GetValueOrDefault(spelling) + 1;
+                    if (!finding.HasFixStatus) continue;
                     // A finding that carries two spellings of one tag counts once.
-                    foreach (var name in names.Distinct(StringComparer.OrdinalIgnoreCase))
+                    foreach (var name in stored.Select(t => t.Trim()).Distinct(StringComparer.OrdinalIgnoreCase))
                         findingCounts[name] = findingCounts.GetValueOrDefault(name) + 1;
                 }
                 return spellingCounts
-                    .GroupBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
+                    .GroupBy(sp => sp.Key.Trim(), StringComparer.OrdinalIgnoreCase)
                     .Select(g =>
                     {
-                        var spellings = g.OrderByDescending(s => s.Value).ThenBy(s => s.Key, StringComparer.Ordinal)
-                            .Select(s => s.Key).ToArray();
-                        return new TagEntry(spellings[0], findingCounts[g.Key], spellings);
+                        var spellings = g.OrderByDescending(sp => sp.Value).ThenBy(sp => sp.Key, StringComparer.Ordinal)
+                            .Select(sp => sp.Key).ToArray();
+                        return new TagEntry(spellings[0].Trim(), findingCounts.GetValueOrDefault(g.Key), spellings);
                     })
                     .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList();

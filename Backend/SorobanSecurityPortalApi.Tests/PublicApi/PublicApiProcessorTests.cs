@@ -125,7 +125,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         }
 
         [Fact]
-        public async Task Finding_Tags_Come_Only_From_Public_Findings_With_A_Fix_Status()
+        public async Task Finding_Tags_Come_From_Every_Searchable_Finding_As_Stored()
         {
             VulnerabilityModel Tagged(int id, params string[] tags)
             {
@@ -145,12 +145,16 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
 
             var result = await Build(new List<VulnerabilityModel>
             {
-                Tagged(1, "Access Control", "rounding"), hidden, unapproved, noStatus, untagged, empty, Tagged(7, "Storage"),
+                Tagged(1, "Access Control", " rounding "), hidden, unapproved, noStatus, untagged, empty, Tagged(7, "Storage"),
             }).ListFindingTags();
 
-            result.Should().HaveCount(2);
-            result[0].Should().Equal("Access Control", "rounding");
-            result[1].Should().Equal("Storage");
+            result.Should().HaveCount(3);
+            result[0].Tags.Should().Equal("Access Control", " rounding "); // not trimmed: the filter needs the stored value
+            result[0].HasFixStatus.Should().BeTrue();
+            // A finding with no fix status is searchable with category=NA, so its tags are needed.
+            result[1].Tags.Should().Equal("NoFixStatus");
+            result[1].HasFixStatus.Should().BeFalse();
+            result[2].Tags.Should().Equal("Storage");
         }
 
         [Fact]

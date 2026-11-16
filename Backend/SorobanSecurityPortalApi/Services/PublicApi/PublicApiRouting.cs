@@ -62,35 +62,35 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 new[] { "audit report", "findings list", "severity count", "report id" },
                 "Reports that are not on the portal; only uploaded and approved reports are available."),
             [PublicApiOperations.ListProtocols] = new(
-                "List the protocols that have audit reports on the portal, with their company and report count.",
-                "A protocol name or id is needed for a filter, or the question is which protocols are covered.",
+                "List every protocol entry on the portal, with its company and the number of audit reports it has (which can be 0).",
+                "A protocol name or id is needed for a filter, or the question is which protocols the portal knows and how many reports each has.",
                 new[]
                 {
-                    "Which protocols does the Stellar Security Portal cover?",
+                    "Which protocols have audit reports on the Stellar Security Portal?",
                     "What is the exact name of the Blend entries on the portal?",
                 },
                 new[] { "protocol", "project", "coverage", "filter value" },
-                "A complete list of Stellar protocols; only protocols with uploaded reports are listed."),
+                "Proof that a protocol was audited: an entry can have 0 reports, so check reportsCount or search the reports. It is also no complete list of Stellar protocols."),
             [PublicApiOperations.ListAuditors] = new(
-                "List the audit firms whose reports are on the portal, with their report count.",
-                "An auditor name or id is needed for a filter, or the question is which firms have audited Soroban projects.",
+                "List every audit firm entry on the portal, with the number of audit reports it has (which can be 0).",
+                "An auditor name or id is needed for a filter, or the question is which firms have reports on the portal and how many.",
                 new[]
                 {
                     "Which audit firms have reports on the Stellar Security Portal?",
                     "How many reports on the portal are by Certora?",
                 },
                 new[] { "auditor", "audit firm", "security company", "filter value" },
-                "Ranking or recommending audit firms."),
+                "Ranking or recommending audit firms. An entry can have 0 reports; check reportsCount before saying a firm audited something."),
             [PublicApiOperations.ListCompanies] = new(
-                "List the companies behind the protocols on the portal, with their report count.",
+                "List every company entry on the portal, with the number of audit reports across its protocols (which can be 0).",
                 "A company name or id is needed for a filter, or several protocols of one company are in question.",
                 new[]
                 {
-                    "Which companies have audited protocols on the portal?",
+                    "Which companies have protocols with audit reports on the portal?",
                     "Which company is behind this protocol?",
                 },
                 new[] { "company", "team", "organization", "filter value" },
-                "Company information beyond name, website and description."),
+                "Company information beyond name, website and description. An entry can have 0 reports; check reportsCount."),
             [PublicApiOperations.ListTags] = new(
                 "List the tags used on audit findings, with the number of findings for each.",
                 "A tag is needed for the vulnerability search, or the question is which kinds of issue the findings are grouped by.",
