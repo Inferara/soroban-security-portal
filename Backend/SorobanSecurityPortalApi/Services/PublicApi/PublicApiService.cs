@@ -67,12 +67,14 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
             var (page, pageSize) = NormalizePaging(query.Page, query.PageSize);
             var text = NormalizeQueryText(query.Query);
 
+            var (tags, tagAnyOf) = await ResolveTags(query.Tag);
             var search = new VulnerabilitySearchModel
             {
                 SearchText = text,
+                Tags = tags,
+                TagAnyOf = tagAnyOf,
                 Severities = ParseSeverities(query.Severity),
                 Categories = ParseCategories(query.Category),
-                Tags = SplitList(query.Tag),
                 ProtocolIds = await ResolveIds("protocol", query.Protocol, async () => (await Protocols()).Select(p => (p.Id, p.Name))),
                 AuditorIds = await ResolveIds("auditor", query.Auditor, async () => (await Auditors()).Select(a => (a.Id, a.Name))),
                 CompanyIds = await ResolveIds("company", query.Company, async () => (await Companies()).Select(c => (c.Id, c.Name))),
@@ -200,6 +202,9 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
 
         public async Task<List<PublicEntity>> ListCompanies() => await Companies();
 
+        public async Task<List<PublicTag>> ListTags() =>
+            (await Tags()).Select(t => new PublicTag { Name = t.Name, FindingsCount = t.FindingsCount }).ToList();
+
         // ---- catalog (cached briefly: it is read on every name filter) ----
 
         private async Task<List<PublicProtocol>> Protocols() =>
@@ -229,7 +234,59 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                 return list;
             }))!;
 
+        // One tag as callers see it: spellings that differ only in case are one tag. Name is the
+        // most used spelling; Spellings are all the stored ones, for the search filter.
+        private sealed record TagEntry(string Name, int FindingsCount, string[] Spellings);
+
+        private async Task<List<TagEntry>> Tags() =>
+            (await _memoryCache.GetOrCreateAsync("public-api:tags", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = CatalogCacheTime;
+                var perFinding = await _publicProcessor.ListFindingTags();
+                var spellingCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+                var findingCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var tags in perFinding)
+                {
+                    var names = tags.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList();
+                    foreach (var spelling in names.Distinct(StringComparer.Ordinal))
+                        spellingCounts[spelling] = spellingCounts.GetValueOrDefault(spelling) + 1;
+                    // A finding that carries two spellings of one tag counts once.
+                    foreach (var name in names.Distinct(StringComparer.OrdinalIgnoreCase))
+                        findingCounts[name] = findingCounts.GetValueOrDefault(name) + 1;
+                }
+                return spellingCounts
+                    .GroupBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(g =>
+                    {
+                        var spellings = g.OrderByDescending(s => s.Value).ThenBy(s => s.Key, StringComparer.Ordinal)
+                            .Select(s => s.Key).ToArray();
+                        return new TagEntry(spellings[0], findingCounts[g.Key], spellings);
+                    })
+                    .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }))!;
+
         // ---- input handling ----
+
+        // Tag names ignore case. A tag stored in one spelling goes to the exact "has all of them"
+        // filter; a tag stored in several spellings becomes an "any of these" group.
+        private async Task<(List<string>? Tags, List<string[]>? TagAnyOf)> ResolveTags(string? value)
+        {
+            var parts = SplitList(value);
+            if (parts == null) return (null, null);
+            var catalog = await Tags();
+            var exact = new List<string>();
+            var anyOf = new List<string[]>();
+            foreach (var part in parts)
+            {
+                var entry = catalog.FirstOrDefault(t => string.Equals(t.Name, part, StringComparison.OrdinalIgnoreCase));
+                if (entry == null)
+                    throw new PublicApiValidationException($"No finding has the tag '{part}'. List the tags in use first.");
+                if (entry.Spellings.Length == 1) exact.Add(entry.Spellings[0]);
+                else anyOf.Add(entry.Spellings);
+            }
+            return (exact.Count > 0 ? exact : null, anyOf.Count > 0 ? anyOf : null);
+        }
 
         private static (int Page, int PageSize) NormalizePaging(int? page, int? pageSize)
         {
@@ -427,5 +484,6 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         Task<List<PublicProtocol>> ListProtocols();
         Task<List<PublicEntity>> ListAuditors();
         Task<List<PublicEntity>> ListCompanies();
+        Task<List<PublicTag>> ListTags();
     }
 }

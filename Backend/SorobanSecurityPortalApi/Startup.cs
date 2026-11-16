@@ -238,11 +238,15 @@ public class Startup
             {
                 Version = "v1",
                 Title = "Stellar Security Portal - Public API",
-                Description = "Read-only access to the portal's audit findings, audit reports, protocols, auditors and companies.\n\n" +
+                Description = "Read-only access to the portal's audit findings, audit reports, protocols, auditors, companies and tags.\n\n" +
                     "Every call needs an API key. Sign in to the portal, open your profile and create one, then send it as " +
                     "`Authorization: Bearer <key>` (or `X-API-Key: <key>`).\n\n" +
-                    "Calls are limited per key (per minute and per day). When a limit is hit the API answers `429` with a `Retry-After` header.\n\n" +
-                    "The same operations are available to AI agents as MCP tools at `/api/mcp`.",
+                    "Calls are limited per user (per minute and per day). When a limit is hit the API answers `429` with a `Retry-After` header.\n\n" +
+                    "The same operations are available to AI agents as MCP tools at `/api/mcp`; each operation names its tool in `x-mcp-tool`. " +
+                    "Three more tools exist on the MCP server only and have no REST route: `ret_versions`, `ret_decompile_address` and " +
+                    "`ret_decompile_wasm` (the soroban-ret decompiler).\n\n" +
+                    "Operation paths, parameter names and response fields are a contract: fields and operations are added, never renamed or removed.\n\n" +
+                    PublicApiDocument.DataUseNote,
             });
             // Controllers tagged with the public group go to the public document; everything else stays in v1.
             options.DocInclusionPredicate((documentName, api) =>
@@ -250,6 +254,7 @@ public class Startup
                     ? api.GroupName == PublicApiDocument.Name
                     : api.GroupName != PublicApiDocument.Name);
             options.EnableAnnotations();
+            options.OperationFilter<PublicApiRoutingFilter>();
             options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
             {
                 Name = "Authorization",

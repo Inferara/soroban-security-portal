@@ -90,6 +90,14 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public PublicRef? Company { get; set; }
     }
 
+    public class PublicTag
+    {
+        public string Name { get; set; } = "";
+        // Public findings that carry the tag (findings with no fix status are not counted,
+        // as in a search without a `category` filter).
+        public int FindingsCount { get; set; }
+    }
+
     public class PublicError
     {
         public string Error { get; set; } = "";

@@ -60,6 +60,15 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             });
             _public.Setup(p => p.ListAuditors()).ReturnsAsync(new List<PublicEntity> { new() { Id = 9, Name = "Veridise" } });
             _public.Setup(p => p.ListCompanies()).ReturnsAsync(new List<PublicEntity> { new() { Id = 4, Name = "Script3" } });
+            // "Access Control" is stored in two spellings; the other tags in one.
+            _public.Setup(p => p.ListFindingTags()).ReturnsAsync(new List<List<string>>
+            {
+                new() { "Access Control", "Rounding" },
+                new() { "access control" },
+                new() { "Access Control" },
+                new() { "Storage" },
+                new() { "Access Control", "access control" },
+            });
         }
 
         private PublicApiService Build() => new(
@@ -183,6 +192,61 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
             var act = () => Build().SearchVulnerabilities(new PublicVulnerabilityQuery { Category = category });
 
             await act.Should().ThrowAsync<PublicApiValidationException>();
+        }
+
+        // ---- tags ----
+
+        [Fact]
+        public async Task Tags_Are_Listed_Once_Per_Name_Whatever_The_Spelling_And_Cached_Briefly()
+        {
+            var service = Build();
+
+            var tags = await service.ListTags();
+            await service.ListTags();
+
+            tags.Select(t => (t.Name, t.FindingsCount)).Should().Equal(("Access Control", 4), ("Rounding", 1), ("Storage", 1));
+            _public.Verify(p => p.ListFindingTags(), Times.Once);
+        }
+
+        [Theory]
+        [InlineData("storage")]
+        [InlineData("STORAGE")]
+        [InlineData(" Storage ")]
+        public async Task Tag_Filter_Ignores_Case(string tag)
+        {
+            await Build().SearchVulnerabilities(new PublicVulnerabilityQuery { Tag = tag });
+
+            _vulnSearch!.Tags.Should().Equal("Storage");
+            _vulnSearch.TagAnyOf.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task A_Tag_Stored_In_Several_Spellings_Matches_All_Of_Them()
+        {
+            await Build().SearchVulnerabilities(new PublicVulnerabilityQuery { Tag = "ACCESS CONTROL, rounding" });
+
+            _vulnSearch!.Tags.Should().Equal("Rounding");
+            _vulnSearch.TagAnyOf.Should().ContainSingle()
+                .Which.Should().BeEquivalentTo(new[] { "Access Control", "access control" });
+        }
+
+        [Fact]
+        public async Task Without_A_Tag_There_Is_No_Tag_Filter_And_The_Tag_List_Is_Not_Read()
+        {
+            await Build().SearchVulnerabilities(new PublicVulnerabilityQuery());
+
+            _vulnSearch!.Tags.Should().BeNull();
+            _vulnSearch.TagAnyOf.Should().BeNull();
+            _public.Verify(p => p.ListFindingTags(), Times.Never);
+        }
+
+        [Fact]
+        public async Task A_Tag_No_Finding_Has_Is_A_Validation_Error_Not_An_Empty_Result()
+        {
+            var act = () => Build().SearchVulnerabilities(new PublicVulnerabilityQuery { Tag = "Storage, reentrancy" });
+
+            (await act.Should().ThrowAsync<PublicApiValidationException>())
+                .WithMessage("No finding has the tag 'reentrancy'*");
         }
 
         [Fact]

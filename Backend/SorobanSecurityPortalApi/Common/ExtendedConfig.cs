@@ -272,14 +272,14 @@ public class ExtendedConfig : IExtendedConfig
 
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
-    [Description("Calls per minute, per API key")]
-    [Tooltip("How many public API / MCP calls one API key may make per minute. Service keys can carry their own value.")]
+    [Description("Calls per minute, per user (service keys: per key)")]
+    [Tooltip("How many public API / MCP calls one user may make per minute, across all of their personal keys. A service key is counted on its own and can carry its own value.")]
     public int PublicApiRateLimitPerMinute => GetValue<int>("PublicApiRateLimitPerMinute", 60);
 
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
-    [Description("Calls per day, per API key")]
-    [Tooltip("How many public API / MCP calls one API key may make per UTC day. Service keys can carry their own value.")]
+    [Description("Calls per day, per user (service keys: per key)")]
+    [Tooltip("How many public API / MCP calls one user may make per UTC day, across all of their personal keys. A service key is counted on its own and can carry its own value.")]
     public int PublicApiRateLimitPerDay => GetValue<int>("PublicApiRateLimitPerDay", 2000);
 
     [Category(CategoryAttribute.ConfigCategoryEnum.PublicApi)]

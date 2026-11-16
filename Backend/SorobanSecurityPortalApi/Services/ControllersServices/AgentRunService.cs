@@ -37,6 +37,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IUserContextAccessor _userContextAccessor;
         private readonly IExtendedConfig _extendedConfig;
         private readonly ILookupCache _lookupCache;
+        private readonly ICategoryProcessor _categoryProcessor;
 
         public AgentRunService(
             IMapper mapper,
@@ -48,8 +49,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IHttpClientFactory httpClientFactory,
             IUserContextAccessor userContextAccessor,
             IExtendedConfig extendedConfig,
-            ILookupCache lookupCache)
+            ILookupCache lookupCache,
+            ICategoryProcessor categoryProcessor)
         {
+            _categoryProcessor = categoryProcessor;
             _mapper = mapper;
             _runProcessor = runProcessor;
             _reportProcessor = reportProcessor;
@@ -180,6 +183,9 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 };
             }
 
+            // The review screen takes tags as free text: store them in the curated spelling, so one
+            // tag does not end up under several spellings.
+            var curatedTags = ((await _categoryProcessor.List()) ?? new List<CategoryModel>()).Select(c => c.Name).ToList();
             var vulns = payload.Findings.Select(f => new VulnerabilityModel
             {
                 Title = f.Title,
@@ -187,7 +193,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 // Defensive normalization: coerce severity to the canonical vocabulary and the category
                 // to a defined enum value, even though the agent is instructed to emit valid ones.
                 Severity = VulnerabilityNormalizer.Severity(f.Severity),
-                Tags = f.Tags,
+                Tags = VulnerabilityNormalizer.Tags(f.Tags, curatedTags),
                 Category = VulnerabilityNormalizer.Category(f.Category),
                 Date = DateTime.UtcNow,
                 Status = VulnerabilityModelStatus.New,

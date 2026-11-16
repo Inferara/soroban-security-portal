@@ -16,6 +16,10 @@ namespace SorobanSecurityPortalApi.Mcp
     // REST API uses, through IApiCallRunner (limits + usage log). Results are returned as JSON
     // text. To add a tool (for example the soroban-ret tools), add a method here that follows
     // the same pattern.
+    //
+    // Tool names and parameter names are a contract with outside callers, like the response
+    // shapes in PublicApiModels.cs: add tools and optional parameters freely, never rename or
+    // remove one. The portal's agent skill (stellar-security-portal) quotes them.
     [McpServerToolType]
     public class PortalMcpTools
     {
@@ -26,8 +30,9 @@ namespace SorobanSecurityPortalApi.Mcp
             + "reports for Stellar / Soroban smart contracts. Use search_vulnerabilities to find known issues similar to "
             + "the code or design you are looking at, then get_vulnerability for the full write-up of a finding. "
             + "Use search_reports / get_report to explore audits of a protocol. Filters take a name or an id; "
-            + "list_protocols, list_auditors and list_companies show what exists. Every item has a `url` to its page "
-            + "on the portal: cite it when you refer to a finding or report.";
+            + "list_protocols, list_auditors, list_companies and list_tags show what exists. Every item has a `url` to its page "
+            + "on the portal: cite it when you refer to a finding or report. "
+            + PublicApiDocument.DataUseNote;
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -56,7 +61,7 @@ namespace SorobanSecurityPortalApi.Mcp
             [Description("What to look for, in plain words or code terms, e.g. \"missing require_auth on admin function\". Optional.")] string? query = null,
             [Description("Filter by severity: critical, high, medium, low or note. Comma-separated for several.")] string? severity = null,
             [Description("Filter by fix status: Valid, ValidNotFixed, ValidPartiallyFixed, Acknowledged or NA. Comma-separated for several.")] string? category = null,
-            [Description("Filter by tag. Comma-separated: a finding must have all of them.")] string? tag = null,
+            [Description("Filter by tag name (see list_tags); case is ignored. Comma-separated: a finding must have all of them.")] string? tag = null,
             [Description("Protocol name or id (see list_protocols).")] string? protocol = null,
             [Description("Auditor name or id (see list_auditors).")] string? auditor = null,
             [Description("Company name or id (see list_companies).")] string? company = null,
@@ -141,6 +146,14 @@ namespace SorobanSecurityPortalApi.Mcp
         {
             return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.ListCompanies,
                 null, async () => await _service.ListCompanies()));
+        }
+
+        [McpServerTool(Name = PublicApiOperations.ListTags, Title = "List tags", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+        [Description("List every tag used on a finding, with the number of findings that carry it. Use a name as the `tag` filter of search_vulnerabilities.")]
+        public async Task<CallToolResult> ListTags()
+        {
+            return ToResult(await _runner.Run(ApiUsageSource.Mcp, PublicApiOperations.ListTags,
+                null, async () => await _service.ListTags()));
         }
 
         [McpServerTool(Name = PublicApiOperations.RetVersions, Title = "List soroban-ret versions", ReadOnly = true, Idempotent = true, OpenWorld = false)]

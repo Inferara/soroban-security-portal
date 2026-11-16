@@ -125,6 +125,35 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
         }
 
         [Fact]
+        public async Task Finding_Tags_Come_Only_From_Public_Findings_With_A_Fix_Status()
+        {
+            VulnerabilityModel Tagged(int id, params string[] tags)
+            {
+                var v = Vuln(id);
+                v.Tags = tags.ToList();
+                return v;
+            }
+            var hidden = Tagged(2, "Hidden");
+            hidden.IsHidden = true;
+            var unapproved = Tagged(3, "New");
+            unapproved.Status = VulnerabilityModelStatus.New;
+            var noStatus = Tagged(4, "NoFixStatus");
+            noStatus.Category = VulnerabilityCategory.NA;
+            var untagged = Vuln(5);
+            untagged.Tags = null;
+            var empty = Tagged(6);
+
+            var result = await Build(new List<VulnerabilityModel>
+            {
+                Tagged(1, "Access Control", "rounding"), hidden, unapproved, noStatus, untagged, empty, Tagged(7, "Storage"),
+            }).ListFindingTags();
+
+            result.Should().HaveCount(2);
+            result[0].Should().Equal("Access Control", "rounding");
+            result[1].Should().Equal("Storage");
+        }
+
+        [Fact]
         public async Task Report_Is_Returned_Without_Pdf_Or_Image_And_With_Text_Only_On_Request()
         {
             var processor = Build(reports: new List<ReportModel> { Report() });
