@@ -145,5 +145,23 @@ namespace SorobanSecurityPortalApi.Tests.Controllers
             file.Should().NotBeNull();
             file!.ContentType.Should().Be("image/png");
         }
+
+        [Fact]
+        public async Task Vulnerability_StripsMarkdownFromDescription()
+        {
+            _vuln.Setup(s => s.Get(7)).ReturnsAsync(new VulnerabilityViewModel
+            {
+                Id = 7,
+                Title = "Reentrancy in vault",
+                Description = "### Summary\nThe `withdraw` function in **Vault** allows [reentrancy](https://example.com/attack)\n> critical issue",
+                Status = "approved",
+                Category = VulnerabilityCategory.Valid
+            });
+            var body = Body(await Sut().Vulnerability(7));
+            body.Should().Contain("The withdraw function in Vault allows reentrancy critical issue");
+            body.Should().NotContain("###");
+            body.Should().NotContain("**Vault**");
+            body.Should().NotContain("https://example.com/attack");
+        }
     }
 }

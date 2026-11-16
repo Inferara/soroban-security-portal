@@ -120,9 +120,9 @@ namespace SorobanSecurityPortalApi.Controllers
 
         private static string Truncate(string? s, int max)
         {
-            if (string.IsNullOrWhiteSpace(s)) return GenericDescription;
-            s = s.Trim();
-            return s.Length <= max ? s : s.Substring(0, max).TrimEnd() + "…";
+            var plain = MarkdownPlainText.StripMarkdown(s);
+            if (string.IsNullOrWhiteSpace(plain)) return GenericDescription;
+            return plain.Length <= max ? plain : plain.Substring(0, max).TrimEnd() + "…";
         }
 
         private string BuildHtml(string title, string description, string image, string url)
