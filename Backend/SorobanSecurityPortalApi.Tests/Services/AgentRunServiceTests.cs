@@ -33,7 +33,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
             Mock<IAuditorProcessor>? auditorProc = null,
             Mock<IHttpClientFactory>? httpFactory = null,
             Mock<IExtendedConfig>? extendedConfig = null,
-            Mock<ILookupCache>? lookupCache = null)
+            Mock<ILookupCache>? lookupCache = null,
+            Mock<ICategoryProcessor>? categoryProc = null)
         {
             var userCtx = new Mock<IUserContextAccessor>();
             userCtx.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(99);
@@ -47,7 +48,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 (httpFactory ?? new Mock<IHttpClientFactory>()).Object,
                 userCtx.Object,
                 (extendedConfig ?? new Mock<IExtendedConfig>()).Object,
-                (lookupCache ?? new Mock<ILookupCache>()).Object);
+                (lookupCache ?? new Mock<ILookupCache>()).Object,
+                (categoryProc ?? new Mock<ICategoryProcessor>()).Object);
         }
 
         private static Mock<IHttpClientFactory> HttpFactoryReturning(byte[] body)

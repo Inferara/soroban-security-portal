@@ -21,6 +21,7 @@ const tools: { name: string; rest: string; description: string }[] = [
   { name: 'list_protocols', rest: 'GET /protocols', description: 'All protocols, with company and number of reports.' },
   { name: 'list_auditors', rest: 'GET /auditors', description: 'All audit firms, with number of reports.' },
   { name: 'list_companies', rest: 'GET /companies', description: 'All companies, with number of reports.' },
+  { name: 'list_tags', rest: 'GET /tags', description: 'All tags used on findings, with number of findings.' },
   { name: 'ret_versions', rest: 'MCP only', description: 'The soroban-ret versions the decompiler can use.' },
   { name: 'ret_decompile_address', rest: 'MCP only', description: 'Recover Rust source from a deployed contract, by address (mainnet or testnet).' },
   { name: 'ret_decompile_wasm', rest: 'MCP only', description: 'Recover Rust source from a compiled contract (.wasm, base64, up to 512 KB).' },
@@ -114,9 +115,13 @@ export const Developers: FC = () => {
           or reviewing a contract you do not have the source for. Large contracts can take up to a minute.
         </Typography>
         <Typography sx={{ mt: 2 }}>
-          Filters that take a protocol, auditor or company accept either its name or its id. Search results are compact;
-          ask for a single finding to get the full description. Every item carries a <code>url</code> to its page on the
-          portal.
+          Filters that take a protocol, auditor or company accept either its name or its id. The tag filter takes a tag
+          name and ignores case. Search results are compact; ask for a single finding to get the full description. Every
+          item carries a <code>url</code> to its page on the portal.
+        </Typography>
+        <Typography sx={{ mt: 2 }}>
+          Tool names, endpoint paths, parameter names and response fields are stable: new ones are added, existing ones
+          are not renamed or removed. Agent skills and other tools can rely on them.
         </Typography>
       </Section>
 
@@ -158,6 +163,14 @@ export const Developers: FC = () => {
         <Typography>
           Other REST errors use the usual status codes (<code>400</code> bad input, <code>401</code> missing or revoked
           key, <code>404</code> not found) with a JSON body: <code>{'{ "error": "...", "message": "..." }'}</code>.
+        </Typography>
+      </Section>
+
+      <Section title="6. Data use and attribution">
+        <Typography>
+          The Stellar Security Portal is maintained by Inferara. Findings and reports come from the named audit
+          firms&apos; published reports. When you quote them, cite the portal link and the auditor. The data is provided
+          as is and is not a security assessment of any code.
         </Typography>
       </Section>
     </Box>

@@ -344,6 +344,7 @@ namespace SorobanSecurityPortalApi.Tests.PublicApi
                 PublicApiOperations.SearchVulnerabilities, PublicApiOperations.GetVulnerability,
                 PublicApiOperations.SearchReports, PublicApiOperations.GetReport,
                 PublicApiOperations.ListProtocols, PublicApiOperations.ListAuditors, PublicApiOperations.ListCompanies,
+                PublicApiOperations.ListTags,
                 PublicApiOperations.RetVersions, PublicApiOperations.RetDecompileAddress, PublicApiOperations.RetDecompileWasm,
             });
             tools.Should().OnlyContain(t => t!.ReadOnly);

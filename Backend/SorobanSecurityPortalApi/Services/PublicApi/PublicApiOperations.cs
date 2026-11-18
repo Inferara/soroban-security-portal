@@ -8,6 +8,13 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
     public static class PublicApiDocument
     {
         public const string Name = "public-v1";
+
+        // Who maintains the data and how to credit it. Shown in the OpenAPI description, the MCP
+        // server instructions and on the /developers page (keep the three in step).
+        public const string DataUseNote =
+            "The Stellar Security Portal is maintained by Inferara. Findings and reports come from the named audit "
+            + "firms' published reports. When you quote them, cite the portal link and the auditor. The data is "
+            + "provided as is and is not a security assessment of any code.";
     }
 
     // Operation names as they appear in the usage log. They double as the MCP tool names,
@@ -21,6 +28,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
         public const string ListProtocols = "list_protocols";
         public const string ListAuditors = "list_auditors";
         public const string ListCompanies = "list_companies";
+        public const string ListTags = "list_tags";
         public const string RetVersions = "ret_versions";
         public const string RetDecompileAddress = "ret_decompile_address";
         public const string RetDecompileWasm = "ret_decompile_wasm";

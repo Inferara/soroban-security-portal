@@ -114,6 +114,26 @@ namespace SorobanSecurityPortalApi.Data.Processors
                 .ToDictionary(g => g.Key, g => g.Sum(x => x.Count));
         }
 
+        // The tags of every finding a search can return, one entry per finding, exactly as stored.
+        // The caller folds spellings and counts; there are about a thousand findings, so this
+        // stays in memory.
+        public async Task<List<PublicFindingTags>> ListFindingTags()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var rows = await db.Vulnerability
+                .AsNoTracking()
+                .Where(v => v.Status == VulnerabilityModelStatus.Approved
+                            && v.Category != VulnerabilityCategory.Invalid
+                            && !v.IsHidden && !v.IsDeleted
+                            && v.Tags != null)
+                .Select(v => new { v.Tags, v.Category })
+                .ToListAsync();
+            return rows
+                .Where(r => r.Tags is { Count: > 0 })
+                .Select(r => new PublicFindingTags { Tags = r.Tags!, HasFixStatus = r.Category != VulnerabilityCategory.NA })
+                .ToList();
+        }
+
         public async Task<List<PublicProtocol>> ListProtocols()
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -174,6 +194,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<VulnerabilityModel?> GetVulnerability(int id);
         Task<ReportModel?> GetReport(int id, bool includeContent);
         Task<Dictionary<string, int>> CountReportFindingsBySeverity(int reportId);
+        Task<List<PublicFindingTags>> ListFindingTags();
         Task<List<PublicProtocol>> ListProtocols();
         Task<List<PublicEntity>> ListAuditors();
         Task<List<PublicEntity>> ListCompanies();

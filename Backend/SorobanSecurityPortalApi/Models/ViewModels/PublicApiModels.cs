@@ -90,6 +90,22 @@ namespace SorobanSecurityPortalApi.Models.ViewModels
         public PublicRef? Company { get; set; }
     }
 
+    public class PublicTag
+    {
+        public string Name { get; set; } = "";
+        // Public findings that carry the tag (findings with no fix status are not counted,
+        // as in a search without a `category` filter).
+        public int FindingsCount { get; set; }
+    }
+
+    // The tags of one public finding, exactly as stored. HasFixStatus is false for a finding
+    // with no fix status (NA): a search only returns those when `category` asks for them.
+    public class PublicFindingTags
+    {
+        public List<string> Tags { get; set; } = new();
+        public bool HasFixStatus { get; set; }
+    }
+
     public class PublicError
     {
         public string Error { get; set; } = "";

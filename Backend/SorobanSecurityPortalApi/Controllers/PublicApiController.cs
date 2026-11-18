@@ -28,6 +28,7 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("vulnerabilities")]
+        [PublicOperation(PublicApiOperations.SearchVulnerabilities)]
         [SwaggerOperation(
             Summary = "Search vulnerabilities",
             Description = "Search audit findings by text and filters. Results are compact (no description); "
@@ -41,7 +42,7 @@ namespace SorobanSecurityPortalApi.Controllers
             [FromQuery, SwaggerParameter("Free text, for example \"reentrancy in token transfer\". Max 500 characters.")] string? query,
             [FromQuery, SwaggerParameter("critical, high, medium, low or note. Comma-separated for several.")] string? severity,
             [FromQuery, SwaggerParameter("Valid, ValidNotFixed, ValidPartiallyFixed, Acknowledged or NA. Comma-separated for several.")] string? category,
-            [FromQuery, SwaggerParameter("Tag name. Comma-separated: the finding must have all of them.")] string? tag,
+            [FromQuery, SwaggerParameter("Tag name; case is ignored. Comma-separated: the finding must have all of them. `GET /tags` lists the names.")] string? tag,
             [FromQuery, SwaggerParameter("Protocol id or name.")] string? protocol,
             [FromQuery, SwaggerParameter("Auditor id or name.")] string? auditor,
             [FromQuery, SwaggerParameter("Company id or name.")] string? company,
@@ -62,6 +63,7 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("vulnerabilities/{id:int}")]
+        [PublicOperation(PublicApiOperations.GetVulnerability)]
         [SwaggerOperation(Summary = "Get one vulnerability", Description = "The full finding, including its Markdown description.")]
         [ProducesResponseType(typeof(PublicVulnerabilityDetail), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(PublicError), StatusCodes.Status404NotFound)]
@@ -74,6 +76,7 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("reports")]
+        [PublicOperation(PublicApiOperations.SearchReports)]
         [SwaggerOperation(
             Summary = "Search audit reports",
             Description = "Search audit reports by text and filters. With `query`, results are ranked by relevance; without it, newest first.")]
@@ -101,6 +104,7 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("reports/{id:int}")]
+        [PublicOperation(PublicApiOperations.GetReport)]
         [SwaggerOperation(
             Summary = "Get one audit report",
             Description = "Report details with its findings (up to 100, compact) and a per-severity count. "
@@ -116,6 +120,7 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("protocols")]
+        [PublicOperation(PublicApiOperations.ListProtocols)]
         [SwaggerOperation(Summary = "List protocols", Description = "Every protocol on the portal, with its company and the number of audit reports.")]
         [ProducesResponseType(typeof(List<PublicProtocol>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(PublicError), StatusCodes.Status401Unauthorized)]
@@ -127,6 +132,7 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("auditors")]
+        [PublicOperation(PublicApiOperations.ListAuditors)]
         [SwaggerOperation(Summary = "List auditors", Description = "Every audit firm on the portal, with the number of audit reports.")]
         [ProducesResponseType(typeof(List<PublicEntity>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(PublicError), StatusCodes.Status401Unauthorized)]
@@ -138,6 +144,7 @@ namespace SorobanSecurityPortalApi.Controllers
         }
 
         [HttpGet("companies")]
+        [PublicOperation(PublicApiOperations.ListCompanies)]
         [SwaggerOperation(Summary = "List companies", Description = "Every company on the portal, with the number of audit reports across its protocols.")]
         [ProducesResponseType(typeof(List<PublicEntity>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(PublicError), StatusCodes.Status401Unauthorized)]
@@ -146,6 +153,18 @@ namespace SorobanSecurityPortalApi.Controllers
         {
             return ToResult(await _runner.Run(ApiUsageSource.Rest, PublicApiOperations.ListCompanies,
                 null, async () => await _service.ListCompanies()));
+        }
+
+        [HttpGet("tags")]
+        [PublicOperation(PublicApiOperations.ListTags)]
+        [SwaggerOperation(Summary = "List tags", Description = "Every tag used on a finding, with the number of findings that carry it. Use a name as the `tag` filter of the vulnerability search.")]
+        [ProducesResponseType(typeof(List<PublicTag>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PublicError), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(PublicError), StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> ListTags()
+        {
+            return ToResult(await _runner.Run(ApiUsageSource.Rest, PublicApiOperations.ListTags,
+                null, async () => await _service.ListTags()));
         }
 
         private IActionResult ToResult<T>(ApiCallOutcome<T> outcome) where T : class
