@@ -39,7 +39,7 @@ namespace SorobanSecurityPortalApi.Services.PublicApi
                     "Show the full write-up of this finding from the Stellar Security Portal.",
                 },
                 new[] { "finding", "write-up", "root cause", "recommendation", "vulnerability id" },
-                "Finding a finding without its id; search first."),
+                "Looking up a finding when you do not have its id; search first."),
             [PublicApiOperations.SearchReports] = new(
                 "Search published security audit reports for Stellar and Soroban projects.",
                 "The question is about which audit reports exist for a protocol, auditor, company or period.",
