@@ -126,6 +126,8 @@ namespace SorobanSecurityPortalApi.Data.Processors
             if (reportModel == null)
                 throw new ArgumentNullException(nameof(reportModel));
             reportModel.Status = ReportModelStatus.New;
+            if (reportModel.LastActionAt == default)
+                reportModel.LastActionAt = DateTime.UtcNow;
             db.Report.Add(reportModel);
             await db.SaveChangesAsync();
             return reportModel;
@@ -398,7 +400,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
             var ago = DateTime.UtcNow.AddMonths(-1);
             var newReports = await db.Report
                 .AsNoTracking()
-                .Where(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted && v.Date >= ago)
+                .Where(v => v.Status == ReportModelStatus.Approved && !v.IsHidden && !v.IsDeleted && (v.LastActionAt >= ago || (v.LastActionAt == default && v.Date >= ago)))
                 .CountAsync();
             return new ReportStatisticsChangesViewModel
             {
