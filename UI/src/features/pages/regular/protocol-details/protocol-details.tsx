@@ -398,7 +398,7 @@ export const ProtocolDetails: FC = () => {
 
                     {reports.length > 0 ? (
                       <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                        {reports
+                        {[...reports]
                           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                           .map((report, index) => (
                             <Box key={report.id}>

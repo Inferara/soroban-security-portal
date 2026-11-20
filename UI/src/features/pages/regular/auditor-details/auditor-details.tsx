@@ -331,7 +331,7 @@ export const AuditorDetails: FC = () => {
                   </Typography>
                   {reports.length > 0 ? (
                     <List sx={{ maxHeight: 600, overflow: 'auto' }}>
-                      {reports
+                      {[...reports]
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map((report, index) => (
                         <Box key={report.id}>
