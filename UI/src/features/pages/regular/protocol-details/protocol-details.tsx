@@ -48,6 +48,7 @@ import {
 import { formatDateLong } from '../../../../utils';
 import { usePageViewTracking } from '../../../../hooks/usePageViewTracking';
 import { PageViewEntityType } from '../../../../api/soroban-security-portal/models/analytics';
+import { SeoHead } from '../../../../components/common/SeoHead';
 
 export const ProtocolDetails: FC = () => {
   const navigate = useNavigate();
@@ -176,6 +177,7 @@ export const ProtocolDetails: FC = () => {
     >
       {protocol && (
         <>
+          <SeoHead title={protocol.name} description={protocol.description?.substring(0, 160)} />
           {/* Header */}
           <Box sx={{ mb: 3 }}>
             <DetailPageHeader

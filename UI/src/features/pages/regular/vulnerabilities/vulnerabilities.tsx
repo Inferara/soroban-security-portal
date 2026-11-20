@@ -41,6 +41,7 @@ import 'katex/dist/katex.min.css';
 import './katex.css';
 import ReactGA from 'react-ga4';
 import { VulnerabilityCard } from './vulnerability-card';
+import { SeoHead } from '../../../../components/common/SeoHead';
 import { downloadReportPDF, getVulnerabilityDescriptionCall } from '../../../../api/soroban-security-portal/soroban-security-portal-api';
 import { useAppAuth } from '../../../authentication/useAppAuth';
 import { canEdit } from '../../../authentication/authPermissions';
@@ -469,6 +470,7 @@ export const Vulnerabilities: FC = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <SeoHead title="Vulnerabilities" description="Browse and search smart contract vulnerabilities across the Stellar ecosystem." type="website" />
       <Box sx={{ padding: '24px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           {canEdit(auth) && (

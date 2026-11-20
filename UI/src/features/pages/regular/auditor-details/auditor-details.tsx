@@ -47,6 +47,7 @@ import {
 import { formatDateLong, formatMonthYear } from '../../../../utils';
 import { usePageViewTracking } from '../../../../hooks/usePageViewTracking';
 import { PageViewEntityType } from '../../../../api/soroban-security-portal/models/analytics';
+import { SeoHead } from '../../../../components/common/SeoHead';
 
 export const AuditorDetails: FC = () => {
   const navigate = useNavigate();
@@ -142,6 +143,7 @@ export const AuditorDetails: FC = () => {
     >
       {auditor && (
         <>
+          <SeoHead title={auditor.name} description={auditor.description?.substring(0, 160)} />
           {/* Header */}
           <DetailPageHeader
             entityType="auditor"
