@@ -43,11 +43,17 @@ namespace SorobanSecurityPortalApi.Tests.Data
             return new ReportProcessor(factory.Object, null!);
         }
 
+        // Id, Date and Name deliberately run in different orders, and the input
+        // list is shuffled: a test can only pass if the requested field is
+        // really the one being sorted. (Previously all three fields ascended
+        // together, so sorting by Id would have passed every test.)
+        // Date asc -> Ids 2, 3, 1; Date desc -> 1, 3, 2;
+        // Name asc -> Alpha(3), Bravo(1), Charlie(2); Id desc -> 3, 2, 1.
         private static List<ReportModel> ThreeApprovedReports() => new()
         {
-            new() { Id = 1, Name = "Alpha", Date = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), Status = ReportModelStatus.Approved },
-            new() { Id = 2, Name = "Beta", Date = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc), Status = ReportModelStatus.Approved },
-            new() { Id = 3, Name = "Gamma", Date = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), Status = ReportModelStatus.Approved },
+            new() { Id = 3, Name = "Alpha", Date = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc), Status = ReportModelStatus.Approved },
+            new() { Id = 1, Name = "Bravo", Date = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), Status = ReportModelStatus.Approved },
+            new() { Id = 2, Name = "Charlie", Date = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), Status = ReportModelStatus.Approved },
         };
 
         // sortBy "Date", "DATE" and "date" must all sort by date.
@@ -60,15 +66,15 @@ namespace SorobanSecurityPortalApi.Tests.Data
             var found = await BuildProcessor(ThreeApprovedReports())
                 .Search(new ReportSearchModel { SortBy = sortBy, SortDirection = "asc" });
 
-            found.Select(r => r.Id).Should().Equal(1, 2, 3);
+            found.Select(r => r.Id).Should().Equal(2, 3, 1);
         }
 
         // sortDirection "ASC" and "asc" must both sort ascending; "DESC"/"desc" descending.
         [Theory]
-        [InlineData("ASC", new[] { 1, 2, 3 })]
-        [InlineData("asc", new[] { 1, 2, 3 })]
-        [InlineData("DESC", new[] { 3, 2, 1 })]
-        [InlineData("desc", new[] { 3, 2, 1 })]
+        [InlineData("ASC", new[] { 2, 3, 1 })]
+        [InlineData("asc", new[] { 2, 3, 1 })]
+        [InlineData("DESC", new[] { 1, 3, 2 })]
+        [InlineData("desc", new[] { 1, 3, 2 })]
         public async Task Search_SortDirection_Is_CaseInsensitive(string direction, int[] expectedIds)
         {
             var found = await BuildProcessor(ThreeApprovedReports())
@@ -127,7 +133,7 @@ namespace SorobanSecurityPortalApi.Tests.Data
             var found = await BuildProcessor(ThreeApprovedReports())
                 .Search(new ReportSearchModel { SortBy = "date", SortDirection = "desc" });
 
-            found.Select(r => r.Id).Should().Equal(3, 2, 1);
+            found.Select(r => r.Id).Should().Equal(1, 3, 2);
         }
     }
 }
