@@ -7,7 +7,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { Box, IconButton, Link, Tooltip, Typography } from '@mui/material';
 import { GridRenderCellParams } from '@mui/x-data-grid';
-import { FC, useEffect, useMemo, useState, useCallback } from 'react';
+import { FC, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
@@ -25,6 +25,7 @@ export const VulnerabilityManagement: FC = () => {
   const navigate = useNavigate();
   const auth = useAuth();
   const [collapsedDescriptions, setCollapsedDescriptions] = useState<Set<string>>(new Set());
+  const initializedIdsRef = useRef<Set<string>>(new Set());
   const [removeId, setRemoveId] = useState(0);
   const [approveId, setApproveId] = useState(0);
   const [rejectId, setRejectId] = useState(0);
@@ -41,7 +42,19 @@ export const VulnerabilityManagement: FC = () => {
   const isAdmin = hasAdminRole(auth);
 
   useEffect(() => {
-    setCollapsedDescriptions(new Set(vulnerabilityListData.map(vuln => vuln.id.toString())));
+    setCollapsedDescriptions((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const vuln of vulnerabilityListData) {
+        const id = vuln.id.toString();
+        if (!initializedIdsRef.current.has(id)) {
+          initializedIdsRef.current.add(id);
+          next.add(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
   }, [vulnerabilityListData]);
 
   const shouldShowCollapse = useCallback((description: string) => {
