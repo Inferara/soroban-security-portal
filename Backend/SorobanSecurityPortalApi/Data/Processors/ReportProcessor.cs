@@ -79,14 +79,9 @@ namespace SorobanSecurityPortalApi.Data.Processors
                         .OrderByDescending(x => x.TextScore + x.VecScore)
                         .Select(x => x.v);
                 }
-                else if (!string.IsNullOrWhiteSpace(reportSearch.SortBy))
+                else
                 {
-                    q = reportSearch.SortBy switch
-                    {
-                        "date" => reportSearch.SortDirection == "asc" ? q.OrderBy(v => v.Date) : q.OrderByDescending(v => v.Date),
-                        "name" => reportSearch.SortDirection == "asc" ? q.OrderBy(v => v.Name) : q.OrderByDescending(v => v.Name),
-                        _ => throw new ArgumentException("Invalid sort by option")
-                    };
+                    q = ApplySorting(q, reportSearch.SortBy, reportSearch.SortDirection) ?? q.OrderByDescending(v => v.Id);
                 }
             }
             else
@@ -117,6 +112,26 @@ namespace SorobanSecurityPortalApi.Data.Processors
                     }
                 })
                 .ToListAsync();
+        }
+
+        // Mirrors VulnerabilityProcessor.ApplySorting: case-insensitive field and direction,
+        // null when there is nothing to sort by (missing or unknown field) so the caller
+        // falls back to the default newest-first order instead of throwing.
+        private static IOrderedQueryable<ReportModel>? ApplySorting(
+            IQueryable<ReportModel> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            if (string.IsNullOrWhiteSpace(sortBy)) return null;
+
+            var asc = string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+            return sortBy.ToLowerInvariant() switch
+            {
+                "date" => asc ? query.OrderBy(v => v.Date) : query.OrderByDescending(v => v.Date),
+                "name" => asc ? query.OrderBy(v => v.Name) : query.OrderByDescending(v => v.Name),
+                _ => null
+            };
         }
 
 
