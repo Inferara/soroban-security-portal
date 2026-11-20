@@ -13,7 +13,7 @@ import {
 import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import BugReportIcon from '@mui/icons-material/BugReport';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { Bookmark, BookmarkType } from '../../../../../api/soroban-security-portal/models/bookmark';
 
 interface BookmarkMenuProps {
@@ -21,7 +21,6 @@ interface BookmarkMenuProps {
 }
 
 export const BookmarkMenu: FC<BookmarkMenuProps> = ({ bookmarks }) => {
-    const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
@@ -33,14 +32,10 @@ export const BookmarkMenu: FC<BookmarkMenuProps> = ({ bookmarks }) => {
         setAnchorEl(null);
     };
 
-    const handleBookmarkClick = (bookmark: Bookmark) => {
-        if (bookmark.bookmarkType === BookmarkType.Report) {
-            navigate(`/report/${bookmark.itemId}`);
-        } else if (bookmark.bookmarkType === BookmarkType.Vulnerability) {
-            navigate(`/vulnerability/${bookmark.itemId}`);
-        }
-        handleClose();
-    };
+    const getBookmarkUrl = (bookmark: Bookmark) =>
+        bookmark.bookmarkType === BookmarkType.Report
+            ? `/report/${bookmark.itemId}`
+            : `/vulnerability/${bookmark.itemId}`;
 
     const getBookmarkIcon = (type: BookmarkType) => {
         switch (type) {
@@ -149,7 +144,9 @@ export const BookmarkMenu: FC<BookmarkMenuProps> = ({ bookmarks }) => {
                         bookmarks.map((bookmark) => (
                             <MenuItem
                                 key={bookmark.id}
-                                onClick={() => handleBookmarkClick(bookmark)}
+                                component={RouterLink}
+                                to={getBookmarkUrl(bookmark)}
+                                onClick={handleClose}
                             >
                                 <ListItemIcon>
                                     {getBookmarkIcon(bookmark.bookmarkType)}
