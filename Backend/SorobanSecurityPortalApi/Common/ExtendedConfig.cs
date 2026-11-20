@@ -31,6 +31,7 @@ public interface IExtendedConfig
     bool ProfanityFilterEnabled { get; }
     List<string> ProfanityWords { get; }
     List<string> TrustedDomains { get; }
+    int MaxLinksPerFinding { get; }
     string ReportImageCacheDir { get; }
     string AgentIngestionPreamble { get; }
     string AgentIngestionInstructions { get; }
@@ -245,6 +246,12 @@ public class ExtendedConfig : IExtendedConfig
                       .Select(d => d.Trim())
                       .Where(d => !string.IsNullOrWhiteSpace(d))
                       .ToList();
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.ContentFilter)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Max links per finding (contributors)")]
+    [Tooltip("How many links a Contributor may put in the description of a finding they submit. A submission with more links is refused. Admins and Moderators are not limited. Comments and reviews keep their own fixed limit of 10 links.")]
+    public int MaxLinksPerFinding => GetValue<int>("MaxLinksPerFinding", 20);
 
     [Category(CategoryAttribute.ConfigCategoryEnum.AgentIngestion)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Multiline)]

@@ -18,6 +18,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly UserContextAccessor _userContextAccessor;
         private readonly IContentFilterService _contentFilter;
         private readonly ILookupCache _lookupCache;
+        private readonly IExtendedConfig _config;
 
         public VulnerabilityService(
             IMapper mapper,
@@ -27,8 +28,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IGeminiEmbeddingService embeddingService,
             UserContextAccessor userContextAccessor,
             IContentFilterService contentFilter,
-            ILookupCache lookupCache)
+            ILookupCache lookupCache,
+            IExtendedConfig config)
         {
+            _config = config;
             _mapper = mapper;
             _vulnerabilityProcessor = vulnerabilityProcessor;
             _reportProcessor = reportProcessor;
@@ -128,7 +131,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             // empty content. Only run the content filter when there is actual text to inspect.
             if (!string.IsNullOrWhiteSpace(vulnerabilityViewModel.Description))
             {
-                var filterResult = await _contentFilter.FilterContentAsync(vulnerabilityViewModel.Description, loginId);
+                // Findings legitimately carry many links (code references), and they are not public until
+                // approved. Admins and Moderators, who do the approving, are not limited by link count;
+                // Contributors get the admin-configured limit instead of the comment/review default.
+                int? maxLinks = await _userContextAccessor.IsLoginIdAdminOrModerator(loginId)
+                    ? null
+                    : _config.MaxLinksPerFinding;
+                var filterResult = await _contentFilter.FilterContentAsync(vulnerabilityViewModel.Description, loginId, maxLinks);
 
                 // Only IsBlocked rejects the submission. I-1: RequiresModeration results are recorded in the
                 // moderation log inside FilterContentAsync but are intentionally NOT hard-blocked here.

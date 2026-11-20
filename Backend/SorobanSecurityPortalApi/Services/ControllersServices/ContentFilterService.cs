@@ -24,6 +24,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private static readonly string[] AllowedTags = { "p", "br", "strong", "em", "code", "pre", "a", "ul", "ol", "li", "blockquote" };
         private static readonly Regex AnchorHrefRegex = new(@"<a\s+[^>]*href\s*=\s*[""']([^""']*)[""'][^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex MarkdownLinkRegex = new(@"(?<!!)\[[^\]\r\n]+\]\(([^)\r\n]+)\)", RegexOptions.Compiled);
+        // Default link limit (comments, reviews). Finding submissions pass their own limit.
         private const int MaxLinksAllowed = 10;
         private const int RateLimitPerMinute = 10;
         private const string RateLimitKeyPrefix = "content_filter_rate_limit:";
@@ -93,7 +94,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return allWords;
         }
 
-        public async Task<ContentFilterResult> FilterContentAsync(string content, int userId)
+        public Task<ContentFilterResult> FilterContentAsync(string content, int userId) =>
+            FilterContentAsync(content, userId, MaxLinksAllowed);
+
+        public async Task<ContentFilterResult> FilterContentAsync(string content, int userId, int? maxLinks)
         {
             var result = new ContentFilterResult();
             var originalContent = content;
@@ -117,7 +121,10 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
 
             CheckProfanity(result, originalContent);
 
-            CheckLinkFlooding(result, markdownHtml);
+            if (maxLinks.HasValue)
+            {
+                CheckLinkFlooding(result, markdownHtml, maxLinks.Value);
+            }
 
             ValidateUrls(result, ExtractLinkTargets(markdownHtml, originalContent));
 
@@ -162,13 +169,13 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             }
         }
 
-        private void CheckLinkFlooding(ContentFilterResult result, string html)
+        private void CheckLinkFlooding(ContentFilterResult result, string html, int maxLinks)
         {
             var linkMatches = AnchorHrefRegex.Matches(html);
-            if (linkMatches.Count > MaxLinksAllowed)
+            if (linkMatches.Count > maxLinks)
             {
                 result.IsBlocked = true;
-                result.Warnings.Add($"Too many links detected: {linkMatches.Count} (max: {MaxLinksAllowed})");
+                result.Warnings.Add($"Too many links detected: {linkMatches.Count} (max: {maxLinks})");
                 _logger.LogWarning("Link flooding detected: {LinkCount} links", linkMatches.Count);
             }
         }

@@ -13,6 +13,7 @@ namespace SorobanSecurityPortalApi.Common
         bool HasRole(string role);
         Task<bool> IsLoginAdmin(string login);
         Task<bool> IsLoginIdAdmin(int loginId);
+        Task<bool> IsLoginIdAdminOrModerator(int loginId);
     }
 
     public class UserContextAccessor : IUserContextAccessor
@@ -103,6 +104,15 @@ namespace SorobanSecurityPortalApi.Common
             if (loginModel == null)
                 return false;
             return loginModel.Role == RoleEnum.Admin;
+        }
+
+        // The two roles that approve content (findings, reports).
+        public async Task<bool> IsLoginIdAdminOrModerator(int loginId)
+        {
+            var loginModel = await _loginProcessor.GetById(loginId);
+            if (loginModel == null)
+                return false;
+            return loginModel.Role is RoleEnum.Admin or RoleEnum.Moderator;
         }
     }
 }
