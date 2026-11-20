@@ -93,7 +93,7 @@ namespace SorobanSecurityPortalApi.Tests.Data
             var found = await BuildProcessor(ThreeApprovedReports())
                 .Search(new ReportSearchModel { SortBy = sortBy, SortDirection = "asc" });
 
-            found.Select(r => r.Name).Should().Equal("Alpha", "Beta", "Gamma");
+            found.Select(r => r.Name).Should().Equal("Alpha", "Bravo", "Charlie");
         }
 
         // An unknown sortBy must return results in the default order, not throw (no 500).
