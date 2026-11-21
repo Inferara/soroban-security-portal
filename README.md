@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/ci.yml)
 [![Deploy Stellar Security Portal](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml/badge.svg)](https://github.com/Inferara/soroban-security-portal/actions/workflows/cd-prod.yml)
-[![Stellar Public Good](https://img.shields.io/badge/Stellar%20Public%20Good-Approved-1f8ced?style=for-the-badge)]([https://www.stellar.org](https://github.com/SCF-Public-Goods-Maintenance/scf-public-goods-maintenance.github.io/pull/59))
+[![Stellar Public Good](https://img.shields.io/badge/Stellar%20Public%20Good-Approved-1f8ced?style=for-the-badge)](https://github.com/SCF-Public-Goods-Maintenance/scf-public-goods-maintenance.github.io/pull/59)
 
 ## 🌃 Dock
 
@@ -11,7 +11,7 @@ https://stellarsecurityportal.com
 ## 🚀 Features
 
 1. The largest database of known Stellar Soroban smart contracts security vulnerabilities ever found
-2. Vulenrabilities and security audit reports are organized and easy to access through filtered views
+2. Vulnerabilities and security audit reports are organized and easy to access through filtered views
 3. Consolidated and observable information about companies, protocols, auditors, audit reports, and vulnerabilities
 
 🗄️ Portal on [Tansu](https://app.tansu.dev/project/?name=securityportal)
@@ -28,7 +28,7 @@ https://stellarsecurityportal.com
 
 This project was funded by the [Stellar Community Fund](https://communityfund.stellar.org/) and [Stellar Public Good Program](https://stellar.gitbook.io/scf-handbook/supporting-programs/public-goods-award/official-rules). 
 
-The Stellar Security Portal' purpose is to provide a cohesive knowledge base for both current and new developers on [Stellar](https://stellar.org/). Here we will provide them with tools and information to start building with ease. 
+The Stellar Security Portal's purpose is to provide a cohesive knowledge base for both current and new developers on [Stellar](https://stellar.org/). Here we will provide them with tools and information to start building with ease. 
 
 By providing a unified knowledge base of common vulnerabilities and audit reports, developers can focus on building using Soroban safely.
 
@@ -40,4 +40,4 @@ Contributions are welcome!
 
 ## 📄 License
 
-This project is licensed under # Apache License 2.0. See [LICENSE](./LICENSE) for details.
+This project is licensed under the Apache License 2.0. See [LICENSE](./LICENSE) for details.
