@@ -38,6 +38,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private readonly IExtendedConfig _extendedConfig;
         private readonly ILookupCache _lookupCache;
         private readonly ICategoryProcessor _categoryProcessor;
+        private readonly IHostResolver _hostResolver;
 
         public AgentRunService(
             IMapper mapper,
@@ -50,9 +51,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             IUserContextAccessor userContextAccessor,
             IExtendedConfig extendedConfig,
             ILookupCache lookupCache,
-            ICategoryProcessor categoryProcessor)
+            ICategoryProcessor categoryProcessor,
+            IHostResolver hostResolver)
         {
             _categoryProcessor = categoryProcessor;
+            _hostResolver = hostResolver;
             _mapper = mapper;
             _runProcessor = runProcessor;
             _reportProcessor = reportProcessor;
@@ -225,7 +228,7 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
         private async Task<byte[]?> TryFetchReportPdf(string? url)
         {
             if (string.IsNullOrWhiteSpace(url)) return null;
-            if (!UrlValidator.IsUrlSafeForFetch(url, out _)) return null;
+            if (!UrlValidator.IsUrlSafeForFetch(url, out _, hostResolver: _hostResolver)) return null;
             // The cluster node's egress flaps intermittently (TLS/connection resets), so a single GET
             // often fails on an otherwise-reachable URL. Retry on transient *network* faults only — a
             // successful response that isn't a PDF (or a non-2xx status) is definitive and returns at once.

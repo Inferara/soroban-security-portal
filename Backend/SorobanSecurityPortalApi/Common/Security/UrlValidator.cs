@@ -21,8 +21,9 @@ public static class UrlValidator
     /// <param name="url">The URL to validate.</param>
     /// <param name="errorMessage">Error message if validation fails.</param>
     /// <param name="requireHttps">Whether to require HTTPS (default: true).</param>
+    /// <param name="hostResolver">Resolves the URL's host for the internal-address check (default: system DNS).</param>
     /// <returns>True if the URL is safe to fetch; otherwise, false.</returns>
-    public static bool IsUrlSafeForFetch(string url, out string? errorMessage, bool requireHttps = true)
+    public static bool IsUrlSafeForFetch(string url, out string? errorMessage, bool requireHttps = true, IHostResolver? hostResolver = null)
     {
         errorMessage = null;
 
@@ -66,7 +67,7 @@ public static class UrlValidator
             // Resolve hostname and check for internal IPs
             try
             {
-                var addresses = Dns.GetHostAddresses(uri.Host);
+                var addresses = (hostResolver ?? DnsHostResolver.Instance).GetHostAddresses(uri.Host);
                 foreach (var addr in addresses)
                 {
                     if (IsPrivateOrReservedIP(addr))

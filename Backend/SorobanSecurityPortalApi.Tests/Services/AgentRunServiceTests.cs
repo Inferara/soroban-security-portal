@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SorobanSecurityPortalApi.Common;
 using SorobanSecurityPortalApi.Common.Caching;
+using SorobanSecurityPortalApi.Common.Security;
 using SorobanSecurityPortalApi.Data.Processors;
 using SorobanSecurityPortalApi.Models.DbModels;
 using SorobanSecurityPortalApi.Models.Mapping;
@@ -34,7 +35,8 @@ namespace SorobanSecurityPortalApi.Tests.Services
             Mock<IHttpClientFactory>? httpFactory = null,
             Mock<IExtendedConfig>? extendedConfig = null,
             Mock<ILookupCache>? lookupCache = null,
-            Mock<ICategoryProcessor>? categoryProc = null)
+            Mock<ICategoryProcessor>? categoryProc = null,
+            IHostResolver? hostResolver = null)
         {
             var userCtx = new Mock<IUserContextAccessor>();
             userCtx.Setup(u => u.GetLoginIdAsync()).ReturnsAsync(99);
@@ -49,7 +51,21 @@ namespace SorobanSecurityPortalApi.Tests.Services
                 userCtx.Object,
                 (extendedConfig ?? new Mock<IExtendedConfig>()).Object,
                 (lookupCache ?? new Mock<ILookupCache>()).Object,
-                (categoryProc ?? new Mock<ICategoryProcessor>()).Object);
+                (categoryProc ?? new Mock<ICategoryProcessor>()).Object,
+                hostResolver ?? PublicHostResolver);
+        }
+
+        // Keeps the SSRF host check hermetic: every host "resolves" to a public address, so tests
+        // never depend on real DNS. The check itself (UrlValidator) still runs on the result.
+        private static readonly IHostResolver PublicHostResolver = new StubHostResolver(System.Net.IPAddress.Parse("93.184.216.34"));
+
+        private sealed class StubHostResolver : IHostResolver
+        {
+            private readonly System.Net.IPAddress[]? _addresses;
+            // No addresses => behaves like a failed DNS lookup.
+            public StubHostResolver(params System.Net.IPAddress[] addresses) { _addresses = addresses.Length > 0 ? addresses : null; }
+            public System.Net.IPAddress[] GetHostAddresses(string host)
+                => _addresses ?? throw new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.HostNotFound);
         }
 
         private static Mock<IHttpClientFactory> HttpFactoryReturning(byte[] body)
@@ -722,6 +738,37 @@ namespace SorobanSecurityPortalApi.Tests.Services
             };
             var cap = SetupCommit(runProc);
             var result = await svc.Approve(72, payload);
+
+            result.Should().BeOfType<Result<bool, string>.Ok>();
+            cap.Report!.BinFile.Should().BeNull();
+            httpFactory.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
+        }
+
+        // The SSRF guard must stop the fetch before any HTTP call when the PDF host resolves to an
+        // internal address, or does not resolve at all. Approve itself still succeeds (no PDF).
+        [Theory]
+        [InlineData("10.0.0.5")]
+        [InlineData("169.254.169.254")]
+        [InlineData(null)] // host does not resolve
+        public async Task Approve_With_Unsafe_PdfHost_No_Fetch(string? resolvedAddress)
+        {
+            var httpFactory = new Mock<IHttpClientFactory>();
+            var resolver = resolvedAddress == null
+                ? new StubHostResolver()
+                : new StubHostResolver(System.Net.IPAddress.Parse(resolvedAddress));
+
+            var runProc = new Mock<IAgentRunProcessor>();
+            runProc.Setup(p => p.Get(74)).ReturnsAsync(new AgentRunModel { Id = 74, Status = AgentRunStatus.Succeeded });
+            var svc = BuildService(runProc, httpFactory: httpFactory, hostResolver: resolver);
+
+            var payload = new ApproveAgentRunViewModel
+            {
+                ReportTitle = "Internal Host Audit",
+                ArticleMarkdown = "# Art", Findings = new(),
+                ReportPdfUrl = "https://example.com/r.pdf"
+            };
+            var cap = SetupCommit(runProc);
+            var result = await svc.Approve(74, payload);
 
             result.Should().BeOfType<Result<bool, string>.Ok>();
             cap.Report!.BinFile.Should().BeNull();
