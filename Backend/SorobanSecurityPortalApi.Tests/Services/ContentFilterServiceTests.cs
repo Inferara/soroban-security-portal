@@ -297,6 +297,69 @@ public class ContentFilterServiceTests
         result.Warnings.Should().Contain("Too many links detected: 11 (max: 10)");
     }
 
+    [Fact]
+    public async Task FilterContentAsync_WithCustomLimit_AllowsLinksUpToLimit()
+    {
+        // Arrange
+        SetupDefaultConfig();
+        var service = CreateService();
+        var content = string.Join(" ", Enumerable.Range(1, 20).Select(i => $"[Link{i}](https://example{i}.com)"));
+
+        // Act
+        var result = await service.FilterContentAsync(content, 1, 20);
+
+        // Assert
+        result.IsBlocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task FilterContentAsync_WithCustomLimit_BlocksLinksOverLimit()
+    {
+        // Arrange
+        SetupDefaultConfig();
+        var service = CreateService();
+        var content = string.Join(" ", Enumerable.Range(1, 21).Select(i => $"[Link{i}](https://example{i}.com)"));
+
+        // Act
+        var result = await service.FilterContentAsync(content, 1, 20);
+
+        // Assert
+        result.IsBlocked.Should().BeTrue();
+        result.Warnings.Should().Contain("Too many links detected: 21 (max: 20)");
+    }
+
+    [Fact]
+    public async Task FilterContentAsync_WithNoLimit_AllowsManyLinks()
+    {
+        // Arrange
+        SetupDefaultConfig();
+        var service = CreateService();
+        var content = string.Join(" ", Enumerable.Range(1, 40).Select(i => $"[Link{i}](https://example{i}.com)"));
+
+        // Act
+        var result = await service.FilterContentAsync(content, 1, null);
+
+        // Assert
+        result.IsBlocked.Should().BeFalse();
+        result.Warnings.Should().NotContain(w => w.Contains("Too many links"));
+    }
+
+    [Fact]
+    public async Task FilterContentAsync_WithNoLimit_StillBlocksNonHttpUrls()
+    {
+        // Arrange
+        SetupDefaultConfig();
+        var service = CreateService();
+        var content = "[FTP Link](ftp://files.example.com)";
+
+        // Act
+        var result = await service.FilterContentAsync(content, 1, null);
+
+        // Assert
+        result.IsBlocked.Should().BeTrue();
+        result.Warnings.Should().Contain(w => w.Contains("Non-HTTP(S) URL"));
+    }
+
     #endregion
 
     #region URL Validation Tests
