@@ -96,6 +96,40 @@ namespace SorobanSecurityPortalApi.Tests.Data
             found.Select(r => r.Name).Should().Equal("Alpha", "Bravo", "Charlie");
         }
 
+        // The fixture list is already in name order, so the ascending test above would
+        // pass with no sort applied at all. Descending proves the name sort really runs.
+        [Fact]
+        public async Task Search_SortBy_Name_Desc_Sorts_By_Name_Descending()
+        {
+            var found = await BuildProcessor(ThreeApprovedReports())
+                .Search(new ReportSearchModel { SortBy = "name", SortDirection = "desc" });
+
+            found.Select(r => r.Name).Should().Equal("Charlie", "Bravo", "Alpha");
+        }
+
+        // Reports sharing a date must come back in a fixed order (higher Id first) in both
+        // directions: the public API pages this list in memory, so an unstable tie order
+        // could repeat one report across pages and skip another.
+        [Theory]
+        [InlineData("asc", new[] { 2, 3, 1 })]
+        [InlineData("desc", new[] { 3, 1, 2 })]
+        public async Task Search_SortBy_Date_Breaks_Ties_By_Id_Descending(string direction, int[] expectedIds)
+        {
+            var sharedDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc);
+            // Lower Id listed first, so a stable sort without the tiebreaker returns 1 before 3.
+            var reports = new List<ReportModel>
+            {
+                new() { Id = 1, Name = "Bravo", Date = sharedDate, Status = ReportModelStatus.Approved },
+                new() { Id = 3, Name = "Alpha", Date = sharedDate, Status = ReportModelStatus.Approved },
+                new() { Id = 2, Name = "Charlie", Date = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), Status = ReportModelStatus.Approved },
+            };
+
+            var found = await BuildProcessor(reports)
+                .Search(new ReportSearchModel { SortBy = "date", SortDirection = direction });
+
+            found.Select(r => r.Id).Should().Equal(expectedIds);
+        }
+
         // An unknown sortBy must return results in the default order, not throw (no 500).
         [Fact]
         public async Task Search_Unknown_SortBy_FallsBack_To_NewestFirst()

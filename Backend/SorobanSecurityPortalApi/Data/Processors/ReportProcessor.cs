@@ -126,10 +126,17 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
             var asc = string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
 
+            // Id is the tiebreaker: callers page the result (PublicApiService.SearchReports
+            // re-runs the search per request), so rows sharing a date or name need a stable
+            // order or a report can repeat on one page and go missing from another.
             return sortBy.ToLowerInvariant() switch
             {
-                "date" => asc ? query.OrderBy(v => v.Date) : query.OrderByDescending(v => v.Date),
-                "name" => asc ? query.OrderBy(v => v.Name) : query.OrderByDescending(v => v.Name),
+                "date" => asc
+                    ? query.OrderBy(v => v.Date).ThenByDescending(v => v.Id)
+                    : query.OrderByDescending(v => v.Date).ThenByDescending(v => v.Id),
+                "name" => asc
+                    ? query.OrderBy(v => v.Name).ThenByDescending(v => v.Id)
+                    : query.OrderByDescending(v => v.Name).ThenByDescending(v => v.Id),
                 _ => null
             };
         }
