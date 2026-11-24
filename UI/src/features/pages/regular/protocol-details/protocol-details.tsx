@@ -114,6 +114,12 @@ export const ProtocolDetails: FC = () => {
       }));
   }, [reports]);
 
+  // Newest-first copy shared by the Overview and Audit History tabs
+  const sortedReports = useMemo(
+    () => [...reports].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [reports]
+  );
+
   // Get unique auditors for easy access (deduplicate by auditorId)
   const uniqueAuditors = useMemo(() => {
     if (reports.length === 0) return [];
@@ -398,8 +404,7 @@ export const ProtocolDetails: FC = () => {
 
                     {reports.length > 0 ? (
                       <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                        {reports
-                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        {sortedReports
                           .map((report, index) => (
                             <Box key={report.id}>
                               <ListItem
@@ -470,7 +475,7 @@ export const ProtocolDetails: FC = () => {
             <Box>
               {reports && reports.length > 0 ? (
                 <List sx={{ width: '100%' }}>
-                  {reports.map((report) => (
+                  {sortedReports.map((report) => (
                     <React.Fragment key={report.id}>
                       <ListItem
                         sx={{
