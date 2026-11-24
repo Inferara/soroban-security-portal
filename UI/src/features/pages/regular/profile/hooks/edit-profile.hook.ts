@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { selfEditUserCall, getUserByIdCall } from '../../../../../api/soroban-security-portal/soroban-security-portal-api';
-import { UserItem, SelfEditUserItem  } from '../../../../../api/soroban-security-portal/models/user';
+import { UserItem, SelfEditUserItem, ConnectedAccountItem } from '../../../../../api/soroban-security-portal/models/user';
 
 export const useEditProfile = () => {
   const auth = useAuth();
@@ -22,25 +22,26 @@ export const useEditProfile = () => {
     login: string;
     personalInfo: string;
     image?: string;
+    connectedAccounts?: ConnectedAccountItem[];
   }): Promise<boolean> => {
     if (!user) return false;
 
     setIsLoading(true);
     try {
-      const selfEditUserItem: SelfEditUserItem  = {
+      const selfEditUserItem: SelfEditUserItem = {
         fullName: profileData.fullName,
         image: profileData.image || '',
         personalInfo: profileData.personalInfo,
-        connectedAccounts: user.connectedAccounts,
+        connectedAccounts: profileData.connectedAccounts ?? user.connectedAccounts ?? [],
       };
 
       const response = await selfEditUserCall(user.loginId, selfEditUserItem);
-      
+
       if (response) {
         // Refresh user data after successful update
         await getUserData();
       }
-      
+
       return response;
     } catch (error) {
       console.error('Error updating profile:', error);

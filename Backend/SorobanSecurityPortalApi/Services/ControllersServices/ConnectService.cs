@@ -118,15 +118,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 login = await _loginProcessor.GetByEmail(extendedTokenModel.Email);
                 if (login != null)
                 {
-                    if (!login.ConnectedAccounts!.Any(ca => ca.ServiceName == "Discord" && ca.AccountId == extendedTokenModel.Email))
+                    await _loginProcessor.AddConnectedAccount(login.LoginId, new ConnectedAccountModel
                     {
-                        login.ConnectedAccounts!.Add(new ConnectedAccountModel
-                        {
-                            ServiceName = "Discord",
-                            AccountId = extendedTokenModel.Email
-                        });
-                        await _loginProcessor.Update(login);
-                    }
+                        ServiceName = "Discord",
+                        AccountId = extendedTokenModel.Email
+                    });
                 }
                 else
                 {
@@ -192,16 +188,11 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
                 login = await _loginProcessor.GetByEmail(extendedTokenModel.Email);
                 if (login != null)
                 {
-                    login.ConnectedAccounts ??= new List<ConnectedAccountModel>();
-                    if (!login.ConnectedAccounts.Any(ca => ca.ServiceName == "Google" && ca.AccountId == extendedTokenModel.Email))
+                    await _loginProcessor.AddConnectedAccount(login.LoginId, new ConnectedAccountModel
                     {
-                        login.ConnectedAccounts.Add(new ConnectedAccountModel
-                        {
-                            ServiceName = "Google",
-                            AccountId = extendedTokenModel.Email
-                        });
-                        await _loginProcessor.Update(login);
-                    }
+                        ServiceName = "Google",
+                        AccountId = extendedTokenModel.Email
+                    });
                 }
                 else
                 {

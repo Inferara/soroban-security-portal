@@ -115,6 +115,78 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return rows.ToDictionary(r => r.LoginId, r => !string.IsNullOrWhiteSpace(r.FullName) ? r.FullName : r.Login);
         }
 
+        public async Task<bool> UpdateSelfProfile(int loginId, string fullName, string? personalInfo, byte[]? newImage, bool updateImage, List<ConnectedAccountModel> clientManagedAccounts)
+        {
+            const int maxRetries = 3;
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    await using var db = await _dbFactory.CreateDbContextAsync();
+                    var login = await db.Login.FirstOrDefaultAsync(item => item.LoginId == loginId);
+                    if (login == null) return false;
+
+                    login.FullName = fullName;
+                    login.PersonalInfo = personalInfo;
+                    if (updateImage)
+                    {
+                        login.Image = newImage;
+                        login.IsAvatarManuallySet = true;
+                    }
+
+                    // Database-authoritative merge with concurrency check and retry:
+                    // Only replace client-managed social services (GitHub, X).
+                    // Concurrently added SSO connections (Google, Discord) in the DB are preserved.
+                    var clientManagedServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "GitHub", "X" };
+                    var currentAccounts = login.ConnectedAccounts ?? new List<ConnectedAccountModel>();
+
+                    var merged = currentAccounts
+                        .Where(a => !clientManagedServices.Contains(a.ServiceName))
+                        .ToList();
+
+                    merged.AddRange(clientManagedAccounts);
+                    login.ConnectedAccounts = merged;
+
+                    await db.SaveChangesAsync();
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException) when (attempt < maxRetries - 1)
+                {
+                    await Task.Delay(50 * (attempt + 1));
+                }
+            }
+
+            return false;
+        }
+
+        public async Task<bool> AddConnectedAccount(int loginId, ConnectedAccountModel account)
+        {
+            const int maxRetries = 3;
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    await using var db = await _dbFactory.CreateDbContextAsync();
+                    var login = await db.Login.FirstOrDefaultAsync(item => item.LoginId == loginId);
+                    if (login == null) return false;
+
+                    login.ConnectedAccounts ??= new List<ConnectedAccountModel>();
+                    if (!login.ConnectedAccounts.Any(ca => string.Equals(ca.ServiceName, account.ServiceName, StringComparison.OrdinalIgnoreCase) && ca.AccountId == account.AccountId))
+                    {
+                        login.ConnectedAccounts.Add(account);
+                        await db.SaveChangesAsync();
+                    }
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException) when (attempt < maxRetries - 1)
+                {
+                    await Task.Delay(50 * (attempt + 1));
+                }
+            }
+
+            return false;
+        }
+
         public async Task<List<LoginModel>> SearchUsers(string q, int limit)
         {
             if (string.IsNullOrWhiteSpace(q)) return new List<LoginModel>();
@@ -141,5 +213,7 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<LoginModel> Add(LoginModel login);
         Task<Dictionary<int, string>> GetDisplayNames(List<int> userIds);
         Task<List<LoginModel>> SearchUsers(string q, int limit);
+        Task<bool> UpdateSelfProfile(int loginId, string fullName, string? personalInfo, byte[]? newImage, bool updateImage, List<ConnectedAccountModel> clientManagedAccounts);
+        Task<bool> AddConnectedAccount(int loginId, ConnectedAccountModel account);
     }
 }

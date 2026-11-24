@@ -94,5 +94,100 @@ namespace SorobanSecurityPortalApi.Tests.Services
 
             processor.Verify(p => p.SearchUsers("bob", 5), Times.Once);
         }
+
+        [Fact]
+        public async Task SelfUpdate_Valid_Github_And_X_Urls_Pass_To_Processor()
+        {
+            var processor = new Mock<ILoginProcessor>();
+            processor.Setup(p => p.GetById(1)).ReturnsAsync(new LoginModel { LoginId = 1, FullName = "Alice" });
+            processor.Setup(p => p.UpdateSelfProfile(
+                1,
+                "Alice Updated",
+                "New bio",
+                null,
+                false,
+                It.Is<List<ConnectedAccountModel>>(l =>
+                    l.Count == 2 &&
+                    l.Any(a => a.ServiceName == "GitHub" && a.AccountId == "https://github.com/alice") &&
+                    l.Any(a => a.ServiceName == "X" && a.AccountId == "https://x.com/alice_x"))))
+                .ReturnsAsync(true);
+
+            var service = BuildService(processor);
+            var result = await service.SelfUpdate(1, new LoginSelfUpdateViewModel
+            {
+                FullName = "Alice Updated",
+                PersonalInfo = "New bio",
+                ConnectedAccounts = new List<ConnectedAccountViewModel>
+                {
+                    new() { ServiceName = "GitHub", AccountId = "https://github.com/alice" },
+                    new() { ServiceName = "X", AccountId = "https://x.com/alice_x" },
+                    // Client trying to submit SSO accounts should be ignored
+                    new() { ServiceName = "Google", AccountId = "spoofed@gmail.com" }
+                }
+            });
+
+            result.Should().BeTrue();
+            processor.Verify(p => p.UpdateSelfProfile(
+                1,
+                "Alice Updated",
+                "New bio",
+                null,
+                false,
+                It.Is<List<ConnectedAccountModel>>(l =>
+                    l.Count == 2 &&
+                    !l.Any(a => a.ServiceName == "Google"))), Times.Once);
+        }
+
+        [Fact]
+        public async Task SelfUpdate_Insecure_Http_Github_Url_Is_Rejected()
+        {
+            var processor = new Mock<ILoginProcessor>();
+            processor.Setup(p => p.GetById(1)).ReturnsAsync(new LoginModel { LoginId = 1 });
+            var service = BuildService(processor);
+
+            var result = await service.SelfUpdate(1, new LoginSelfUpdateViewModel
+            {
+                FullName = "Alice",
+                ConnectedAccounts = new List<ConnectedAccountViewModel>
+                {
+                    new() { ServiceName = "GitHub", AccountId = "http://github.com/alice" }
+                }
+            });
+
+            result.Should().BeFalse();
+            processor.Verify(p => p.UpdateSelfProfile(
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<byte[]?>(),
+                It.IsAny<bool>(),
+                It.IsAny<List<ConnectedAccountModel>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SelfUpdate_Invalid_Foreign_Domain_X_Url_Is_Rejected()
+        {
+            var processor = new Mock<ILoginProcessor>();
+            processor.Setup(p => p.GetById(1)).ReturnsAsync(new LoginModel { LoginId = 1 });
+            var service = BuildService(processor);
+
+            var result = await service.SelfUpdate(1, new LoginSelfUpdateViewModel
+            {
+                FullName = "Alice",
+                ConnectedAccounts = new List<ConnectedAccountViewModel>
+                {
+                    new() { ServiceName = "X", AccountId = "https://attacker.com/alice" }
+                }
+            });
+
+            result.Should().BeFalse();
+            processor.Verify(p => p.UpdateSelfProfile(
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<byte[]?>(),
+                It.IsAny<bool>(),
+                It.IsAny<List<ConnectedAccountModel>>()), Times.Never);
+        }
     }
 }

@@ -76,28 +76,71 @@ namespace SorobanSecurityPortalApi.Services.ControllersServices
             return true;
         }
 
+        private static readonly System.Text.RegularExpressions.Regex GitHubUrlRegex = new(
+            @"^https://(www\.)?github\.com/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?/?$",
+            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        private static readonly System.Text.RegularExpressions.Regex XUrlRegex = new(
+            @"^https://(www\.)?(x\.com|twitter\.com)/[a-zA-Z0-9_]{1,15}/?$",
+            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
         public async Task<bool> SelfUpdate(int loginId, LoginSelfUpdateViewModel userUpdateSelfViewModel)
         {
             var login = await _loginProcessor.GetById(loginId);
             if (login == null)
                 return false;
 
-            var loginModel = _mapper.Map<LoginModel>(userUpdateSelfViewModel);
-            login.FullName = loginModel.FullName;
-            login.PersonalInfo = loginModel.PersonalInfo;
-            login.ConnectedAccounts = loginModel.ConnectedAccounts;
-
             // Detect if user is changing their avatar (either uploading new or removing)
-            // Set IsAvatarManuallySet=true to prevent SSO from overwriting
-            bool imageChanged = !AreImagesEqual(login.Image, loginModel.Image);
-            if (imageChanged)
+            bool imageChanged = !AreImagesEqual(login.Image, userUpdateSelfViewModel.Image);
+
+            // Validate and extract only client-managed social accounts (GitHub, X).
+            // SSO accounts (Google, Discord, etc.) are strictly DB-authoritative and
+            // any submitted values for them are ignored to prevent spoofing or stale data overwrite.
+            var validatedSocialAccounts = new List<ConnectedAccountModel>();
+            if (userUpdateSelfViewModel.ConnectedAccounts != null)
             {
-                login.Image = loginModel.Image;
-                login.IsAvatarManuallySet = true;
+                foreach (var ca in userUpdateSelfViewModel.ConnectedAccounts)
+                {
+                    if (string.Equals(ca.ServiceName, "GitHub", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var url = ca.AccountId?.Trim() ?? string.Empty;
+                        if (!string.IsNullOrEmpty(url))
+                        {
+                            if (!GitHubUrlRegex.IsMatch(url))
+                                return false;
+
+                            validatedSocialAccounts.Add(new ConnectedAccountModel
+                            {
+                                ServiceName = "GitHub",
+                                AccountId = url
+                            });
+                        }
+                    }
+                    else if (string.Equals(ca.ServiceName, "X", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var url = ca.AccountId?.Trim() ?? string.Empty;
+                        if (!string.IsNullOrEmpty(url))
+                        {
+                            if (!XUrlRegex.IsMatch(url))
+                                return false;
+
+                            validatedSocialAccounts.Add(new ConnectedAccountModel
+                            {
+                                ServiceName = "X",
+                                AccountId = url
+                            });
+                        }
+                    }
+                }
             }
 
-            await _loginProcessor.Update(login);
-            return true;
+            return await _loginProcessor.UpdateSelfProfile(
+                loginId,
+                userUpdateSelfViewModel.FullName,
+                userUpdateSelfViewModel.PersonalInfo,
+                userUpdateSelfViewModel.Image,
+                imageChanged,
+                validatedSocialAccounts);
         }
 
         private static bool AreImagesEqual(byte[]? a, byte[]? b)
