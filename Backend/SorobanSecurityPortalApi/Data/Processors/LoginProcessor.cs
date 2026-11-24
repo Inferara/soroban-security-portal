@@ -117,32 +117,74 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
         public async Task<bool> UpdateSelfProfile(int loginId, string fullName, string? personalInfo, byte[]? newImage, bool updateImage, List<ConnectedAccountModel> clientManagedAccounts)
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
-            var login = await db.Login.FirstOrDefaultAsync(item => item.LoginId == loginId);
-            if (login == null) return false;
-
-            login.FullName = fullName;
-            login.PersonalInfo = personalInfo;
-            if (updateImage)
+            const int maxRetries = 3;
+            for (int attempt = 0; attempt < maxRetries; attempt++)
             {
-                login.Image = newImage;
-                login.IsAvatarManuallySet = true;
+                try
+                {
+                    await using var db = await _dbFactory.CreateDbContextAsync();
+                    var login = await db.Login.FirstOrDefaultAsync(item => item.LoginId == loginId);
+                    if (login == null) return false;
+
+                    login.FullName = fullName;
+                    login.PersonalInfo = personalInfo;
+                    if (updateImage)
+                    {
+                        login.Image = newImage;
+                        login.IsAvatarManuallySet = true;
+                    }
+
+                    // Database-authoritative merge with concurrency check and retry:
+                    // Only replace client-managed social services (GitHub, X).
+                    // Concurrently added SSO connections (Google, Discord) in the DB are preserved.
+                    var clientManagedServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "GitHub", "X" };
+                    var currentAccounts = login.ConnectedAccounts ?? new List<ConnectedAccountModel>();
+
+                    var merged = currentAccounts
+                        .Where(a => !clientManagedServices.Contains(a.ServiceName))
+                        .ToList();
+
+                    merged.AddRange(clientManagedAccounts);
+                    login.ConnectedAccounts = merged;
+
+                    await db.SaveChangesAsync();
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException) when (attempt < maxRetries - 1)
+                {
+                    await Task.Delay(50 * (attempt + 1));
+                }
             }
 
-            // DB is authoritative for non-client-managed (SSO) accounts.
-            // Atomic merge within the tracking context preserves any concurrent SSO updates.
-            var clientManagedServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "GitHub", "X" };
-            var currentAccounts = login.ConnectedAccounts ?? new List<ConnectedAccountModel>();
+            return false;
+        }
 
-            var merged = currentAccounts
-                .Where(a => !clientManagedServices.Contains(a.ServiceName))
-                .ToList();
+        public async Task<bool> AddConnectedAccount(int loginId, ConnectedAccountModel account)
+        {
+            const int maxRetries = 3;
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    await using var db = await _dbFactory.CreateDbContextAsync();
+                    var login = await db.Login.FirstOrDefaultAsync(item => item.LoginId == loginId);
+                    if (login == null) return false;
 
-            merged.AddRange(clientManagedAccounts);
-            login.ConnectedAccounts = merged;
+                    login.ConnectedAccounts ??= new List<ConnectedAccountModel>();
+                    if (!login.ConnectedAccounts.Any(ca => string.Equals(ca.ServiceName, account.ServiceName, StringComparison.OrdinalIgnoreCase) && ca.AccountId == account.AccountId))
+                    {
+                        login.ConnectedAccounts.Add(account);
+                        await db.SaveChangesAsync();
+                    }
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException) when (attempt < maxRetries - 1)
+                {
+                    await Task.Delay(50 * (attempt + 1));
+                }
+            }
 
-            await db.SaveChangesAsync();
-            return true;
+            return false;
         }
 
         public async Task<List<LoginModel>> SearchUsers(string q, int limit)
@@ -172,5 +214,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<Dictionary<int, string>> GetDisplayNames(List<int> userIds);
         Task<List<LoginModel>> SearchUsers(string q, int limit);
         Task<bool> UpdateSelfProfile(int loginId, string fullName, string? personalInfo, byte[]? newImage, bool updateImage, List<ConnectedAccountModel> clientManagedAccounts);
+        Task<bool> AddConnectedAccount(int loginId, ConnectedAccountModel account);
     }
 }

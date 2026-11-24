@@ -179,5 +179,53 @@ namespace SorobanSecurityPortalApi.Tests.Data
             user.Image.Should().Equal(newImage);
             user.IsAvatarManuallySet.Should().BeTrue();
         }
+
+        [Fact]
+        public async Task AddConnectedAccount_Adds_Account_When_Not_Present()
+        {
+            var logins = new List<LoginModel>
+            {
+                new() { LoginId = 1, Login = "alice", ConnectedAccounts = new List<ConnectedAccountModel>() }
+            };
+            var processor = Build(logins);
+
+            var added = await processor.AddConnectedAccount(1, new ConnectedAccountModel
+            {
+                ServiceName = "Google",
+                AccountId = "alice@gmail.com"
+            });
+            added.Should().BeTrue();
+
+            var user = logins.First(l => l.LoginId == 1);
+            user.ConnectedAccounts.Should().ContainSingle(a => a.ServiceName == "Google" && a.AccountId == "alice@gmail.com");
+        }
+
+        [Fact]
+        public async Task AddConnectedAccount_Does_Not_Duplicate_When_Already_Present()
+        {
+            var logins = new List<LoginModel>
+            {
+                new()
+                {
+                    LoginId = 1,
+                    Login = "alice",
+                    ConnectedAccounts = new List<ConnectedAccountModel>
+                    {
+                        new() { ServiceName = "Discord", AccountId = "alice#1234" }
+                    }
+                }
+            };
+            var processor = Build(logins);
+
+            var added = await processor.AddConnectedAccount(1, new ConnectedAccountModel
+            {
+                ServiceName = "Discord",
+                AccountId = "alice#1234"
+            });
+            added.Should().BeTrue();
+
+            var user = logins.First(l => l.LoginId == 1);
+            user.ConnectedAccounts.Should().ContainSingle(a => a.ServiceName == "Discord" && a.AccountId == "alice#1234");
+        }
     }
 }
