@@ -112,5 +112,72 @@ namespace SorobanSecurityPortalApi.Tests.Data
             logins.Select(l => l.LoginId).Should().Equal(2);
             notes.Select(n => n.Id).Should().Equal(12);
         }
+
+        [Fact]
+        public async Task UpdateSelfProfile_Preserves_Authoritative_SSO_Accounts_While_Updating_Client_Managed_Accounts()
+        {
+            var existingAccounts = new List<ConnectedAccountModel>
+            {
+                new() { ServiceName = "Google", AccountId = "user@gmail.com" },
+                new() { ServiceName = "Discord", AccountId = "user#1234" },
+                new() { ServiceName = "GitHub", AccountId = "https://github.com/oldalice" },
+            };
+            var logins = new List<LoginModel>
+            {
+                new()
+                {
+                    LoginId = 1,
+                    Login = "alice",
+                    FullName = "Alice",
+                    PersonalInfo = "Bio",
+                    ConnectedAccounts = existingAccounts,
+                    IsEnabled = true
+                }
+            };
+
+            var processor = Build(logins);
+            var clientSocial = new List<ConnectedAccountModel>
+            {
+                new() { ServiceName = "GitHub", AccountId = "https://github.com/newalice" },
+                new() { ServiceName = "X", AccountId = "https://x.com/alice_x" }
+            };
+
+            var updated = await processor.UpdateSelfProfile(1, "Alice New", "New Bio", null, false, clientSocial);
+            updated.Should().BeTrue();
+
+            var user = logins.First(l => l.LoginId == 1);
+            user.FullName.Should().Be("Alice New");
+            user.PersonalInfo.Should().Be("New Bio");
+
+            // Google and Discord from DB must be preserved untouched
+            user.ConnectedAccounts.Should().ContainSingle(a => a.ServiceName == "Google" && a.AccountId == "user@gmail.com");
+            user.ConnectedAccounts.Should().ContainSingle(a => a.ServiceName == "Discord" && a.AccountId == "user#1234");
+
+            // GitHub updated, old GitHub replaced
+            user.ConnectedAccounts.Should().ContainSingle(a => a.ServiceName == "GitHub" && a.AccountId == "https://github.com/newalice");
+            user.ConnectedAccounts.Should().NotContain(a => a.AccountId == "https://github.com/oldalice");
+
+            // X added
+            user.ConnectedAccounts.Should().ContainSingle(a => a.ServiceName == "X" && a.AccountId == "https://x.com/alice_x");
+            user.ConnectedAccounts.Should().HaveCount(4);
+        }
+
+        [Fact]
+        public async Task UpdateSelfProfile_Updates_Image_And_Sets_IsAvatarManuallySet()
+        {
+            var logins = new List<LoginModel>
+            {
+                new() { LoginId = 1, Login = "alice", IsAvatarManuallySet = false, IsEnabled = true }
+            };
+            var processor = Build(logins);
+            var newImage = new byte[] { 1, 2, 3 };
+
+            var updated = await processor.UpdateSelfProfile(1, "Alice", null, newImage, true, new List<ConnectedAccountModel>());
+            updated.Should().BeTrue();
+
+            var user = logins.First(l => l.LoginId == 1);
+            user.Image.Should().Equal(newImage);
+            user.IsAvatarManuallySet.Should().BeTrue();
+        }
     }
 }

@@ -11,6 +11,10 @@ import BugReportIcon from '@mui/icons-material/BugReport';
 import DeleteIcon from '@mui/icons-material/Delete';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import XIcon from '@mui/icons-material/X';
+import GoogleIcon from '@mui/icons-material/Google';
+import ChatIcon from '@mui/icons-material/Chat';
 import { MarkdownView } from '../../../../components/MarkdownView';
 import { useNavigate } from 'react-router-dom';
 import { useBookmarks } from '../../../../contexts/BookmarkContext';
@@ -167,6 +171,20 @@ function a11yProps(index: number) {
     'aria-controls': `profile-tabpanel-${index}`,
   };
 }
+
+/** GitHub profile URL regex: https://github.com/username */
+const SAFE_GITHUB_REGEX = /^https:\/\/(www\.)?github\.com\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\/?$/;
+/** X (Twitter) profile URL regex: https://x.com/username or https://twitter.com/username */
+const SAFE_X_REGEX = /^https:\/\/(www\.)?(x\.com|twitter\.com)\/[a-zA-Z0-9_]{1,15}\/?$/;
+
+export const getSafeSocialUrl = (serviceName: string, accountId: string): string | null => {
+  if (!accountId) return null;
+  const trimmed = accountId.trim();
+  if (!trimmed.startsWith('https://')) return null;
+  if (serviceName === 'GitHub' && SAFE_GITHUB_REGEX.test(trimmed)) return trimmed;
+  if (serviceName === 'X' && SAFE_X_REGEX.test(trimmed)) return trimmed;
+  return null;
+};
 
 export const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -385,13 +403,61 @@ export const Profile: React.FC = () => {
               <SectionTitle>
                 Connected accounts
               </SectionTitle>
-              <PlaceholderText>
-                {user?.connectedAccounts && user?.connectedAccounts.length > 0 ? user?.connectedAccounts.map(account => (
-                  <div key={account.serviceName}>
-                    {account.serviceName}: {account.accountId}
-                  </div>
-                )) : (userId == 0 ? 'You can connect accounts in Edit Profile page' : '')}
-              </PlaceholderText>
+              {user?.connectedAccounts && user.connectedAccounts.length > 0 ? (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1 }}>
+                  {user.connectedAccounts.map((account) => {
+                    const isGitHub = account.serviceName === 'GitHub';
+                    const isX = account.serviceName === 'X';
+                    const isGoogle = account.serviceName === 'Google';
+                    const isDiscord = account.serviceName === 'Discord';
+
+                    const icon = isGitHub ? <GitHubIcon fontSize="small" />
+                      : isX ? <XIcon fontSize="small" />
+                      : isGoogle ? <GoogleIcon fontSize="small" />
+                      : isDiscord ? <ChatIcon fontSize="small" />
+                      : undefined;
+
+                    const safeUrl = (isGitHub || isX) ? getSafeSocialUrl(account.serviceName, account.accountId) : null;
+
+                    if (safeUrl) {
+                      return (
+                        <Chip
+                          key={account.serviceName}
+                          icon={icon}
+                          label={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <span>{account.serviceName}</span>
+                              <OpenInNewIcon sx={{ fontSize: 14 }} />
+                            </Box>
+                          }
+                          component="a"
+                          href={safeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          clickable
+                          color="primary"
+                          variant="outlined"
+                          size="medium"
+                        />
+                      );
+                    }
+
+                    return (
+                      <Chip
+                        key={account.serviceName}
+                        icon={icon}
+                        label={`${account.serviceName}: ${account.accountId}`}
+                        variant="outlined"
+                        size="medium"
+                      />
+                    );
+                  })}
+                </Box>
+              ) : (
+                <PlaceholderText>
+                  {userId == 0 ? 'You can connect accounts in Edit Profile page' : 'No connected accounts'}
+                </PlaceholderText>
+              )}
             </Box>
           </TabPanel>
 

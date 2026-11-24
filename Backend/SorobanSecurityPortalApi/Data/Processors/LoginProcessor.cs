@@ -115,6 +115,36 @@ namespace SorobanSecurityPortalApi.Data.Processors
             return rows.ToDictionary(r => r.LoginId, r => !string.IsNullOrWhiteSpace(r.FullName) ? r.FullName : r.Login);
         }
 
+        public async Task<bool> UpdateSelfProfile(int loginId, string fullName, string? personalInfo, byte[]? newImage, bool updateImage, List<ConnectedAccountModel> clientManagedAccounts)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var login = await db.Login.FirstOrDefaultAsync(item => item.LoginId == loginId);
+            if (login == null) return false;
+
+            login.FullName = fullName;
+            login.PersonalInfo = personalInfo;
+            if (updateImage)
+            {
+                login.Image = newImage;
+                login.IsAvatarManuallySet = true;
+            }
+
+            // DB is authoritative for non-client-managed (SSO) accounts.
+            // Atomic merge within the tracking context preserves any concurrent SSO updates.
+            var clientManagedServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "GitHub", "X" };
+            var currentAccounts = login.ConnectedAccounts ?? new List<ConnectedAccountModel>();
+
+            var merged = currentAccounts
+                .Where(a => !clientManagedServices.Contains(a.ServiceName))
+                .ToList();
+
+            merged.AddRange(clientManagedAccounts);
+            login.ConnectedAccounts = merged;
+
+            await db.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<List<LoginModel>> SearchUsers(string q, int limit)
         {
             if (string.IsNullOrWhiteSpace(q)) return new List<LoginModel>();
@@ -141,5 +171,6 @@ namespace SorobanSecurityPortalApi.Data.Processors
         Task<LoginModel> Add(LoginModel login);
         Task<Dictionary<int, string>> GetDisplayNames(List<int> userIds);
         Task<List<LoginModel>> SearchUsers(string q, int limit);
+        Task<bool> UpdateSelfProfile(int loginId, string fullName, string? personalInfo, byte[]? newImage, bool updateImage, List<ConnectedAccountModel> clientManagedAccounts);
     }
 }
