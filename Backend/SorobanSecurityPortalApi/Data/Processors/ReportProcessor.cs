@@ -126,12 +126,16 @@ namespace SorobanSecurityPortalApi.Data.Processors
 
             var asc = string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
 
-            return sortBy.ToLowerInvariant() switch
+            IOrderedQueryable<ReportModel>? ordered = sortBy.ToLowerInvariant() switch
             {
                 "date" => asc ? query.OrderBy(v => v.Date) : query.OrderByDescending(v => v.Date),
                 "name" => asc ? query.OrderBy(v => v.Name) : query.OrderByDescending(v => v.Name),
                 _ => null
             };
+
+            // Id as the last key: reports with the same date or name keep one fixed order
+            // (newest first), so a paged list cannot repeat or skip a report between requests.
+            return ordered?.ThenByDescending(v => v.Id);
         }
 
 
