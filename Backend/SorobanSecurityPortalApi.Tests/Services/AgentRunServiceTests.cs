@@ -19,6 +19,11 @@ namespace SorobanSecurityPortalApi.Tests.Services
 {
     public class AgentRunServiceTests
     {
+        // An IP literal, not a hostname: the SSRF check (UrlValidator.IsUrlSafeForFetch) resolves the
+        // host, and an IP literal resolves without a DNS query, so these tests need no network.
+        // Nothing is ever sent to this address: the HTTP handler is a stub.
+        private const string PublicFetchHost = "https://1.1.1.1";
+
         private static IMapper BuildMapper()
         {
             var cfg = new MapperConfiguration(c => c.AddProfile<AgentRunModelProfile>(), NullLoggerFactory.Instance);
@@ -616,7 +621,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
             {
                 ReportTitle = "Pdf Audit", ProtocolName = "Proto", AuditorName = "Aud",
                 ArticleMarkdown = "<article>", Findings = new(),
-                ReportPdfUrl = "https://example.com/r.pdf"
+                ReportPdfUrl = PublicFetchHost + "/r.pdf"
             };
             var cap = SetupCommit(runProc);
             var result = await svc.Approve(70, payload);
@@ -655,7 +660,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
             {
                 ReportTitle = "Flaky Audit", ProtocolName = "Proto", AuditorName = "Aud",
                 ArticleMarkdown = "<article>", Findings = new(),
-                ReportPdfUrl = "https://example.com/r.pdf"
+                ReportPdfUrl = PublicFetchHost + "/r.pdf"
             };
             var cap = SetupCommit(runProc);
             var result = await svc.Approve(73, payload);
@@ -688,7 +693,7 @@ namespace SorobanSecurityPortalApi.Tests.Services
             {
                 ReportTitle = "Html Audit", ProtocolName = "Proto", AuditorName = "Aud",
                 ArticleMarkdown = "# Art", Findings = new(),
-                ReportPdfUrl = "https://example.com/notpdf.html"
+                ReportPdfUrl = PublicFetchHost + "/notpdf.html"
             };
             var cap = SetupCommit(runProc);
             var result = await svc.Approve(71, payload);

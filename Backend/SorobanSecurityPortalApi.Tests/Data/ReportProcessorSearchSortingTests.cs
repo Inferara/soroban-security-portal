@@ -135,5 +135,39 @@ namespace SorobanSecurityPortalApi.Tests.Data
 
             found.Select(r => r.Id).Should().Equal(1, 3, 2);
         }
+
+        // The fixture list is already in ascending name order, so the descending case is the
+        // one that proves the name sort is really applied.
+        [Fact]
+        public async Task Search_SortBy_Name_Desc_Sorts_By_Name_Descending()
+        {
+            var found = await BuildProcessor(ThreeApprovedReports())
+                .Search(new ReportSearchModel { SortBy = "name", SortDirection = "desc" });
+
+            found.Select(r => r.Name).Should().Equal("Charlie", "Bravo", "Alpha");
+        }
+
+        // Reports with the same date and name come back newest-first by id, in either direction.
+        // The lower id is listed first: without the id tiebreaker it would stay first.
+        [Theory]
+        [InlineData("date", "asc")]
+        [InlineData("date", "desc")]
+        [InlineData("name", "asc")]
+        [InlineData("name", "desc")]
+        public async Task Search_Equal_Sort_Values_Are_Ordered_NewestFirst_By_Id(string sortBy, string direction)
+        {
+            var sameDay = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var reports = new List<ReportModel>
+            {
+                new() { Id = 1, Name = "Same", Date = sameDay, Status = ReportModelStatus.Approved },
+                new() { Id = 2, Name = "Same", Date = sameDay, Status = ReportModelStatus.Approved },
+                new() { Id = 3, Name = "Same", Date = sameDay, Status = ReportModelStatus.Approved },
+            };
+
+            var found = await BuildProcessor(reports)
+                .Search(new ReportSearchModel { SortBy = sortBy, SortDirection = direction });
+
+            found.Select(r => r.Id).Should().Equal(3, 2, 1);
+        }
     }
 }
